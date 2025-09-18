@@ -1,0 +1,175 @@
+{
+    "key": "population_activity",
+    "name": "population_activity",
+    "schema_version": "3.0.0",
+    "container_image": {
+        "name": "inscopix/neuro-stats:latest"
+    },
+    "command": {
+        "file_path": "analysis/population_activity.py",
+        "entry_point": "population_activity",
+        "program_type": "PYTHON"
+    },
+    "params": [
+        {
+            "name": "cell_set_files",
+            "key": "cell_set_files",
+            "required": false,
+            "help": "cell_set_files",
+            "type": {
+                "param_type": "ToolPathParam",
+                "param_datatype": "string",
+                "multiple": false
+            }
+        },
+        {
+            "name": "event_set_files",
+            "key": "event_set_files",
+            "required": false,
+            "help": "event_set_files",
+            "type": {
+                "param_type": "ToolPathParam",
+                "param_datatype": "string",
+                "multiple": false
+            }
+        },
+        {
+            "name": "annotations_file",
+            "key": "annotations_file",
+            "required": false,
+            "help": "annotations_file",
+            "type": {
+                "param_type": "ToolPathParam",
+                "param_datatype": "string",
+                "multiple": false
+            }
+        },
+        {
+            "name": "concatenate",
+            "key": "concatenate",
+            "required": false,
+            "help": "concatenate",
+            "type": {
+                "param_type": "ToolStringParam",
+                "param_datatype": "string"
+            }
+        },
+        {
+            "name": "trace_scale_method",
+            "key": "trace_scale_method",
+            "required": false,
+            "help": "trace_scale_method",
+            "type": {
+                "param_type": "ToolStringParam",
+                "param_datatype": "string"
+            }
+        },
+        {
+            "name": "event_scale_method",
+            "key": "event_scale_method",
+            "required": false,
+            "help": "event_scale_method",
+            "type": {
+                "param_type": "ToolStringParam",
+                "param_datatype": "string"
+            }
+        },
+        {
+            "name": "column_name",
+            "key": "column_name",
+            "required": false,
+            "help": "column_name",
+            "type": {
+                "param_type": "ToolStringParam",
+                "param_datatype": "string"
+            }
+        },
+        {
+            "name": "state_names",
+            "key": "state_names",
+            "required": false,
+            "help": "state_names",
+            "type": {
+                "param_type": "ToolStringParam",
+                "param_datatype": "string"
+            }
+        },
+        {
+            "name": "state_colors",
+            "key": "state_colors",
+            "required": false,
+            "help": "state_colors",
+            "type": {
+                "param_type": "ToolStringParam",
+                "param_datatype": "string"
+            }
+        },
+        {
+            "name": "method",
+            "key": "method",
+            "required": false,
+            "help": "method",
+            "type": {
+                "param_type": "ToolStringParam",
+                "param_datatype": "string"
+            }
+        },
+        {
+            "name": "baseline_state",
+            "key": "baseline_state",
+            "required": false,
+            "help": "baseline_state",
+            "type": {
+                "param_type": "ToolStringParam",
+                "param_datatype": "string"
+            }
+        },
+        {
+            "name": "modulation_colors",
+            "key": "modulation_colors",
+            "required": false,
+            "help": "modulation_colors",
+            "type": {
+                "param_type": "ToolStringParam",
+                "param_datatype": "string"
+            }
+        },
+        {
+            "name": "n_shuffle",
+            "key": "n_shuffle",
+            "required": false,
+            "help": "n_shuffle",
+            "type": {
+                "param_type": "ToolIntRangeParam",
+                "param_datatype": "integer",
+                "default": 1000
+            }
+        },
+        {
+            "name": "alpha",
+            "key": "alpha",
+            "required": false,
+            "help": "alpha",
+            "type": {
+                "param_type": "ToolFloatRangeParam",
+                "param_datatype": "float",
+                "default": 0.05
+            }
+        }
+    ],
+    "results": [
+        {
+            "key": "tool_output_group",
+            "name": "Tool Outputs",
+            "help": "Tool outputs",
+            "file_patterns": [
+                "outputs/*"
+            ]
+        }
+    ],
+    "resources": {
+        "cpu": 1,
+        "gpu": 0,
+        "memory": 1000
+    }
+}

@@ -1,0 +1,22 @@
+{
+    "input_cellset_files": null,
+    "input_events_h5_file": null,
+    "event_type": null,
+    "visual_window_pre": -2.0,
+    "visual_window_post": 2.0,
+    "statistical_window_pre_start": -1.0,
+    "statistical_window_pre_end": 1.0,
+    "statistical_window_post_start": 0.0,
+    "statistical_window_post_end": 1.0,
+    "num_shuffles": 1000,
+    "significance_threshold": 0.05,
+    "seed": 0,
+    "modulation_colors": "green, blue, black",
+    "single_group_color": "#1f77b4",
+    "cmap": "coolwarm",
+    "temporal_downsampling_factor": 1,
+    "population_activity_plot_limits": "auto",
+    "activity_heatmap_color_limits": "auto",
+    "activity_by_modulation_plot_limits": "auto",
+    "output_dir": null
+}

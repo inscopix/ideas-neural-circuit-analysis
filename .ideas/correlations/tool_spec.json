@@ -1,0 +1,123 @@
+{
+    "key": "correlations",
+    "name": "correlations",
+    "schema_version": "3.0.0",
+    "container_image": {
+        "name": "inscopix/neuro-stats:latest"
+    },
+    "command": {
+        "file_path": "analysis/correlations.py",
+        "entry_point": "correlation_tool",
+        "program_type": "PYTHON"
+    },
+    "params": [
+        {
+            "name": "cell_set_files",
+            "key": "cell_set_files",
+            "required": false,
+            "help": "cell_set_files",
+            "type": {
+                "param_type": "ToolPathParam",
+                "param_datatype": "string",
+                "multiple": false
+            }
+        },
+        {
+            "name": "annotations_file",
+            "key": "annotations_file",
+            "required": false,
+            "help": "annotations_file",
+            "type": {
+                "param_type": "ToolPathParam",
+                "param_datatype": "string",
+                "multiple": false
+            }
+        },
+        {
+            "name": "column_name",
+            "key": "column_name",
+            "required": false,
+            "help": "column_name",
+            "type": {
+                "param_type": "ToolStringParam",
+                "param_datatype": "string"
+            }
+        },
+        {
+            "name": "state_names",
+            "key": "state_names",
+            "required": false,
+            "help": "state_names",
+            "type": {
+                "param_type": "ToolStringParam",
+                "param_datatype": "string"
+            }
+        },
+        {
+            "name": "state_colors",
+            "key": "state_colors",
+            "required": false,
+            "help": "state_colors",
+            "type": {
+                "param_type": "ToolStringParam",
+                "param_datatype": "string"
+            }
+        },
+        {
+            "name": "correlation_colors",
+            "key": "correlation_colors",
+            "required": false,
+            "help": "correlation_colors",
+            "type": {
+                "param_type": "ToolStringParam",
+                "param_datatype": "string"
+            }
+        },
+        {
+            "name": "statistic",
+            "key": "statistic",
+            "required": false,
+            "help": "statistic",
+            "type": {
+                "param_type": "ToolStringParam",
+                "param_datatype": "string"
+            }
+        },
+        {
+            "name": "include_positions",
+            "key": "include_positions",
+            "required": false,
+            "help": "include_positions",
+            "type": {
+                "param_type": "ToolStringParam",
+                "param_datatype": "string"
+            }
+        },
+        {
+            "name": "correlation_threshold",
+            "key": "correlation_threshold",
+            "required": false,
+            "help": "correlation_threshold",
+            "type": {
+                "param_type": "ToolFloatRangeParam",
+                "param_datatype": "float",
+                "default": 0.5
+            }
+        }
+    ],
+    "results": [
+        {
+            "key": "tool_output_group",
+            "name": "Tool Outputs",
+            "help": "Tool outputs",
+            "file_patterns": [
+                "outputs/*"
+            ]
+        }
+    ],
+    "resources": {
+        "cpu": 1,
+        "gpu": 0,
+        "memory": 1000
+    }
+}

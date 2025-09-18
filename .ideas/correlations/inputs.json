@@ -1,0 +1,11 @@
+{
+    "cell_set_files": null,
+    "annotations_file": null,
+    "column_name": "state",
+    "state_names": "",
+    "state_colors": "blue, orange, grey",
+    "correlation_colors": "red, blue",
+    "statistic": "max",
+    "include_positions": true,
+    "correlation_threshold": 0.5
+}
