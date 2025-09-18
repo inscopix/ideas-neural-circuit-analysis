@@ -1,6 +1,7 @@
 import json
 import logging
-from pathlib import Path
+# from pathlib import Path
+import pathlib
 
 import h5py
 from typing import Literal, Optional, Union
@@ -9,6 +10,7 @@ import zipfile
 import tempfile
 import shutil
 from ideas.io import cell_set_to_positions
+from ideas.outputs import OutputData
 
 # Add isx import
 import isx
@@ -199,8 +201,8 @@ def cell_set_to_positions_mapping(
 # @beartype
 def correlation_tool(
     *,
-    cell_set_files: List[str],
-    annotations_file: Optional[List[str]] = None,
+    cell_set_files: List[pathlib.Path],
+    annotations_file: Optional[List[pathlib.Path]] = None,
     column_name: str = "state",
     state_names: Optional[str] = "",
     state_colors: str = "blue, orange, grey",
@@ -485,12 +487,12 @@ Will compute correlation matrix for entire recording"""
                 "Could not create spatial correlation analysis: missing position data"
             )
 
-    stat_key = Path(STAT_CORRELATIONS_CSV_NAME).stem
-    avg_key = Path(AVG_CORRELATIONS_CSV_NAME).stem
-    raw_h5_key = Path(RAW_CORRELATIONS_H5_NAME).stem
-    raw_zip_key = Path(RAW_CORRELATIONS_ZIP_NAME).stem
-    spatial_corr_key = Path(SPATIAL_CORRELATION_SVG_NAME).stem
-    spatial_map_key = Path(SPATIAL_MAP_SVG_NAME).stem
+    # stat_key = Path(STAT_CORRELATIONS_CSV_NAME).stem
+    # avg_key = Path(AVG_CORRELATIONS_CSV_NAME).stem
+    # raw_h5_key = Path(RAW_CORRELATIONS_H5_NAME).stem
+    # raw_zip_key = Path(RAW_CORRELATIONS_ZIP_NAME).stem
+    # spatial_corr_key = Path(SPATIAL_CORRELATION_SVG_NAME).stem
+    # spatial_map_key = Path(SPATIAL_MAP_SVG_NAME).stem
 
     # Update metadata with actual states found
     values = {
@@ -537,57 +539,72 @@ Will compute correlation matrix for entire recording"""
     #     json.dump(metadata, file, indent=2)
 
 
-    output_data = [
-        {
-            "file": AVG_CORRELATIONS_CSV_NAME,
-            "previews": [
-                {
-                    "file": "average_correlations_preview.svg",
-                    "caption": "Mean positive (top) and negative (bottom) correlations across behavioral states. These barplots show how average correlation values differ between states, providing insight into overall network connectivity patterns."
-                }
-            ],
-            "metadata": values
-        },
-        {
-            "file": RAW_CORRELATIONS_H5_NAME,
-            "previews": [
-                {
-                    "file": "correlation_matrices.svg",
-                    "caption": "Pairwise Pearson correlation matrices between neural activity across behavioral states. Neurons are hierarchically clustered to reveal functional organization, with color intensity representing correlation strength from -1 (negative) to +1 (positive)."
-                }
-            ],
-            "metadata": values
-        },
-        {
-            "file": RAW_CORRELATIONS_ZIP_NAME,
-            "previews": [
-                {
-                    "file": "spatial_correlation.svg",
-                    "caption": "Relationship between spatial distance and neural correlation across different behavioral states. Left panels show scatter plots of pairwise neural correlation versus physical distance between cell centroids, with linear regression line (gray). Right panels show density plots displaying the distribution of correlation values as a function of distance. This visualization reveals how functional relationships between neurons relate to their spatial arrangement."
-                },
-                {
-                    "file": "spatial_correlation_map.svg",
-                    "caption": "Spatial map of neural correlations across behavioral states. Gray dots show all neurons with known positions. Colored lines connect neuron pairs above the correlation threshold, with line color indicating correlation strength and direction. Bold black dots highlight neurons with very strong correlations (|r| > 0.7)."
-                }
-            ],
-            "metadata": spatial_values
-        },
-        {
-            "file": STAT_CORRELATIONS_CSV_NAME,
-            "previews": [
-                {
-                    "file": "correlation_plot.svg",
-                    "caption": "Distribution of correlation values across behavioral states. Shows cumulative distribution functions of correlation values and boxplot comparisons between states, illustrating the proportion of neurons with correlations below each threshold."
-                }
-            ],
-            "metadata": stat_values
-        }
-    ]
+    # output_data = [
+    #     {
+    #         "file": AVG_CORRELATIONS_CSV_NAME,
+    #         "previews": [
+    #             {
+    #                 "file": "average_correlations_preview.svg",
+    #                 "caption": "Mean positive (top) and negative (bottom) correlations across behavioral states. These barplots show how average correlation values differ between states, providing insight into overall network connectivity patterns."
+    #             }
+    #         ],
+    #         "metadata": values
+    #     },
+    #     {
+    #         "file": RAW_CORRELATIONS_H5_NAME,
+    #         "previews": [
+    #             {
+    #                 "file": "correlation_matrices.svg",
+    #                 "caption": "Pairwise Pearson correlation matrices between neural activity across behavioral states. Neurons are hierarchically clustered to reveal functional organization, with color intensity representing correlation strength from -1 (negative) to +1 (positive)."
+    #             }
+    #         ],
+    #         "metadata": values
+    #     },
+    #     {
+    #         "file": RAW_CORRELATIONS_ZIP_NAME,
+    #         "previews": [
+    #             {
+    #                 "file": "spatial_correlation.svg",
+    #                 "caption": "Relationship between spatial distance and neural correlation across different behavioral states. Left panels show scatter plots of pairwise neural correlation versus physical distance between cell centroids, with linear regression line (gray). Right panels show density plots displaying the distribution of correlation values as a function of distance. This visualization reveals how functional relationships between neurons relate to their spatial arrangement."
+    #             },
+    #             {
+    #                 "file": "spatial_correlation_map.svg",
+    #                 "caption": "Spatial map of neural correlations across behavioral states. Gray dots show all neurons with known positions. Colored lines connect neuron pairs above the correlation threshold, with line color indicating correlation strength and direction. Bold black dots highlight neurons with very strong correlations (|r| > 0.7)."
+    #             }
+    #         ],
+    #         "metadata": spatial_values
+    #     },
+    #     {
+    #         "file": STAT_CORRELATIONS_CSV_NAME,
+    #         "previews": [
+    #             {
+    #                 "file": "correlation_plot.svg",
+    #                 "caption": "Distribution of correlation values across behavioral states. Shows cumulative distribution functions of correlation values and boxplot comparisons between states, illustrating the proportion of neurons with correlations below each threshold."
+    #             }
+    #         ],
+    #         "metadata": stat_values
+    #     }
+    # ]
 
-    with open("output_data.json", "w") as f:
-        json.dump(output_data, f, indent=4)
+    # with open("output_data.json", "w") as f:
+    #     json.dump(output_data, f, indent=4)
 
     logger.info("State Analysis: correlation tool completed")
+
+    with OutputData() as output_data:
+        files = [
+            AVG_CORRELATIONS_CSV_NAME,
+            "average_correlations_preview.svg",
+            RAW_CORRELATIONS_H5_NAME,
+            "correlation_matrices.svg",
+            RAW_CORRELATIONS_ZIP_NAME,
+            "spatial_correlation.svg",
+            "spatial_correlation_map.svg",
+            STAT_CORRELATIONS_CSV_NAME,
+            "correlation_plot.svg"
+        ]
+        for file in files:
+            output_data.add_file(file)
 
     # Return an empty dictionary to satisfy the return type
     return {}

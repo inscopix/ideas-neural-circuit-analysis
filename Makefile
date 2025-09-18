@@ -1,7 +1,7 @@
 
 VERSION=latest
 
-IMAGE_TAG=inscopix/neuro-stats:${VERSION}
+IMAGE_TAG=neuro-stats:${VERSION}
 PLATFORM=linux/amd64
 
 .PHONY: build

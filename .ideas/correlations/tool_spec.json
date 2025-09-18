@@ -3,7 +3,7 @@
     "name": "correlations",
     "schema_version": "3.0.0",
     "container_image": {
-        "name": "inscopix/neuro-stats:latest"
+        "name": "neuro-stats"
     },
     "command": {
         "file_path": "analysis/correlations.py",
@@ -12,92 +12,98 @@
     },
     "params": [
         {
-            "name": "cell_set_files",
             "key": "cell_set_files",
+            "name": "cell_set_files",
             "required": false,
-            "help": "cell_set_files",
+            "description": "cell_set_files",
             "type": {
                 "param_type": "ToolPathParam",
-                "param_datatype": "string",
-                "multiple": false
+                "param_datatype": "array",
+                "multiple": true
             }
         },
         {
-            "name": "annotations_file",
             "key": "annotations_file",
+            "name": "annotations_file",
             "required": false,
-            "help": "annotations_file",
+            "description": "annotations_file",
             "type": {
                 "param_type": "ToolPathParam",
-                "param_datatype": "string",
-                "multiple": false
+                "param_datatype": "array",
+                "multiple": true
             }
         },
         {
-            "name": "column_name",
             "key": "column_name",
+            "name": "column_name",
             "required": false,
-            "help": "column_name",
+            "description": "column_name",
             "type": {
                 "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "param_datatype": "string",
+                "default": "state"
             }
         },
         {
-            "name": "state_names",
             "key": "state_names",
+            "name": "state_names",
             "required": false,
-            "help": "state_names",
+            "description": "state_names",
             "type": {
                 "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "param_datatype": "string",
+                "default": ""
             }
         },
         {
-            "name": "state_colors",
             "key": "state_colors",
+            "name": "state_colors",
             "required": false,
-            "help": "state_colors",
+            "description": "state_colors",
             "type": {
                 "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "param_datatype": "string",
+                "default": "blue, orange, grey"
             }
         },
         {
-            "name": "correlation_colors",
             "key": "correlation_colors",
+            "name": "correlation_colors",
             "required": false,
-            "help": "correlation_colors",
+            "description": "correlation_colors",
             "type": {
                 "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "param_datatype": "string",
+                "default": "red, blue"
             }
         },
         {
-            "name": "statistic",
             "key": "statistic",
+            "name": "statistic",
             "required": false,
-            "help": "statistic",
+            "description": "statistic",
             "type": {
                 "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "param_datatype": "string",
+                "default": "max"
             }
         },
         {
-            "name": "include_positions",
             "key": "include_positions",
+            "name": "include_positions",
             "required": false,
-            "help": "include_positions",
+            "description": "include_positions",
             "type": {
-                "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "param_type": "ToolBooleanParam",
+                "param_datatype": "boolean",
+                "default": true
             }
         },
         {
-            "name": "correlation_threshold",
             "key": "correlation_threshold",
+            "name": "correlation_threshold",
             "required": false,
-            "help": "correlation_threshold",
+            "description": "correlation_threshold",
             "type": {
                 "param_type": "ToolFloatRangeParam",
                 "param_datatype": "float",
@@ -109,7 +115,7 @@
         {
             "key": "tool_output_group",
             "name": "Tool Outputs",
-            "help": "Tool outputs",
+            "description": "Tool outputs",
             "file_patterns": [
                 "outputs/*"
             ]

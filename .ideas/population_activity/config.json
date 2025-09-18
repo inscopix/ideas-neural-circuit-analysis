@@ -1,6 +1,0 @@
-{
-    "file": "analysis/population_activity.py",
-    "image": "inscopix/neuro-stats:latest",
-    "executor_type": "PYTHON",
-    "function": "population_activity"
-}

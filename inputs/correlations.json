@@ -1,0 +1,14 @@
+{
+    "cell_set_files": [
+        "data/input_cellset.isxd"
+    ],
+    "annotations_file": [
+        "data/ideas_experiment_annotations.parquet"
+    ],
+    "column_name": "state",
+    "state_names": "center, quad 1, quad 2, quad 3, quad 4",
+    "state_colors": "grey, tab:blue, tab:cyan, tab:green, tab:purple",
+    "correlation_colors": "cool",
+    "statistic": "max",
+    "correlation_threshold": 0.9
+}
