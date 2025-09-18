@@ -3,7 +3,7 @@
     "name": "peri_event_workflow",
     "schema_version": "3.0.0",
     "container_image": {
-        "name": "inscopix/neuro-stats:latest"
+        "name": "inscopix/neuro-stats:0.0.1"
     },
     "command": {
         "file_path": "analysis/peri_event_workflow.py",
