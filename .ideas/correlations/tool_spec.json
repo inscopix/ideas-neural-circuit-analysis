@@ -1,7 +1,9 @@
 {
     "key": "correlations",
     "name": "correlations",
+    "version": "0.0.1",
     "schema_version": "3.0.0",
+    "description": "This is a description",
     "container_image": {
         "name": "inscopix/neuro-stats:0.0.1"
     },

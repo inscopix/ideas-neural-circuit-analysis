@@ -1,7 +1,9 @@
 {
     "key": "peri_event_workflow",
+    "version": "0.0.1",
     "name": "peri_event_workflow",
     "schema_version": "3.0.0",
+    "description": "this is a description",
     "container_image": {
         "name": "inscopix/neuro-stats:0.0.1"
     },
@@ -15,7 +17,7 @@
             "name": "input_cellset_files",
             "key": "input_cellset_files",
             "required": false,
-            "help": "input_cellset_files",
+            "description": "input_cellset_files",
             "type": {
                 "param_type": "ToolPathParam",
                 "param_datatype": "string",
@@ -26,7 +28,7 @@
             "name": "input_events_h5_file",
             "key": "input_events_h5_file",
             "required": false,
-            "help": "input_events_h5_file",
+            "description": "input_events_h5_file",
             "type": {
                 "param_type": "ToolPathParam",
                 "param_datatype": "string",
@@ -37,7 +39,7 @@
             "name": "event_type",
             "key": "event_type",
             "required": false,
-            "help": "event_type",
+            "description": "event_type",
             "type": {
                 "param_type": "ToolStringParam",
                 "param_datatype": "string"
@@ -47,7 +49,7 @@
             "name": "visual_window_pre",
             "key": "visual_window_pre",
             "required": false,
-            "help": "visual_window_pre",
+            "description": "visual_window_pre",
             "type": {
                 "param_type": "ToolFloatRangeParam",
                 "param_datatype": "float",
@@ -58,7 +60,7 @@
             "name": "visual_window_post",
             "key": "visual_window_post",
             "required": false,
-            "help": "visual_window_post",
+            "description": "visual_window_post",
             "type": {
                 "param_type": "ToolFloatRangeParam",
                 "param_datatype": "float",
@@ -69,7 +71,7 @@
             "name": "statistical_window_pre_start",
             "key": "statistical_window_pre_start",
             "required": false,
-            "help": "statistical_window_pre_start",
+            "description": "statistical_window_pre_start",
             "type": {
                 "param_type": "ToolFloatRangeParam",
                 "param_datatype": "float",
@@ -80,7 +82,7 @@
             "name": "statistical_window_pre_end",
             "key": "statistical_window_pre_end",
             "required": false,
-            "help": "statistical_window_pre_end",
+            "description": "statistical_window_pre_end",
             "type": {
                 "param_type": "ToolFloatRangeParam",
                 "param_datatype": "float",
@@ -91,7 +93,7 @@
             "name": "statistical_window_post_start",
             "key": "statistical_window_post_start",
             "required": false,
-            "help": "statistical_window_post_start",
+            "description": "statistical_window_post_start",
             "type": {
                 "param_type": "ToolFloatRangeParam",
                 "param_datatype": "float",
@@ -102,7 +104,7 @@
             "name": "statistical_window_post_end",
             "key": "statistical_window_post_end",
             "required": false,
-            "help": "statistical_window_post_end",
+            "description": "statistical_window_post_end",
             "type": {
                 "param_type": "ToolFloatRangeParam",
                 "param_datatype": "float",
@@ -113,7 +115,7 @@
             "name": "num_shuffles",
             "key": "num_shuffles",
             "required": false,
-            "help": "num_shuffles",
+            "description": "num_shuffles",
             "type": {
                 "param_type": "ToolIntRangeParam",
                 "param_datatype": "integer",
@@ -124,7 +126,7 @@
             "name": "significance_threshold",
             "key": "significance_threshold",
             "required": false,
-            "help": "significance_threshold",
+            "description": "significance_threshold",
             "type": {
                 "param_type": "ToolFloatRangeParam",
                 "param_datatype": "float",
@@ -135,7 +137,7 @@
             "name": "seed",
             "key": "seed",
             "required": false,
-            "help": "seed",
+            "description": "seed",
             "type": {
                 "param_type": "ToolIntRangeParam",
                 "param_datatype": "integer",
@@ -146,7 +148,7 @@
             "name": "modulation_colors",
             "key": "modulation_colors",
             "required": false,
-            "help": "modulation_colors",
+            "description": "modulation_colors",
             "type": {
                 "param_type": "ToolStringParam",
                 "param_datatype": "string"
@@ -156,7 +158,7 @@
             "name": "single_group_color",
             "key": "single_group_color",
             "required": false,
-            "help": "single_group_color",
+            "description": "single_group_color",
             "type": {
                 "param_type": "ToolStringParam",
                 "param_datatype": "string"
@@ -166,7 +168,7 @@
             "name": "cmap",
             "key": "cmap",
             "required": false,
-            "help": "cmap",
+            "description": "cmap",
             "type": {
                 "param_type": "ToolStringParam",
                 "param_datatype": "string"
@@ -176,7 +178,7 @@
             "name": "temporal_downsampling_factor",
             "key": "temporal_downsampling_factor",
             "required": false,
-            "help": "temporal_downsampling_factor",
+            "description": "temporal_downsampling_factor",
             "type": {
                 "param_type": "ToolIntRangeParam",
                 "param_datatype": "integer",
@@ -187,7 +189,7 @@
             "name": "population_activity_plot_limits",
             "key": "population_activity_plot_limits",
             "required": false,
-            "help": "population_activity_plot_limits",
+            "description": "population_activity_plot_limits",
             "type": {
                 "param_type": "ToolStringParam",
                 "param_datatype": "string"
@@ -197,7 +199,7 @@
             "name": "activity_heatmap_color_limits",
             "key": "activity_heatmap_color_limits",
             "required": false,
-            "help": "activity_heatmap_color_limits",
+            "description": "activity_heatmap_color_limits",
             "type": {
                 "param_type": "ToolStringParam",
                 "param_datatype": "string"
@@ -207,7 +209,7 @@
             "name": "activity_by_modulation_plot_limits",
             "key": "activity_by_modulation_plot_limits",
             "required": false,
-            "help": "activity_by_modulation_plot_limits",
+            "description": "activity_by_modulation_plot_limits",
             "type": {
                 "param_type": "ToolStringParam",
                 "param_datatype": "string"
@@ -217,7 +219,7 @@
             "name": "output_dir",
             "key": "output_dir",
             "required": false,
-            "help": "output_dir",
+            "description": "output_dir",
             "type": {
                 "param_type": "ToolStringParam",
                 "param_datatype": "string"
@@ -228,7 +230,7 @@
         {
             "key": "tool_output_group",
             "name": "Tool Outputs",
-            "help": "Tool outputs",
+            "description": "Tool outputs",
             "file_patterns": [
                 "outputs/*"
             ]

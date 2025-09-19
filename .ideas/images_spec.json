@@ -1,8 +1,8 @@
 {
   "neuro-stats": {
     "image": "inscopix/neuro-stats",
-    "version": "0.0.2",
-    "dockerfile_path": ".Dockerfile",
+    "version": "0.0.1",
+    "dockerfile_path": "Dockerfile",
     "visibility": "protected",
     "tags": {
     }
