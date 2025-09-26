@@ -1,7 +1,7 @@
 {
-    "schema_version": "1.0.0",
-    "file": "analysis/correlations.py",
     "container": "neuro-stats",
     "executor_type": "PYTHON",
-    "function": "correlation_tool"
+    "file": "analysis/correlations.py",
+    "function": "correlation_tool",
+    "schema_version": "1.0.0"
 }
