@@ -1,6 +1,7 @@
 {
     "key": "correlations",
     "name": "correlations",
+    "visibility": "public",
     "version": "0.0.1",
     "schema_version": "3.0.0",
     "description": "This is a description",

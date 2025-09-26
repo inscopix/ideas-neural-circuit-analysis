@@ -1,10 +1,26 @@
 {
-  "neuro-stats": {
-    "image": "inscopix/neuro-stats",
-    "version": "0.0.1",
-    "dockerfile_path": "Dockerfile",
+    "schema_version": "0.0.1",
+    "repository": "inscopix/neuro-stats",
+    "label": "0.0.1",
+    "make_arguments": "build label={label}",
     "visibility": "protected",
-    "tags": {
-    }
- }
+    "readme_path": "README.md",
+    "description": "neural circuit analysis conatainer image",
+    "tags": [
+	"numpy",
+	"pandas",
+	"scipy",
+	"scikit-learn",
+	"scikit-image",
+	"pingouin",
+	"opencv-python", 
+	"statsmodels",
+	"matplotlib",
+	"plotly",
+	"seaborn",
+	"bokeh",
+	"isx",
+	"pynwb",
+	"pynapple"
+    ]
 }
