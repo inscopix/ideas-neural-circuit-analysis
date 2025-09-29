@@ -1,8 +1,9 @@
-{
+[
+  {
     "schema_version": "0.0.1",
-    "repository": "inscopix/neuro-stats",
+    "repository": "platform/neuro-stats",
     "label": "0.0.1",
-    "make_arguments": "build label={label}",
+    "make_arguments": "build IMAGE_TAG={image_tag}",
     "visibility": "protected",
     "readme_path": "README.md",
     "description": "neural circuit analysis conatainer image",
@@ -23,4 +24,5 @@
 	"pynwb",
 	"pynapple"
     ]
-}
+  }
+]

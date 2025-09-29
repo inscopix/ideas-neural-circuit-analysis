@@ -1,8 +1,9 @@
 
 VERSION=latest
-
-IMAGE_TAG=inscopix/neuro-stats:${VERSION}
+DEFAULT_IMAGE_TAG=inscopix/neuro-stats:${VERSION}
 PLATFORM=linux/amd64
+
+IMAGE_TAG := $(if $(IMAGE_TAG),$(IMAGE_TAG),$(DEFAULT_IMAGE_TAG))
 
 .PHONY: build
 

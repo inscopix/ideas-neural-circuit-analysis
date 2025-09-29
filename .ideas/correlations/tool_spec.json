@@ -6,7 +6,7 @@
     "schema_version": "3.0.0",
     "description": "This is a description",
     "container_image": {
-        "name": "inscopix/neuro-stats:0.0.1"
+        "name": "platform/neuro-stats:0.0.1"
     },
     "command": {
         "file_path": "analysis/correlations.py",
