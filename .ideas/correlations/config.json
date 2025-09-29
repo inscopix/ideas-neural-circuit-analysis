@@ -1,6 +1,6 @@
 {
     "file": "analysis/correlations.py",
-    "image": "inscopix/neuro-stats:0.0.1",
+    "image": "platform/neuro-stats:0.0.1",
     "executor_type": "PYTHON",
     "function": "correlation_tool"
 }

@@ -1,9 +1,13 @@
-
-VERSION=latest
-DEFAULT_IMAGE_TAG=inscopix/neuro-stats:${VERSION}
 PLATFORM=linux/amd64
 
-IMAGE_TAG := $(if $(IMAGE_TAG),$(IMAGE_TAG),$(DEFAULT_IMAGE_TAG))
+# Label may be specified in codebuild pipeline
+# Locally, use default "latest"
+ifndef LABEL
+	LABEL=latest
+endif
+
+IMAGE_TAG := platform/neuro-stats:${LABEL}
+	
 
 .PHONY: build
 
