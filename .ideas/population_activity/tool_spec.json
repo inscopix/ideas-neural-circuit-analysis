@@ -2,8 +2,10 @@
     "key": "population_activity",
     "name": "population_activity",
     "schema_version": "3.0.0",
+    "description": "this is a description",
+    "version": "0.0.1", 
     "container_image": {
-        "name": "inscopix/neuro-stats:latest"
+        "name": "platform/neuro-stats:0.0.1"
     },
     "command": {
         "file_path": "analysis/population_activity.py",
@@ -15,7 +17,7 @@
             "name": "cell_set_files",
             "key": "cell_set_files",
             "required": false,
-            "help": "cell_set_files",
+            "description": "cell_set_files",
             "type": {
                 "param_type": "ToolPathParam",
                 "param_datatype": "string",
@@ -26,7 +28,7 @@
             "name": "event_set_files",
             "key": "event_set_files",
             "required": false,
-            "help": "event_set_files",
+            "description": "event_set_files",
             "type": {
                 "param_type": "ToolPathParam",
                 "param_datatype": "string",
@@ -37,7 +39,7 @@
             "name": "annotations_file",
             "key": "annotations_file",
             "required": false,
-            "help": "annotations_file",
+            "description": "annotations_file",
             "type": {
                 "param_type": "ToolPathParam",
                 "param_datatype": "string",
@@ -48,7 +50,7 @@
             "name": "concatenate",
             "key": "concatenate",
             "required": false,
-            "help": "concatenate",
+            "description": "concatenate",
             "type": {
                 "param_type": "ToolStringParam",
                 "param_datatype": "string"
@@ -58,7 +60,7 @@
             "name": "trace_scale_method",
             "key": "trace_scale_method",
             "required": false,
-            "help": "trace_scale_method",
+            "description": "trace_scale_method",
             "type": {
                 "param_type": "ToolStringParam",
                 "param_datatype": "string"
@@ -68,7 +70,7 @@
             "name": "event_scale_method",
             "key": "event_scale_method",
             "required": false,
-            "help": "event_scale_method",
+            "description": "event_scale_method",
             "type": {
                 "param_type": "ToolStringParam",
                 "param_datatype": "string"
@@ -78,7 +80,7 @@
             "name": "column_name",
             "key": "column_name",
             "required": false,
-            "help": "column_name",
+            "description": "column_name",
             "type": {
                 "param_type": "ToolStringParam",
                 "param_datatype": "string"
@@ -88,7 +90,7 @@
             "name": "state_names",
             "key": "state_names",
             "required": false,
-            "help": "state_names",
+            "description": "state_names",
             "type": {
                 "param_type": "ToolStringParam",
                 "param_datatype": "string"
@@ -98,7 +100,7 @@
             "name": "state_colors",
             "key": "state_colors",
             "required": false,
-            "help": "state_colors",
+            "description": "state_colors",
             "type": {
                 "param_type": "ToolStringParam",
                 "param_datatype": "string"
@@ -108,7 +110,7 @@
             "name": "method",
             "key": "method",
             "required": false,
-            "help": "method",
+            "description": "method",
             "type": {
                 "param_type": "ToolStringParam",
                 "param_datatype": "string"
@@ -118,7 +120,7 @@
             "name": "baseline_state",
             "key": "baseline_state",
             "required": false,
-            "help": "baseline_state",
+            "description": "baseline_state",
             "type": {
                 "param_type": "ToolStringParam",
                 "param_datatype": "string"
@@ -128,7 +130,7 @@
             "name": "modulation_colors",
             "key": "modulation_colors",
             "required": false,
-            "help": "modulation_colors",
+            "description": "modulation_colors",
             "type": {
                 "param_type": "ToolStringParam",
                 "param_datatype": "string"
@@ -138,7 +140,7 @@
             "name": "n_shuffle",
             "key": "n_shuffle",
             "required": false,
-            "help": "n_shuffle",
+            "description": "n_shuffle",
             "type": {
                 "param_type": "ToolIntRangeParam",
                 "param_datatype": "integer",
@@ -149,7 +151,7 @@
             "name": "alpha",
             "key": "alpha",
             "required": false,
-            "help": "alpha",
+            "description": "alpha",
             "type": {
                 "param_type": "ToolFloatRangeParam",
                 "param_datatype": "float",
@@ -161,7 +163,7 @@
         {
             "key": "tool_output_group",
             "name": "Tool Outputs",
-            "help": "Tool outputs",
+            "description": "Tool outputs",
             "file_patterns": [
                 "outputs/*"
             ]
