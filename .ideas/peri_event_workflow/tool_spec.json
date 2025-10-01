@@ -1,11 +1,12 @@
 {
     "key": "peri_event_workflow",
-    "version": "0.0.1",
     "name": "peri_event_workflow",
+    "version": "0.0.2",
+    "description": "Peri-event analysis workflow.",
     "schema_version": "3.0.0",
-    "description": "this is a description",
     "container_image": {
-        "name": "platform/neuro-stats:0.0.1"
+        "repository": "platform/neuro-stats",
+        "label": "0.0.1"
     },
     "command": {
         "file_path": "analysis/peri_event_workflow.py",
@@ -14,215 +15,201 @@
     },
     "params": [
         {
-            "name": "input_cellset_files",
             "key": "input_cellset_files",
-            "required": false,
+            "name": "input_cellset_files",
+            "required": true,
             "description": "input_cellset_files",
             "type": {
                 "param_type": "ToolPathParam",
-                "param_datatype": "string",
-                "multiple": false
+                "multiple": true
             }
         },
         {
-            "name": "input_events_h5_file",
             "key": "input_events_h5_file",
-            "required": false,
+            "name": "input_events_h5_file",
+            "required": true,
             "description": "input_events_h5_file",
             "type": {
                 "param_type": "ToolPathParam",
-                "param_datatype": "string",
                 "multiple": false
             }
         },
         {
-            "name": "event_type",
             "key": "event_type",
-            "required": false,
+            "name": "event_type",
+            "required": true,
             "description": "event_type",
             "type": {
-                "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "param_type": "ToolStringParam"
             }
         },
         {
-            "name": "visual_window_pre",
             "key": "visual_window_pre",
+            "name": "visual_window_pre",
             "required": false,
             "description": "visual_window_pre",
             "type": {
                 "param_type": "ToolFloatRangeParam",
-                "param_datatype": "float",
                 "default": -2.0
             }
         },
         {
-            "name": "visual_window_post",
             "key": "visual_window_post",
+            "name": "visual_window_post",
             "required": false,
             "description": "visual_window_post",
             "type": {
                 "param_type": "ToolFloatRangeParam",
-                "param_datatype": "float",
                 "default": 2.0
             }
         },
         {
-            "name": "statistical_window_pre_start",
             "key": "statistical_window_pre_start",
+            "name": "statistical_window_pre_start",
             "required": false,
             "description": "statistical_window_pre_start",
             "type": {
                 "param_type": "ToolFloatRangeParam",
-                "param_datatype": "float",
                 "default": -1.0
             }
         },
         {
-            "name": "statistical_window_pre_end",
             "key": "statistical_window_pre_end",
+            "name": "statistical_window_pre_end",
             "required": false,
             "description": "statistical_window_pre_end",
             "type": {
                 "param_type": "ToolFloatRangeParam",
-                "param_datatype": "float",
                 "default": 1.0
             }
         },
         {
-            "name": "statistical_window_post_start",
             "key": "statistical_window_post_start",
+            "name": "statistical_window_post_start",
             "required": false,
             "description": "statistical_window_post_start",
             "type": {
                 "param_type": "ToolFloatRangeParam",
-                "param_datatype": "float",
                 "default": 0.0
             }
         },
         {
-            "name": "statistical_window_post_end",
             "key": "statistical_window_post_end",
+            "name": "statistical_window_post_end",
             "required": false,
             "description": "statistical_window_post_end",
             "type": {
                 "param_type": "ToolFloatRangeParam",
-                "param_datatype": "float",
                 "default": 1.0
             }
         },
         {
-            "name": "num_shuffles",
             "key": "num_shuffles",
+            "name": "num_shuffles",
             "required": false,
             "description": "num_shuffles",
             "type": {
                 "param_type": "ToolIntRangeParam",
-                "param_datatype": "integer",
                 "default": 1000
             }
         },
         {
-            "name": "significance_threshold",
             "key": "significance_threshold",
+            "name": "significance_threshold",
             "required": false,
             "description": "significance_threshold",
             "type": {
                 "param_type": "ToolFloatRangeParam",
-                "param_datatype": "float",
                 "default": 0.05
             }
         },
         {
-            "name": "seed",
             "key": "seed",
+            "name": "seed",
             "required": false,
             "description": "seed",
             "type": {
                 "param_type": "ToolIntRangeParam",
-                "param_datatype": "integer",
                 "default": 0
             }
         },
         {
-            "name": "modulation_colors",
             "key": "modulation_colors",
+            "name": "modulation_colors",
             "required": false,
             "description": "modulation_colors",
             "type": {
                 "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "default": "green, blue, black"
             }
         },
         {
-            "name": "single_group_color",
             "key": "single_group_color",
+            "name": "single_group_color",
             "required": false,
             "description": "single_group_color",
             "type": {
                 "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "default": "#1f77b4"
             }
         },
         {
-            "name": "cmap",
             "key": "cmap",
+            "name": "cmap",
             "required": false,
             "description": "cmap",
             "type": {
                 "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "default": "coolwarm"
             }
         },
         {
-            "name": "temporal_downsampling_factor",
             "key": "temporal_downsampling_factor",
+            "name": "temporal_downsampling_factor",
             "required": false,
             "description": "temporal_downsampling_factor",
             "type": {
                 "param_type": "ToolIntRangeParam",
-                "param_datatype": "integer",
                 "default": 1
             }
         },
         {
-            "name": "population_activity_plot_limits",
             "key": "population_activity_plot_limits",
+            "name": "population_activity_plot_limits",
             "required": false,
             "description": "population_activity_plot_limits",
             "type": {
                 "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "default": "auto"
             }
         },
         {
-            "name": "activity_heatmap_color_limits",
             "key": "activity_heatmap_color_limits",
+            "name": "activity_heatmap_color_limits",
             "required": false,
             "description": "activity_heatmap_color_limits",
             "type": {
                 "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "default": "auto"
             }
         },
         {
-            "name": "activity_by_modulation_plot_limits",
             "key": "activity_by_modulation_plot_limits",
+            "name": "activity_by_modulation_plot_limits",
             "required": false,
             "description": "activity_by_modulation_plot_limits",
             "type": {
                 "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "default": "auto"
             }
         },
         {
-            "name": "output_dir",
             "key": "output_dir",
+            "name": "output_dir",
             "required": false,
             "description": "output_dir",
             "type": {
-                "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "param_type": "ToolStringParam"
             }
         }
     ],
@@ -232,7 +219,7 @@
             "name": "Tool Outputs",
             "description": "Tool outputs",
             "file_patterns": [
-                "outputs/*"
+                "**/*"
             ]
         }
     ],

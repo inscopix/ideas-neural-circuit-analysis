@@ -5,6 +5,7 @@ activity in different states.
 import json
 import logging
 from pathlib import Path
+import pathlib
 
 import numpy as np
 import pandas as pd
@@ -405,12 +406,12 @@ def compute_modulation(
     return _calculate_modulation_scores(traces, when, ~when)
 
 
-@beartype
+# @beartype
 def population_activity(
     *,
-    cell_set_files: List[str],
-    event_set_files: Optional[List[str]] = None,
-    annotations_file: List[str],
+    cell_set_files: List[pathlib.Path],
+    event_set_files: Optional[List[pathlib.Path]] = None,
+    annotations_file: List[pathlib.Path],
     concatenate: bool = True,
     trace_scale_method: str = Rescale.NONE.value,
     event_scale_method: str = Rescale.NONE.value,

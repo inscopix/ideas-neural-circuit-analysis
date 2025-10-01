@@ -1,12 +1,12 @@
 {
     "key": "correlations",
     "name": "correlations",
-    "visibility": "public",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "schema_version": "3.0.0",
-    "description": "This is a description",
+    "description": "Analyze pairwise Pearson correlations between neural traces across behavioral states.",
     "container_image": {
-        "name": "platform/neuro-stats:0.0.1"
+        "repository": "platform/neuro-stats",
+        "label": "0.0.1"
     },
     "command": {
         "file_path": "analysis/correlations.py",
@@ -15,95 +15,92 @@
     },
     "params": [
         {
-            "name": "cell_set_files",
             "key": "cell_set_files",
-            "required": false,
+            "name": "cell_set_files",
+            "required": true,
             "description": "cell_set_files",
             "type": {
                 "param_type": "ToolPathParam",
-                "param_datatype": "string",
-                "multiple": false
+                "multiple": true
             }
         },
         {
-            "name": "annotations_file",
             "key": "annotations_file",
+            "name": "annotations_file",
             "required": false,
             "description": "annotations_file",
             "type": {
                 "param_type": "ToolPathParam",
-                "param_datatype": "string",
-                "multiple": false
+                "multiple": true
             }
         },
         {
-            "name": "column_name",
             "key": "column_name",
+            "name": "column_name",
             "required": false,
             "description": "column_name",
             "type": {
                 "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "default": "state"
             }
         },
         {
-            "name": "state_names",
             "key": "state_names",
+            "name": "state_names",
             "required": false,
             "description": "state_names",
             "type": {
                 "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "default": ""
             }
         },
         {
-            "name": "state_colors",
             "key": "state_colors",
+            "name": "state_colors",
             "required": false,
             "description": "state_colors",
             "type": {
                 "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "default": "blue, orange, grey"
             }
         },
         {
-            "name": "correlation_colors",
             "key": "correlation_colors",
+            "name": "correlation_colors",
             "required": false,
             "description": "correlation_colors",
             "type": {
                 "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "default": "red, blue"
             }
         },
         {
-            "name": "statistic",
             "key": "statistic",
+            "name": "statistic",
             "required": false,
             "description": "statistic",
             "type": {
                 "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "default": "max"
             }
         },
         {
-            "name": "include_positions",
             "key": "include_positions",
+            "name": "include_positions",
             "required": false,
             "description": "include_positions",
             "type": {
-                "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "param_type": "ToolBooleanParam",
+                "default": true
             }
         },
         {
-            "name": "correlation_threshold",
             "key": "correlation_threshold",
+            "name": "correlation_threshold",
             "required": false,
             "description": "correlation_threshold",
             "type": {
                 "param_type": "ToolFloatRangeParam",
-                "param_datatype": "float",
                 "default": 0.5
             }
         }
@@ -114,7 +111,7 @@
             "name": "Tool Outputs",
             "description": "Tool outputs",
             "file_patterns": [
-                "outputs/*"
+                "**/*"
             ]
         }
     ],

@@ -1,6 +1,7 @@
 import json
 import logging
 from pathlib import Path
+import pathlib
 
 import h5py
 from typing import Literal, Optional, Union
@@ -199,8 +200,8 @@ def cell_set_to_positions_mapping(
 # @beartype
 def correlation_tool(
     *,
-    cell_set_files: List[str],
-    annotations_file: Optional[List[str]] = None,
+    cell_set_files: List[pathlib.Path],
+    annotations_file: Optional[List[pathlib.Path]] = None,
     column_name: str = "state",
     state_names: Optional[str] = "",
     state_colors: str = "blue, orange, grey",

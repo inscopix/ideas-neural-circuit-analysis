@@ -1,6 +1,7 @@
 {
-    "file": "analysis/peri_event_workflow.py",
-    "image": "platform/neuro-stats:0.0.1",
+    "container": "platform/neuro-stats:latest",
     "executor_type": "PYTHON",
-    "function": "run_peri_event_workflow"
+    "file": "analysis/peri_event_workflow.py",
+    "function": "run_peri_event_workflow",
+    "schema_version": "1.0.0"
 }
