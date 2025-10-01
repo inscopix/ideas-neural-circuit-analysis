@@ -5,7 +5,7 @@ import os
 import shutil
 import math
 from collections import OrderedDict
-from typing import List
+from typing import List, Optional
 import h5py
 import isx
 import matplotlib.pyplot as plt
@@ -2444,7 +2444,7 @@ def run_peri_event_workflow(
     population_activity_plot_limits: str = "auto",
     activity_heatmap_color_limits: str = "auto",
     activity_by_modulation_plot_limits: str = "auto",
-    output_dir=None,
+    output_dir: Optional[str] = None,
 ):
     """Peri-event analysis workflow.
 
