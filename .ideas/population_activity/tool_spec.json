@@ -1,10 +1,12 @@
 {
     "key": "population_activity",
     "name": "population_activity",
+    "version": "0.0.2",
+    "description": "Calculate population activity during behavioral states.",
     "schema_version": "3.0.0",
     "container_image": {
         "repository": "platform/neuro-stats",
-        "label": "latest"
+        "label": "0.0.1"
     },
     "command": {
         "file_path": "analysis/population_activity.py",
@@ -15,7 +17,7 @@
         {
             "key": "cell_set_files",
             "name": "cell_set_files",
-            "required": false,
+            "required": true,
             "description": "cell_set_files",
             "type": {
                 "param_type": "ToolPathParam",
@@ -35,7 +37,7 @@
         {
             "key": "annotations_file",
             "name": "annotations_file",
-            "required": false,
+            "required": true,
             "description": "annotations_file",
             "type": {
                 "param_type": "ToolPathParam",
@@ -58,7 +60,8 @@
             "required": false,
             "description": "trace_scale_method",
             "type": {
-                "param_type": "ToolStringParam"
+                "param_type": "ToolStringParam",
+                "default": "none"
             }
         },
         {
@@ -67,7 +70,8 @@
             "required": false,
             "description": "event_scale_method",
             "type": {
-                "param_type": "ToolStringParam"
+                "param_type": "ToolStringParam",
+                "default": "none"
             }
         },
         {
@@ -83,7 +87,7 @@
         {
             "key": "state_names",
             "name": "state_names",
-            "required": false,
+            "required": true,
             "description": "state_names",
             "type": {
                 "param_type": "ToolStringParam"
@@ -92,7 +96,7 @@
         {
             "key": "state_colors",
             "name": "state_colors",
-            "required": false,
+            "required": true,
             "description": "state_colors",
             "type": {
                 "param_type": "ToolStringParam"
@@ -104,7 +108,8 @@
             "required": false,
             "description": "method",
             "type": {
-                "param_type": "ToolStringParam"
+                "param_type": "ToolStringParam",
+                "default": "state vs not state"
             }
         },
         {
