@@ -1,5 +1,6 @@
 outputs/
 .DS_Store
+*.cbundle
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
