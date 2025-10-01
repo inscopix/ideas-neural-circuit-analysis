@@ -1,4 +1,5 @@
 import copy
+import pathlib
 import logging
 import os
 import shutil
@@ -2424,8 +2425,8 @@ def peri_event_analysis_for_single_event_type(
 
 
 def run_peri_event_workflow(
-    input_cellset_files: List[str],
-    input_events_h5_file: str,
+    input_cellset_files: List[pathlib.Path],
+    input_events_h5_file: pathlib.Path,
     event_type: str,
     visual_window_pre: float = -2.0,
     visual_window_post: float = 2.0,

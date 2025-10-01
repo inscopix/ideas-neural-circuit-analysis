@@ -1,6 +1,7 @@
 {
-    "file": "analysis/population_activity.py",
-    "image": "platform/neuro-stats:0.0.1",
+    "container": "platform/neuro-stats:latest",
     "executor_type": "PYTHON",
-    "function": "population_activity"
+    "file": "analysis/population_activity.py",
+    "function": "population_activity",
+    "schema_version": "1.0.0"
 }

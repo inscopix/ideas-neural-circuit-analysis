@@ -2,10 +2,9 @@
     "key": "population_activity",
     "name": "population_activity",
     "schema_version": "3.0.0",
-    "description": "this is a description",
-    "version": "0.0.1", 
     "container_image": {
-        "name": "platform/neuro-stats:0.0.1"
+        "repository": "platform/neuro-stats",
+        "label": "latest"
     },
     "command": {
         "file_path": "analysis/population_activity.py",
@@ -14,147 +13,136 @@
     },
     "params": [
         {
-            "name": "cell_set_files",
             "key": "cell_set_files",
+            "name": "cell_set_files",
             "required": false,
             "description": "cell_set_files",
             "type": {
                 "param_type": "ToolPathParam",
-                "param_datatype": "string",
-                "multiple": false
+                "multiple": true
             }
         },
         {
-            "name": "event_set_files",
             "key": "event_set_files",
+            "name": "event_set_files",
             "required": false,
             "description": "event_set_files",
             "type": {
                 "param_type": "ToolPathParam",
-                "param_datatype": "string",
-                "multiple": false
+                "multiple": true
             }
         },
         {
-            "name": "annotations_file",
             "key": "annotations_file",
+            "name": "annotations_file",
             "required": false,
             "description": "annotations_file",
             "type": {
                 "param_type": "ToolPathParam",
-                "param_datatype": "string",
-                "multiple": false
+                "multiple": true
             }
         },
         {
-            "name": "concatenate",
             "key": "concatenate",
+            "name": "concatenate",
             "required": false,
             "description": "concatenate",
             "type": {
-                "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "param_type": "ToolBooleanParam",
+                "default": true
             }
         },
         {
-            "name": "trace_scale_method",
             "key": "trace_scale_method",
+            "name": "trace_scale_method",
             "required": false,
             "description": "trace_scale_method",
             "type": {
-                "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "param_type": "ToolStringParam"
             }
         },
         {
-            "name": "event_scale_method",
             "key": "event_scale_method",
+            "name": "event_scale_method",
             "required": false,
             "description": "event_scale_method",
             "type": {
-                "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "param_type": "ToolStringParam"
             }
         },
         {
-            "name": "column_name",
             "key": "column_name",
+            "name": "column_name",
             "required": false,
             "description": "column_name",
             "type": {
                 "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "default": "state"
             }
         },
         {
-            "name": "state_names",
             "key": "state_names",
+            "name": "state_names",
             "required": false,
             "description": "state_names",
             "type": {
-                "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "param_type": "ToolStringParam"
             }
         },
         {
-            "name": "state_colors",
             "key": "state_colors",
+            "name": "state_colors",
             "required": false,
             "description": "state_colors",
             "type": {
-                "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "param_type": "ToolStringParam"
             }
         },
         {
-            "name": "method",
             "key": "method",
+            "name": "method",
             "required": false,
             "description": "method",
             "type": {
-                "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "param_type": "ToolStringParam"
             }
         },
         {
-            "name": "baseline_state",
             "key": "baseline_state",
+            "name": "baseline_state",
             "required": false,
             "description": "baseline_state",
             "type": {
-                "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "param_type": "ToolStringParam"
             }
         },
         {
-            "name": "modulation_colors",
             "key": "modulation_colors",
+            "name": "modulation_colors",
             "required": false,
             "description": "modulation_colors",
             "type": {
                 "param_type": "ToolStringParam",
-                "param_datatype": "string"
+                "default": "tab:red,tab:blue"
             }
         },
         {
-            "name": "n_shuffle",
             "key": "n_shuffle",
+            "name": "n_shuffle",
             "required": false,
             "description": "n_shuffle",
             "type": {
                 "param_type": "ToolIntRangeParam",
-                "param_datatype": "integer",
                 "default": 1000
             }
         },
         {
-            "name": "alpha",
             "key": "alpha",
+            "name": "alpha",
             "required": false,
             "description": "alpha",
             "type": {
                 "param_type": "ToolFloatRangeParam",
-                "param_datatype": "float",
                 "default": 0.05
             }
         }
@@ -165,7 +153,7 @@
             "name": "Tool Outputs",
             "description": "Tool outputs",
             "file_patterns": [
-                "outputs/*"
+                "**/*"
             ]
         }
     ],
