@@ -524,19 +524,6 @@ Will compute correlation matrix for entire recording"""
         {"key": k, "name": k, "value": v} for k, v in spatial_values.items()
     ]
 
-    # metadata = {
-    #     stat_key: stat_values,
-    #     avg_key: values,
-    #     raw_h5_key: values,
-    #     raw_zip_key: values,
-    #     spatial_corr_key: spatial_values,
-    #     spatial_map_key: spatial_values,
-    # }
-
-    # with open("output_metadata.json", "w") as file:
-    #     json.dump(metadata, file, indent=2)
-
-
     output_data = [
         {
             "file": AVG_CORRELATIONS_CSV_NAME,
@@ -585,7 +572,14 @@ Will compute correlation matrix for entire recording"""
     ]
 
     with open("output_data.json", "w") as f:
-        json.dump(output_data, f, indent=4)
+        json.dump(
+            {
+                "schema_version": "1.0.0",
+                "output_files": output_data,
+            },
+            f,
+            indent=4,
+        )
 
     logger.info("State Analysis: correlation tool completed")
 
