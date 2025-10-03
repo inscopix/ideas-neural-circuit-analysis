@@ -1,35 +1,37 @@
 # stats
-numpy==2.0.0
-pandas==2.3.2
-scipy==1.16.2
-scikit-learn==1.7.2
-scikit-image==0.25.2
-pingouin==0.5.5
-opencv-python==4.12.0.88
-statsmodels==0.14.5
+numpy
+pandas
+scipy
+scikit-learn
+scikit-image
+pingouin
+opencv-python
+statsmodels
+
+ideas-public-python-utils @ git+https://github.com/inscopix/ideas-public-python-utils.git@f6f12c20c70b58e688ab862837c9bbb7423469ae
 
 # plotting
-matplotlib==3.10.6
-plotly==6.3.0
-seaborn==0.13.2
-bokeh==3.8.0
+matplotlib
+plotly
+seaborn
+bokeh
 
 # io
-pyarrow==21.0.0
-h5py==3.14.0
-tifffile==2025.9.20
-imageio==2.37.0
-imageio-ffmpeg==0.6.0
-Pillow==11.3.0
+pyarrow
+h5py
+tifffile
+imageio
+imageio-ffmpeg
+Pillow
 
 # neuro
-isx==2.1.0
-pynwb==3.1.2
-pynapple==0.9.2
+isx
+pynwb
+pynapple
 
 # test
-pytest==8.4.2
+pytest
 
 # other stuff that might need cleanup
-beartype==0.21.0
-configobj==5.0.9
+beartype
+configobj
