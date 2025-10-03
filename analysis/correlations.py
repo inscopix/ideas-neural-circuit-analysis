@@ -515,14 +515,22 @@ Will compute correlation matrix for entire recording"""
         "states": actual_states,
     }
 
+    display_names_map = {
+        "num_cells": "Number of cells",
+        "num_states": "Number of states",
+        "states": "States",
+        "colors": "Colors",
+        "statistic": "Statistic",
+    }
+
     values = [
-        {"key": k, "name": k, "value": v} for k, v in values.items()
+        {"key": k, "name": display_names_map[k], "value": v} for k, v in values.items()
     ]
     stat_values = [
-        {"key": k, "name": k, "value": v} for k, v in stat_values.items()
+        {"key": k, "name": display_names_map[k], "value": v} for k, v in stat_values.items()
     ]
     spatial_values = [
-        {"key": k, "name": k, "value": v} for k, v in spatial_values.items()
+        {"key": k, "name": display_names_map[k], "value": v} for k, v in spatial_values.items()
     ]
 
     output_data = [
