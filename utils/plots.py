@@ -15,7 +15,7 @@ from matplotlib.ticker import FixedLocator, FixedFormatter
 
 from utils.utils import Comp, Rescale, save_optimized_svg
 from utils import config
-from ideas.utils import get_num_cells_by_status
+from utils.utils import get_num_cells_by_status
 from ideas import io
 from ideas.exceptions import IdeasError
 

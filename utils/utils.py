@@ -23,6 +23,25 @@ logger = logging.getLogger()
 DIVISION_THRESHOLD = 1e-10
 
 
+def get_num_cells_by_status(cellset_filename: str):
+    """Count the number of cells for each cell status"""
+    cell_set = isx.CellSet.read(cellset_filename)
+
+    num_accepted_cells = 0
+    num_undecided_cells = 0
+    num_rejected_cells = 0
+
+    for index in range(cell_set.num_cells):
+        cell_status = cell_set.get_cell_status(index)
+        if cell_status == "accepted":
+            num_accepted_cells += 1
+        elif cell_status == "undecided":
+            num_undecided_cells += 1
+        elif cell_status == "rejected":
+            num_rejected_cells += 1
+
+    return num_accepted_cells, num_undecided_cells, num_rejected_cells
+
 class Metric(Enum):
     """Metric is an enumeration that defines various types of metrics used in
     the toolbox.
