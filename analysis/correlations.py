@@ -1,6 +1,6 @@
 import json
 import logging
-# from pathlib import Path
+from pathlib import Path
 import pathlib
 
 import h5py
@@ -516,32 +516,25 @@ Will compute correlation matrix for entire recording"""
         "states": actual_states,
     }
 
+    display_names_map = {
+        "num_cells": "Number of cells",
+        "num_states": "Number of states",
+        "states": "States",
+        "colors": "Colors",
+        "statistic": "Statistic",
+    }
+
     values = [
-        {"key": k, "name": k, "value": v} for k, v in values.items()
+        {"key": k, "name": display_names_map[k], "value": v} for k, v in values.items()
     ]
     stat_values = [
-        {"key": k, "name": k, "value": v} for k, v in stat_values.items()
+        {"key": k, "name": display_names_map[k], "value": v} for k, v in stat_values.items()
     ]
     spatial_values = [
-        {"key": k, "name": k, "value": v} for k, v in spatial_values.items()
+        {"key": k, "name": display_names_map[k], "value": v} for k, v in spatial_values.items()
     ]
 
-    # metadata = {
-    #     stat_key: stat_values,
-    #     avg_key: values,
-    #     raw_h5_key: values,
-    #     raw_zip_key: values,
-    #     spatial_corr_key: spatial_values,
-    #     spatial_map_key: spatial_values,
-    # }
-
-    # with open("output_metadata.json", "w") as file:
-    #     json.dump(metadata, file, indent=2)
-
-
-    output_data = {
-        "schema_version": "1.0.0",
-        "output_files": [
+    output_data = [
         {
             "file": AVG_CORRELATIONS_CSV_NAME,
             "previews": [
@@ -589,7 +582,14 @@ Will compute correlation matrix for entire recording"""
     ]}
 
     with open("output_data.json", "w") as f:
-        json.dump(output_data, f, indent=4)
+        json.dump(
+            {
+                "schema_version": "1.0.0",
+                "output_files": output_data,
+            },
+            f,
+            indent=4,
+        )
 
     logger.info("State Analysis: correlation tool completed")
 

@@ -1,0 +1,16 @@
+{
+    "cell_set_files": null,
+    "event_set_files": null,
+    "annotations_file": null,
+    "concatenate": true,
+    "trace_scale_method": null,
+    "event_scale_method": null,
+    "column_name": "state",
+    "state_names": null,
+    "state_colors": null,
+    "method": null,
+    "baseline_state": null,
+    "modulation_colors": "tab:red,tab:blue",
+    "n_shuffle": 1000,
+    "alpha": 0.05
+}

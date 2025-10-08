@@ -1,7 +1,7 @@
 {
     "container": "platform/neuro-stats:latest",
     "executor_type": "PYTHON",
-    "file": "analysis/correlations.py",
-    "function": "correlation_tool",
+    "file": "analysis/peri_event_workflow.py",
+    "function": "run_peri_event_workflow",
     "schema_version": "1.0.0"
 }

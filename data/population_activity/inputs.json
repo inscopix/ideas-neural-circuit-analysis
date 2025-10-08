@@ -1,0 +1,22 @@
+{
+    "cell_set_files": [
+        "data/input_cellset.isxd"
+    ],
+    "event_set_files": [
+        "data/input_cellset-ED.isxd"
+    ],
+    "annotations_file": [
+        "data/ideas_experiment_annotations.parquet"
+    ],
+    "concatenate": true,
+    "trace_scale_method": "none",
+    "event_scale_method": "none",
+    "state_names": "center, quad 4, quad 1, quad 2",
+    "state_colors": "tab:grey, tab:cyan, tab:blue, red",
+    "modulation_colors": "tab:red, tab:blue",
+    "column_name": "state",
+    "method": "pairwise",
+    "baseline_state": "center",
+    "n_shuffle": 100,
+    "alpha": 0.05
+}

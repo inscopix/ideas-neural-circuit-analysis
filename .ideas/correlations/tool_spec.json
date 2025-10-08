@@ -1,10 +1,12 @@
 {
     "key": "isx/correlations",
     "name": "correlations",
+    "version": "0.0.2",
     "schema_version": "3.0.0",
+    "description": "Analyze pairwise Pearson correlations between neural traces across behavioral states.",
     "container_image": {
-        "repository": "neuro-stats",
-        "label": "latest"
+        "repository": "platform/neuro-stats",
+        "label": "0.0.1"
     },
     "command": {
         "file_path": "analysis/correlations.py",
@@ -15,7 +17,7 @@
         {
             "key": "cell_set_files",
             "name": "cell_set_files",
-            "required": false,
+            "required": true,
             "description": "cell_set_files",
             "type": {
                 "param_type": "ToolPathParam",
@@ -109,7 +111,7 @@
             "name": "Tool Outputs",
             "description": "Tool outputs",
             "file_patterns": [
-                "outputs/*"
+                "**/*"
             ]
         }
     ],

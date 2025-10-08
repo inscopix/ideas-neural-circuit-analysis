@@ -1,0 +1,170 @@
+{
+    "key": "population_activity",
+    "name": "population_activity",
+    "version": "0.0.2",
+    "description": "Calculate population activity during behavioral states.",
+    "schema_version": "3.0.0",
+    "container_image": {
+        "repository": "platform/neuro-stats",
+        "label": "0.0.1"
+    },
+    "command": {
+        "file_path": "analysis/population_activity.py",
+        "entry_point": "population_activity",
+        "program_type": "PYTHON"
+    },
+    "params": [
+        {
+            "key": "cell_set_files",
+            "name": "cell_set_files",
+            "required": true,
+            "description": "cell_set_files",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true
+            }
+        },
+        {
+            "key": "event_set_files",
+            "name": "event_set_files",
+            "required": false,
+            "description": "event_set_files",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true
+            }
+        },
+        {
+            "key": "annotations_file",
+            "name": "annotations_file",
+            "required": true,
+            "description": "annotations_file",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true
+            }
+        },
+        {
+            "key": "concatenate",
+            "name": "concatenate",
+            "required": false,
+            "description": "concatenate",
+            "type": {
+                "param_type": "ToolBooleanParam",
+                "default": true
+            }
+        },
+        {
+            "key": "trace_scale_method",
+            "name": "trace_scale_method",
+            "required": false,
+            "description": "trace_scale_method",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "none"
+            }
+        },
+        {
+            "key": "event_scale_method",
+            "name": "event_scale_method",
+            "required": false,
+            "description": "event_scale_method",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "none"
+            }
+        },
+        {
+            "key": "column_name",
+            "name": "column_name",
+            "required": false,
+            "description": "column_name",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "state"
+            }
+        },
+        {
+            "key": "state_names",
+            "name": "state_names",
+            "required": true,
+            "description": "state_names",
+            "type": {
+                "param_type": "ToolStringParam"
+            }
+        },
+        {
+            "key": "state_colors",
+            "name": "state_colors",
+            "required": true,
+            "description": "state_colors",
+            "type": {
+                "param_type": "ToolStringParam"
+            }
+        },
+        {
+            "key": "method",
+            "name": "method",
+            "required": false,
+            "description": "method",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "state vs not state"
+            }
+        },
+        {
+            "key": "baseline_state",
+            "name": "baseline_state",
+            "required": false,
+            "description": "baseline_state",
+            "type": {
+                "param_type": "ToolStringParam"
+            }
+        },
+        {
+            "key": "modulation_colors",
+            "name": "modulation_colors",
+            "required": false,
+            "description": "modulation_colors",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "tab:red,tab:blue"
+            }
+        },
+        {
+            "key": "n_shuffle",
+            "name": "n_shuffle",
+            "required": false,
+            "description": "n_shuffle",
+            "type": {
+                "param_type": "ToolIntRangeParam",
+                "default": 1000
+            }
+        },
+        {
+            "key": "alpha",
+            "name": "alpha",
+            "required": false,
+            "description": "alpha",
+            "type": {
+                "param_type": "ToolFloatRangeParam",
+                "default": 0.05
+            }
+        }
+    ],
+    "results": [
+        {
+            "key": "tool_output_group",
+            "name": "Tool Outputs",
+            "description": "Tool outputs",
+            "file_patterns": [
+                "**/*"
+            ]
+        }
+    ],
+    "resources": {
+        "cpu": 1,
+        "gpu": 0,
+        "memory": 1000
+    }
+}
