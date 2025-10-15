@@ -19,12 +19,11 @@ from analysis.population_activity import (
     _modulation_data_to_csv,
 )
 
-series_annotations = "data/2023-05-10-13-55-53_video-camera-1-annotations.series.parquet"
+series_annotations = "data/cellset_series_annotations.csv"
 
 series_cell_sets = [
-    "data/2023-05-10-13-55-53_video-PP-BP-MC-CNMFE-full.isxd",
-    "data/2023-05-10-14-15-44_video-PP-BP-MC-CNMFE-full.isxd",
-    "data/2023-05-10-14-36-23_video-PP-BP-MC-CNMFE-full.isxd",
+    "data/cellset_series_part1-PCA-ICA.isxd",
+    "data/cellset_series_part2-PCA-ICA.isxd"
 ]
 
 n_shuffles = 1
@@ -158,12 +157,12 @@ valid_inputs = [
         event_set_files=None,
         annotations_file=[series_annotations],
         concatenate=True,
-        state_names="other, move, rest",
-        state_colors="tab:gray, tab:blue, tab:purple",
+        state_names="center, quad 1, quad 2, quad 4",
+        state_colors="#000000, #0000FF, #800080, #008000",
         modulation_colors="tab:red, tab:blue",
         column_name="state",
         method="state vs baseline",
-        baseline_state="rest",
+        baseline_state="center",
         n_shuffle=n_shuffles,
         alpha=0.05,
     ),
@@ -193,18 +192,16 @@ invalid_inputs = [
         event_set_files=None,
         annotations_file=[annotations_file],
         concatenate=True,
-        state_names=None,
-        state_colors="tab:gray, tab:blue, tab:purple, tab:green",
+        state_names="",
+        state_colors="",
         modulation_colors="tab:red, tab:blue",
         column_name="state",
         method="state vs not defined",
         baseline_state=None,
         n_shuffle=n_shuffles,
         alpha=0.05,
-        error=BeartypeCallHintParamViolation,
-        error_text="Function analysis.population_activity.population_activity() "
-        "parameter state_names=\"None\" violates type hint <class 'str'>, "
-        'as <class "builtins.NoneType"> "None" not instance of str.',
+        error=IdeasError,
+        error_text="No valid state names provided. Please specify at least one state name."
     ),
     # in-congruent files
     dict(
