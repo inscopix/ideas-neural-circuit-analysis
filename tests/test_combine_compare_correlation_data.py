@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 # Import necessary functions and classes from the updated tool
-from toolbox.tools.combine_compare_correlation_data import (
+from analysis.combine_compare_correlation_data import (
     combine_compare_correlation_data,
     validate_combine_compare_correlation_data_parameters,
     average_correlations,
@@ -24,10 +24,10 @@ from toolbox.tools.combine_compare_correlation_data import (
     generate_output_manifest,
     create_preview_file,
 )
-from toolbox.utils.visualization_helpers import create_cdf_preview
+from utils.visualization_helpers import create_cdf_preview
 
 # Correct imports based on tool structure
-from toolbox.utils.exceptions import (
+from ideas.exceptions import (
     ToolException,
 )  # Added ExitStatus
 import toolbox.utils.config as config  # Import config for file extensions
