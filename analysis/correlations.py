@@ -579,7 +579,7 @@ Will compute correlation matrix for entire recording"""
             ],
             "metadata": stat_values
         }
-    ]}
+    ]
 
     with open("output_data.json", "w") as f:
         json.dump(
