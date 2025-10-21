@@ -8,7 +8,7 @@ pingouin
 opencv-python
 statsmodels
 
-ideas-public-python-utils @ git+https://github.com/inscopix/ideas-public-python-utils.git@f6f12c20c70b58e688ab862837c9bbb7423469ae
+ideas-public-python-utils @ git+https://github.com/inscopix/ideas-public-python-utils.git@bbed2f8005b31a300ada0fb9d84d52d147f1deac
 
 # plotting
 matplotlib
