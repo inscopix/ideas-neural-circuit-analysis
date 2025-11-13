@@ -7,7 +7,7 @@ ifndef LABEL
 endif
 
 IMAGE_TAG := platform/neuro-stats:${LABEL}
-
+	
 
 .PHONY: build
 
