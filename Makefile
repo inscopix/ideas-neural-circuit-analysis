@@ -1,29 +1,34 @@
+.PHONY:  clean build test
+
+IMAGE_REPO=platform
+IMAGE_NAME=neuro-stats
+LABEL=$(shell cat .ideas/images_spec.json | jq -r ".[0].label")
+IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:${LABEL}
+LATEST_IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:latest
 PLATFORM=linux/amd64
-
-# Label may be specified in codebuild pipeline
-# Locally, use default "latest"
-ifndef LABEL
-	LABEL=latest
+ifndef TARGET
+	TARGET=base
 endif
-
-IMAGE_TAG := platform/neuro-stats:${LABEL}
-	
-
-.PHONY: build
 
 .DEFAULT_GOAL := build
 
-build:
-	@echo "Building docker image..."
-	docker build . -t $(IMAGE_TAG) \
-		--platform ${PLATFORM}
+clean:
+	@echo "Cleaning up"
+	-docker rmi ${IMAGE_TAG}
 
-test: build 
+build: 
+	docker build . -t $(LATEST_IMAGE_TAG) \
+		--platform ${PLATFORM} \
+		--target ${TARGET}
+	docker tag ${LATEST_IMAGE_TAG} ${IMAGE_TAG}
+
+test: TARGET=test
+test: IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:${LABEL}-test
+test: LATEST_IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:latest-test
+test: clean build 
 	@echo "Running tests..."
 	docker run \
 		--platform ${PLATFORM} \
 		--rm \
-		-v $(PWD):/neural_circuit_analysis \
-		-w /neural_circuit_analysis \
 		${IMAGE_TAG} \
 		pytest ${TEST_ARGS}

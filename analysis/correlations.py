@@ -10,6 +10,7 @@ import zipfile
 import tempfile
 import shutil
 from ideas.io import cell_set_to_positions
+from ideas.outputs import OutputData
 
 # Add isx import
 import isx
@@ -486,12 +487,12 @@ Will compute correlation matrix for entire recording"""
                 "Could not create spatial correlation analysis: missing position data"
             )
 
-    stat_key = Path(STAT_CORRELATIONS_CSV_NAME).stem
-    avg_key = Path(AVG_CORRELATIONS_CSV_NAME).stem
-    raw_h5_key = Path(RAW_CORRELATIONS_H5_NAME).stem
-    raw_zip_key = Path(RAW_CORRELATIONS_ZIP_NAME).stem
-    spatial_corr_key = Path(SPATIAL_CORRELATION_SVG_NAME).stem
-    spatial_map_key = Path(SPATIAL_MAP_SVG_NAME).stem
+    # stat_key = Path(STAT_CORRELATIONS_CSV_NAME).stem
+    # avg_key = Path(AVG_CORRELATIONS_CSV_NAME).stem
+    # raw_h5_key = Path(RAW_CORRELATIONS_H5_NAME).stem
+    # raw_zip_key = Path(RAW_CORRELATIONS_ZIP_NAME).stem
+    # spatial_corr_key = Path(SPATIAL_CORRELATION_SVG_NAME).stem
+    # spatial_map_key = Path(SPATIAL_MAP_SVG_NAME).stem
 
     # Update metadata with actual states found
     values = {
@@ -591,6 +592,21 @@ Will compute correlation matrix for entire recording"""
         )
 
     logger.info("State Analysis: correlation tool completed")
+
+    # with OutputData() as output_data:
+    #     files = [
+    #         AVG_CORRELATIONS_CSV_NAME,
+    #         "average_correlations_preview.svg",
+    #         RAW_CORRELATIONS_H5_NAME,
+    #         "correlation_matrices.svg",
+    #         RAW_CORRELATIONS_ZIP_NAME,
+    #         "spatial_correlation.svg",
+    #         "spatial_correlation_map.svg",
+    #         STAT_CORRELATIONS_CSV_NAME,
+    #         "correlation_plot.svg"
+    #     ]
+    #     for file in files:
+    #         output_data.add_file(file)
 
     # Return an empty dictionary to satisfy the return type
     return {}

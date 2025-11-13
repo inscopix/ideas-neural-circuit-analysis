@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import pytest
-from neural_circuit_analysis.ideas.exceptions import IdeasError
+from ideas.exceptions import IdeasError
 import h5py
 
 from analysis import correlations

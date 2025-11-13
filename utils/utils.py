@@ -15,6 +15,8 @@ from ideas import io
 from ideas.exceptions import IdeasError
 from matplotlib.spines import Spine
 from ideas.validation import event_set_series
+from utils.metadata import read_isxd_metadata
+from ideas.utils import _sort_isxd_files_by_start_time
 import warnings
 
 logger = logging.getLogger()
@@ -22,6 +24,25 @@ logger = logging.getLogger()
 # Define a constant for small values used in division or variance checks
 DIVISION_THRESHOLD = 1e-10
 
+
+def get_num_cells_by_status(cellset_filename: str):
+    """Count the number of cells for each cell status"""
+    cell_set = isx.CellSet.read(cellset_filename)
+
+    num_accepted_cells = 0
+    num_undecided_cells = 0
+    num_rejected_cells = 0
+
+    for index in range(cell_set.num_cells):
+        cell_status = cell_set.get_cell_status(index)
+        if cell_status == "accepted":
+            num_accepted_cells += 1
+        elif cell_status == "undecided":
+            num_undecided_cells += 1
+        elif cell_status == "rejected":
+            num_rejected_cells += 1
+
+    return num_accepted_cells, num_undecided_cells, num_rejected_cells
 
 class Metric(Enum):
     """Metric is an enumeration that defines various types of metrics used in
@@ -1004,3 +1025,113 @@ def remove_unsupported_characters(
                 f"Invalid character '{c}' found and replaced with '{placeholder_char}'"
             )
     return output_string
+
+def compute_end_time(timing_info):
+    """Compute end time of an isxd file.
+    :param isxd_timing_info: json object containing isxd timing information
+    :return: end time json object of the form
+             {
+                "secsSinceEpoch": {"num": 123456, "den": 1000}
+                "utcOffset": 0
+             }
+    """
+    # extract start time and period contained in the timing info object
+    start_time = (
+        timing_info["start"]["secsSinceEpoch"]["num"]
+        / timing_info["start"]["secsSinceEpoch"]["den"]
+    )
+    period = timing_info["period"]["num"] / timing_info["period"]["den"]
+
+    # compute end time
+    end_time = start_time + (period * timing_info["numTimes"])
+    end_time_den = timing_info["start"]["secsSinceEpoch"]["den"]
+    end_time_num = round(end_time * end_time_den)
+
+    # return properly formatted end time
+    return {
+        "secsSinceEpoch": {"den": end_time_den, "num": end_time_num},
+        "utcOffset": timing_info["start"]["utcOffset"],
+    }
+
+
+def validate_cellset_series_compatibility(input_files):
+    """Validate that input files form a valid series.
+    :param input_files: list of paths to isxd cell set files
+    :return: True if files form a valid cell set series, False otherwise
+    """
+    # sort input files by their start time
+    input_files = _sort_isxd_files_by_start_time(input_files)
+
+    # extract metadata from first input file
+    first_cell_set = isx.CellSet.read(input_files[0])
+    first_cell_set_metadata = read_isxd_metadata(input_files[0])
+    num_cells = first_cell_set.num_cells
+    cell_statuses = [
+        first_cell_set.get_cell_status(i) for i in range(num_cells)
+    ]
+    del first_cell_set
+
+    # ensure cell set contains at least 1 cell
+    if num_cells < 1:
+        raise IdeasError(
+            "No cell found in '{0}'.".format(os.path.basename(input_files[0])),
+        )
+
+    # initialize series timing and spacing info to those of first cell set
+    series_spacing_info = first_cell_set_metadata["spacingInfo"]
+    series_timing_info = first_cell_set_metadata["timingInfo"]
+    series_timing_info["end"] = compute_end_time(
+        first_cell_set_metadata["timingInfo"]
+    )
+
+    # loop over all other cell sets and ensure they can be combined into a series
+    for f in input_files[1:]:
+        # read isxd cell set and corresponding metadata
+        isxd_cell_set = isx.CellSet.read(f)
+        isxd_metadata = read_isxd_metadata(f)
+
+        # ensure number of cells match across input files
+        if isxd_cell_set.num_cells != num_cells:
+            raise IdeasError(
+                "The number of cells differ across the input files",
+            )
+
+        # ensure cell statuses match across input files
+        isxd_cell_statuses = [
+            isxd_cell_set.get_cell_status(i)
+            for i in range(isxd_cell_set.num_cells)
+        ]
+        if isxd_cell_statuses != cell_statuses:
+            raise IdeasError(
+                "Individual cell statuses differ across the input files",
+            )
+
+        # verify SPACING info
+        # validate that the movies have the same spatial dimensions
+        if isxd_metadata["spacingInfo"] != series_spacing_info:
+            raise IdeasError(
+                "All input movies must have the same spatial dimensions",
+            )
+
+        # verify TIMING info
+        # ensure current item does not temporally overlap with any other item
+        item_start_time = (
+            isxd_metadata["timingInfo"]["start"]["secsSinceEpoch"]["num"]
+            / isxd_metadata["timingInfo"]["start"]["secsSinceEpoch"]["den"]
+        )
+
+        series_end_time = (
+            series_timing_info["end"]["secsSinceEpoch"]["num"]
+            / series_timing_info["end"]["secsSinceEpoch"]["den"]
+        )
+
+        if item_start_time <= series_end_time:
+            raise IdeasError(
+                "Items that temporally overlap cannot be combined into a series.",
+            )
+
+        # validate that the period is nearly identical for all input files
+        # TODO
+
+        # validate that all input files share the same microscope identifier
+        # TODO: if not, log this as a warning but allow processing to continue

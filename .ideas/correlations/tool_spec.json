@@ -1,9 +1,9 @@
 {
     "key": "correlations",
-    "name": "correlations",
-    "version": "0.0.2",
+    "name": "Compare Neural Circuit Correlations Across States",
+    "version": "8.0.0-rc1",
     "schema_version": "3.0.0",
-    "description": "Analyze pairwise Pearson correlations between neural traces across behavioral states.",
+    "description": "Calculate pairwise correlations between cell traces, and estimates how correlations change between two states of interest",
     "container_image": {
         "repository": "platform/neuro-stats",
         "label": "0.0.1"
@@ -16,73 +16,96 @@
     "params": [
         {
             "key": "cell_set_files",
-            "name": "cell_set_files",
+            "name": "Cell Set Files",
             "required": true,
-            "description": "cell_set_files",
+            "description": "ISXD cell set file(s)",
             "type": {
                 "param_type": "ToolPathParam",
-                "multiple": true
-            }
+                "multiple": true,
+                "file_formats": [
+                    "isxd"
+                ]
+            },
+            "group": "Input Files"
         },
         {
             "key": "annotations_file",
-            "name": "annotations_file",
+            "name": "Annotations File",
             "required": false,
-            "description": "annotations_file",
+            "description": "File containing annotations about states, synchronised to ISXD cell set file",
             "type": {
                 "param_type": "ToolPathParam",
-                "multiple": true
-            }
+                "multiple": true,
+                "file_formats": [
+                    "parquet"
+                ]
+            },
+            "group": "Input Files"
         },
         {
             "key": "column_name",
-            "name": "column_name",
-            "required": false,
-            "description": "column_name",
+            "name": "Column Name",
+            "required": true,
+            "description": "Column name in annotations file that identifies state",
             "type": {
                 "param_type": "ToolStringParam",
                 "default": "state"
-            }
+            },
+            "group": "Parameters"
         },
         {
             "key": "state_names",
-            "name": "state_names",
+            "name": "State Names",
             "required": false,
-            "description": "state_names",
+            "description": "Specify which behavioral states to analyze (comma-separated list). For single state analysis, correlations from that state will be compared with all other time periods. For multiple states, correlations will be compared between the specified states.",
             "type": {
                 "param_type": "ToolStringParam",
                 "default": ""
-            }
+            },
+            "group": "States"
         },
         {
             "key": "state_colors",
-            "name": "state_colors",
+            "name": "State Colors",
             "required": false,
-            "description": "state_colors",
+            "description": "List of matplotlib compatible colors to represent each state",
             "type": {
                 "param_type": "ToolStringParam",
                 "default": "blue, orange, grey"
-            }
+            },
+            "group": "States"
         },
         {
             "key": "correlation_colors",
-            "name": "correlation_colors",
-            "required": false,
-            "description": "correlation_colors",
+            "name": "Correlation Colors",
+            "required": true,
+            "description": "List of colors to use for positive and negative correlations, or a colormap",
             "type": {
                 "param_type": "ToolStringParam",
-                "default": "red, blue"
-            }
+                "default": "tab:red, tab:blue"
+            },
+            "group": "States"
         },
         {
             "key": "statistic",
-            "name": "statistic",
-            "required": false,
-            "description": "statistic",
+            "name": "Statistic",
+            "required": true,
+            "description": "Statistic of correlation to compare (max, mean or min)",
             "type": {
-                "param_type": "ToolStringParam",
-                "default": "max"
-            }
+                "param_type": "ToolChoiceParam",
+                "default": "max",
+                "choices": [
+                    "mean",
+                    "max",
+                    "min"
+                ],
+                "display_options": [
+                    "mean",
+                    "max",
+                    "min"
+                ]
+            },
+            "group": "Parameters"
         },
         {
             "key": "include_positions",
@@ -96,13 +119,16 @@
         },
         {
             "key": "correlation_threshold",
-            "name": "correlation_threshold",
+            "name": "Correlation Threshold for Spatial Map",
             "required": false,
-            "description": "correlation_threshold",
+            "description": "Minimum absolute correlation value to display in the spatial correlation map. Only cell pairs with correlations above this threshold will be shown as connections.",
             "type": {
                 "param_type": "ToolFloatRangeParam",
-                "default": 0.5
-            }
+                "default": 0.5,
+                "min": 0.0,
+                "max": 1.0
+            },
+            "group": "Parameters"
         }
     ],
     "results": [
@@ -118,6 +144,7 @@
     "resources": {
         "cpu": 1,
         "gpu": 0,
-        "memory": 1000
-    }
+        "memory": 10000
+    },
+    "visibility": "public"
 }
