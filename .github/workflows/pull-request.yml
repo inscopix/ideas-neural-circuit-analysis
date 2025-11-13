@@ -4,8 +4,7 @@ on:
   push:
     branches: ["main"]
   pull_request:
-    branches: ["**"]
-
+    # trigger all branches
 jobs:
   pull-request-checks:
     runs-on: ubuntu-latest
