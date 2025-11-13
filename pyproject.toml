@@ -1,3 +1,40 @@
+[project]
+name = "ideas-neural-circuit-analysis"
+description = "IDEAS Neural Circuit Analysis Toolkit"
+requires-python = "==3.13.9"
+classifiers = [
+    "Programming Language :: Python :: 3"
+]
+dependencies = [
+    "numpy",
+    "pandas",
+    "scipy",
+    "scikit-learn",
+    "scikit-image",
+    "pingouin",
+    "opencv-python-headless",
+    "statsmodels",
+    "ideas-public-python-utils @ git+https://github.com/inscopix/ideas-public-python-utils.git@ID-4920",
+    "matplotlib",
+    "plotly",
+    "seaborn",
+    "bokeh",
+    "pyarrow",
+    "h5py",
+    "tifffile",
+    "imageio",
+    "imageio-ffmpeg",
+    "Pillow",
+    "isx",
+    "pynwb",
+    "pynapple",
+    "pytest",
+    "beartype",
+    "configobj",
+]
+
+dynamic = ["version"]
+
 [tool.pytest.ini_options]
 pythonpath = [
   "."

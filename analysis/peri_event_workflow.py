@@ -27,11 +27,13 @@ from ideas.utils import (
     get_file_size,
     # read_isxd_metadata,
     _sort_isxd_files_by_start_time,
+)
+from utils.utils import (
     validate_cellset_series_compatibility,
     get_num_cells_by_status,
 )
 
-from ideas.metadata import (
+from utils.metadata import (
     read_isxd_metadata
 )
 logger = logging.getLogger()

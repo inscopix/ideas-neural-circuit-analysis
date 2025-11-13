@@ -24,18 +24,18 @@ from ideas.utils import _set_up_logger
 from utils.footprint_utils import compute_cell_centroid
 from utils.stats_utils import perform_paired_pairwise_comparisons
 from ideas.utils import (
-    # compute_sampling_rate,
     get_file_size,
-    # read_isxd_metadata,
+)
+from utils.utils import (
     validate_cellset_series_compatibility,
-    get_num_cells_by_status,
+    get_num_cells_by_status
 )
 from utils.utils import (
     _parse_string_to_tuples,
     _redefine_epochs,
     _get_cellset_boundaries,
 )
-from ideas.metadata import read_isxd_metadata
+from utils.metadata import read_isxd_metadata
 from analysis.peri_event_workflow import (
     nanmean_iterative,
     extract_event_windows,
