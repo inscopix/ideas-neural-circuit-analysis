@@ -2,9 +2,9 @@ name: pull-request
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "*" ]
+    branches: ["**"]
 
 jobs:
   pull-request-checks:
