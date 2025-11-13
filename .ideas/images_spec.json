@@ -2,7 +2,7 @@
   {
     "schema_version": "0.0.1",
     "repository": "platform/neuro-stats",
-    "label": "0.0.1",
+    "label": "0.0.2",
     "make_arguments": "build LABEL={label}",
     "visibility": "protected",
     "readme_path": "container.md",
