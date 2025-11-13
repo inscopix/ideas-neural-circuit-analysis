@@ -1,7 +1,7 @@
 {
     "key": "correlations",
     "name": "Compare Neural Circuit Correlations Across States",
-    "version": "8.0.0",
+    "version": "8.0.0-rc1",
     "schema_version": "3.0.0",
     "description": "Calculate pairwise correlations between cell traces, and estimates how correlations change between two states of interest",
     "container_image": {
