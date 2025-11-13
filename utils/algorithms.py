@@ -261,65 +261,6 @@ def _calculate_correlation(
     )
 
 
-def subsample(data, sample_size):
-    """Subsamples the given data by calculating the mean of each sample.
-
-    :Args
-        data (list): The data to be subsampled.
-        sample_size (int): The size of each subsample.
-
-    :Returns
-        list: A list of mean values, each representing a subsample.
-    """
-    results = []
-    for i in range(0, len(data), sample_size):
-        # Get slice of data for this subsample
-        chunk = data[i : min(i + sample_size, len(data))]
-
-        # If this is the last chunk and it's incomplete, use its actual value
-        if i + sample_size > len(data) and len(chunk) == 1:
-            results.append(chunk[0])
-        else:
-            # Otherwise calculate the mean
-            results.append(np.mean(chunk))
-
-    return results
-
-
-def cohen_d(x, y):
-    """Calculate Cohen's d effect size between two groups.
-
-    :Parameters
-    x (array-like): First group of observations.
-    y (array-like): Second group of observations.
-
-    :Returns
-    float: Cohen's d effect size.
-
-    :Raises
-    Exception: If either group has fewer than 2 observations
-    """
-    nx = len(x)
-    ny = len(y)
-
-    if nx <= 1 or ny <= 1:
-        raise Exception("Cohen's d requires at least 2 observations per group")
-
-    dof = nx + ny - 2
-    pooled_var = (
-        (nx - 1) * np.std(x, ddof=1) ** 2 + (ny - 1) * np.std(y, ddof=1) ** 2
-    ) / dof
-
-    # Prevent division by zero
-    if pooled_var < DIVISION_THRESHOLD:
-        logger.warning(
-            "Near-zero pooled variance in Cohen's d calculation. Returning inf or NaN."
-        )
-        return np.inf if np.mean(x) != np.mean(y) else np.nan
-
-    return (np.mean(x) - np.mean(y)) / np.sqrt(pooled_var)
-
-
 def _run_ANOVA(
     data,
     method,

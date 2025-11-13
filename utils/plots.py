@@ -1008,7 +1008,7 @@ def _create_pairwise_legend(pairwise, ax):
     _format_labels(sources, p_vals, ax)
 
 
-def _plot_mixed_comparisons(data, g1_color, g2_color, aov, pairwise, metric, preview_filename=None):
+def _plot_mixed_comparisons(data, g1_color, g2_color, aov, pairwise, metric):
     """Plot mixed comparisons including ANOVA and pairwise comparisons.
 
     :Parameters
@@ -1264,6 +1264,7 @@ def _plot_traces(
     state_colors: List[str],
     state_names: List[str],
     period: float = 1.0,
+    boundaries: Optional[List[float]] = None,
 ) -> None:
     """Plot all traces in given input matrix, and colors them by behavior
     :param traces: neural activity of individual cells
@@ -1363,6 +1364,20 @@ def _plot_traces(
     ax_traces[0].spines.bottom.set_visible(False)
     ax_traces[0].set_xticks([])
 
+    # Add cellset boundaries as vertical dashed lines if several cellsets
+    if boundaries is not None and len(boundaries) > 2:
+        for idx, boundary in enumerate(boundaries[1:-1]):
+            if idx == 0:
+                label = "cellset boundary"
+            else:
+                label = None
+            ax_traces[0].axvline(
+                boundary, linestyle="--", color="k", label=label
+            )
+            ax_traces[1].axvline(
+                boundary, linestyle="--", color="k", label=label
+            )
+
     # Create manual handles for the legend
     handles = []
     for state, color in zip(state_names, state_colors):
@@ -1377,6 +1392,7 @@ def _plot_traces(
     )
 
     save_optimized_svg(trace_fig, filename, max_size_mb=10, pad_inches=0.3)
+    plt.close(trace_fig)
 
 
 def plot_neuron_fractions(
@@ -1430,6 +1446,7 @@ def _plot_raster(
     state_colors: List[str],
     state_names: List[str],
     filename: str,
+    boundaries: Optional[List[float]] = None,
 ) -> None:
     """Plot all traces in given input matrix, and colors them by behavior
     :param traces: neural activity of individual cells
@@ -1467,20 +1484,35 @@ def _plot_raster(
     for idx, _ in enumerate(state_names):
         starts = np.where(np.diff(locations[idx]) == 1)[0]
         ends = np.where(np.diff(locations[idx]) == -1)[0]
+
+        # Handle edge cases for states starting at frame 0 or ending at last frame
+        if locations[idx][0] == 1:
+            starts = np.insert(starts, 0, -1)
+        if locations[idx][-1] == 1:
+            ends = np.append(ends, len(locations[idx]) - 1)
+
         for start, end in zip(starts, ends):
+            # Use consistent coordinate calculation with _plot_traces
+            plot_start = (start + 1) * period
+            plot_end = end * period
+
             ax[0].axvspan(
-                start,
-                end,
+                plot_start,
+                plot_end,
                 color=state_colors[idx],
                 alpha=0.4,
-                label=state_names[idx],
+                label=(
+                    state_names[idx] if start == starts[0] else ""
+                ),  # Label only first instance
             )
             ax[1].axvspan(
-                start * period,
-                end * period,
+                plot_start,
+                plot_end,
                 color=state_colors[idx],
                 alpha=0.4,
-                label=state_names[idx],
+                label=(
+                    state_names[idx] if start == starts[0] else ""
+                ),  # Label only first instance
             )
     ax[1].set_ylim([0, len(events)])
     ax[1].set_xlim([0, event_timeseries.shape[0] * period])
@@ -1496,16 +1528,28 @@ def _plot_raster(
     mean_activity = np.convolve(
         mean_activity, np.ones(window) / window, mode="same"
     )
-    ax[0].plot(mean_activity, color="black")
-    ax[0].set_xlim([0, event_timeseries.shape[0]])
+    # Create time axis for mean activity
+    time_axis = np.arange(event_timeseries.shape[0]) * period
+    ax[0].plot(time_axis, mean_activity, color="black")
+    ax[0].set_xlim([0, event_timeseries.shape[0] * period])
     ax[0].set_title("Population Average Activity", fontdict=TITLE_FONT)
-    ax[0].set_ylabel("Mean\nActivity (Hz)", fontdict=LABEL_FONT)
+    ax[0].set_ylabel("Mean Event Rate (Hz)", fontdict=LABEL_FONT)
     ax[0].spines.right.set_visible(False)
     ax[0].spines.top.set_visible(False)
     ax[0].spines.bottom.set_visible(False)
     ax[0].set_xticks([])
 
-    # Create manual handles for the legend
+    # Add cellset boundaries as vertical dashed lines if several cellsets
+    if boundaries is not None and len(boundaries) > 2:
+        for idx, boundary in enumerate(boundaries[1:-1]):
+            if idx == 0:
+                label = "cellset boundary"
+            else:
+                label = None
+            ax[0].axvline(boundary, linestyle="--", color="k", label=label)
+            ax[1].axvline(boundary, linestyle="--", color="k", label=label)
+
+    # Create manual handles for the legend (consistent with _plot_traces)
     handles = []
     for state, color in zip(state_names, state_colors):
         handles.append(plt.Line2D([0], [0], color=color, lw=4, label=state))
@@ -1519,6 +1563,7 @@ def _plot_raster(
     )
 
     save_optimized_svg(trace_fig, filename, max_size_mb=10, pad_inches=0.3)
+    plt.close(trace_fig)
 
 
 def _plot_population_average(
@@ -1527,6 +1572,7 @@ def _plot_population_average(
     filename: str,
     state_colors: List[str],
     ylabel="Mean Activity",
+    xlabel="State",
 ) -> None:
     """Plot the population average activity as a box plot"""
     # Set consistent font size
@@ -1595,7 +1641,7 @@ def _plot_population_average(
     ax_box.spines["top"].set_visible(False)
     ax_box.spines["right"].set_visible(False)
     ax_box.set_ylabel(ylabel, fontdict=LABEL_FONT, labelpad=10)
-    ax_box.set_xlabel("State", fontdict=LABEL_FONT, labelpad=10)
+    ax_box.set_xlabel(xlabel, fontdict=LABEL_FONT, labelpad=10)
 
     # Fix ticklabels warning by setting ticks explicitly before labels
     # Get current ticklabels
@@ -1700,7 +1746,7 @@ def plot_modulated_neuron_footprints(
                     continue
                 title = f"{case} vs not defined"
             else:
-                raise ValueError("Invalid method")
+                raise IdeasError("Invalid method")
             counter = plot_comparison_row(
                 fig,
                 axs,

@@ -32,7 +32,6 @@ from utils.utils import (
     _norm_2D_array,
     _standardize_2D_array,
     _standardize_baseline,
-    _status_to_cell_names,
 )
 from utils.validation import _validate_correlation_params
 
@@ -157,7 +156,10 @@ def _make_modulation_data(
         for state in states:
             state_mask = (behavior[column_name] == state).values
             modulation_results = find_modulated_neurons(
-                traces, state_mask, n_shuffle=n_shuffle, alpha=alpha
+                scaled_traces,
+                state_mask,
+                n_shuffle=n_shuffle,
+                alpha=alpha,
             )
             # Update the existing state dictionary with modulation results
             data[state].update(modulation_results)
@@ -172,7 +174,7 @@ def _make_modulation_data(
                 state2_mask = (behavior[column_name] == state2).values
 
                 modulation_results = find_two_state_modulated_neurons(
-                    traces,
+                    scaled_traces,
                     state1_mask,
                     state2_mask,
                     n_shuffle=n_shuffle,
@@ -202,7 +204,7 @@ def _make_modulation_data(
 
                 try:
                     modulation_results = find_two_state_modulated_neurons(
-                        traces,
+                        scaled_traces,
                         state_mask,
                         baseline_mask,
                         n_shuffle=n_shuffle,
@@ -221,7 +223,7 @@ def _make_modulation_data(
                         "Setting modulation scores to empty arrays."
                     )
                     # Initialize with empty arrays to prevent downstream errors
-                    num_cells = traces.shape[1]
+                    num_cells = scaled_traces.shape[1]
                     data[state]["modulation_scores"] = np.zeros(num_cells)
                     data[state]["p_val"] = np.ones(num_cells)
                     data[state]["modulation"] = np.zeros(num_cells)
@@ -260,7 +262,7 @@ def _make_modulation_data(
 
             try:
                 modulation_results = find_two_state_modulated_neurons(
-                    traces,
+                    scaled_traces,
                     state_mask,
                     not_state_mask_array,
                     n_shuffle=n_shuffle,
@@ -505,10 +507,7 @@ def population_activity(
     ) = _get_cellset_data(cell_set_files)
 
     # get behavior
-    if annotations_file.endswith(".csv"):
-        behavior = pd.read_csv(annotations_file)
-    else:
-        behavior = pd.read_parquet(annotations_file)
+    behavior = pd.read_parquet(annotations_file)
     # check that behavior and traces are the same length
     if len(behavior) != np.shape(traces)[0]:
         raise IdeasError(
@@ -606,10 +605,15 @@ def population_activity(
     down_modulation_color = mod_colors[1]
     non_modulation_color = [_ / 255 for _ in [225, 225, 225]]
 
+    cell_status_filter = "accepted"
     if num_accepted_cells > 0:
         cell_status_filter = "accepted"
     elif num_undecided_cells > 0:
         cell_status_filter = "undecided"
+    else:
+        raise IdeasError(
+            "There are no accepted or undecided cells available for event analysis."
+        )
 
     x = [cx for cx, stat in zip(x, status) if stat == cell_status_filter]
     y = [cx for cx, stat in zip(y, status) if stat == cell_status_filter]
@@ -668,6 +672,9 @@ def population_activity(
 
     logger.info("Trace analysis complete, starting event analysis...")
 
+    # Track whether event processing succeeded
+    event_processing_successful = False
+
     if event_set_files is not None and len(event_set_files) > 0:
         try:
             offsets, amplitudes = io.event_set_to_events(
@@ -679,95 +686,179 @@ def population_activity(
             )
             raise e
 
-        # Make appropriate labels for figures
-        if event_scale_method == Rescale.FRACTIONAL_CHANGE.value:
-            unit = "fractional change"
-            ylabel = "Mean Fractional Change in Event Rate"
-        elif (
-            event_scale_method == Rescale.STANDARDIZE.value
-            or event_scale_method == Rescale.STANDARDIZE_BASELINE.value
-        ):
-            unit = "z-score"
-            ylabel = "Mean Event Rate Z-score"
-        elif event_scale_method == Rescale.NORMALIZE.value:
-            unit = "normalized Event Rate"
-            ylabel = "Mean Normalized Event Rate"
+        # Keep a copy of the original offsets
+        original_offsets = list(offsets)  # Ensure it's a copy
+        valid_events = False
+        final_offsets = None
+
+        # --- Attempt 1: Validate with unfiltered offsets ---
+        logger.info("Attempting event validation with unfiltered offsets.")
+        try:
+            if len(original_offsets) == traces.shape[1]:
+                logger.info("Unfiltered event validation successful.")
+                valid_events = True
+                final_offsets = original_offsets
+            else:
+                logger.warning(
+                    f"Unfiltered event validation failed. "
+                    f"Event set has {len(original_offsets)} cells, "
+                    f"but filtered traces have {traces.shape[1]} cells."
+                )
+        except Exception as e:
+            logger.warning(
+                f"Error during unfiltered event validation step: {e}"
+            )
+            # valid_events remains False
+
+        # --- Attempt 2: Validate with filtered offsets (if Attempt 1 failed) ---
+        if not valid_events:
+            logger.info("Attempting event validation with filtered offsets.")
+            try:
+                # Filter the original offsets based on status
+                filtered_offsets = [
+                    cell
+                    for cell, stat in zip(original_offsets, status)
+                    if stat == cell_status_filter
+                ]
+
+                if len(filtered_offsets) == traces.shape[1]:
+                    logger.info("Filtered event validation successful.")
+                    valid_events = True
+                    final_offsets = filtered_offsets
+                else:
+                    logger.warning(
+                        f"Filtered event validation failed. "
+                        f"Filtered event set has {len(filtered_offsets)} cells, "
+                        f"but filtered traces have {traces.shape[1]} cells."
+                    )
+            except Exception as e:
+                logger.warning(
+                    f"Error during filtered event validation step: {e}"
+                )
+                # valid_events remains False
+
+        # --- Final Check ---
+        if not valid_events:
+            logger.error(
+                "Traces and events do not match after attempting both "
+                "unfiltered and filtered validation. Event analysis will be skipped."
+            )
+            event_processing_successful = False
         else:
-            unit = "event rate (Hz)"
-            ylabel = "Mean Event Rate (Hz)"
+            # Proceed with event processing
+            if final_offsets is None:
+                logger.error(
+                    "Event offsets unavailable after validation. "
+                    "Event analysis will be skipped."
+                )
+                event_processing_successful = False
+            else:
+                filtered_status = [
+                    stat for stat in status if stat == cell_status_filter
+                ]
 
-        event_timeseries = io.offsets_to_timeseries(
-            offsets=offsets,
-            status=status,
-            timeseries_shape=traces.shape,
-            period=period,
-        )
-        logger.info("Event data loaded")
-        event_data = _make_modulation_data(
-            traces=event_timeseries,
-            behavior=behavior,
-            states=state_names,
-            column_name=column_name,
-            n_shuffle=n_shuffle,
-            alpha=alpha,
-            method=method,
-            baseline_state=baseline_state,
-            rescale=event_scale_method,
-        )
-        logger.info("Event modulation data created, creating plots...")
-        _plot_raster(
-            events=offsets,
-            event_timeseries=event_timeseries,
-            behavior=behavior,
-            column_name=column_name,
-            period=period,
-            state_colors=state_colors,
-            state_names=state_names,
-            filename=event_preview,
-        )
-        _plot_population_average(
-            data=event_data,
-            filename=event_average_preview,
-            state_colors=state_colors,
-            ylabel=ylabel,
-        )
+                if len(filtered_status) != len(final_offsets):
+                    logger.error(
+                        "Filtered status list length does not match event offsets."
+                        " Event analysis will be skipped."
+                    )
+                    event_processing_successful = False
+                else:
+                    event_processing_successful = True
 
-        plot_modulated_neuron_footprints(
-            data=event_data,
-            x=x,
-            y=y,
-            filename=event_modulation_preview,
-            up_modulation_color=up_modulation_color,
-            down_modulation_color=down_modulation_color,
-            non_modulation_color=non_modulation_color,
-            method=method,
-            baseline_state=baseline_state,
-        )
+                    # Make appropriate labels for figures
+                    if event_scale_method == Rescale.FRACTIONAL_CHANGE.value:
+                        unit = "fractional change"
+                        ylabel = "Mean Fractional Change in Event Rate"
+                    elif (
+                        event_scale_method == Rescale.STANDARDIZE.value
+                        or event_scale_method
+                        == Rescale.STANDARDIZE_BASELINE.value
+                    ):
+                        unit = "z-score"
+                        ylabel = "Mean Event Rate Z-score"
+                    elif event_scale_method == Rescale.NORMALIZE.value:
+                        unit = "normalized Event Rate"
+                        ylabel = "Mean Normalized Event Rate"
+                    else:
+                        unit = "event rate (Hz)"
+                        ylabel = "Mean Event Rate (Hz)"
 
-        plot_modulated_neuron_footprints(
-            data=event_data,
-            x=x,
-            y=y,
-            filename=event_modulation_histogram_preview,
-            up_modulation_color=up_modulation_color,
-            down_modulation_color=down_modulation_color,
-            non_modulation_color=non_modulation_color,
-            method=method,
-            baseline_state=baseline_state,
-            plot_type="hist",
-        )
-        logger.info("Event analysis complete, saving data to CSV")
-        _modulation_data_to_csv(
-            data=event_data,
-            filename=EVENT_MODULATION_CSV_NAME,
-            cell_names=_status_to_cell_names(status),
-            method=method,
-            unit=unit,
-            baseline_state=baseline_state,
-        )
+                    event_timeseries = io.offsets_to_timeseries(
+                        offsets=final_offsets,
+                        status=filtered_status,
+                        timeseries_shape=traces.shape,
+                        period=period,
+                    )
+                    logger.info("Event data loaded")
+                    event_data = _make_modulation_data(
+                        traces=event_timeseries,
+                        behavior=behavior,
+                        states=state_names,
+                        column_name=column_name,
+                        n_shuffle=n_shuffle,
+                        alpha=alpha,
+                        method=method,
+                        baseline_state=baseline_state,
+                        rescale=event_scale_method,
+                    )
+                    logger.info(
+                        "Event modulation data created, creating plots..."
+                    )
+                    _plot_raster(
+                        events=final_offsets,
+                        event_timeseries=event_timeseries,
+                        behavior=behavior,
+                        column_name=column_name,
+                        period=period,
+                        state_colors=state_colors,
+                        state_names=state_names,
+                        filename=event_preview,
+                    )
+                    _plot_population_average(
+                        data=event_data,
+                        filename=event_average_preview,
+                        state_colors=state_colors,
+                        ylabel=ylabel,
+                    )
 
-        # Create meta data
+                    plot_modulated_neuron_footprints(
+                        data=event_data,
+                        x=x,
+                        y=y,
+                        filename=event_modulation_preview,
+                        up_modulation_color=up_modulation_color,
+                        down_modulation_color=down_modulation_color,
+                        non_modulation_color=non_modulation_color,
+                        method=method,
+                        baseline_state=baseline_state,
+                    )
 
+                    plot_modulated_neuron_footprints(
+                        data=event_data,
+                        x=x,
+                        y=y,
+                        filename=event_modulation_histogram_preview,
+                        up_modulation_color=up_modulation_color,
+                        down_modulation_color=down_modulation_color,
+                        non_modulation_color=non_modulation_color,
+                        method=method,
+                        baseline_state=baseline_state,
+                        plot_type="hist",
+                    )
+                    logger.info("Event analysis complete, saving data to CSV")
+                    _modulation_data_to_csv(
+                        data=event_data,
+                        filename=EVENT_MODULATION_CSV_NAME,
+                        cell_names=cell_names,  # Use the filtered cell names from _get_cellset_data
+                        method=method,
+                        unit=unit,
+                        baseline_state=baseline_state,
+                    )
+
+    # Save metadata based on what was successfully processed
+    if event_processing_successful:
+        # Create meta data for events
         event_key = Path(EVENT_MODULATION_CSV_NAME).stem
         event_values = {
             "num_cells": len(data[state_names[0]]["mean_activity"]),
@@ -782,15 +873,23 @@ def population_activity(
             "scale_method": event_scale_method,
         }
 
-        # Save meta data
+        # Both trace and event data were processed
         meta_data = {
             activity_key: activity_values,
             event_key: event_values,
         }
-
-        with open("output_metadata.json", "w") as f:
-            json.dump(meta_data, f)
         logger.info("All analyses complete.")
+    else:
+        # Only trace data was processed
+        meta_data = {
+            activity_key: activity_values,
+        }
+        logger.info(
+            "Trace analysis complete (event processing skipped or unavailable)."
+        )
+
+    with open("output_metadata.json", "w") as f:
+        json.dump(meta_data, f)
 
 
 # helper functions
@@ -834,14 +933,21 @@ def _perform_permutation_test(
         # Compute modulation with shuffled masks
         modulation_scores_bs[i, :] = compute_func(traces, *shuffled_args)
 
-    # Calculate p-values
+    # Calculate one-tailed p-values for directional significance testing
+    # p_val_1: fraction of shuffles that exceed observed score
+    #          (small values indicate observed is significantly HIGH)
+    # p_val_2: fraction of shuffles below observed score
+    #          (small values indicate observed is significantly LOW)
     p_val_1 = np.mean(modulation_scores < modulation_scores_bs, axis=0)
     p_val_2 = np.mean(modulation_scores > modulation_scores_bs, axis=0)
     p_val = np.minimum(p_val_1, p_val_2)
 
-    # Identify significantly modulated neurons
-    up_neurons = np.where((modulation_scores > 0) & (p_val < alpha))[0]
-    down_neurons = np.where((modulation_scores < 0) & (p_val < alpha))[0]
+    # Identify significantly modulated neurons using alpha/2 for each one-tailed test
+    # This maintains an overall Type I error rate of alpha (matching Peri-Event Workflow)
+    # Up-modulated: observed > 0 AND p_val_1 < alpha/2 (significantly higher than null)
+    # Down-modulated: observed < 0 AND p_val_2 < alpha/2 (significantly lower than null)
+    up_neurons = np.where((modulation_scores > 0) & (p_val_1 < alpha / 2))[0]
+    down_neurons = np.where((modulation_scores < 0) & (p_val_2 < alpha / 2))[0]
 
     return {
         "up_modulated_neurons": up_neurons,

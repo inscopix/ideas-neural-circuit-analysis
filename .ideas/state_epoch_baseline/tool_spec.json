@@ -1,0 +1,269 @@
+{
+    "key": "state_epoch_baseline",
+    "name": "state_epoch_baseline",
+    "schema_version": "3.0.0",
+    "container_image": {
+        "repository": "platform/neuro-stats",
+        "label": "latest"
+    },
+    "command": {
+        "file_path": "analysis/state_epoch_baseline_analysis.py",
+        "entry_point": "state_epoch_baseline_analysis",
+        "program_type": "PYTHON"
+    },
+    "params": [
+        {
+            "key": "cell_set_files",
+            "name": "cell_set_files",
+            "required": false,
+            "description": "cell_set_files",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true
+            }
+        },
+        {
+            "key": "event_set_files",
+            "name": "event_set_files",
+            "required": false,
+            "description": "event_set_files",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true
+            }
+        },
+        {
+            "key": "annotations_file",
+            "name": "annotations_file",
+            "required": false,
+            "description": "annotations_file",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true
+            }
+        },
+        {
+            "key": "column_name",
+            "name": "column_name",
+            "required": false,
+            "description": "column_name",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "state"
+            }
+        },
+        {
+            "key": "state_names",
+            "name": "state_names",
+            "required": false,
+            "description": "state_names",
+            "type": {
+                "param_type": "ToolStringParam"
+            }
+        },
+        {
+            "key": "state_colors",
+            "name": "state_colors",
+            "required": false,
+            "description": "state_colors",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "gray, blue, orange"
+            }
+        },
+        {
+            "key": "define_epochs_by",
+            "name": "define_epochs_by",
+            "required": false,
+            "description": "define_epochs_by",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "global file time"
+            }
+        },
+        {
+            "key": "epochs",
+            "name": "epochs",
+            "required": false,
+            "description": "epochs",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "(0, 600), (650, 950), (950, 1250)"
+            }
+        },
+        {
+            "key": "epoch_names",
+            "name": "epoch_names",
+            "required": false,
+            "description": "epoch_names",
+            "type": {
+                "param_type": "ToolStringParam"
+            }
+        },
+        {
+            "key": "epoch_colors",
+            "name": "epoch_colors",
+            "required": false,
+            "description": "epoch_colors",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "lightgray, lightblue, lightgreen"
+            }
+        },
+        {
+            "key": "baseline_state",
+            "name": "baseline_state",
+            "required": false,
+            "description": "baseline_state",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "rest"
+            }
+        },
+        {
+            "key": "baseline_epoch",
+            "name": "baseline_epoch",
+            "required": false,
+            "description": "baseline_epoch",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "baseline"
+            }
+        },
+        {
+            "key": "concatenate",
+            "name": "concatenate",
+            "required": false,
+            "description": "concatenate",
+            "type": {
+                "param_type": "ToolBooleanParam",
+                "default": true
+            }
+        },
+        {
+            "key": "trace_scale_method",
+            "name": "trace_scale_method",
+            "required": false,
+            "description": "trace_scale_method",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "none"
+            }
+        },
+        {
+            "key": "event_scale_method",
+            "name": "event_scale_method",
+            "required": false,
+            "description": "event_scale_method",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "none"
+            }
+        },
+        {
+            "key": "include_correlations",
+            "name": "include_correlations",
+            "required": false,
+            "description": "include_correlations",
+            "type": {
+                "param_type": "ToolBooleanParam",
+                "default": true
+            }
+        },
+        {
+            "key": "include_population_activity",
+            "name": "include_population_activity",
+            "required": false,
+            "description": "include_population_activity",
+            "type": {
+                "param_type": "ToolBooleanParam",
+                "default": true
+            }
+        },
+        {
+            "key": "include_event_analysis",
+            "name": "include_event_analysis",
+            "required": false,
+            "description": "include_event_analysis",
+            "type": {
+                "param_type": "ToolBooleanParam",
+                "default": true
+            }
+        },
+        {
+            "key": "use_registered_cellsets",
+            "name": "use_registered_cellsets",
+            "required": false,
+            "description": "use_registered_cellsets",
+            "type": {
+                "param_type": "ToolBooleanParam",
+                "default": false
+            }
+        },
+        {
+            "key": "registration_method",
+            "name": "registration_method",
+            "required": false,
+            "description": "registration_method",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "auto_detect"
+            }
+        },
+        {
+            "key": "alpha",
+            "name": "alpha",
+            "required": false,
+            "description": "alpha",
+            "type": {
+                "param_type": "ToolFloatRangeParam",
+                "default": 0.05
+            }
+        },
+        {
+            "key": "n_shuffle",
+            "name": "n_shuffle",
+            "required": false,
+            "description": "n_shuffle",
+            "type": {
+                "param_type": "ToolIntRangeParam",
+                "default": 1000
+            }
+        },
+        {
+            "key": "tolerance",
+            "name": "tolerance",
+            "required": false,
+            "description": "tolerance",
+            "type": {
+                "param_type": "ToolFloatRangeParam",
+                "default": 0.0001
+            }
+        },
+        {
+            "key": "sort_by_time",
+            "name": "sort_by_time",
+            "required": false,
+            "description": "sort_by_time",
+            "type": {
+                "param_type": "ToolBooleanParam",
+                "default": true
+            }
+        }
+    ],
+    "results": [
+        {
+            "key": "tool_output_group",
+            "name": "Tool Outputs",
+            "description": "Tool outputs",
+            "file_patterns": [
+                "**/*"
+            ]
+        }
+    ],
+    "resources": {
+        "cpu": 1,
+        "gpu": 0,
+        "memory": 1000
+    }
+}

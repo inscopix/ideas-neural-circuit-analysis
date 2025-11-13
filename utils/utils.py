@@ -122,46 +122,6 @@ def _parse_string_to_list_of_tuples(s):
     return s
 
 
-def logmexp_psd(y):
-    """Calculate the logarithm of the
-    mean of the exponential of the power spectral density (PSD) of the input signal.
-    :Parameters
-    - y (ndarray): Input signal.
-
-    :Returns
-    - ndarray: Square root of the mean of the exponential of the PSD.
-    """
-    return np.sqrt(np.exp(np.mean(np.log(y / 2 + DIVISION_THRESHOLD))))
-
-
-def get_noise(x):
-    """Calculate the noise of a given signal using the power spectral density
-    (PSD).
-
-    :Parameters
-    - x (array-like): Input signal.
-
-    :Returns
-    - sn (float): The calculated noise value.
-
-    :Raises
-    - None
-    """
-    ff = np.arange(0, 0.5 + 1 / len(x), 1 / len(x))
-    ind1 = ff > 0.25
-    ind2 = ff < 0.5
-    ind = ind1 & ind2
-
-    xdft = np.fft.rfft(x)
-    psdx = 1.0 / len(x) * (xdft**2)
-    psdx *= 2
-    try:
-        sn = logmexp_psd(psdx[ind])
-    except IndexError:
-        sn = logmexp_psd(psdx[ind[1:]])
-    return sn
-
-
 @beartype
 def _save_experiment_annotations_preview_and_metadata(
     parquet_file_name: str,
@@ -204,6 +164,7 @@ def _save_experiment_annotations_preview_and_metadata(
         dpi=300,
         transparent=True,
     )
+    plt.close(fig)
 
     key_values = {
         "dataset": {
@@ -359,20 +320,6 @@ Instead, this tool received no states.""",
                 f"The state to be analyzed: {state}, does not"
                 f" exist. Valid states are: {valid_states}"
             )
-
-
-def _status_to_cell_names(status: list) -> list:
-    """Create utility function that generates a list of cell names from cell statuses.
-
-    TODO this should be moved to ideas-python-utils
-    """
-    # make a list of cell names
-    cell_names = ["C{:0>3d}".format(x) for x in range(len(status))]
-    cell_names = [
-        name for name, stat in zip(cell_names, status) if stat != "rejected"
-    ]
-
-    return cell_names
 
 
 def _bin_data(data, bin_size, period):
@@ -747,13 +694,85 @@ def event_set_to_events(
     return all_offsets, all_amplitudes
 
 
+# SVG size estimation factors - heuristic values for different plot elements
+# These factors are used to estimate SVG file size before saving
+QUADMESH_FACTOR = 200  # For correlation matrix heatmaps
+LINECOLLECTION_SEGMENT_FACTOR = 2500  # For line plots and spatial connections
+POLYCOLLECTION_FACTOR = 35000  # For hexbin plots (many hexagonal patches)
+SCATTER_POINT_FACTOR = 800  # For scatter plots (conservative estimation)
+
+
+def estimate_svg_size(fig) -> int:
+    """Estimate the size of an SVG file in bytes based on plot elements.
+
+    This function analyzes matplotlib figure elements and estimates the resulting
+    SVG file size using empirically determined factors.
+
+    :param fig: Matplotlib figure object to analyze
+    :returns: Estimated size in bytes
+    """
+    import logging
+    from matplotlib.collections import QuadMesh, LineCollection, PolyCollection
+
+    logger = logging.getLogger()
+    estimated_size = 0
+
+    for ax in fig.get_axes():
+        # Check for mesh/collection objects (used for correlation matrices)
+        for collection in ax.collections:
+            if isinstance(collection, QuadMesh) and hasattr(
+                collection, "_coordinates"
+            ):
+                mesh_shape = collection._coordinates.shape
+                if len(mesh_shape) >= 3:
+                    cell_count = (mesh_shape[0] - 1) * (mesh_shape[1] - 1)
+                    estimated_size += cell_count * QUADMESH_FACTOR
+            elif isinstance(collection, LineCollection):
+                # Estimate complexity for LineCollection (e.g., eventplot, spatial maps)
+                try:
+                    # get_segments() returns a list of (N, 2) arrays
+                    num_segments = len(collection.get_segments())
+                    # Each segment has a start and end point,
+                    # but complexity might scale with segment count
+                    estimated_size += (
+                        num_segments * LINECOLLECTION_SEGMENT_FACTOR
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Could not get segments from LineCollection: {e}"
+                    )
+            elif isinstance(collection, PolyCollection):
+                # Estimate complexity for PolyCollection (e.g., hexbin plots, scatter plots)
+                try:
+                    # get_paths() returns a list of Path objects
+                    num_polygons = len(collection.get_paths())
+                    # Each polygon can have multiple vertices, complexity scales with polygon count
+                    estimated_size += num_polygons * POLYCOLLECTION_FACTOR
+                except Exception as e:
+                    logger.warning(
+                        f"Could not get paths from PolyCollection: {e}"
+                    )
+            elif hasattr(collection, "get_offsets"):
+                # PathCollection (scatter plots) - detect by presence of get_offsets method
+                try:
+                    num_points = len(collection.get_offsets())
+                    # Each scatter point becomes an SVG element, complexity scales with point count
+                    estimated_size += num_points * SCATTER_POINT_FACTOR
+                except Exception as e:
+                    logger.warning(
+                        f"Could not get offsets from scatter plot: {e}"
+                    )
+
+    return estimated_size
+
+
 def save_optimized_svg(
     fig,
     output_filename: str,
     max_size_mb: float = 10,
     dpi: int = 300,
     pad_inches: float = 0.1,
-) -> None:
+) -> int:
     """Save a figure as an SVG, with adaptive rasterization for large correlation matrices.
 
     This function analyzes the content and applies rasterization when needed.
@@ -763,13 +782,11 @@ def save_optimized_svg(
     :param max_size_mb: Maximum allowed file size in MB before rasterization.
     :param dpi: Resolution for rasterized elements.
     :param pad_inches: Amount of padding in inches around the figure when bbox_inches is 'tight'.
+    :returns: Estimated size in bytes before optimization
     """
     # Import required modules
     from matplotlib.collections import (
         Collection,
-        QuadMesh,
-        LineCollection,
-        PolyCollection,
     )
     from matplotlib.image import AxesImage
 
@@ -795,59 +812,14 @@ def save_optimized_svg(
             )
             pass
 
-    # Only check for mesh objects like correlation matrices
-    images_size = 0
-
-    for ax in fig.get_axes():
-        # factor to multiply quadmesh elements by in order to estimate image size
-        # this is a heuristic value estimated from running this function on large data
-        # and choosing a value which closely matches the actual image size
-        QUADMESH_FACTOR = 200
-        # factor to multiply line collection elements by in order to estimate image size
-        # this is a heuristic value estimated from running this function on large data
-        LINECOLLECTION_SEGMENT_FACTOR = 200
-        # factor to multiply polygon collection elements by in order to estimate image size
-        # hexbin plots create many hexagonal patches which can be memory intensive
-        POLYCOLLECTION_FACTOR = 200
-        # Check for mesh/collection objects (used for correlation matrices)
-        for collection in ax.collections:
-            if isinstance(collection, QuadMesh) and hasattr(
-                collection, "_coordinates"
-            ):
-                mesh_shape = collection._coordinates.shape
-                if len(mesh_shape) >= 3:
-                    cell_count = (mesh_shape[0] - 1) * (mesh_shape[1] - 1)
-                    images_size += cell_count * QUADMESH_FACTOR
-            elif isinstance(collection, LineCollection):
-                # Estimate complexity for LineCollection (e.g., eventplot, spatial maps)
-                try:
-                    # get_segments() returns a list of (N, 2) arrays
-                    num_segments = len(collection.get_segments())
-                    # Each segment has a start and end point,
-                    # but complexity might scale with segment count
-                    images_size += num_segments * LINECOLLECTION_SEGMENT_FACTOR
-                except Exception as e:
-                    logger.warning(
-                        f"Could not get segments from LineCollection: {e}"
-                    )
-            elif isinstance(collection, PolyCollection):
-                # Estimate complexity for PolyCollection (e.g., hexbin plots, scatter plots)
-                try:
-                    # get_paths() returns a list of Path objects
-                    num_polygons = len(collection.get_paths())
-                    # Each polygon can have multiple vertices, complexity scales with polygon count
-                    images_size += num_polygons * POLYCOLLECTION_FACTOR
-                except Exception as e:
-                    logger.warning(
-                        f"Could not get paths from PolyCollection: {e}"
-                    )
-    # Simplified decision: rasterize if images are large
-    images_size_mb = images_size / (1024 * 1024)
-    should_rasterize = images_size_mb > max_size_mb
+    # Estimate the size using the extracted function
+    estimated_size_bytes = estimate_svg_size(fig)
+    estimated_size_mb = estimated_size_bytes / (1024 * 1024)
+    should_rasterize = estimated_size_mb > max_size_mb
 
     if should_rasterize:
         logger.info(
-            f"Large matrix detected (est. {images_size_mb:.1f}MB)"
+            f"Large matrix detected (est. {estimated_size_mb:.1f}MB)"
             f" - using rasterization for {output_filename}"
         )
 
@@ -901,6 +873,8 @@ def save_optimized_svg(
             bbox_inches="tight",
             pad_inches=pad_inches,
         )
+
+    return estimated_size_bytes
 
 
 @beartype
