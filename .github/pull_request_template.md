@@ -5,4 +5,3 @@ Describe how changes were tested.
 
 ## Technical Discussion
 Describe any technical considerations due to these changes which need to be discussed with reviewers.
-
