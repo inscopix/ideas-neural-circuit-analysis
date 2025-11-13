@@ -2,13 +2,9 @@
 
 IMAGE_REPO=platform
 IMAGE_NAME=neuro-stats
-
-# Update this value anytime you're publishing a new version of this image to IDEAS
-ifndef LABEL
-	LABEL=0.0.1
-endif
-
+LABEL=$(shell cat .ideas/images_spec.json | jq -r ".[0].label")
 IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:${LABEL}
+LATEST_IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:latest
 PLATFORM=linux/amd64
 ifndef TARGET
 	TARGET=base
@@ -21,12 +17,14 @@ clean:
 	-docker rmi ${IMAGE_TAG}
 
 build: 
-	docker build . -t $(IMAGE_TAG) \
+	docker build . -t $(LATEST_IMAGE_TAG) \
 		--platform ${PLATFORM} \
 		--target ${TARGET}
+	docker tag ${LATEST_IMAGE_TAG} ${IMAGE_TAG}
 
 test: TARGET=test
 test: IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:${LABEL}-test
+test: LATEST_IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:latest-test
 test: clean build 
 	@echo "Running tests..."
 	docker run \

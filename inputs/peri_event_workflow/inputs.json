@@ -1,6 +1,6 @@
 {
-    "input_cellset_files": ["data/peri_event_workflow/cellset_series_part1-PCA-ICA.isxd"],
-    "input_events_h5_file": "data/peri_event_workflow/events.h5",
+    "input_cellset_files": ["data/cellset_series_part1-PCA-ICA.isxd"],
+    "input_events_h5_file": "data/events.h5",
     "event_type": "event_type_1",
     "visual_window_pre": -2.0,
     "visual_window_post": 2.0,
@@ -17,6 +17,5 @@
     "temporal_downsampling_factor": 3,
     "population_activity_plot_limits": "-0.2,0.2",
     "activity_heatmap_color_limits": "-0.4,0.4",
-    "activity_by_modulation_plot_limits": "-0.15,0.15",
-    "output_dir": null
+    "activity_by_modulation_plot_limits": "-0.15,0.15"
 }
