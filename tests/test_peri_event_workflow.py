@@ -26,7 +26,7 @@ class TestPeriEventWorkflow(unittest.TestCase):
 
     # define directories
     temporary_dir = "/tmp"
-    input_dir = "data/peri_event_workflow"
+    input_dir = "data/"
     output_dir = os.path.join(temporary_dir, "tmp_peri_event_workflow_outputs")
 
     # output manifest
@@ -61,6 +61,8 @@ class TestPeriEventWorkflow(unittest.TestCase):
     def tearDown(self):
         if os.path.exists(self.output_dir):
             shutil.rmtree(self.output_dir)
+        if os.path.exists("exit_status.txt"):
+            os.remove("exit_status.txt")
 
     # VALID CASES
     def test_peri_event_workflow_single_cell_set_single_event_type(self):
@@ -121,7 +123,7 @@ class TestPeriEventWorkflow(unittest.TestCase):
         )
 
         expected_traces_df = pd.read_csv(
-            os.path.join(self.input_dir, "expected_event_aligned_traces.csv")
+            os.path.join(self.input_dir, "peri_event_workflow/expected_event_aligned_traces.csv")
         )
         compare_float_dataframes(actual_traces_df, expected_traces_df)
 
@@ -133,7 +135,7 @@ class TestPeriEventWorkflow(unittest.TestCase):
 
         expected_stats_df = pd.read_csv(
             os.path.join(
-                self.input_dir, "expected_event_aligned_statistics.csv"
+                self.input_dir, "peri_event_workflow/expected_event_aligned_statistics.csv"
             )
         )
         compare_float_dataframes(actual_stats_df, expected_stats_df)
@@ -430,7 +432,7 @@ class TestPeriEventWorkflow(unittest.TestCase):
         expected_traces_df = pd.read_csv(
             os.path.join(
                 self.input_dir,
-                "expected_series_event_aligned_activity.TRACES.csv",
+                "peri_event_workflow/expected_series_event_aligned_activity.TRACES.csv",
             )
         )
         compare_float_dataframes(actual_traces_df, expected_traces_df)
@@ -446,7 +448,7 @@ class TestPeriEventWorkflow(unittest.TestCase):
         expected_stats_df = pd.read_csv(
             os.path.join(
                 self.input_dir,
-                "expected_series_event_aligned_activity.STATISTICS.csv",
+                "peri_event_workflow/expected_series_event_aligned_activity.STATISTICS.csv",
             )
         )
         compare_float_dataframes(actual_stats_df, expected_stats_df)

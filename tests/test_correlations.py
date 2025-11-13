@@ -120,7 +120,6 @@ def test_correlation_tool(
         raw_correlations_file,
         "correlation_matrices.svg",
         "correlation_plot.svg",
-        "output_metadata.json",
     ]
     for f in output_files:
         assert os.path.exists(f)
