@@ -1,8 +1,8 @@
 {
     "key": "population_activity",
-    "name": "population_activity",
-    "version": "0.0.2",
-    "description": "Calculate population activity during behavioral states.",
+    "name": "Compare Neural Activity Across States",
+    "version": "6.0.0",
+    "description": "Measure population activity during two states",
     "schema_version": "3.0.0",
     "container_image": {
         "repository": "platform/neuro-stats",
@@ -16,140 +16,207 @@
     "params": [
         {
             "key": "cell_set_files",
-            "name": "cell_set_files",
+            "name": "Cell Set File(s)",
             "required": true,
-            "description": "cell_set_files",
+            "description": "ISXD cell set file(s)",
             "type": {
                 "param_type": "ToolPathParam",
-                "multiple": true
-            }
+                "multiple": true,
+                "file_formats": [
+                    "isxd"
+                ]
+            },
+            "group": "Input Files"
         },
         {
             "key": "event_set_files",
-            "name": "event_set_files",
+            "name": "Event Set File(s)",
             "required": false,
-            "description": "event_set_files",
+            "description": "ISXD event set file(s)",
             "type": {
                 "param_type": "ToolPathParam",
-                "multiple": true
-            }
+                "multiple": true,
+                "file_formats": [
+                    "isxd"
+                ]
+            },
+            "group": "Input Files"
         },
         {
             "key": "annotations_file",
-            "name": "annotations_file",
+            "name": "Annotations File",
             "required": true,
-            "description": "annotations_file",
+            "description": "Experiment Annotations file",
             "type": {
                 "param_type": "ToolPathParam",
-                "multiple": true
-            }
+                "multiple": true,
+                "file_formats": [
+                    "parquet"
+                ]
+            },
+            "group": "Input Files"
         },
         {
             "key": "concatenate",
-            "name": "concatenate",
-            "required": false,
-            "description": "concatenate",
+            "name": "Concatenate Files End-to-End",
+            "required": true,
+            "description": "Whether to concatenate the cell set files end-to-end, or space them according to their original timestamps",
             "type": {
                 "param_type": "ToolBooleanParam",
                 "default": true
-            }
+            },
+            "group": "Data Pre-processing"
         },
         {
             "key": "trace_scale_method",
-            "name": "trace_scale_method",
+            "name": "Method to Rescale Trace Activity Data",
             "required": false,
-            "description": "trace_scale_method",
+            "description": "The trace activity data will be rescaled using the specified method. If 'none' is selected, the original raw calcium trace values will be used without any transformation, preserving the original scale of the measurements.",
             "type": {
-                "param_type": "ToolStringParam",
-                "default": "none"
-            }
+                "param_type": "ToolChoiceParam",
+                "default": "none",
+                "choices": [
+                    "none",
+                    "standardize",
+                    "normalize",
+                    "standardize_baseline",
+                    "fractional_change"
+                ],
+                "display_options": [
+                    "None",
+                    "Standardize",
+                    "Normalize",
+                    "Standardize to baseline",
+                    "Fractional change from baseline"
+                ]
+            },
+            "group": "Data Pre-processing"
         },
         {
             "key": "event_scale_method",
-            "name": "event_scale_method",
+            "name": "Method to Rescale Event Rate Data",
             "required": false,
-            "description": "event_scale_method",
+            "description": "If specified, the event rate data will be rescaled using the specified method",
             "type": {
-                "param_type": "ToolStringParam",
-                "default": "none"
-            }
+                "param_type": "ToolChoiceParam",
+                "default": "none",
+                "choices": [
+                    "none",
+                    "standardize",
+                    "normalize",
+                    "standardize_baseline",
+                    "fractional_change"
+                ],
+                "display_options": [
+                    "None",
+                    "Standardize",
+                    "Normalize",
+                    "Standardize to baseline",
+                    "Fractional change from baseline"
+                ]
+            },
+            "group": "Data Pre-processing"
         },
         {
             "key": "column_name",
-            "name": "column_name",
-            "required": false,
-            "description": "column_name",
+            "name": "Column Name",
+            "required": true,
+            "description": "Column name in annotations file with states",
             "type": {
                 "param_type": "ToolStringParam",
                 "default": "state"
-            }
+            },
+            "group": "States"
         },
         {
             "key": "state_names",
-            "name": "state_names",
+            "name": "State Names",
             "required": true,
-            "description": "state_names",
+            "description": "Names of states to compare.",
             "type": {
                 "param_type": "ToolStringParam"
-            }
+            },
+            "group": "States"
         },
         {
             "key": "state_colors",
-            "name": "state_colors",
+            "name": "State Colors",
             "required": true,
-            "description": "state_colors",
+            "description": "List of matplotlib compatible colors to represent each state",
             "type": {
                 "param_type": "ToolStringParam"
-            }
+            },
+            "group": "States"
         },
         {
             "key": "method",
-            "name": "method",
-            "required": false,
-            "description": "method",
+            "name": "Method to compare states",
+            "required": true,
+            "description": "The method to compare states against each other",
             "type": {
-                "param_type": "ToolStringParam",
-                "default": "state vs not state"
-            }
+                "param_type": "ToolChoiceParam",
+                "default": "state vs not state",
+                "choices": [
+                    "pairwise",
+                    "state vs baseline",
+                    "state vs not defined",
+                    "state vs not state"
+                ],
+                "display_options": [
+                    "Pairwise",
+                    "State vs Baseline",
+                    "State vs Not Defined",
+                    "State vs Not State"
+                ]
+            },
+            "group": "States"
         },
         {
             "key": "baseline_state",
-            "name": "baseline_state",
+            "name": "Baseline State",
             "required": false,
-            "description": "baseline_state",
+            "description": "Optional parameter to define the baseline state for comparison if method is state vs baseline, or for rescaling if method is standardize to baseline or fractional change",
             "type": {
                 "param_type": "ToolStringParam"
-            }
+            },
+            "group": "States"
         },
         {
             "key": "modulation_colors",
-            "name": "modulation_colors",
-            "required": false,
-            "description": "modulation_colors",
+            "name": "Modulation Colors",
+            "required": true,
+            "description": "Colors to represent up and down modulation respectively",
             "type": {
                 "param_type": "ToolStringParam",
-                "default": "tab:red,tab:blue"
-            }
+                "default": "tab:red, tab:blue"
+            },
+            "group": "Modulation Parameters"
         },
         {
             "key": "n_shuffle",
-            "name": "n_shuffle",
+            "name": "Number of Shuffles",
             "required": false,
-            "description": "n_shuffle",
+            "description": "Number of shuffles to determine if a neuron is significantly modulated by state",
             "type": {
                 "param_type": "ToolIntRangeParam",
-                "default": 1000
-            }
+                "default": 1000,
+                "min": 10,
+                "max": 100000
+            },
+            "group": "Modulation Parameters"
         },
         {
             "key": "alpha",
-            "name": "alpha",
+            "name": "Significance Threshold",
             "required": false,
-            "description": "alpha",
+            "description": "Significance threshold (alpha) below which p-values are considered significant.",
             "type": {
                 "param_type": "ToolFloatRangeParam",
-                "default": 0.05
-            }
+                "default": 0.05,
+                "min": 0,
+                "max": 1.0
+            },
+            "group": "Modulation Parameters"
         }
     ],
     "results": [
@@ -165,6 +232,7 @@
     "resources": {
         "cpu": 1,
         "gpu": 0,
-        "memory": 1000
-    }
+        "memory": 10000
+    },
+    "visibility": "public"
 }
