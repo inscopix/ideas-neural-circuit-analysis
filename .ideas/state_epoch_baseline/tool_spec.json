@@ -340,7 +340,7 @@
             "name": "Activity Per State-Epoch Data",
             "description": "CSV file with activity metrics for each cell in each state-epoch combination",
             "file_patterns": [
-                "activity_per_state_epoch_data**"
+                "activity_per_state_epoch_data/**/*"
             ]
         },
         {
@@ -348,7 +348,7 @@
             "name": "Correlations Per State-Epoch Data",
             "description": "CSV file with correlation statistics for each state-epoch combination",
             "file_patterns": [
-                "correlations_per_state_epoch_data**"
+                "correlations_per_state_epoch_data/**/*"
             ]
         },
         {
@@ -356,7 +356,7 @@
             "name": "Modulation vs Baseline Data",
             "description": "CSV file with modulation indices relative to baseline",
             "file_patterns": [
-                "modulation_vs_baseline_data**"
+                "modulation_vs_baseline_data/**/*"
             ]
         },
         {
@@ -364,7 +364,7 @@
             "name": "Average Correlations",
             "description": "Average positive and negative correlations for each state-epoch combination",
             "file_patterns": [
-                "average_correlations**"
+                "*average_correlations.csv"
             ]
         },
         {
@@ -372,7 +372,7 @@
             "name": "Pairwise Correlation Heatmaps",
             "description": "Raw correlation matrices for each state-epoch combination stored in HDF5 format",
             "file_patterns": [
-                "pairwise_correlation_heatmaps**"
+                "*pairwise_correlation_heatmaps.h5"
             ]
         },
         {
@@ -380,7 +380,7 @@
             "name": "Spatial Analysis of Pairwise Correlations",
             "description": "Raw correlation matrices and cell pair correlations with spatial position information for each cell pair across state-epoch combinations",
             "file_patterns": [
-                "spatial_analysis_pairwise_correlations**"
+                "*spatial_analysis_pairwise_correlations.zip"
             ]
         }
     ],
