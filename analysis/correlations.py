@@ -134,6 +134,7 @@ def _average_correlations(
     fig.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.1)
 
     fig.savefig("average_correlations_preview.svg", dpi=300, transparent=True)
+    plt.close(fig)
 
     avg_df.to_csv(AVG_CORRELATIONS_CSV_NAME, index=False)
 
@@ -703,6 +704,7 @@ def plot_correlation_matrices(
         out_file_name,
         max_size_mb=10,
     )
+    plt.close(fig)
 
     return sort_indices
 
@@ -1247,8 +1249,6 @@ We cannot accurately estimate correlations here. """,
             df[column_name] = df[column_name].cat.add_categories("not_defined")
 
         df.loc[not_in_any_state, column_name] = "not_defined"
-
-
         states.append("not_defined")
     else:
         logger.info(
@@ -1352,9 +1352,7 @@ def plot_spatial_correlations(
         )
 
         # Format scatter plot
-        ax_scatter.set_title(
-            f"Correlation vs Distance ({state})", fontdict=TITLE_FONT
-        )
+        ax_scatter.set_title(f"{state}", fontdict=TITLE_FONT)
         ax_scatter.set_ylabel("Correlation", fontdict=LABEL_FONT)
         ax_scatter.set_xlabel("Distance (pixels)", fontdict=LABEL_FONT)
         ax_scatter.set_xlim(max(0, min_distance - 5), max_distance + 5)
@@ -1386,7 +1384,7 @@ def plot_spatial_correlations(
 
         # Format density plot
         ax_density.set_title(
-            f"Density of Correlation vs Distance ({state})",
+            f"{state}",
             fontdict=TITLE_FONT,
         )
         ax_density.set_xlabel("Distance (pixels)", fontdict=LABEL_FONT)
