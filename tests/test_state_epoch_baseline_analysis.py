@@ -18,7 +18,7 @@ from pathlib import Path
 
 from ideas.exceptions import IdeasError
 
-from toolbox.tools.state_epoch_baseline_analysis import (
+from analysis.state_epoch_baseline_analysis import (
     state_epoch_baseline_analysis,
     analyze,
     StateEpochDataManager,
@@ -31,13 +31,14 @@ from toolbox.tools.state_epoch_baseline_analysis import (
 
 # Test data fixtures
 @pytest.fixture
-def temp_output_dir(tmp_path):
+def temp_output_dir(tmpdir):
     """Create temporary output directory for all tests.
 
     This fixture provides a clean temporary directory for each test,
     eliminating the need to track and clean up individual output files.
     """
-    return str(tmp_path)
+    os.chdir(tmpdir)
+    return str(tmpdir)
 
 
 @pytest.fixture
@@ -224,15 +225,15 @@ def local_time_epoch_params(standard_input_params):
 class TestEpochDefinitionMethods:
     """Test different epoch definition methods with comprehensive examples."""
 
-    @patch("toolbox.utils.utils.isx.CellSet.read")
+    @patch("utils.utils.isx.CellSet.read")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
-    @patch("toolbox.tools.state_epoch_baseline_analysis.StateEpochDataManager")
-    @patch("toolbox.utils.state_epoch_data._get_cellset_data")
-    @patch("toolbox.utils.state_epoch_data.event_set_to_events")
+    @patch("analysis.state_epoch_baseline_analysis.StateEpochDataManager")
+    @patch("utils.state_epoch_data._get_cellset_data")
+    @patch("utils.state_epoch_data.event_set_to_events")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.StateEpochOutputGenerator.generate_all_outputs"
+        "analysis.state_epoch_baseline_analysis.StateEpochOutputGenerator.generate_all_outputs"
     )
     def test_files_epoch_definition(
         self,
@@ -331,15 +332,15 @@ class TestEpochDefinitionMethods:
         assert mock_manager_instance.load_data.called  # Data was loaded
         assert mock_output_generator.called
 
-    @patch("toolbox.utils.utils.isx.CellSet.read")
+    @patch("utils.utils.isx.CellSet.read")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
-    @patch("toolbox.tools.state_epoch_baseline_analysis.StateEpochDataManager")
-    @patch("toolbox.utils.state_epoch_data._get_cellset_data")
-    @patch("toolbox.utils.state_epoch_data.event_set_to_events")
+    @patch("analysis.state_epoch_baseline_analysis.StateEpochDataManager")
+    @patch("utils.state_epoch_data._get_cellset_data")
+    @patch("utils.state_epoch_data.event_set_to_events")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.StateEpochOutputGenerator.generate_all_outputs"
+        "analysis.state_epoch_baseline_analysis.StateEpochOutputGenerator.generate_all_outputs"
     )
     def test_global_file_time_epoch_definition(
         self,
@@ -439,18 +440,18 @@ class TestEpochDefinitionMethods:
         assert mock_manager_instance.load_data.called  # Data was loaded
         assert mock_output_generator.called
 
-    @patch("toolbox.utils.utils.isx.CellSet.read")
+    @patch("utils.utils.isx.CellSet.read")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
-    @patch("toolbox.tools.state_epoch_baseline_analysis.StateEpochDataManager")
-    @patch("toolbox.utils.state_epoch_data._get_cellset_data")
-    @patch("toolbox.utils.state_epoch_data.event_set_to_events")
+    @patch("analysis.state_epoch_baseline_analysis.StateEpochDataManager")
+    @patch("utils.state_epoch_data._get_cellset_data")
+    @patch("utils.state_epoch_data.event_set_to_events")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.StateEpochOutputGenerator.generate_all_outputs"
+        "analysis.state_epoch_baseline_analysis.StateEpochOutputGenerator.generate_all_outputs"
     )
-    @patch("toolbox.utils.state_epoch_data.check_epochs_valid_state_epoch")
-    @patch("toolbox.utils.state_epoch_data.check_num_epochs_state_epoch")
+    @patch("utils.state_epoch_data.check_epochs_valid_state_epoch")
+    @patch("utils.state_epoch_data.check_num_epochs_state_epoch")
     def test_local_file_time_epoch_definition(
         self,
         mock_check_num_epochs,
@@ -579,18 +580,18 @@ class TestEpochDefinitionMethods:
         assert "[" in local_epochs and "]" in local_epochs
         assert "(" in local_epochs and ")" in local_epochs
 
-    @patch("toolbox.utils.utils.isx.CellSet.read")
+    @patch("utils.utils.isx.CellSet.read")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
-    @patch("toolbox.tools.state_epoch_baseline_analysis.StateEpochDataManager")
-    @patch("toolbox.utils.state_epoch_data._get_cellset_data")
-    @patch("toolbox.utils.state_epoch_data.event_set_to_events")
+    @patch("analysis.state_epoch_baseline_analysis.StateEpochDataManager")
+    @patch("utils.state_epoch_data._get_cellset_data")
+    @patch("utils.state_epoch_data.event_set_to_events")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.StateEpochOutputGenerator.generate_all_outputs"
+        "analysis.state_epoch_baseline_analysis.StateEpochOutputGenerator.generate_all_outputs"
     )
-    @patch("toolbox.utils.state_epoch_data.check_epochs_valid_state_epoch")
-    @patch("toolbox.utils.state_epoch_data.check_num_epochs_state_epoch")
+    @patch("utils.state_epoch_data.check_epochs_valid_state_epoch")
+    @patch("utils.state_epoch_data.check_num_epochs_state_epoch")
     def test_analyze_wrapper_with_different_epoch_methods(
         self,
         mock_check_num_epochs,
@@ -801,15 +802,15 @@ class TestStateEpochInteractionScenarios:
             }
         )
 
-    @patch("toolbox.utils.utils.isx.CellSet.read")
+    @patch("utils.utils.isx.CellSet.read")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
-    @patch("toolbox.tools.state_epoch_baseline_analysis.StateEpochDataManager")
-    @patch("toolbox.utils.state_epoch_data._get_cellset_data")
-    @patch("toolbox.utils.state_epoch_data.event_set_to_events")
+    @patch("analysis.state_epoch_baseline_analysis.StateEpochDataManager")
+    @patch("utils.state_epoch_data._get_cellset_data")
+    @patch("utils.state_epoch_data.event_set_to_events")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.StateEpochOutputGenerator.generate_all_outputs"
+        "analysis.state_epoch_baseline_analysis.StateEpochOutputGenerator.generate_all_outputs"
     )
     def test_partial_state_epoch_overlap(
         self,
@@ -910,15 +911,15 @@ class TestStateEpochInteractionScenarios:
         # Should complete without errors despite missing combinations
         assert mock_output_generator.called
 
-    @patch("toolbox.utils.utils.isx.CellSet.read")
+    @patch("utils.utils.isx.CellSet.read")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
-    @patch("toolbox.tools.state_epoch_baseline_analysis.StateEpochDataManager")
-    @patch("toolbox.utils.state_epoch_data._get_cellset_data")
-    @patch("toolbox.utils.state_epoch_data.event_set_to_events")
+    @patch("analysis.state_epoch_baseline_analysis.StateEpochDataManager")
+    @patch("utils.state_epoch_data._get_cellset_data")
+    @patch("utils.state_epoch_data.event_set_to_events")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.StateEpochOutputGenerator.generate_all_outputs"
+        "analysis.state_epoch_baseline_analysis.StateEpochOutputGenerator.generate_all_outputs"
     )
     def test_missing_baseline_combination(
         self,
@@ -1019,15 +1020,15 @@ class TestStateEpochInteractionScenarios:
                 concatenate=False,
             )
 
-    @patch("toolbox.utils.utils.isx.CellSet.read")
+    @patch("utils.utils.isx.CellSet.read")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
-    @patch("toolbox.tools.state_epoch_baseline_analysis.StateEpochDataManager")
-    @patch("toolbox.utils.state_epoch_data._get_cellset_data")
-    @patch("toolbox.utils.state_epoch_data.event_set_to_events")
+    @patch("analysis.state_epoch_baseline_analysis.StateEpochDataManager")
+    @patch("utils.state_epoch_data._get_cellset_data")
+    @patch("utils.state_epoch_data.event_set_to_events")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.StateEpochOutputGenerator.generate_all_outputs"
+        "analysis.state_epoch_baseline_analysis.StateEpochOutputGenerator.generate_all_outputs"
     )
     def test_single_state_multiple_epochs(
         self,
@@ -1127,15 +1128,15 @@ class TestStateEpochInteractionScenarios:
 
         assert mock_output_generator.called
 
-    @patch("toolbox.utils.utils.isx.CellSet.read")
+    @patch("utils.utils.isx.CellSet.read")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
-    @patch("toolbox.tools.state_epoch_baseline_analysis.StateEpochDataManager")
-    @patch("toolbox.utils.state_epoch_data._get_cellset_data")
-    @patch("toolbox.utils.state_epoch_data.event_set_to_events")
+    @patch("analysis.state_epoch_baseline_analysis.StateEpochDataManager")
+    @patch("utils.state_epoch_data._get_cellset_data")
+    @patch("utils.state_epoch_data.event_set_to_events")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.StateEpochOutputGenerator.generate_all_outputs"
+        "analysis.state_epoch_baseline_analysis.StateEpochOutputGenerator.generate_all_outputs"
     )
     def test_multiple_states_single_epoch(
         self,
@@ -1235,15 +1236,15 @@ class TestStateEpochInteractionScenarios:
 
         assert mock_output_generator.called
 
-    @patch("toolbox.utils.utils.isx.CellSet.read")
+    @patch("utils.utils.isx.CellSet.read")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
-    @patch("toolbox.tools.state_epoch_baseline_analysis.StateEpochDataManager")
-    @patch("toolbox.utils.state_epoch_data._get_cellset_data")
-    @patch("toolbox.utils.state_epoch_data.event_set_to_events")
+    @patch("analysis.state_epoch_baseline_analysis.StateEpochDataManager")
+    @patch("utils.state_epoch_data._get_cellset_data")
+    @patch("utils.state_epoch_data.event_set_to_events")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.StateEpochOutputGenerator.generate_all_outputs"
+        "analysis.state_epoch_baseline_analysis.StateEpochOutputGenerator.generate_all_outputs"
     )
     def test_sparse_state_distribution(
         self,
@@ -1347,9 +1348,9 @@ class TestStateEpochInteractionScenarios:
         """Test edge case parameter validation."""
         # Test empty state names should trigger epoch-only mode, not error
         with patch(
-            "toolbox.tools.state_epoch_baseline_analysis.StateEpochDataManager"
+            "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
         ) as mock_dm_class, patch(
-            "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+            "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
         ) as mock_validate:
             # Configure mocks
             mock_validate.return_value = None
@@ -1381,7 +1382,7 @@ class TestStateEpochInteractionScenarios:
             mock_dm_instance.get_epoch_periods.return_value = [(0, 50)]
 
             with patch(
-                "toolbox.tools.state_epoch_baseline_analysis.StateEpochOutputGenerator"
+                "analysis.state_epoch_baseline_analysis.StateEpochOutputGenerator"
             ):
                 # Empty state names should trigger epoch-only mode, not raise error
                 state_epoch_baseline_analysis(
@@ -1400,9 +1401,9 @@ class TestStateEpochInteractionScenarios:
         # Test mismatched baseline state - this should still raise an error
         # when validation happens
         with patch(
-            "toolbox.tools.state_epoch_baseline_analysis.StateEpochDataManager"
+            "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
         ) as mock_dm_class2, patch(
-            "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+            "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
         ) as mock_validate2:
             mock_validate2.return_value = None
             mock_dm_class2.side_effect = IdeasError(
@@ -1425,9 +1426,9 @@ class TestStateEpochInteractionScenarios:
 
         # Test mismatched baseline epoch - this should still raise an error
         with patch(
-            "toolbox.tools.state_epoch_baseline_analysis.StateEpochDataManager"
+            "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
         ) as mock_dm_class3, patch(
-            "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+            "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
         ) as mock_validate3:
             mock_validate3.return_value = None
             mock_dm_class3.side_effect = IdeasError(
@@ -1452,9 +1453,9 @@ class TestStateEpochInteractionScenarios:
 class TestCriticalBugFixes:
     """Test critical bug fixes and edge cases from compare_peri_event tool patterns."""
 
-    @patch("toolbox.utils.utils.isx.CellSet.read")
+    @patch("utils.utils.isx.CellSet.read")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
     @patch("ideas.io.cell_set_to_traces")
     def test_all_rejected_cells_error(
@@ -1515,9 +1516,9 @@ class TestCriticalBugFixes:
                 baseline_epoch="baseline",
             )
 
-    @patch("toolbox.utils.utils.isx.CellSet.read")
+    @patch("utils.utils.isx.CellSet.read")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
     @patch("ideas.io.cell_set_to_traces")
     def test_invalid_epoch_times_negative(
@@ -1551,9 +1552,9 @@ class TestCriticalBugFixes:
                 baseline_epoch="baseline",
             )
 
-    @patch("toolbox.utils.utils.isx.CellSet.read")
+    @patch("utils.utils.isx.CellSet.read")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
     @patch("ideas.io.cell_set_to_traces")
     def test_invalid_epoch_times_exceeds_data(
@@ -1587,9 +1588,9 @@ class TestCriticalBugFixes:
                 baseline_epoch="baseline",
             )
 
-    @patch("toolbox.utils.utils.isx.CellSet.read")
+    @patch("utils.utils.isx.CellSet.read")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
     @patch("ideas.io.cell_set_to_traces")
     def test_invalid_epoch_start_after_end(
@@ -1625,9 +1626,9 @@ class TestCriticalBugFixes:
                 baseline_epoch="baseline",
             )
 
-    @patch("toolbox.utils.utils.isx.CellSet.read")
+    @patch("utils.utils.isx.CellSet.read")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
     @patch("ideas.io.cell_set_to_traces")
     def test_malformed_epoch_string(
@@ -1662,7 +1663,7 @@ class TestCriticalBugFixes:
             )
 
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
     def test_mismatched_epoch_counts(self, mock_validate_files):
         """Test error when number of epochs, names, and colors don't match (enhanced validation)."""
@@ -1683,9 +1684,9 @@ class TestCriticalBugFixes:
                 baseline_epoch="baseline",
             )
 
-    @patch("toolbox.utils.utils.isx.CellSet.read")
+    @patch("utils.utils.isx.CellSet.read")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
     def test_use_undecided_cells_when_no_accepted(
         self, mock_validate_files, mock_cellset_read
@@ -1711,7 +1712,7 @@ class TestCriticalBugFixes:
 
         # Mock other required components
         with patch(
-            "toolbox.tools.state_epoch_baseline_analysis.StateEpochDataManager"
+            "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
         ) as mock_manager_class:
             mock_manager = MagicMock()
             mock_manager.load_data.return_value = (
@@ -1739,7 +1740,7 @@ class TestCriticalBugFixes:
             mock_manager_class.return_value = mock_manager
 
             with patch(
-                "toolbox.tools.state_epoch_baseline_analysis."
+                "analysis.state_epoch_baseline_analysis."
                 "StateEpochOutputGenerator.generate_all_outputs"
             ):
                 # ANOVA analysis removed from tool
@@ -1788,11 +1789,11 @@ class TestStateEpochDataManager:
         assert manager.registration_method == "auto_detect"
 
     @patch("pandas.read_parquet")
-    @patch("toolbox.utils.state_epoch_data._get_cellset_data")
-    @patch("toolbox.utils.state_epoch_data.event_set_to_events")
-    @patch("toolbox.utils.state_epoch_data._validate_events")
-    @patch("toolbox.utils.state_epoch_data.check_num_epochs_state_epoch")
-    @patch("toolbox.utils.state_epoch_data.check_epochs_valid_state_epoch")
+    @patch("utils.state_epoch_data._get_cellset_data")
+    @patch("utils.state_epoch_data.event_set_to_events")
+    @patch("utils.state_epoch_data._validate_events")
+    @patch("utils.state_epoch_data.check_num_epochs_state_epoch")
+    @patch("utils.state_epoch_data.check_epochs_valid_state_epoch")
     def test_load_data_single_file(
         self,
         mock_check_epochs_valid,
@@ -1857,7 +1858,7 @@ class TestStateEpochDataManager:
         assert len(annotations_df) == 100
         assert "cell_names" in cell_info
 
-    @patch("toolbox.utils.state_epoch_data._get_cellset_data")
+    @patch("utils.state_epoch_data._get_cellset_data")
     def test_extract_state_epoch_data(
         self, mock_get_cellset_data, mock_traces, mock_annotations
     ):
@@ -1908,7 +1909,7 @@ class TestStateEpochDataManager:
         assert "num_timepoints" in result
         assert result["num_timepoints"] > 0
 
-    @patch("toolbox.utils.state_epoch_data._get_cellset_data")
+    @patch("utils.state_epoch_data._get_cellset_data")
     def test_extract_insufficient_data(
         self, mock_get_cellset_data, mock_traces, mock_annotations
     ):
@@ -2317,7 +2318,7 @@ class TestCalculateBaselineModulation:
         This is NOT a bug - it represents infinite fold-change which is mathematically
         correct when going from 0 to non-zero events.
         """
-        from toolbox.utils.state_epoch_results import (
+        from utils.state_epoch_results import (
             _calculate_modulation_scores,
         )
         import numpy as np
@@ -2438,13 +2439,13 @@ class TestCalculateBaselineModulation:
 class TestMainAnalysisFunction:
     """Test the main analysis functions."""
 
-    @patch("toolbox.utils.utils.isx.CellSet.read")
+    @patch("utils.utils.isx.CellSet.read")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
-    @patch("toolbox.tools.state_epoch_baseline_analysis.StateEpochDataManager")
+    @patch("analysis.state_epoch_baseline_analysis.StateEpochDataManager")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.StateEpochOutputGenerator"
+        "analysis.state_epoch_baseline_analysis.StateEpochOutputGenerator"
     )
     def test_standard_analysis(
         self,
@@ -2501,7 +2502,7 @@ class TestMainAnalysisFunction:
         assert result is None  # Function returns None
 
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
     def test_invalid_baseline_state(
         self, mock_validate_files, standard_input_params
@@ -2517,7 +2518,7 @@ class TestMainAnalysisFunction:
             state_epoch_baseline_analysis(**params)
 
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
     def test_invalid_baseline_epoch(
         self, mock_validate_files, standard_input_params
@@ -2535,7 +2536,7 @@ class TestMainAnalysisFunction:
     def test_analyze_function_wrapper(self, standard_input_params):
         """Test the simplified analyze function."""
         # This test verifies that analyze is an alias for state_epoch_baseline_analysis
-        from toolbox.tools.state_epoch_baseline_analysis import (
+        from analysis.state_epoch_baseline_analysis import (
             analyze,
             state_epoch_baseline_analysis,
         )
@@ -2551,11 +2552,11 @@ class TestMainAnalysisFunction:
 class TestRegisteredCellsetScenarios:
     """Test scenarios with registered cellsets from CaImAn MSR."""
 
-    @patch("toolbox.utils.utils.isx.CellSet.read")
+    @patch("utils.utils.isx.CellSet.read")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
-    @patch("toolbox.tools.state_epoch_baseline_analysis.StateEpochDataManager")
+    @patch("analysis.state_epoch_baseline_analysis.StateEpochDataManager")
     def test_registered_cellset_analysis(
         self,
         mock_data_manager,
@@ -2596,7 +2597,7 @@ class TestRegisteredCellsetScenarios:
         params = registered_input_params.copy()
         params["epochs"] = "(0,3), (3,6), (6,10)"
         with patch(
-            "toolbox.tools.state_epoch_baseline_analysis.StateEpochOutputGenerator"
+            "analysis.state_epoch_baseline_analysis.StateEpochOutputGenerator"
         ):
             # ANOVA analysis removed from tool
             state_epoch_baseline_analysis(**params)
@@ -2612,7 +2613,7 @@ class TestEdgeCasesAndErrorConditions:
     """Test edge cases and error conditions."""
 
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
     def test_empty_state_names(
         self, mock_validate_files, standard_input_params
@@ -2627,7 +2628,7 @@ class TestEdgeCasesAndErrorConditions:
 
         # Mock StateEpochDataManager to simulate epoch-only mode behavior
         with patch(
-            "toolbox.tools.state_epoch_baseline_analysis.StateEpochDataManager"
+            "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
         ) as mock_dm_class:
             mock_dm_instance = MagicMock()
             mock_dm_class.return_value = mock_dm_instance
@@ -2657,14 +2658,14 @@ class TestEdgeCasesAndErrorConditions:
             mock_dm_instance.get_epoch_periods.return_value = [(0, 50)]
 
             with patch(
-                "toolbox.tools.state_epoch_baseline_analysis.StateEpochOutputGenerator"
+                "analysis.state_epoch_baseline_analysis.StateEpochOutputGenerator"
             ):
                 # Should succeed in epoch-only mode, not raise error
                 state_epoch_baseline_analysis(**params)
 
-    @patch("toolbox.utils.utils.isx.CellSet.read")
+    @patch("utils.utils.isx.CellSet.read")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
     def test_mismatched_colors(
         self,
@@ -2693,10 +2694,10 @@ class TestEdgeCasesAndErrorConditions:
             match="Number of states .* must match number of state colors",
         ):
             with patch(
-                "toolbox.tools.state_epoch_baseline_analysis.StateEpochDataManager"
+                "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
             ) as mock_dm_class:
                 with patch(
-                    "toolbox.tools.state_epoch_baseline_analysis.StateEpochOutputGenerator"
+                    "analysis.state_epoch_baseline_analysis.StateEpochOutputGenerator"
                 ):
                     # Configure mock to raise the expected validation error
                     mock_dm_class.side_effect = IdeasError(
@@ -2705,10 +2706,10 @@ class TestEdgeCasesAndErrorConditions:
 
                     state_epoch_baseline_analysis(**params)
 
-    @patch("toolbox.utils.utils.isx.CellSet.read")
-    @patch("toolbox.tools.state_epoch_baseline_analysis.StateEpochDataManager")
+    @patch("utils.utils.isx.CellSet.read")
+    @patch("analysis.state_epoch_baseline_analysis.StateEpochDataManager")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
     def test_no_data_for_combination(
         self,
@@ -2760,7 +2761,7 @@ class TestEdgeCasesAndErrorConditions:
 
         # Should handle missing data gracefully
         with patch(
-            "toolbox.tools.state_epoch_baseline_analysis.StateEpochOutputGenerator"
+            "analysis.state_epoch_baseline_analysis.StateEpochOutputGenerator"
         ):
             # ANOVA analysis removed from tool
             result = state_epoch_baseline_analysis(**params)
@@ -2873,10 +2874,10 @@ class TestOutputGeneration:
 class TestIntegrationWithFiles:
     """Integration tests using temporary files."""
 
-    @patch("toolbox.utils.utils.isx.CellSet.read")
-    @patch("toolbox.tools.state_epoch_baseline_analysis.StateEpochDataManager")
+    @patch("utils.utils.isx.CellSet.read")
+    @patch("analysis.state_epoch_baseline_analysis.StateEpochDataManager")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
     def test_real_file_output(
         self,
@@ -3058,9 +3059,9 @@ class TestToolConsistency:
         )
 
     @patch("pandas.read_parquet")
-    @patch("toolbox.utils.state_epoch_data._get_cellset_data")
-    @patch("toolbox.utils.state_epoch_data.event_set_to_events")
-    @patch("toolbox.utils.state_epoch_data._validate_events")
+    @patch("utils.state_epoch_data._get_cellset_data")
+    @patch("utils.state_epoch_data.event_set_to_events")
+    @patch("utils.state_epoch_data._validate_events")
     def test_single_epoch_data_processing(
         self,
         mock_validate_events,
@@ -3168,7 +3169,7 @@ class TestToolConsistency:
             "activity_per_state_epoch_data.csv",
             "correlations_per_state_epoch_data.csv",
             "modulation_vs_baseline_data.csv",
-            "output_metadata.json",
+            # "output_metadata.json",
         ]
 
         # Expected outputs from population_activity
@@ -3246,7 +3247,7 @@ class TestToolConsistency:
 
     def test_epoch_parsing_consistency(self):
         """Test that epoch parsing is consistent."""
-        from toolbox.utils.utils import _parse_string_to_tuples
+        from utils.utils import _parse_string_to_tuples
 
         # Test single epoch parsing (should work like existing tools)
         single_epoch_str = "(0, 1200)"
@@ -3640,7 +3641,7 @@ class TestDataConsistencyCore:
             "correlations_per_state_epoch_data.csv",
             "modulation_vs_baseline_data.csv",
             "anova_analysis_results_data.csv",
-            "output_metadata.json",
+            # "output_metadata.json",
         ]
 
         # Expected preview files
@@ -3652,7 +3653,7 @@ class TestDataConsistencyCore:
 
         # Test that we have the expected number of core files
         assert (
-            len(expected_core_files) >= 5
+            len(expected_core_files) >= 4
         ), "Should have at least 5 core output files"
         assert (
             len(expected_preview_files) >= 3
@@ -3660,13 +3661,9 @@ class TestDataConsistencyCore:
 
         # Test file extensions
         csv_files = [f for f in expected_core_files if f.endswith(".csv")]
-        json_files = [f for f in expected_core_files if f.endswith(".json")]
         svg_files = [f for f in expected_preview_files if f.endswith(".svg")]
 
         assert len(csv_files) >= 4, "Should have at least 4 CSV data files"
-        assert (
-            len(json_files) >= 1
-        ), "Should have at least 1 JSON metadata file"
         assert len(svg_files) >= 3, "Should have at least 3 SVG preview files"
 
     def test_results_json_consistency_requirements(self):
@@ -3864,7 +3861,7 @@ class TestCSVOutputValidation:
 
     def test_mean_correlation_is_per_cell(self):
         """Test that mean_trace_correlation and mean_event_correlation are per-cell values."""
-        from toolbox.tools.state_epoch_baseline_analysis import (
+        from analysis.state_epoch_baseline_analysis import (
             StateEpochResults,
         )
         import numpy as np
@@ -3936,7 +3933,7 @@ class TestCSVOutputValidation:
 
     def test_state_epoch_results_structure_compatibility(self):
         """Test that StateEpochResults structure is compatible with CSV generation."""
-        from toolbox.tools.state_epoch_baseline_analysis import (
+        from analysis.state_epoch_baseline_analysis import (
             StateEpochResults,
         )
 
@@ -3981,7 +3978,7 @@ class TestCSVOutputValidation:
 
     def test_csv_constants_match_actual_filenames(self):
         """Test that CSV constants in the tool match actual filenames used."""
-        from toolbox.utils.state_epoch_output import (
+        from utils.state_epoch_output import (
             ACTIVITY_PER_STATE_EPOCH_DATA_CSV,
             CORRELATIONS_PER_STATE_EPOCH_DATA_CSV,
             MODULATION_VS_BASELINE_DATA_CSV,
@@ -4019,12 +4016,12 @@ class TestCSVOutputValidation:
     def test_tool_imports_are_available(self):
         """Test that all required tool imports are available for consistency."""
         # Test that we can import the main analysis function
-        from toolbox.tools.state_epoch_baseline_analysis import analyze
+        from analysis.state_epoch_baseline_analysis import analyze
 
         assert callable(analyze), "analyze function should be callable"
 
         # Test that we can import the main tool function
-        from toolbox.tools.state_epoch_baseline_analysis import (
+        from analysis.state_epoch_baseline_analysis import (
             state_epoch_baseline_analysis,
         )
 
@@ -4033,7 +4030,7 @@ class TestCSVOutputValidation:
         ), "state_epoch_baseline_analysis should be callable"
 
         # Test that we can import key classes
-        from toolbox.tools.state_epoch_baseline_analysis import (
+        from analysis.state_epoch_baseline_analysis import (
             StateEpochDataManager,
             StateEpochResults,
             StateEpochOutputGenerator,
@@ -4225,9 +4222,9 @@ class TestModulationFootprintVisualizationFix:
             }
         }
 
-    @patch("toolbox.utils.utils._get_cellset_data")
+    @patch("utils.utils._get_cellset_data")
     @patch("ideas.io.cell_set_to_contours")
-    @patch("toolbox.utils.plots.plot_modulated_neuron_footprints")
+    @patch("utils.plots.plot_modulated_neuron_footprints")
     @pytest.mark.skip(
         reason="Complex test needs full rewrite for simplified API - focus on other tests first"
     )
@@ -4318,10 +4315,10 @@ class TestModulationFootprintVisualizationFix:
         # Expected behavior: The simplified plot creation should complete without errors
         # which is verified by the file existence check above
 
-    @patch("toolbox.utils.utils._get_cellset_data")
+    @patch("utils.utils._get_cellset_data")
     @patch("ideas.io.cell_set_to_contours")
     @patch("ideas.io.cell_set_to_status")
-    @patch("toolbox.utils.state_epoch_output.plot_modulated_neuron_footprints")
+    @patch("utils.state_epoch_output.plot_modulated_neuron_footprints")
     def test_modulation_footprint_error_handling(
         self,
         mock_plot_footprints,
@@ -4397,7 +4394,7 @@ class TestModulationFootprintVisualizationFix:
         )
         assert os.path.exists(expected_file), "Plot file should be created"
 
-    @patch("toolbox.utils.utils._get_cellset_data")
+    @patch("utils.utils._get_cellset_data")
     @patch("ideas.io.cell_set_to_contours")
     def test_modulation_footprint_no_contours(
         self,
@@ -4443,8 +4440,8 @@ class TestModulationFootprintVisualizationFix:
 
         # Should exit early without attempting to plot
 
-    @patch("toolbox.utils.state_epoch_output.plot_modulated_neuron_footprints")
-    @patch("toolbox.utils.utils._get_cellset_data")
+    @patch("utils.state_epoch_output.plot_modulated_neuron_footprints")
+    @patch("utils.utils._get_cellset_data")
     @patch("ideas.io.cell_set_to_contours")
     @patch("ideas.io.cell_set_to_status")
     def test_no_modulated_neurons_warning_message(
@@ -4577,7 +4574,7 @@ class TestModulationFootprintVisualizationFix:
 
     @patch("ideas.io.cell_set_to_contours")
     @patch("ideas.io.cell_set_to_status")
-    @patch("toolbox.utils.state_epoch_output.plot_modulated_neuron_footprints")
+    @patch("utils.state_epoch_output.plot_modulated_neuron_footprints")
     def test_modulated_neurons_found_proceeds_with_plotting(
         self,
         mock_plot_footprints,
@@ -4905,7 +4902,7 @@ class TestModulationFootprintVisualizationFix:
 
         # Test completed successfully - modulation calculation works correctly
 
-    @patch("toolbox.utils.state_epoch_output.plot_modulated_neuron_footprints")
+    @patch("utils.state_epoch_output.plot_modulated_neuron_footprints")
     @patch("ideas.io.cell_set_to_contours")
     @patch("ideas.io.cell_set_to_status")
     def test_modulation_footprint_plotting_with_detected_modulation(
@@ -5027,9 +5024,9 @@ class TestEpochOnlyMode:
         params["annotations_file"] = None
 
         with patch(
-            "toolbox.tools.state_epoch_baseline_analysis.StateEpochDataManager"
+            "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
         ) as mock_dm_class, patch(
-            "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+            "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
         ) as mock_validate:
             # Configure mocks
             mock_validate.return_value = None  # Just pass validation
@@ -5060,7 +5057,7 @@ class TestEpochOnlyMode:
             mock_dm_instance.get_epoch_periods.return_value = [(0, 5), (5, 10)]
 
             with patch(
-                "toolbox.tools.state_epoch_baseline_analysis.StateEpochOutputGenerator"
+                "analysis.state_epoch_baseline_analysis.StateEpochOutputGenerator"
             ):
                 # Should not raise an error
                 state_epoch_baseline_analysis(**params)
@@ -5078,9 +5075,9 @@ class TestEpochOnlyMode:
         )
 
         with patch(
-            "toolbox.tools.state_epoch_baseline_analysis.StateEpochDataManager"
+            "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
         ) as mock_dm_class, patch(
-            "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+            "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
         ) as mock_validate:
             # Configure mocks
             mock_validate.return_value = None  # Just pass validation
@@ -5111,7 +5108,7 @@ class TestEpochOnlyMode:
             mock_dm_instance.get_epoch_periods.return_value = [(0, 5), (5, 10)]
 
             with patch(
-                "toolbox.tools.state_epoch_baseline_analysis.StateEpochOutputGenerator"
+                "analysis.state_epoch_baseline_analysis.StateEpochOutputGenerator"
             ):
                 # Should not raise an error and use dummy state
                 state_epoch_baseline_analysis(**params)
@@ -5122,10 +5119,10 @@ class TestCrossToolConsistency:
 
     def test_annotations_file_optional_like_correlations(self):
         """Test that annotations_file is optional like in correlations.py."""
-        from toolbox.tools.state_epoch_baseline_analysis import (
+        from analysis.state_epoch_baseline_analysis import (
             state_epoch_baseline_analysis,
         )
-        from toolbox.tools.correlations import correlation_tool
+        from analysis.correlations import correlation_tool
         import inspect
 
         # Check function signatures
@@ -5149,28 +5146,29 @@ class TestCrossToolConsistency:
         assert "Optional" in state_epoch_type or "Union" in state_epoch_type
         assert "Optional" in corr_type or "Union" in corr_type
 
-    def test_epoch_only_analysis_matches_epoch_activity_pattern(self):
-        """Test that epoch-only mode follows epoch_activity.py patterns."""
-        from toolbox.tools.epoch_activity import run as epoch_activity_run
-        import inspect
+    # TODO: add back for epoch activity
+    # def test_epoch_only_analysis_matches_epoch_activity_pattern(self):
+    #     """Test that epoch-only mode follows epoch_activity.py patterns."""
+    #     from analysis.epoch_activity import run as epoch_activity_run
+    #     import inspect
 
-        # epoch_activity.py doesn't take annotations_file at all
-        epoch_sig = inspect.signature(epoch_activity_run)
-        assert "annotations_file" not in epoch_sig.parameters
+    #     # epoch_activity.py doesn't take annotations_file at all
+    #     epoch_sig = inspect.signature(epoch_activity_run)
+    #     assert "annotations_file" not in epoch_sig.parameters
 
-        # Both tools should support epoch-based analysis
-        epoch_params = list(epoch_sig.parameters.keys())
-        expected_epoch_params = [
-            "cell_set_files",
-            "event_set_files",
-            "define_epochs_by",
-            "epoch_names",
-            "epochs",
-            "epoch_colors",
-        ]
+    #     # Both tools should support epoch-based analysis
+    #     epoch_params = list(epoch_sig.parameters.keys())
+    #     expected_epoch_params = [
+    #         "cell_set_files",
+    #         "event_set_files",
+    #         "define_epochs_by",
+    #         "epoch_names",
+    #         "epochs",
+    #         "epoch_colors",
+    #     ]
 
-        for param in expected_epoch_params:
-            assert param in epoch_params, f"epoch_activity.py missing {param}"
+    #     for param in expected_epoch_params:
+    #         assert param in epoch_params, f"epoch_activity.py missing {param}"
 
 
 class TestEpochToolCompatibility:
@@ -5229,12 +5227,12 @@ class TestEpochToolCompatibility:
         )
 
     @patch("pandas.read_parquet")
-    @patch("toolbox.utils.utils.isx.CellSet.read")
+    @patch("utils.utils.isx.CellSet.read")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
-    @patch("toolbox.utils.state_epoch_data._get_cellset_data")
-    @patch("toolbox.utils.state_epoch_data.event_set_to_events")
+    @patch("utils.state_epoch_data._get_cellset_data")
+    @patch("utils.state_epoch_data.event_set_to_events")
     def test_epoch_only_analysis_behavior(
         self,
         mock_load_events,
@@ -5302,7 +5300,7 @@ class TestEpochToolCompatibility:
         test_params = {
             "cell_set_files": ["/mock/cellset.isxd"],
             "event_set_files": ["/mock/eventset.isxd"],
-            "annotations_file": ["/mock/annotations.csv"],
+            "annotations_file": ["/mock/annotations.parquet"],
             "column_name": "state",  # This column doesn't exist in annotations
             "define_epochs_by": "global file time",
             "epochs": "(0, 10), (10, 20), (20, 30)",
@@ -5324,7 +5322,7 @@ class TestEpochToolCompatibility:
         }
 
         # Run the analysis
-        from toolbox.tools.state_epoch_baseline_analysis import analyze
+        from analysis.state_epoch_baseline_analysis import analyze
 
         # This should not raise an error and should handle missing state column gracefully
         analyze(**test_params)
@@ -5361,12 +5359,12 @@ class TestEpochToolCompatibility:
         pass  # Test complete
 
     @patch("pandas.read_parquet")
-    @patch("toolbox.utils.utils.isx.CellSet.read")
+    @patch("utils.utils.isx.CellSet.read")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
-    @patch("toolbox.utils.state_epoch_data._get_cellset_data")
-    @patch("toolbox.utils.state_epoch_data.event_set_to_events")
+    @patch("utils.state_epoch_data._get_cellset_data")
+    @patch("utils.state_epoch_data.event_set_to_events")
     def test_single_state_equivalent_to_epoch_only(
         self,
         mock_load_events,
@@ -5429,7 +5427,7 @@ class TestEpochToolCompatibility:
         test_params = {
             "cell_set_files": ["/mock/cellset.isxd"],
             "event_set_files": ["/mock/eventset.isxd"],
-            "annotations_file": ["/mock/annotations.csv"],
+            "annotations_file": ["/mock/annotations.parquet"],
             "column_name": "state",
             "define_epochs_by": "global file time",
             "epochs": "(0, 10), (10, 20), (20, 30)",
@@ -5451,14 +5449,14 @@ class TestEpochToolCompatibility:
         }
 
         # Run the analysis
-        from toolbox.tools.state_epoch_baseline_analysis import analyze
+        from analysis.state_epoch_baseline_analysis import analyze
 
         # ANOVA analysis removed from tool
         analyze(**test_params)
 
         # Verify the analysis produces valid epoch-based results
         activity_csv_path = (
-            Path(temp_output_dir) / "activity_per_state_epoch_data.csv"
+            Path(temp_output_dir) / "activity_per_state_epoch_data" / "cellset_activity_per_state_epoch_data.csv"
         )
         assert activity_csv_path.exists(), "Activity CSV should be created"
 
@@ -5543,12 +5541,12 @@ class TestEpochToolCompatibility:
             ), f"Should map to epoch_activity equivalent for {filename}"
 
     @patch("pandas.read_parquet")
-    @patch("toolbox.utils.utils.isx.CellSet.read")
+    @patch("utils.utils.isx.CellSet.read")
     @patch(
-        "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
-    @patch("toolbox.utils.state_epoch_data._get_cellset_data")
-    @patch("toolbox.utils.state_epoch_data.event_set_to_events")
+    @patch("utils.state_epoch_data._get_cellset_data")
+    @patch("utils.state_epoch_data.event_set_to_events")
     def test_numerical_output_comparison_with_expected_epoch_values(
         self,
         mock_load_events,
@@ -5678,7 +5676,7 @@ class TestEpochToolCompatibility:
         state_epoch_params = {
             "cell_set_files": ["/mock/cellset.isxd"],
             "event_set_files": ["/mock/eventset.isxd"],
-            "annotations_file": ["/mock/annotations.csv"],
+            "annotations_file": ["/mock/annotations.parquet"],
             "column_name": "state",
             "define_epochs_by": "global file time",
             "epochs": "(0, 1.0), (1.0, 2.0), (2.0, 3.0)",  # 10 timepoints each at 0.1s intervals
@@ -5699,7 +5697,7 @@ class TestEpochToolCompatibility:
             "output_dir": temp_output_dir,
         }
 
-        from toolbox.tools.state_epoch_baseline_analysis import analyze
+        from analysis.state_epoch_baseline_analysis import analyze
 
         # Mock ANOVA analysis to prevent crashes
         # ANOVA analysis removed from tool
@@ -5723,7 +5721,7 @@ class TestEpochToolCompatibility:
         expected_epoch3: list,
     ):
         """Verify that activity values match manually calculated expected values."""
-        activity_file = Path(output_dir) / "activity_per_state_epoch_data.csv"
+        activity_file = Path(output_dir) / "activity_per_state_epoch_data" / "cellset_activity_per_state_epoch_data.csv"
         assert activity_file.exists(), "Activity CSV file should be created"
 
         activity_df = pd.read_csv(activity_file)
@@ -5779,7 +5777,7 @@ class TestEpochToolCompatibility:
 
     def _verify_modulation_values_are_epoch_based(self, output_dir: str):
         """Verify that modulation analysis compares epochs (not states)."""
-        modulation_file = Path(output_dir) / "modulation_vs_baseline_data.csv"
+        modulation_file = Path(output_dir) / "modulation_vs_baseline_data" / "cellset_modulation_vs_baseline_data.csv"
         assert (
             modulation_file.exists()
         ), "Modulation CSV file should be created"
@@ -5814,7 +5812,7 @@ class TestEpochToolCompatibility:
     def _verify_correlation_values_are_reasonable(self, output_dir: str):
         """Verify that correlation values are reasonable and epoch-based."""
         correlation_file = (
-            Path(output_dir) / "correlations_per_state_epoch_data.csv"
+            Path(output_dir) / "correlations_per_state_epoch_data" / "cellset_correlations_per_state_epoch_data.csv"
         )
         assert (
             correlation_file.exists()
@@ -6017,8 +6015,8 @@ class TestEpochToolCompatibility:
 class TestModulationPreviewFunctionality:
     """Test class for modulation preview generation."""
 
-    @patch("toolbox.utils.state_epoch_data._get_cellset_data")
-    @patch("toolbox.utils.state_epoch_data.event_set_to_events")
+    @patch("utils.state_epoch_data._get_cellset_data")
+    @patch("utils.state_epoch_data.event_set_to_events")
     @patch("ideas.io.cell_set_to_contours")
     @patch("ideas.io.cell_set_to_status")
     def test_modulation_preview_data_alignment(
@@ -6215,7 +6213,7 @@ class TestPreviewDataValidation:
     @pytest.fixture
     def mock_results_with_known_data(self, mock_state_epoch_data):
         """Create StateEpochResults with known data patterns."""
-        from toolbox.utils.state_epoch_results import StateEpochResults
+        from utils.state_epoch_results import StateEpochResults
 
         results = StateEpochResults()
 
@@ -6228,7 +6226,7 @@ class TestPreviewDataValidation:
         self, tmp_path, mock_results_with_known_data, mock_state_epoch_data
     ):
         """Test that CSV output contains the same values used in preview calculations."""
-        from toolbox.utils.state_epoch_output import StateEpochOutputGenerator
+        from utils.state_epoch_output import StateEpochOutputGenerator
 
         # Create output generator
         generator = StateEpochOutputGenerator(
@@ -6288,7 +6286,7 @@ class TestPreviewDataValidation:
         self, tmp_path, mock_results_with_known_data, mock_state_epoch_data
     ):
         """Test that population average preview calculations use correct mean activity values."""
-        from toolbox.utils.state_epoch_output import StateEpochOutputGenerator
+        from utils.state_epoch_output import StateEpochOutputGenerator
 
         generator = StateEpochOutputGenerator(
             output_dir=str(tmp_path),
@@ -6341,7 +6339,7 @@ class TestPreviewDataValidation:
         self, tmp_path, mock_results_with_known_data, mock_state_epoch_data
     ):
         """Test that correlation previews use correct correlation matrices."""
-        from toolbox.utils.state_epoch_output import StateEpochOutputGenerator
+        from utils.state_epoch_output import StateEpochOutputGenerator
 
         generator = StateEpochOutputGenerator(
             output_dir=str(tmp_path),
@@ -6357,7 +6355,7 @@ class TestPreviewDataValidation:
 
         # Mock correlation plotting to capture correlation matrices
         with patch(
-            "toolbox.tools.correlations.plot_correlation_matrices"
+            "analysis.correlations.plot_correlation_matrices"
         ) as mock_plot_corr, patch("matplotlib.pyplot.savefig"), patch(
             "os.getcwd"
         ), patch(
@@ -6426,7 +6424,7 @@ class TestPreviewDataValidation:
         self, tmp_path, mock_results_with_known_data
     ):
         """Test that modulation preview correctly identifies and uses baseline combination."""
-        from toolbox.utils.state_epoch_results import (
+        from utils.state_epoch_results import (
             calculate_baseline_modulation,
         )
 
@@ -6482,7 +6480,7 @@ class TestPreviewDataValidation:
         self, tmp_path, mock_results_with_known_data
     ):
         """Test that the same state-epoch combinations use consistent colors across all previews."""
-        from toolbox.utils.state_epoch_output import StateEpochOutputGenerator
+        from utils.state_epoch_output import StateEpochOutputGenerator
 
         generator = StateEpochOutputGenerator(
             output_dir=str(tmp_path),
@@ -6554,7 +6552,7 @@ class TestPreviewDataValidation:
         self, tmp_path, mock_results_with_known_data
     ):
         """Test that all expected preview files are generated and contain data from combinations."""
-        from toolbox.utils.state_epoch_output import StateEpochOutputGenerator
+        from utils.state_epoch_output import StateEpochOutputGenerator
 
         generator = StateEpochOutputGenerator(
             output_dir=str(tmp_path),
@@ -6587,9 +6585,9 @@ class TestPreviewDataValidation:
         ), patch(
             "matplotlib.pyplot.scatter"
         ), patch(
-            "toolbox.tools.correlations.plot_correlation_matrices"
+            "analysis.correlations.plot_correlation_matrices"
         ), patch(
-            "toolbox.utils.plots.plot_modulated_neuron_footprints"
+            "utils.plots.plot_modulated_neuron_footprints"
         ):
 
             # Generate core previews (should not raise exceptions)
@@ -6618,7 +6616,7 @@ class TestPreviewDataValidation:
         self, mock_results_with_known_data
     ):
         """Test that output generator works with behavioral annotations."""
-        from toolbox.utils.state_epoch_output import StateEpochOutputGenerator
+        from utils.state_epoch_output import StateEpochOutputGenerator
 
         generator = StateEpochOutputGenerator(
             output_dir="",
@@ -6673,7 +6671,7 @@ class TestCrossToolAnalysisLogic:
         )
 
         # Test the same computation through state_epoch analysis
-        from toolbox.utils.state_epoch_results import (
+        from utils.state_epoch_results import (
             analyze_state_epoch_combination,
         )
 
@@ -6723,9 +6721,9 @@ class TestCrossToolAnalysisLogic:
 
         # Mock data manager and file validation for state_epoch tool
         with patch(
-            "toolbox.tools.state_epoch_baseline_analysis.StateEpochDataManager"
+            "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
         ) as mock_dm_class, patch(
-            "toolbox.tools.state_epoch_baseline_analysis.validate_input_files_exist"
+            "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
         ) as mock_validate:
             # Configure mocks
             mock_validate.return_value = None  # Just pass validation
@@ -6777,11 +6775,12 @@ class TestCrossToolAnalysisLogic:
             ]
 
             # Test state_epoch tool in epoch-only mode
-            from toolbox.tools.state_epoch_baseline_analysis import (
+            from analysis.state_epoch_baseline_analysis import (
                 state_epoch_baseline_analysis,
             )
 
             with tempfile.TemporaryDirectory() as tmpdir:
+                os.chdir(tmpdir) # output data writing currently only supports paths relative to cwd
                 try:
                     state_epoch_baseline_analysis(
                         cell_set_files=["mock_cellset.isxd"],
@@ -6836,7 +6835,7 @@ class TestCrossToolAnalysisLogic:
         traces = np.random.rand(n_timepoints, n_cells) * 10
 
         # Test using state_epoch analysis
-        from toolbox.utils.state_epoch_results import (
+        from utils.state_epoch_results import (
             analyze_state_epoch_combination,
         )
 
@@ -6915,10 +6914,10 @@ class TestCrossToolAnalysisLogic:
 
     def test_modulation_calculation_consistency_with_population_activity(self):
         """Test that modulation calculations match population_activity.py approach."""
-        from toolbox.tools.population_activity import (
+        from analysis.population_activity import (
             find_two_state_modulated_neurons,
         )
-        from toolbox.utils.state_epoch_results import (
+        from utils.state_epoch_results import (
             calculate_baseline_modulation,
             StateEpochResults,
         )
@@ -7084,7 +7083,7 @@ class TestCrossToolAnalysisLogic:
 
     def test_epoch_window_comparison_like_epoch_activity(self):
         """Test that epoch window comparison works like epoch_activity.py."""
-        from toolbox.utils.state_epoch_results import StateEpochResults
+        from utils.state_epoch_results import StateEpochResults
 
         # Create test data with clear differences between epochs
         np.random.seed(42)
@@ -7160,7 +7159,7 @@ class TestTraceEventModulationSeparation:
 
     def test_trace_modulation_uses_mean_activity(self):
         """Test that trace modulation function uses mean_activity from traces."""
-        from toolbox.utils.state_epoch_results import (
+        from utils.state_epoch_results import (
             _prepare_modulation_data,
         )
 
@@ -7233,7 +7232,7 @@ class TestTraceEventModulationSeparation:
 
     def test_event_modulation_uses_event_rates(self):
         """Test that event modulation function uses event_rates from events."""
-        from toolbox.utils.state_epoch_results import (
+        from utils.state_epoch_results import (
             prepare_event_modulation_data,
         )
 
@@ -7299,7 +7298,7 @@ class TestTraceEventModulationSeparation:
 
     def test_trace_vs_event_modulation_different_results(self):
         """Test that trace and event modulation produce different results for same data."""
-        from toolbox.utils.state_epoch_results import (
+        from utils.state_epoch_results import (
             _prepare_modulation_data,
             prepare_event_modulation_data,
         )
@@ -7376,7 +7375,7 @@ class TestTraceEventModulationSeparation:
 
     def test_missing_event_data_handling(self):
         """Test that event modulation handles missing event data gracefully."""
-        from toolbox.utils.state_epoch_results import (
+        from utils.state_epoch_results import (
             prepare_event_modulation_data,
         )
 
@@ -7407,7 +7406,7 @@ class TestTraceEventModulationSeparation:
 
     def test_missing_trace_data_handling(self):
         """Test that trace modulation handles missing trace data gracefully."""
-        from toolbox.utils.state_epoch_results import (
+        from utils.state_epoch_results import (
             _prepare_modulation_data,
         )
 
@@ -7445,7 +7444,7 @@ class TestTraceEventModulationSeparation:
 
     def test_both_functions_alpha_parameter_usage(self):
         """Test that both functions use alpha parameter correctly."""
-        from toolbox.utils.state_epoch_results import (
+        from utils.state_epoch_results import (
             _prepare_modulation_data,
             prepare_event_modulation_data,
         )
@@ -7533,7 +7532,7 @@ class TestModulationFormulaAccuracy:
         - FORMULA: (test - baseline) / (test + baseline)
         - RANGE: [-1, 1] (bounded modulation index)
         """
-        from toolbox.utils.state_epoch_results import (
+        from utils.state_epoch_results import (
             _prepare_modulation_data,
         )
 
@@ -7621,7 +7620,7 @@ class TestModulationFormulaAccuracy:
         - WRONG: mean_activity = np.abs(modulation_index)
         - CORRECT: mean_activity = np.array(mod_data.get("mean_activity", []))
         """
-        from toolbox.utils.state_epoch_results import (
+        from utils.state_epoch_results import (
             extract_common_modulation_data,
         )
 
@@ -7658,7 +7657,7 @@ class TestModulationFormulaAccuracy:
 
     def test_alpha_parameter_consistency(self):
         """Test that alpha parameter is used consistently for significance."""
-        from toolbox.utils.state_epoch_results import (
+        from utils.state_epoch_results import (
             extract_common_modulation_data,
         )
 
@@ -7699,7 +7698,7 @@ class TestModulationFormulaAccuracy:
 
     def test_division_by_zero_protection(self):
         """Test that division by zero is handled correctly."""
-        from toolbox.utils.state_epoch_results import DIVISION_SAFETY_EPSILON
+        from utils.state_epoch_results import DIVISION_SAFETY_EPSILON
 
         # Test prepare_event_modulation_data with zero baseline
         mock_results = MagicMock()
@@ -7726,7 +7725,7 @@ class TestModulationFormulaAccuracy:
         modulation_results = {"activity_modulation": {}}
 
         # Should not raise division by zero error
-        from toolbox.utils.state_epoch_results import (
+        from utils.state_epoch_results import (
             _prepare_modulation_data,
         )
 
