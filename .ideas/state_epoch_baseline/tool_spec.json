@@ -351,5 +351,5 @@
     },
     "description": "Combined analysis of neural activity and correlations across behavioral states and time epochs with baseline comparison",
     "visibility": "public",
-    "version": "2.0.0"
+    "version": "1.0.0-rc1"
 }
