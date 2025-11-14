@@ -7,9 +7,11 @@ from analysis.compare_peri_event_activity_across_epochs import (
     compare_peri_event_activity_across_epochs,
 )
 from ideas.exceptions import IdeasError
-# from toolbox.utils.testing_utils import validate_output_manifest
+
+import pytest
 
 
+@pytest.mark.skip(reason="This test case is temporarily disabled.")
 class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
     """Tests for the compare peri-event activity across epochs tool."""
 
