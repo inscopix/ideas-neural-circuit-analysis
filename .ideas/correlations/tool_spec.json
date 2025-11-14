@@ -6,7 +6,7 @@
     "description": "Calculate pairwise correlations between cell traces, and estimates how correlations change between two states of interest",
     "container_image": {
         "repository": "platform/neuro-stats",
-        "label": "0.0.1"
+        "label": "0.0.2"
     },
     "command": {
         "file_path": "analysis/correlations.py",

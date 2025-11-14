@@ -4,7 +4,7 @@
     "schema_version": "3.0.0",
     "container_image": {
         "repository": "platform/neuro-stats",
-        "label": "latest"
+        "label": "0.0.2"
     },
     "command": {
         "file_path": "analysis/state_epoch_baseline_analysis.py",
