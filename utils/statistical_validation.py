@@ -4,6 +4,7 @@ This module contains functions for validating and cleaning statistical data
 to ensure robust analysis in the IDEAS toolbox population analysis pipeline.
 """
 
+import inspect
 import logging
 import warnings
 import numpy as np
@@ -16,6 +17,27 @@ logger = logging.getLogger(__name__)
 
 # Default significance threshold
 DEFAULT_SIGNIFICANCE_THRESHOLD = 0.05
+
+_PAIRWISE_TESTS_PARAMS: Tuple[str, ...]
+try:
+    _PAIRWISE_TESTS_PARAMS = tuple(
+        inspect.signature(pg.pairwise_tests).parameters
+    )
+except (ValueError, TypeError):
+    logger.warning(
+        "Unable to inspect pingouin.pairwise_tests signature. "
+        "Tail parameter compatibility will be limited."
+    )
+    _PAIRWISE_TESTS_PARAMS = ()
+
+_TAIL_ARGUMENT_MAPPING = {
+    "two_tailed": "two-sided",
+    "one_tailed_less": "less",
+    "one_tailed_greater": "greater",
+    "two-sided": "two-sided",
+    "less": "less",
+    "greater": "greater",
+}
 
 
 def _suppress_pingouin_warnings(func: Callable) -> Callable:
@@ -375,8 +397,37 @@ def _safe_pairwise_ttests(
             logger.debug(f"_safe_pairwise_ttests: {error_msg}")
             return None
 
+        pairwise_kwargs = kwargs.copy()
+
+        grouping_column = _infer_normality_group_column(
+            cleaned_data, within, between
+        )
+
+        if "parametric" in pairwise_kwargs:
+            pairwise_kwargs["parametric"] = _resolve_pairwise_parametric(
+                cleaned_data,
+                dv,
+                pairwise_kwargs.get("parametric"),
+                grouping_column,
+            )
+
+        normalized_tail = _normalize_tail_argument(
+            pairwise_kwargs.pop("tail", None)
+        )
+
+        if normalized_tail:
+            if "alternative" in _PAIRWISE_TESTS_PARAMS:
+                pairwise_kwargs["alternative"] = normalized_tail
+            elif "tail" in _PAIRWISE_TESTS_PARAMS:
+                pairwise_kwargs["tail"] = normalized_tail
+            else:
+                logger.debug(
+                    "_safe_pairwise_ttests: Tail argument ignored because "
+                    "pingouin.pairwise_tests does not accept 'alternative' or 'tail'"
+                )
+
         # Call pingouin with cleaned data
-        result = pg.pairwise_tests(data=cleaned_data, **kwargs)
+        result = pg.pairwise_tests(data=cleaned_data, **pairwise_kwargs)
 
         # Validate and clean results
         if result is not None and not result.empty:
@@ -398,6 +449,156 @@ def _safe_pairwise_ttests(
             f"_safe_pairwise_ttests: Error in pairwise t-tests: {str(e)}"
         )
         return None
+
+
+def _normalize_tail_argument(tail_value: Optional[str]) -> Optional[str]:
+    """Normalize user-facing tail strings to pingouin-compatible values."""
+    if tail_value is None:
+        return None
+
+    normalized = str(tail_value).strip().lower()
+    mapped_value = _TAIL_ARGUMENT_MAPPING.get(normalized)
+
+    if mapped_value is None:
+        logger.warning(
+            "_safe_pairwise_ttests: Unsupported tail value '%s'. "
+            "Defaulting to two-sided comparison.",
+            tail_value,
+        )
+        return "two-sided"
+
+    return mapped_value
+
+
+def _infer_normality_group_column(
+    data: pd.DataFrame,
+    within: Optional[Union[str, List[str]]],
+    between: Optional[str],
+) -> Optional[str]:
+    """Infer an appropriate grouping column for normality testing."""
+    candidate_columns: List[str] = []
+    if isinstance(within, str):
+        candidate_columns.append(within)
+    elif isinstance(within, list):
+        candidate_columns.extend(
+            [factor for factor in within if isinstance(factor, str)]
+        )
+
+    if between:
+        candidate_columns.append(between)
+
+    for column in candidate_columns:
+        if column in data.columns and data[column].nunique() >= 2:
+            return column
+    return None
+
+
+def _auto_select_pairwise_parametric(
+    data: pd.DataFrame,
+    dv: Optional[str],
+    grouping_column: Optional[str],
+    min_sample_size: int = 8,
+) -> bool:
+    """Automatically determine whether parametric tests are appropriate."""
+    if data is None or data.empty or dv is None or dv not in data.columns:
+        logger.debug(
+            "Auto-select parametric (pairwise): insufficient data, "
+            "using non-parametric tests."
+        )
+        return False
+
+    cleaned_series = data[dv].dropna()
+    n_samples = len(cleaned_series)
+
+    if n_samples < min_sample_size:
+        logger.info(
+            "Auto-select parametric (pairwise): fewer than %d observations "
+            "found (n=%d). Non-parametric tests will be used.",
+            min_sample_size,
+            n_samples,
+        )
+        return False
+
+    try:
+        columns = [dv]
+        if grouping_column and grouping_column in data.columns:
+            columns.append(grouping_column)
+
+        normality_data = data[columns].dropna()
+
+        if normality_data.empty:
+            logger.debug(
+                "Auto-select parametric (pairwise): no data available after "
+                "cleaning, defaulting to non-parametric tests."
+            )
+            return False
+
+        if grouping_column and grouping_column in normality_data.columns:
+            normality_result = pg.normality(
+                data=normality_data,
+                dv=dv,
+                group=grouping_column,
+                alpha=DEFAULT_SIGNIFICANCE_THRESHOLD,
+            )
+        else:
+            normality_result = pg.normality(
+                data=normality_data,
+                dv=dv,
+                alpha=DEFAULT_SIGNIFICANCE_THRESHOLD,
+            )
+
+        parametric = normality_result["normal"].all()
+
+        if parametric:
+            logger.info(
+                "Auto-select parametric (pairwise): data appears normally "
+                "distributed. Parametric tests will be used."
+            )
+        else:
+            logger.info(
+                "Auto-select parametric (pairwise): data is not normally "
+                "distributed. Non-parametric tests will be used."
+            )
+
+        return bool(parametric)
+
+    except Exception as error:
+        logger.warning(
+            "Auto-select parametric (pairwise): normality test failed (%s). "
+            "Defaulting to non-parametric tests.",
+            error,
+        )
+        return False
+
+
+def _resolve_pairwise_parametric(
+    data: pd.DataFrame,
+    dv: Optional[str],
+    parametric_value: Union[str, bool, None],
+    grouping_column: Optional[str],
+) -> bool:
+    """Resolve parametric flag, handling string inputs and auto-selection."""
+    if isinstance(parametric_value, str):
+        normalized = parametric_value.strip().lower()
+        if normalized == "auto" or not normalized:
+            return _auto_select_pairwise_parametric(
+                data, dv, grouping_column
+            )
+        if normalized in {"true", "yes", "1"}:
+            return True
+        if normalized in {"false", "no", "0"}:
+            return False
+        logger.warning(
+            "_safe_pairwise_ttests: Invalid parametric value '%s'. "
+            "Using auto-selection.",
+            parametric_value,
+        )
+        return _auto_select_pairwise_parametric(data, dv, grouping_column)
+
+    if parametric_value is None:
+        return _auto_select_pairwise_parametric(data, dv, grouping_column)
+
+    return bool(parametric_value)
 
 
 def _get_group_column(df: pd.DataFrame) -> Optional[str]:
