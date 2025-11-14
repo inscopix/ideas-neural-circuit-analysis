@@ -4,7 +4,7 @@
     "repository": "platform/neuro-stats",
     "label": "0.0.2",
     "make_arguments": "build LABEL={label}",
-    "visibility": "protected",
+    "visibility": "public",
     "readme_path": "container.md",
     "description": "neural circuit analysis conatainer image",
     "tags": [
