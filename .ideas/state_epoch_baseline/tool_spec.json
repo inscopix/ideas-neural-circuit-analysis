@@ -87,6 +87,44 @@
             "group": "Analysis Parameters"
         },
         {
+            "key": "correlation_statistic",
+            "name": "Correlation Statistic",
+            "required": false,
+            "description": "Per-cell correlation statistic to summarize in distribution previews (max, min, or mean).",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "max",
+                "choices": [
+                    "max",
+                    "mean",
+                    "min"
+                ],
+                "display_options": [
+                    "Maximum",
+                    "Mean",
+                    "Minimum"
+                ]
+            },
+            "group": "Analysis Parameters"
+        },
+        {
+            "key": "method",
+            "name": "Method to Compare States",
+            "required": true,
+            "description": "Specifies how states are compared; this tool currently supports only state vs baseline comparisons.",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "state vs baseline",
+                "choices": [
+                    "state vs baseline"
+                ],
+                "display_options": [
+                    "State vs Baseline"
+                ]
+            },
+            "group": "Analysis Parameters"
+        },
+        {
             "key": "define_epochs_by",
             "name": "Define Epochs By",
             "required": true,
@@ -221,69 +259,6 @@
                 ]
             },
             "group": "Data Processing"
-        },
-        {
-            "key": "include_correlations",
-            "name": "Include Correlation Analysis",
-            "required": false,
-            "description": "Whether to include correlation analysis",
-            "type": {
-                "param_type": "ToolBooleanParam",
-                "default": true
-            },
-            "group": "Analysis Options"
-        },
-        {
-            "key": "include_population_activity",
-            "name": "Include Population Activity Analysis",
-            "required": false,
-            "description": "Whether to include population activity analysis",
-            "type": {
-                "param_type": "ToolBooleanParam",
-                "default": true
-            },
-            "group": "Analysis Options"
-        },
-        {
-            "key": "include_event_analysis",
-            "name": "Include Event Analysis",
-            "required": false,
-            "description": "Whether to include event rate analysis",
-            "type": {
-                "param_type": "ToolBooleanParam",
-                "default": true
-            },
-            "group": "Analysis Options"
-        },
-        {
-            "key": "use_registered_cellsets",
-            "name": "Use Registered Cellsets",
-            "required": false,
-            "description": "Whether to use registered cellsets from CaImAn MSR",
-            "type": {
-                "param_type": "ToolBooleanParam",
-                "default": false
-            },
-            "group": "Registration Options"
-        },
-        {
-            "key": "registration_method",
-            "name": "Registration Method",
-            "required": false,
-            "description": "Method for cell registration detection",
-            "type": {
-                "param_type": "ToolChoiceParam",
-                "default": "auto_detect",
-                "choices": [
-                    "auto_detect",
-                    "caiman_msr"
-                ],
-                "display_options": [
-                    "auto_detect",
-                    "caiman_msr"
-                ]
-            },
-            "group": "Registration Options"
         },
         {
             "key": "alpha",

@@ -14,13 +14,10 @@
     "concatenate": true,
     "trace_scale_method": "none",
     "event_scale_method": "none",
-    "include_correlations": true,
-    "include_population_activity": true,
-    "include_event_analysis": true,
-    "use_registered_cellsets": false,
-    "registration_method": "auto_detect",
     "alpha": 0.05,
     "n_shuffle": 1000,
     "tolerance": 0.0001,
-    "sort_by_time": true
+    "sort_by_time": true,
+    "correlation_statistic": "max",
+    "method": "state vs baseline"
 }

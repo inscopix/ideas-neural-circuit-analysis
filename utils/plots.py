@@ -1,23 +1,26 @@
 import logging
+import os
 from math import ceil
 from typing import List, Optional
-import os
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy
-from scipy import stats
 import seaborn as sns
 from beartype import beartype
-from ideas import plots
-from matplotlib.ticker import FixedLocator, FixedFormatter
-
-from utils.utils import Comp, Rescale, save_optimized_svg
-from utils import config
-from utils.utils import get_num_cells_by_status
-from ideas import io
+from ideas import io, plots
 from ideas.exceptions import IdeasError
+from matplotlib.ticker import FixedLocator, FixedFormatter
+from scipy import stats
+
+from utils import config
+from utils.utils import (
+    Comp,
+    Rescale,
+    get_num_cells_by_status,
+    save_optimized_svg,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -776,7 +779,11 @@ def _plot_difference_cellmap(
 
             max_val = np.max(np.abs(diff))
 
-            normalized_diff = (diff + max_val) / (2 * max_val)
+            # Handle case where all differences are zero to avoid division by zero
+            if max_val == 0 or np.isnan(max_val):
+                normalized_diff = np.full_like(diff, 0.5)
+            else:
+                normalized_diff = (diff + max_val) / (2 * max_val)
             colors = [cool_warm(val) for val in normalized_diff]
 
             plots.plot_footprints(
@@ -1185,7 +1192,16 @@ def _plot_mixed_corr_comparisons(
     )
 
 
-def _plot_state_time(behavior, column_name, state_names, state_colors, period):
+def _plot_state_time(
+    behavior,
+    column_name,
+    state_names,
+    state_colors,
+    period,
+    filename: str = "time_in_state_preview.svg",
+    epoch_names: Optional[List[str]] = None,
+    epoch_periods: Optional[List[tuple]] = None,
+):
     """Plot the time spent in each state and the fraction of time spent in each state.
 
     This function creates a two-panel figure:
@@ -1199,32 +1215,62 @@ def _plot_state_time(behavior, column_name, state_names, state_colors, period):
         state_colors (list of str): List of colors corresponding to each state for plotting
         period (float): Time period between frames in seconds, used to convert frame counts to time
 
+        epoch_names (list of str, optional): List of epoch names for state-epoch
+            distribution plotting.
+        epoch_periods (list of tuple, optional): Start and end times (seconds)
+            for each epoch. When provided with epoch_names, a third panel showing
+            the state-epoch duration distribution is added.
+
     :Returns
         None: The function saves the plot as 'time_in_state_preview.svg'
+        filename (str): Output filename for the saved figure. Defaults to
+            "time_in_state_preview.svg".
     """
     # Set consistent font size
     plt.rcParams.update({"font.size": 12})
 
-    fig, ax = plt.subplots(
-        nrows=1, ncols=2, figsize=(6, 5), width_ratios=[5, 1]
+    include_state_epoch = bool(
+        epoch_periods and epoch_names and len(epoch_periods) > 0
     )
+    sanitized_epoch_names: List[str] = []
+    if include_state_epoch:
+        sanitized_epoch_names = [
+            (
+                epoch_names[i].strip()
+                if i < len(epoch_names) and epoch_names[i]
+                else f"epoch_{i}"
+            )
+            for i in range(len(epoch_periods))
+        ]
+
+    width_ratios = [5, 1] + ([4] if include_state_epoch else [])
+    fig_width = 8 if include_state_epoch else 6
+    fig, ax = plt.subplots(
+        nrows=1,
+        ncols=3 if include_state_epoch else 2,
+        figsize=(fig_width, 5),
+        width_ratios=width_ratios,
+    )
+    axes = np.atleast_1d(ax)
+    ax_time = axes[0]
+    ax_fraction = axes[1]
     frames_in_state = (
         behavior[column_name].value_counts().reindex(state_names, fill_value=0)
     )
     # convert to seconds
     frames_in_state = frames_in_state * period
     total_frames = len(behavior) * period
-    frames_in_state.plot(kind="bar", ax=ax[0], color=state_colors)
-    ax[0].set_title("Time spent in each state", fontdict=TITLE_FONT)
-    ax[0].set_ylabel("Time (s)", fontdict=LABEL_FONT)
-    ax[0].set_xlabel("")
+    frames_in_state.plot(kind="bar", ax=ax_time, color=state_colors)
+    ax_time.set_title("Time spent in each state", fontdict=TITLE_FONT)
+    ax_time.set_ylabel("Time (s)", fontdict=LABEL_FONT)
+    ax_time.set_xlabel("")
     # Capitalize x-axis tick labels for consistency
-    ax[0].set_xticklabels(
-        [label.get_text().capitalize() for label in ax[0].get_xticklabels()],
+    ax_time.set_xticklabels(
+        [label.get_text().capitalize() for label in ax_time.get_xticklabels()],
         rotation=0,
     )
-    ax[0].spines["top"].set_visible(False)
-    ax[0].spines["right"].set_visible(False)
+    ax_time.spines["top"].set_visible(False)
+    ax_time.spines["right"].set_visible(False)
 
     # plot fraction of time spent in each state
     fraction_in_state = {
@@ -1240,17 +1286,64 @@ def _plot_state_time(behavior, column_name, state_names, state_colors, period):
         colors=colors,
         xlabel="",
         ylabel="Fraction of total time",
-        ax=ax[1],
+        ax=ax_fraction,
         plot_legend=False,
     )
     # Adjust y-axis to show only the range needed and make it more evident
     max_fraction = sum(fraction_in_state.values())
-    ax[1].set_ylim([0, max(max_fraction * 1.1, 0.1)])
+    ax_fraction.set_ylim([0, max(max_fraction * 1.1, 0.1)])
     # Make y-axis more evident by showing the left spine
-    ax[1].spines["left"].set_visible(True)
+    ax_fraction.spines["left"].set_visible(True)
+
+    if include_state_epoch:
+        outside_label = "outside_epoch"
+        time_axis = np.arange(len(behavior)) * period
+        epoch_labels = np.full(len(behavior), outside_label, dtype=object)
+        for idx, (start, end) in enumerate(epoch_periods):
+            mask = (time_axis >= start) & (time_axis < end)
+            epoch_labels[mask] = sanitized_epoch_names[idx]
+
+        behavior = behavior.copy()
+        behavior["_plot_epoch"] = epoch_labels
+
+        include_outside = np.any(epoch_labels == outside_label)
+        ordered_epochs = sanitized_epoch_names + (
+            [outside_label] if include_outside else []
+        )
+
+        state_epoch_counts = (
+            behavior.groupby([column_name, "_plot_epoch"])
+            .size()
+            .unstack(fill_value=0)
+        )
+        state_epoch_counts = state_epoch_counts.reindex(
+            index=state_names, columns=ordered_epochs, fill_value=0
+        )
+        state_epoch_seconds = state_epoch_counts * period
+
+        ax_dist = axes[2]
+        sns.heatmap(
+            state_epoch_seconds,
+            ax=ax_dist,
+            cmap="Blues",
+            cbar_kws={"label": "Time (s)"},
+            annot=state_epoch_seconds.shape[0] <= 10
+            and state_epoch_seconds.shape[1] <= 8,
+            fmt=".1f",
+        )
+        ax_dist.set_title("State-Epoch Duration", fontdict=TITLE_FONT)
+        ax_dist.set_xlabel("Epoch", fontdict=LABEL_FONT)
+        ax_dist.set_ylabel("State", fontdict=LABEL_FONT)
+
+        # Rotate tick labels for readability
+        ax_dist.set_xticklabels(
+            [label.get_text().strip() for label in ax_dist.get_xticklabels()],
+            rotation=45,
+            ha="right",
+        )
 
     fig.tight_layout()
-    fig.savefig("time_in_state_preview.svg", dpi=300, transparent=True)
+    fig.savefig(filename, dpi=300, transparent=True)
 
 
 def _plot_traces(
@@ -1830,7 +1923,11 @@ def plot_comparison_row(
         )
     )
 
-    normalized_diff = (data["modulation_scores"] + max_val) / (2 * max_val)
+    # Handle case where all modulation scores are zero to avoid division by zero
+    if max_val == 0 or np.isnan(max_val):
+        normalized_diff = np.full_like(data["modulation_scores"], 0.5)
+    else:
+        normalized_diff = (data["modulation_scores"] + max_val) / (2 * max_val)
     colors = [cmap(val) for val in normalized_diff]
 
     edge_colors = [non_modulation_color for _ in x]

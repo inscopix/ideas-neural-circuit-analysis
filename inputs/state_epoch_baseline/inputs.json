@@ -1,7 +1,13 @@
 {
-    "cell_set_files": ["data/input_cellset.isxd"],
-    "event_set_files": ["data/input_cellset-ED.isxd"],
-    "annotations_file": ["data/ideas_experiment_annotations.parquet"],
+    "cell_set_files": [
+        "data/input_cellset.isxd"
+    ],
+    "event_set_files": [
+        "data/input_cellset-ED.isxd"
+    ],
+    "annotations_file": [
+        "data/ideas_experiment_annotations.parquet"
+    ],
     "column_name": "state",
     "define_epochs_by": "global file time",
     "epochs": "(0, 223), (223, 521), (521, 745)",
@@ -14,13 +20,10 @@
     "concatenate": true,
     "trace_scale_method": "none",
     "event_scale_method": "none",
-    "include_correlations": true,
-    "include_population_activity": true,
-    "include_event_analysis": true,
-    "use_registered_cellsets": false,
-    "registration_method": "auto_detect",
     "alpha": 0.05,
     "n_shuffle": 1000,
-    "tolerance": 1e-4,
-    "sort_by_time": true
+    "tolerance": 0.0001,
+    "sort_by_time": true,
+    "correlation_statistic": "max",
+    "method": "state vs baseline"
 }

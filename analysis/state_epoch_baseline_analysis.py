@@ -4,10 +4,12 @@ Analyzes neural activity patterns across behavioral states and time epochs,
 integrating correlation and population activity analysis with baseline comparisons.
 """
 
-import os
 import json
 import logging
+import os
 import pathlib
+from contextlib import contextmanager
+from dataclasses import dataclass, replace
 from beartype.typing import List, Optional
 from ideas.exceptions import IdeasError
 from utils.state_epoch_data import (
@@ -23,10 +25,58 @@ from utils.state_epoch_results import (
 from utils.state_epoch_output import StateEpochOutputGenerator
 from ideas.utils import _set_up_logger
 from ideas.outputs import OutputData
+from utils.utils import Comp
 
 
 _set_up_logger()
 logger = logging.getLogger(__name__)
+
+
+SUPPORTED_STATE_COMPARISON_METHOD = Comp.BASELINE.value
+
+
+# Analysis feature flags (not exposed via the main function)
+@dataclass(frozen=True)
+class StateEpochAnalysisFeatureFlags:
+    """Configuration for optional analysis features."""
+
+    include_correlations: bool = True
+    include_population_activity: bool = True
+    include_event_analysis: bool = True
+    # Registration support (for CaImAn MSR outputs)
+    use_registered_cellsets: bool = False
+    registration_method: str = "auto_detect"  # "auto_detect", "caiman_msr"
+
+
+_FEATURE_FLAGS = StateEpochAnalysisFeatureFlags()
+
+def get_state_epoch_analysis_feature_flags() -> StateEpochAnalysisFeatureFlags:
+    """Return a copy of the current feature flag configuration."""
+    return replace(_FEATURE_FLAGS)
+
+
+def configure_state_epoch_analysis_feature_flags(
+    **overrides: object,
+) -> None:
+    """Update the global feature flag configuration."""
+    global _FEATURE_FLAGS
+    if overrides:
+        _FEATURE_FLAGS = replace(_FEATURE_FLAGS, **overrides)
+    else:
+        _FEATURE_FLAGS = StateEpochAnalysisFeatureFlags()
+
+
+@contextmanager
+def temporary_state_epoch_analysis_feature_flags(**overrides: object):
+    """Temporarily override feature flags within a context."""
+    global _FEATURE_FLAGS
+    original_flags = _FEATURE_FLAGS
+    if overrides:
+        _FEATURE_FLAGS = replace(_FEATURE_FLAGS, **overrides)
+    try:
+        yield
+    finally:
+        _FEATURE_FLAGS = original_flags
 
 
 # @beartype
@@ -40,6 +90,8 @@ def state_epoch_baseline_analysis(
     column_name: str = "state",
     state_names: str,  # "rest, exploration, feeding"
     state_colors: str = "gray, blue, orange",
+    correlation_statistic: str = "max",
+    method: str = SUPPORTED_STATE_COMPARISON_METHOD,
     # Epoch definition
     define_epochs_by: str = "global file time",
     epochs: str = "(0, 600), (650, 950), (950, 1250)",
@@ -53,19 +105,14 @@ def state_epoch_baseline_analysis(
     trace_scale_method: str = "none",
     event_scale_method: str = "none",
     # Analysis options
-    include_correlations: bool = True,
-    include_population_activity: bool = True,
-    include_event_analysis: bool = True,
-    # Registration support (for CaImAn MSR outputs)
-    use_registered_cellsets: bool = False,
-    registration_method: str = "auto_detect",  # "auto_detect", "caiman_msr"
     # Statistical parameters
     alpha: float = 0.05,
     n_shuffle: int = 1000,
     # Data processing parameters
     tolerance: float = 1e-4,
     sort_by_time: bool = True,
-    output_dir: str = ""
+    # Output parameters
+    output_dir: str = "",
 ) -> None:
     """Perform combined state-epoch analysis with baseline comparison.
 
@@ -74,6 +121,11 @@ def state_epoch_baseline_analysis(
     1. Activity/event rates per state-epoch combination
     2. Correlations per state-epoch combination
     3. Modulation indices relative to baseline state-epoch
+
+    Feature toggles for correlations, population activity, event analysis,
+    and registered cellset support are configured via
+    configure_state_epoch_analysis_feature_flags instead of function
+    arguments.
 
     Args:
     ----
@@ -84,6 +136,9 @@ def state_epoch_baseline_analysis(
         column_name: Column name for state annotations
         state_names: Comma-separated state names
         state_colors: Comma-separated color names for states
+        correlation_statistic: Per-cell correlation statistic to summarize
+            ("max", "min", or "mean") in distribution previews
+        method: State comparison method (currently only "state vs baseline")
         define_epochs_by: Method for defining epochs ("global file time",
             "files", "local file time")
         epochs: Epoch time periods as a string representation of tuples
@@ -96,11 +151,6 @@ def state_epoch_baseline_analysis(
             ("none", "normalize", "standardize", "fractional_change", "standardize_baseline")
         event_scale_method: Method for scaling events
             ("none", "normalize", "standardize", "fractional_change", "standardize_baseline")
-        include_correlations: Whether to compute correlation analysis
-        include_population_activity: Whether to compute population activity
-        include_event_analysis: Whether to analyze events (if provided)
-        use_registered_cellsets: Whether to use registered cellset data
-        registration_method: Method for cell registration
         alpha: Significance level for statistical tests
         n_shuffle: Number of permutations for statistical tests
         tolerance: Tolerance for temporal alignment and file concatenation
@@ -114,6 +164,17 @@ def state_epoch_baseline_analysis(
 
     """
     logger.info("Starting state-epoch baseline analysis...")
+    normalized_method = method.strip().lower() if method else ""
+    if normalized_method != SUPPORTED_STATE_COMPARISON_METHOD:
+        raise IdeasError(
+            "Unsupported state comparison method "
+            f"'{method}'. This tool only supports '{SUPPORTED_STATE_COMPARISON_METHOD}' "
+            "to maintain parity with the standard-python implementation."
+        )
+    logger.info(
+        "State comparison method: %s", SUPPORTED_STATE_COMPARISON_METHOD
+    )
+    feature_flags = get_state_epoch_analysis_feature_flags()
 
     # Validate inputs
     try:
@@ -156,8 +217,8 @@ def state_epoch_baseline_analysis(
         event_set_files=event_set_files,
         annotations_file=annotations_file,
         concatenate=concatenate,
-        use_registered_cellsets=use_registered_cellsets,
-        registration_method=registration_method,
+        use_registered_cellsets=feature_flags.use_registered_cellsets,
+        registration_method=feature_flags.registration_method,
         # Validation parameters (passed directly to data manager)
         epochs=epochs,
         epoch_names=parsed_epochs,
@@ -223,9 +284,9 @@ def state_epoch_baseline_analysis(
                 state=state,
                 epoch=epoch,
                 cell_info=cell_info,
-                include_correlations=include_correlations,
-                include_population_activity=include_population_activity,
-                include_event_analysis=include_event_analysis,
+                include_correlations=feature_flags.include_correlations,
+                include_population_activity=feature_flags.include_population_activity,
+                include_event_analysis=feature_flags.include_event_analysis,
                 alpha=alpha,
                 n_shuffle=n_shuffle,
             )
@@ -284,6 +345,7 @@ def state_epoch_baseline_analysis(
         alpha=alpha,
         n_shuffle=n_shuffle,
         epoch_periods=data_manager.get_epoch_periods(),
+        correlation_statistic=correlation_statistic,
     )
 
     output_generator.generate_all_outputs(
@@ -303,9 +365,8 @@ def state_epoch_baseline_analysis(
     if os.path.exists(output_metadata_path):
         with open(output_metadata_path, "r") as f:
             output_metadata = json.load(f)
-        os.remove(os.path.join(output_dir, "output_metadata.json"))
+        os.remove(output_metadata_path)
 
-    # generate basename for output files based on input cell sets
     output_file_basename = ""
     for cell_set_file in cell_set_files:
         cell_set_file_name = os.path.basename(cell_set_file)
@@ -318,14 +379,18 @@ def state_epoch_baseline_analysis(
 
     with OutputData() as output_data:
         def process_output_file(file, preview_files=None):
-            """Helper function to process output files, previews, and metadata"""
+            """Process registered outputs and attach previews/metadata."""
             try:
                 file = os.path.join(output_dir, file)
                 filename = pathlib.Path(file).name
                 basename = pathlib.Path(file).stem
                 if preview_files:
-                    os.makedirs(os.path.join(output_dir, basename))
-                    new_file = os.path.join(output_dir, basename, f"{output_file_basename}_{filename}")
+                    os.makedirs(os.path.join(output_dir, basename), exist_ok=True)
+                    new_file = os.path.join(
+                        output_dir,
+                        basename,
+                        f"{output_file_basename}_{filename}",
+                    )
                     os.rename(file, new_file)
                     file = new_file
 
@@ -333,21 +398,34 @@ def state_epoch_baseline_analysis(
                     for preview_file, caption in preview_files:
                         preview_filename = preview_file
                         preview_file = os.path.join(output_dir, preview_file)
-                        new_preview_file = os.path.join(output_dir, basename, f"{output_file_basename}_{preview_filename}")
+                        new_preview_file = os.path.join(
+                            output_dir,
+                            basename,
+                            f"{output_file_basename}_{preview_filename}",
+                        )
                         os.rename(preview_file, new_preview_file)
                         preview_file = new_preview_file
                         output_file.add_preview(preview_file, caption)
                 else:
                     output_file = output_data.add_file(file)
 
-                for key, value in output_metadata[basename].items():
-                    output_file.add_metadata(key=key, value=str(value), name=key.title())
-            except Exception:
+                metadata = output_metadata.get(basename, {})
+                for key, value in metadata.items():
+                    output_file.add_metadata(
+                        key=key,
+                        value=str(value),
+                        name=key.title(),
+                    )
+            except Exception:  # noqa: BLE001
                 logger.exception("failed to process file")
-        
+
         process_output_file(
             "activity_per_state_epoch_data.csv",
             [
+                (
+                    "time_in_state_preview.svg",
+                    "Time spent in each state and (when available) state-epoch combinations.",
+                ),
                 (
                     "population_average_preview.svg",
                     "Average neural activity across state-epoch combinations. Bar plot showing mean activity ± standard error for each state-epoch combination."
@@ -361,18 +439,10 @@ def state_epoch_baseline_analysis(
                     "Trace preview with state-colored traces showing neural activity patterns colored by behavioral state."
                 ),
                 (
-                    "trace_epoch_overlay.svg",
-                    "Trace preview with epoch overlay boxes showing neural activity patterns with epoch time periods highlighted."
-                ),
-                (
                     "event_state_overlay.svg",
                     "Event raster plot with state-colored events showing event patterns colored by behavioral state."
                 ),
-                (
-                    "event_epoch_overlay.svg",
-                    "Combined event visualization with population average activity and raster plot showing event patterns with epoch time periods highlighted, formatted similar to Event_State_Overlay."
-                ),
-            ]
+            ],
         )
 
         process_output_file(
@@ -394,9 +464,13 @@ def state_epoch_baseline_analysis(
                     "average_correlations_preview.svg",
                     "Bar plots showing average positive and negative correlations for each state-epoch combination. Provides summary statistics of correlation patterns."
                 ),
-            ]
+                (
+                    "correlation_statistic_distribution_preview.svg",
+                    "Distribution of the selected per-cell correlation statistic across neurons and state-epoch combinations."
+                ),
+            ],
         )
-        
+
         process_output_file(
             "modulation_vs_baseline_data.csv",
             [
