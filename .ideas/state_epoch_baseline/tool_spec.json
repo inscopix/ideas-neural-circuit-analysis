@@ -336,11 +336,51 @@
     ],
     "results": [
         {
-            "key": "tool_output_group",
-            "name": "Tool Outputs",
-            "description": "Tool outputs",
+            "key": "activity_per_state_epoch_data",
+            "name": "Activity Per State-Epoch Data",
+            "description": "CSV file with activity metrics for each cell in each state-epoch combination",
             "file_patterns": [
-                "**/*"
+                "activity_per_state_epoch_data**"
+            ]
+        },
+        {
+            "key": "correlations_per_state_epoch_data",
+            "name": "Correlations Per State-Epoch Data",
+            "description": "CSV file with correlation statistics for each state-epoch combination",
+            "file_patterns": [
+                "correlations_per_state_epoch_data**"
+            ]
+        },
+        {
+            "key": "modulation_vs_baseline_data",
+            "name": "Modulation vs Baseline Data",
+            "description": "CSV file with modulation indices relative to baseline",
+            "file_patterns": [
+                "modulation_vs_baseline_data**"
+            ]
+        },
+        {
+            "key": "average_correlations",
+            "name": "Average Correlations",
+            "description": "Average positive and negative correlations for each state-epoch combination",
+            "file_patterns": [
+                "average_correlations**"
+            ]
+        },
+        {
+            "key": "pairwise_correlation_heatmaps",
+            "name": "Pairwise Correlation Heatmaps",
+            "description": "Raw correlation matrices for each state-epoch combination stored in HDF5 format",
+            "file_patterns": [
+                "pairwise_correlation_heatmaps**"
+            ]
+        },
+        {
+            "key": "spatial_analysis_pairwise_correlations",
+            "name": "Spatial Analysis of Pairwise Correlations",
+            "description": "Raw correlation matrices and cell pair correlations with spatial position information for each cell pair across state-epoch combinations",
+            "file_patterns": [
+                "spatial_analysis_pairwise_correlations**"
             ]
         }
     ],

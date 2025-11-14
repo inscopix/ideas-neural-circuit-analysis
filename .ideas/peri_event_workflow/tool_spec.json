@@ -247,11 +247,19 @@
     ],
     "results": [
         {
-            "key": "tool_output_group",
-            "name": "Tool Outputs",
-            "description": "Tool outputs",
+            "key": "event_aligned_activity_traces_event_aligned_activity_traces_csv_file",
+            "name": "Event-aligned activity",
+            "description": "Event-aligned activity traces",
             "file_patterns": [
-                "**/*"
+                "event_aligned_activity_traces_event_aligned_activity_traces_csv_file**"
+            ]
+        },
+        {
+            "key": "event_aligned_statistics_event_aligned_activity_statistics_csv_file",
+            "name": "Statistics of event-aligned data",
+            "description": "Statistics derived from the event-aligned data",
+            "file_patterns": [
+                "event_aligned_statistics_event_aligned_activity_statistics_csv_file**"
             ]
         }
     ],

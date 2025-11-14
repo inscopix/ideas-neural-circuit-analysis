@@ -133,11 +133,35 @@
     ],
     "results": [
         {
-            "key": "tool_output_group",
-            "name": "Tool Outputs",
-            "description": "Tool outputs",
+            "key": "average_correlations",
+            "name": "Average Correlations",
+            "description": "The average positive correlation and average negative correlation in each state",
             "file_patterns": [
-                "**/*"
+                "average_correlations**"
+            ]
+        },
+        {
+            "key": "pairwise_correlation_heatmaps",
+            "name": "Pairwise Correlation Heatmaps",
+            "description": "Raw correlation matrices",
+            "file_patterns": [
+                "pairwise_correlation_heatmaps**"
+            ]
+        },
+        {
+            "key": "spatial_analysis_pairwise_correlations",
+            "name": "Spatial Analysis of Pairwise Correlations",
+            "description": "Raw correlation matrices and cell pair correlations, with spatial position information for each cell pair",
+            "file_patterns": [
+                "spatial_analysis_pairwise_correlations**"
+            ]
+        },
+        {
+            "key": "correlation_statistic_comparison",
+            "name": "Correlation Statistic Comparison",
+            "description": "Max/mean/min correlations by neuron",
+            "file_patterns": [
+                "correlation_statistic_comparison**"
             ]
         }
     ],

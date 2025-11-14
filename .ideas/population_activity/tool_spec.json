@@ -221,11 +221,19 @@
     ],
     "results": [
         {
-            "key": "tool_output_group",
-            "name": "Tool Outputs",
-            "description": "Tool outputs",
+            "key": "trace_population_data",
+            "name": "Trace-based Analysis",
+            "description": "A CSV file containing average activity and associated modulation score data for each cell in each comparison of states",
             "file_patterns": [
-                "**/*"
+                "trace_population_data**"
+            ]
+        },
+        {
+            "key": "event_population_data",
+            "name": "Event-based Analysis",
+            "description": "A CSV file containing event rate and associated modulation score data for each cell in each comparison of states",
+            "file_patterns": [
+                "event_population_data**"
             ]
         }
     ],
