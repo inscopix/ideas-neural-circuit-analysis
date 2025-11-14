@@ -65,6 +65,7 @@ def state_epoch_baseline_analysis(
     # Data processing parameters
     tolerance: float = 1e-4,
     sort_by_time: bool = True,
+    output_dir: str = ""
 ) -> None:
     """Perform combined state-epoch analysis with baseline comparison.
 
@@ -272,7 +273,6 @@ def state_epoch_baseline_analysis(
 
     # Generate outputs
     logger.info("Generating outputs...")
-    output_dir = ""
     output_generator = StateEpochOutputGenerator(
         output_dir=output_dir,
         states=states,
@@ -298,9 +298,12 @@ def state_epoch_baseline_analysis(
 
     logger.info("Saving output data")
 
-    with open("output_metadata.json", "r") as f:
-        output_metadata = json.load(f)
-    os.remove("output_metadata.json")
+    output_metadata = {}
+    output_metadata_path = os.path.join(output_dir, "output_metadata.json")
+    if os.path.exists(output_metadata_path):
+        with open(output_metadata_path, "r") as f:
+            output_metadata = json.load(f)
+        os.remove(os.path.join(output_dir, "output_metadata.json"))
 
     # generate basename for output files based on input cell sets
     output_file_basename = ""
@@ -316,24 +319,31 @@ def state_epoch_baseline_analysis(
     with OutputData() as output_data:
         def process_output_file(file, preview_files=None):
             """Helper function to process output files, previews, and metadata"""
-            basename = pathlib.Path(file).stem
-            if preview_files:
-                os.makedirs(basename)
-                new_file = os.path.join(basename, f"{output_file_basename}_{file}")
-                os.rename(file, new_file)
-                file = new_file
+            try:
+                file = os.path.join(output_dir, file)
+                filename = pathlib.Path(file).name
+                basename = pathlib.Path(file).stem
+                if preview_files:
+                    os.makedirs(os.path.join(output_dir, basename))
+                    new_file = os.path.join(output_dir, basename, f"{output_file_basename}_{filename}")
+                    os.rename(file, new_file)
+                    file = new_file
 
-                output_file = output_data.add_file(file)
-                for preview_file, caption in preview_files:
-                    new_preview_file = os.path.join(basename, f"{output_file_basename}_{preview_file}")
-                    os.rename(preview_file, new_preview_file)
-                    preview_file = new_preview_file
-                    output_file.add_preview(preview_file, caption)
-            else:
-                output_file = output_data.add_file(file)
+                    output_file = output_data.add_file(file)
+                    for preview_file, caption in preview_files:
+                        preview_filename = preview_file
+                        preview_file = os.path.join(output_dir, preview_file)
+                        new_preview_file = os.path.join(output_dir, basename, f"{output_file_basename}_{preview_filename}")
+                        os.rename(preview_file, new_preview_file)
+                        preview_file = new_preview_file
+                        output_file.add_preview(preview_file, caption)
+                else:
+                    output_file = output_data.add_file(file)
 
-            for key, value in output_metadata[basename].items():
-                output_file.add_metadata(key=key, value=str(value), name=key.title())
+                for key, value in output_metadata[basename].items():
+                    output_file.add_metadata(key=key, value=str(value), name=key.title())
+            except Exception:
+                logger.exception("failed to process file")
         
         process_output_file(
             "activity_per_state_epoch_data.csv",

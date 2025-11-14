@@ -519,7 +519,12 @@ class StateEpochDataManager:
         # 3. Load annotations (consistent with other tools - use first file only)
         # Note: Multiple annotation files are accepted but only the first is used
         if self.annotations_file and len(self.annotations_file) > 0:
-            annotations_df = pd.read_parquet(self.annotations_file[0])
+            if self.annotations_file[0].endswith(".csv"):
+                annotations_df = pd.read_csv(self.annotations_file[0])
+            elif self.annotations_file[0].endswith(".parquet"):
+                annotations_df = pd.read_parquet(self.annotations_file[0])
+            else:
+                raise IdeasError("Unsupported file extension for annotations file")
         else:
             # Create dummy annotations for epoch-only analysis (consistent with correlations.py)
             num_timepoints = self._traces.shape[0]

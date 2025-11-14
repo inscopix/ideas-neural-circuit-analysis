@@ -507,7 +507,12 @@ def population_activity(
     ) = _get_cellset_data(cell_set_files)
 
     # get behavior
-    behavior = pd.read_parquet(annotations_file)
+    if annotations_file.endswith(".csv"):
+        behavior = pd.read_csv(annotations_file)
+    elif annotations_file.endswith(".parquet"):
+        behavior = pd.read_parquet(annotations_file)
+    else:
+        raise IdeasError("Unsupported file extension for annotations file")
     # check that behavior and traces are the same length
     if len(behavior) != np.shape(traces)[0]:
         raise IdeasError(

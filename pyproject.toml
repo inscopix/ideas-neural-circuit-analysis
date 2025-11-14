@@ -45,4 +45,5 @@ testpaths = [
     "tests/test_correlations.py",
     "tests/test_population_activity.py",
     "tests/test_peri_event_workflow.py",
+    "tests/test_state_epoch_baseline_analysis.py",
 ]
