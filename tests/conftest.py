@@ -138,11 +138,15 @@ def output_file_cleanup():
     common_output_files = [
         # Population activity outputs
         "activity_average_preview.svg",
+        "trace_population_average_preview.svg",
         "modulation_histogram_preview.svg",
+        "trace_modulation_histogram_preview.svg",
         "modulation_preview.svg",
         "time_in_state_preview.svg",
+        "time_in_state_epoch_preview.svg",
         "trace_preview.svg",
-        "event_average_preview.svg",
+        "trace_modulation_footprint_preview.svg",
+        "event_population_average_preview.svg",
         "event_modulation_preview.svg",
         "event_modulation_histogram_preview.svg",
         "event_preview.svg",
@@ -157,6 +161,14 @@ def output_file_cleanup():
         "correlation_plot.svg",
         "correlation_spatial_map.svg",
         "spatial_analysis_pairwise_correlations.zip",
+        # Trace-only correlation outputs
+        "correlations_per_state_epoch_data.csv",
+        "average_correlations.csv",
+        "trace_average_correlations_preview.svg",
+        "trace_correlation_matrices_preview.svg",
+        "trace_correlation_statistic_distribution_preview.svg",
+        "trace_spatial_correlation_preview.svg",
+        "trace_spatial_correlation_map_preview.svg",
         # Generic common outputs
         "output.csv",
         "output.svg",

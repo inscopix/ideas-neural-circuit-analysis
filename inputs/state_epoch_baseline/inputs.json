@@ -20,6 +20,7 @@
     "concatenate": true,
     "trace_scale_method": "none",
     "event_scale_method": "none",
+    "include_event_correlation_preview": false,
     "alpha": 0.05,
     "n_shuffle": 1000,
     "tolerance": 0.0001,

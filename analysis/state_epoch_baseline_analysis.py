@@ -10,7 +10,7 @@ import os
 import pathlib
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
-from beartype.typing import List, Optional
+from beartype.typing import List, Optional, Iterable, Tuple
 from ideas.exceptions import IdeasError
 from utils.state_epoch_data import (
     StateEpochDataManager,
@@ -22,7 +22,32 @@ from utils.state_epoch_results import (
     analyze_state_epoch_combination,
     calculate_baseline_modulation,
 )
-from utils.state_epoch_output import StateEpochOutputGenerator
+from utils.state_epoch_output import (
+    StateEpochOutputGenerator,
+    STATE_EPOCH_TIME_PREVIEW,
+    TRACE_POPULATION_AVERAGE_PREVIEW,
+    TRACE_STATE_OVERLAY,
+    EVENT_POPULATION_AVERAGE_PREVIEW,
+    EVENT_STATE_OVERLAY,
+    TRACE_MODULATION_FOOTPRINT_PREVIEW,
+    TRACE_MODULATION_HISTOGRAM_PREVIEW,
+    EVENT_MODULATION_PREVIEW,
+    EVENT_MODULATION_HISTOGRAM_PREVIEW,
+    CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
+    EVENT_CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
+    AVERAGE_CORRELATIONS_PREVIEW,
+    EVENT_AVERAGE_CORRELATIONS_PREVIEW,
+    CORRELATION_MATRICES_PREVIEW,
+    EVENT_CORRELATION_MATRICES_PREVIEW,
+    SPATIAL_CORRELATION_PREVIEW,
+    SPATIAL_CORRELATION_MAP_PREVIEW,
+    EVENT_SPATIAL_CORRELATION_PREVIEW,
+    EVENT_SPATIAL_CORRELATION_MAP_PREVIEW,
+    CORRELATIONS_PER_STATE_EPOCH_DATA_CSV,
+    AVERAGE_CORRELATIONS_CSV,
+    RAW_CORRELATIONS_H5_NAME,
+    RAW_CORRELATIONS_ZIP_NAME,
+)
 from ideas.utils import _set_up_logger
 from ideas.outputs import OutputData
 from utils.utils import Comp
@@ -34,7 +59,112 @@ logger = logging.getLogger(__name__)
 
 SUPPORTED_STATE_COMPARISON_METHOD = Comp.BASELINE.value
 
+USEFUL_OUTPUT_METADATA_KEYS = {
+    # "analysis_type",
+    # "file_type",
+    # "description",
+    "num_cells",
+    "num_states",
+    "num_epochs",
+    "num_combinations",
+    "combinations_analyzed",
+    "baseline_state",
+    "baseline_epoch",
+    # "baseline_reference",
+    "alpha",
+    "n_shuffle",
+    "correlation_method",
+    "correlation_statistic",
+    "modulation_method",
+    # "activity_metrics",
+    # "format",
+}
 
+
+def _extract_useful_metadata(metadata: dict) -> dict:
+    """Return only the metadata fields we want to register with IDEAS."""
+    if not metadata:
+        return {}
+
+    return {
+        key: value
+        for key, value in metadata.items()
+        if key in USEFUL_OUTPUT_METADATA_KEYS
+        and value not in (None, "", [], {})
+    }
+
+
+def _collect_available_previews(
+    output_dir: str,
+    preview_definitions: Iterable[Tuple[str, str]],
+) -> List[Tuple[str, str]]:
+    """Return preview tuples that exist on disk."""
+    available_previews: List[Tuple[str, str]] = []
+    for preview_name, caption in preview_definitions:
+        preview_path = os.path.join(output_dir, preview_name)
+        if os.path.exists(preview_path):
+            available_previews.append((preview_name, caption))
+    return available_previews
+
+def _process_output_file(
+    *,
+    output_data: OutputData,
+    output_dir: str,
+    output_metadata: dict,
+    file: str,
+    output_file_basename: str,
+    preview_files: Optional[List[tuple]] = None,
+) -> None:
+    """Attach an output file and its previews to the OutputData object."""
+
+    try:
+        file_path = os.path.join(output_dir, file)
+        filename = pathlib.Path(file_path).name
+        basename = pathlib.Path(file_path).stem
+
+        final_file_path = file_path
+        target_dir = os.path.join(output_dir, basename)
+
+        if preview_files:
+            os.makedirs(target_dir, exist_ok=True)
+            final_file_path = os.path.join(
+                target_dir,
+                f"{output_file_basename}_{filename}",
+            )
+            os.rename(file_path, final_file_path)
+
+        output_file = output_data.add_file(final_file_path)
+
+        metadata = _extract_useful_metadata(output_metadata.get(basename, {}))
+        for key, value in metadata.items():
+            output_file.add_metadata(
+                key=key,
+                value=str(value),
+                name=key.title(),
+            )
+
+        if preview_files:
+            for preview_name, caption in preview_files:
+                preview_path = os.path.join(output_dir, preview_name)
+                if not os.path.exists(preview_path):
+                    logger.warning(
+                        "Preview '%s' not found for output '%s'; skipping attachment.",
+                        preview_name,
+                        filename,
+                    )
+                    continue
+
+                new_preview_path = os.path.join(
+                    target_dir,
+                    f"{output_file_basename}_{preview_name}",
+                )
+                os.rename(preview_path, new_preview_path)
+                output_file.add_preview(new_preview_path, caption)
+
+    except Exception:  # noqa: BLE001
+        logger.exception("failed to process file")
+
+    return basename
 # Analysis feature flags (not exposed via the main function)
 @dataclass(frozen=True)
 class StateEpochAnalysisFeatureFlags:
@@ -105,6 +235,7 @@ def state_epoch_baseline_analysis(
     trace_scale_method: str = "none",
     event_scale_method: str = "none",
     # Analysis options
+    include_event_correlation_preview: bool = False,
     # Statistical parameters
     alpha: float = 0.05,
     n_shuffle: int = 1000,
@@ -151,6 +282,9 @@ def state_epoch_baseline_analysis(
             ("none", "normalize", "standardize", "fractional_change", "standardize_baseline")
         event_scale_method: Method for scaling events
             ("none", "normalize", "standardize", "fractional_change", "standardize_baseline")
+        include_event_correlation_preview: Whether to generate additional event-based
+            correlation previews alongside the standard trace outputs when event
+            correlations are available.
         alpha: Significance level for statistical tests
         n_shuffle: Number of permutations for statistical tests
         tolerance: Tolerance for temporal alignment and file concatenation
@@ -175,6 +309,9 @@ def state_epoch_baseline_analysis(
         "State comparison method: %s", SUPPORTED_STATE_COMPARISON_METHOD
     )
     feature_flags = get_state_epoch_analysis_feature_flags()
+
+    if include_event_correlation_preview:
+        logger.info("Event correlation outputs enabled when event data is available.")
 
     # Validate inputs
     try:
@@ -346,6 +483,7 @@ def state_epoch_baseline_analysis(
         n_shuffle=n_shuffle,
         epoch_periods=data_manager.get_epoch_periods(),
         correlation_statistic=correlation_statistic,
+        include_event_correlation_preview=include_event_correlation_preview,
     )
 
     output_generator.generate_all_outputs(
@@ -378,125 +516,183 @@ def state_epoch_baseline_analysis(
         output_file_basename += cell_set_file_name
 
     with OutputData() as output_data:
-        def process_output_file(file, preview_files=None):
-            """Process registered outputs and attach previews/metadata."""
-            try:
-                file = os.path.join(output_dir, file)
-                filename = pathlib.Path(file).name
-                basename = pathlib.Path(file).stem
-                if preview_files:
-                    os.makedirs(os.path.join(output_dir, basename), exist_ok=True)
-                    new_file = os.path.join(
-                        output_dir,
-                        basename,
-                        f"{output_file_basename}_{filename}",
-                    )
-                    os.rename(file, new_file)
-                    file = new_file
-
-                    output_file = output_data.add_file(file)
-                    for preview_file, caption in preview_files:
-                        preview_filename = preview_file
-                        preview_file = os.path.join(output_dir, preview_file)
-                        new_preview_file = os.path.join(
-                            output_dir,
-                            basename,
-                            f"{output_file_basename}_{preview_filename}",
-                        )
-                        os.rename(preview_file, new_preview_file)
-                        preview_file = new_preview_file
-                        output_file.add_preview(preview_file, caption)
-                else:
-                    output_file = output_data.add_file(file)
-
-                metadata = output_metadata.get(basename, {})
-                for key, value in metadata.items():
-                    output_file.add_metadata(
-                        key=key,
-                        value=str(value),
-                        name=key.title(),
-                    )
-            except Exception:  # noqa: BLE001
-                logger.exception("failed to process file")
-
-        process_output_file(
-            "activity_per_state_epoch_data.csv",
-            [
+        _process_output_file(
+            output_data=output_data,
+            output_dir=output_dir,
+            output_metadata=output_metadata,
+            file="activity_per_state_epoch_data.csv",
+            output_file_basename=output_file_basename,
+            preview_files=[
                 (
-                    "time_in_state_preview.svg",
-                    "Time spent in each state and (when available) state-epoch combinations.",
+                    STATE_EPOCH_TIME_PREVIEW,
+                    "Time spent in each state-epoch combination, with per-state totals shown for context.",
                 ),
                 (
-                    "population_average_preview.svg",
-                    "Average neural activity across state-epoch combinations. Bar plot showing mean activity ± standard error for each state-epoch combination."
+                    TRACE_POPULATION_AVERAGE_PREVIEW,
+                    "Average trace activity across state-epoch combinations. Bar plot showing mean activity ± standard error for each state-epoch combination."
                 ),
+
                 (
-                    "event_average_preview.svg",
-                    "Average event rates across state-epoch combinations. Box plots showing event frequency distributions when event data is available."
-                ),
-                (
-                    "trace_state_overlay.svg",
+                    TRACE_STATE_OVERLAY,
                     "Trace preview with state-colored traces showing neural activity patterns colored by behavioral state."
                 ),
                 (
-                    "event_state_overlay.svg",
+                    EVENT_POPULATION_AVERAGE_PREVIEW,
+                    "Average event rates across state-epoch combinations. Box plots showing event frequency distributions when event data is available."
+                ),
+                (
+                    EVENT_STATE_OVERLAY,
                     "Event raster plot with state-colored events showing event patterns colored by behavioral state."
                 ),
             ],
         )
 
-        process_output_file(
-            "correlations_per_state_epoch_data.csv",
-            [
-                (
-                    "spatial_correlation_preview.svg",
-                    "Relationship between spatial distance and neural correlation across different state-epoch combinations. Scatter plots show pairwise neural correlation versus physical distance between cell centroids."
-                ),
-                (
-                    "spatial_correlation_map_preview.svg",
-                    "Spatial map of neural correlations across state-epoch combinations. Colored lines connect neuron pairs above the correlation threshold, with line color indicating correlation strength."
-                ),
-                (
-                    "correlation_matrices_preview.svg",
-                    "Pairwise Pearson correlation matrices between neurons for each state-epoch combination. Shows how neural correlations change across different conditions."
-                ),
-                (
-                    "average_correlations_preview.svg",
-                    "Bar plots showing average positive and negative correlations for each state-epoch combination. Provides summary statistics of correlation patterns."
-                ),
-                (
-                    "correlation_statistic_distribution_preview.svg",
-                    "Distribution of the selected per-cell correlation statistic across neurons and state-epoch combinations."
-                ),
-            ],
+        correlation_preview_files = [
+            (
+                CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
+                "Distribution of the selected per-cell correlation statistic across neurons and state-epoch combinations.",
+            ),
+        ]
+        if include_event_correlation_preview:
+            correlation_preview_files.extend(
+                _collect_available_previews(
+                    output_dir,
+                    [
+                        (
+                            EVENT_CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
+                            "Distribution of the selected per-cell event correlation statistic across neurons and state-epoch combinations.",
+                        ),
+                    ],
+                )
+            )
+
+        _process_output_file(
+            output_data=output_data,
+            output_dir=output_dir,
+            output_metadata=output_metadata,
+            file=CORRELATIONS_PER_STATE_EPOCH_DATA_CSV,
+            output_file_basename=output_file_basename,
+            preview_files=correlation_preview_files,
         )
 
-        process_output_file(
-            "modulation_vs_baseline_data.csv",
-            [
+        _process_output_file(
+            output_data=output_data,
+            output_dir=output_dir,
+            output_metadata=output_metadata,
+            file="modulation_vs_baseline_data.csv",
+            output_file_basename=output_file_basename,
+            preview_files=[
                 (
-                    "modulation_histogram_preview.svg",
+                    TRACE_MODULATION_HISTOGRAM_PREVIEW,
                     "Distribution of modulation scores across neurons relative to baseline. Histograms show the modulation scores for all neurons compared to the baseline state-epoch combination."
                 ),
                 (
-                    "modulation_footprint_preview.svg",
+                    TRACE_MODULATION_FOOTPRINT_PREVIEW,
                     "Spatial distribution of modulated neurons relative to baseline. Cell footprints are colored by modulation direction and significance relative to the baseline state-epoch combination."
                 ),
                 (
-                    "event_modulation_preview.svg",
-                    "Spatial footprints of event-modulated neurons relative to baseline. Cell maps colored by event modulation significance when event data is available."
-                ),
-                (
-                    "event_modulation_histogram_preview.svg",
+                    EVENT_MODULATION_HISTOGRAM_PREVIEW,
                     "Distribution of event modulation scores across neurons relative to baseline. Histograms showing event modulation when event data is available."
                 ),
+                (
+                    EVENT_MODULATION_PREVIEW,
+                    "Spatial footprints of event-modulated neurons relative to baseline. Cell maps colored by event modulation significance when event data is available."
+                ),
+
             ]
         )
 
-        process_output_file("average_correlations.csv")
-        process_output_file("pairwise_correlation_heatmaps.h5")
-        process_output_file("spatial_analysis_pairwise_correlations.zip")
+        average_correlation_previews = [
+            (
+                AVERAGE_CORRELATIONS_PREVIEW,
+                "Bar plots showing average positive and negative correlations for each state-epoch combination. Provides summary statistics of correlation patterns.",
+            ),
+        ]
+        if include_event_correlation_preview:
+            average_correlation_previews.extend(
+                _collect_available_previews(
+                    output_dir,
+                    [
+                        (
+                            EVENT_AVERAGE_CORRELATIONS_PREVIEW,
+                            "Bar plots showing average positive and negative event correlations for each state-epoch combination.",
+                        ),
+                    ],
+                )
+            )
 
+        _process_output_file(
+            output_data=output_data,
+            output_dir=output_dir,
+            output_metadata=output_metadata,
+            file=AVERAGE_CORRELATIONS_CSV,
+            output_file_basename=output_file_basename,
+            preview_files=average_correlation_previews,
+        )
+
+        correlation_matrix_previews = [
+            (
+                CORRELATION_MATRICES_PREVIEW,
+                "Pairwise Pearson correlation matrices between neurons for each state-epoch combination. Shows how neural correlations change across different conditions.",
+            ),
+        ]
+        if include_event_correlation_preview:
+            correlation_matrix_previews.extend(
+                _collect_available_previews(
+                    output_dir,
+                    [
+                        (
+                            EVENT_CORRELATION_MATRICES_PREVIEW,
+                            "Pairwise event correlation matrices between neurons for each state-epoch combination when event data is available.",
+                        ),
+                    ],
+                )
+            )
+
+        _process_output_file(
+            output_data=output_data,
+            output_dir=output_dir,
+            output_metadata=output_metadata,
+            file=RAW_CORRELATIONS_H5_NAME,
+            output_file_basename=output_file_basename,
+            preview_files=correlation_matrix_previews,
+        )
+
+        spatial_correlation_previews = [
+            (
+                SPATIAL_CORRELATION_PREVIEW,
+                "Relationship between spatial distance and neural correlation across different state-epoch combinations. Scatter plots show pairwise neural correlation versus physical distance between cell centroids.",
+            ),
+            (
+                SPATIAL_CORRELATION_MAP_PREVIEW,
+                "Spatial map of neural correlations across state-epoch combinations. Colored lines connect neuron pairs above the correlation threshold, with line color indicating correlation strength.",
+            ),
+        ]
+        if include_event_correlation_preview:
+            spatial_correlation_previews.extend(
+                _collect_available_previews(
+                    output_dir,
+                    [
+                        (
+                            EVENT_SPATIAL_CORRELATION_PREVIEW,
+                            "Relationship between spatial distance and event-based neural correlation across state-epoch combinations.",
+                        ),
+                        (
+                            EVENT_SPATIAL_CORRELATION_MAP_PREVIEW,
+                            "Spatial map of event-based neural correlations when event data is available.",
+                        ),
+                    ],
+                )
+            )
+
+        _process_output_file(
+            output_data=output_data,
+            output_dir=output_dir,
+            output_metadata=output_metadata,
+            file=RAW_CORRELATIONS_ZIP_NAME,
+            output_file_basename=output_file_basename,
+            preview_files=spatial_correlation_previews,
+        )
     logger.info("State-epoch baseline analysis completed successfully")
 
 

@@ -1,9 +1,11 @@
 import logging
 import os
+from itertools import cycle
 from math import ceil
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import matplotlib.pyplot as plt
+from matplotlib import colors as mcolors
 import numpy as np
 import pandas as pd
 import scipy
@@ -109,6 +111,62 @@ def plot_trace_preview(
         bbox_inches="tight",
         transparent=True,
     )
+
+
+def _get_contrasting_text_color(color: str) -> str:
+    """Return black/white text color with sufficient contrast for the input color."""
+    try:
+        r, g, b = mcolors.to_rgb(color)
+    except ValueError:
+        return "black"
+
+    luminance = 0.299 * r + 0.587 * g + 0.114 * b
+    return "white" if luminance < 0.5 else "black"
+
+
+def _draw_epoch_color_bar(
+    ax: plt.Axes,
+    epochs: List[Tuple[float, float]],
+    epoch_colors: Optional[List[str]] = None,
+    epoch_names: Optional[List[str]] = None,
+) -> None:
+    """Render a horizontal color bar denoting epoch ranges."""
+    if not epochs:
+        ax.axis("off")
+        return
+
+    colors = epoch_colors if epoch_colors else ["#9e9e9e"]
+    color_cycle = cycle(colors)
+
+    for idx, (start, end) in enumerate(epochs):
+        if end <= start:
+            continue
+
+        color = next(color_cycle)
+        ax.axvspan(start, end, color=color, alpha=1.0, linewidth=0)
+
+        if epoch_names and idx < len(epoch_names):
+            label = epoch_names[idx]
+            if label:
+                ax.text(
+                    (start + end) / 2,
+                    0.5,
+                    label,
+                    ha="center",
+                    va="center",
+                    fontsize=LABEL_FONT["fontsize"],
+                    color=_get_contrasting_text_color(color),
+                )
+
+    ax.set_ylim(0, 1)
+    ax.set_yticks([])
+    ax.set_yticklabels([])
+    ax.set_ylabel("")
+    ax.set_xlabel("Time (s)", fontdict=LABEL_FONT)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["left"].set_visible(False)
+    ax.tick_params(axis="x", which="both", direction="out", length=5)
 
 
 def _create_group_preview(
@@ -1346,7 +1404,165 @@ def _plot_state_time(
     fig.savefig(filename, dpi=300, transparent=True)
 
 
-def _plot_traces(
+def _plot_state_epoch_time(
+    behavior,
+    column_name,
+    state_names,
+    state_colors,
+    period,
+    filename: str = "time_in_state_epoch_preview.svg",
+    epoch_names: Optional[List[str]] = None,
+    epoch_periods: Optional[List[tuple]] = None,
+):
+    """Plot state-epoch time distributions with stacked bars and heatmap."""
+    plt.rcParams.update({"font.size": 12})
+
+    if not (epoch_periods and epoch_names and len(epoch_periods) > 0):
+        logger.warning(
+            "Epoch information missing for _plot_state_epoch_time; falling back to _plot_state_time."
+        )
+        _plot_state_time(
+            behavior,
+            column_name,
+            state_names,
+            state_colors,
+            period,
+            filename=filename,
+        )
+        return
+
+    sanitized_epoch_names = [
+        (
+            epoch_names[i].strip()
+            if i < len(epoch_names) and epoch_names[i]
+            else f"epoch_{i}"
+        )
+        for i in range(len(epoch_periods))
+    ]
+
+    width_ratios = [5, 5, 4]
+    fig, ax = plt.subplots(
+        nrows=1,
+        ncols=3,
+        figsize=(10, 5),
+        width_ratios=width_ratios,
+    )
+    axes = np.atleast_1d(ax)
+    ax_time = axes[0]
+    ax_fraction = axes[1]
+    ax_dist = axes[2]
+
+    outside_label = "outside_epoch"
+    time_axis = np.arange(len(behavior)) * period
+    epoch_labels = np.full(len(behavior), outside_label, dtype=object)
+    for idx, (start, end) in enumerate(epoch_periods):
+        mask = (time_axis >= start) & (time_axis < end)
+        epoch_labels[mask] = sanitized_epoch_names[idx]
+
+    behavior = behavior.copy()
+    behavior["_plot_epoch"] = epoch_labels
+
+    include_outside = np.any(epoch_labels == outside_label)
+    ordered_epochs = sanitized_epoch_names + (
+        [outside_label] if include_outside else []
+    )
+
+    state_epoch_counts = (
+        behavior.groupby([column_name, "_plot_epoch"])
+        .size()
+        .unstack(fill_value=0)
+    )
+    state_epoch_counts = state_epoch_counts.reindex(
+        index=state_names, columns=ordered_epochs, fill_value=0
+    )
+    state_epoch_seconds = state_epoch_counts * period
+
+    tableau_colors = list(mcolors.TABLEAU_COLORS.values())
+    epoch_positions = np.arange(len(ordered_epochs))
+    bottom = np.zeros(len(ordered_epochs))
+    for idx, state in enumerate(state_names):
+        values = state_epoch_seconds.loc[state].to_numpy(dtype=float)
+        if not np.any(values):
+            continue
+        color = (
+            state_colors[idx]
+            if idx < len(state_colors)
+            else tableau_colors[idx % len(tableau_colors)]
+        )
+        ax_time.bar(
+            epoch_positions,
+            values,
+            bottom=bottom,
+            color=color,
+            label=state,
+        )
+        bottom += values
+    ax_time.set_xticks(epoch_positions)
+    ax_time.set_xticklabels(ordered_epochs, rotation=45, ha="right")
+    ax_time.set_ylabel("Time (s)", fontdict=LABEL_FONT)
+    ax_time.set_title("Time per state-epoch", fontdict=TITLE_FONT)
+
+    epoch_totals = np.maximum(state_epoch_seconds.sum(axis=0).to_numpy(), 1e-9)
+    bottom_fraction = np.zeros(len(ordered_epochs))
+    for idx, state in enumerate(state_names):
+        values = state_epoch_seconds.loc[state].to_numpy(dtype=float)
+        if not np.any(values):
+            continue
+        fractions = values / epoch_totals
+        color = (
+            state_colors[idx]
+            if idx < len(state_colors)
+            else tableau_colors[idx % len(tableau_colors)]
+        )
+        ax_fraction.bar(
+            epoch_positions,
+            fractions,
+            bottom=bottom_fraction,
+            color=color,
+        )
+        bottom_fraction += fractions
+    ax_fraction.set_xticks(epoch_positions)
+    ax_fraction.set_xticklabels(ordered_epochs, rotation=45, ha="right")
+    ax_fraction.set_ylim(0, 1)
+    ax_fraction.set_ylabel("Fraction of epoch time", fontdict=LABEL_FONT)
+    ax_fraction.set_title("Fractional time per state-epoch", fontdict=TITLE_FONT)
+
+    sns.heatmap(
+        state_epoch_seconds,
+        ax=ax_dist,
+        cmap="Blues",
+        cbar_kws={"label": "Time (s)"},
+        annot=state_epoch_seconds.shape[0] <= 10
+        and state_epoch_seconds.shape[1] <= 8,
+        fmt=".1f",
+    )
+    ax_dist.set_title("State-Epoch Duration", fontdict=TITLE_FONT)
+    ax_dist.set_xlabel("Epoch", fontdict=LABEL_FONT)
+    ax_dist.set_ylabel("State", fontdict=LABEL_FONT)
+    ax_dist.set_xticklabels(
+        [label.get_text().strip() for label in ax_dist.get_xticklabels()],
+        rotation=45,
+        ha="right",
+    )
+
+    handles, labels = ax_time.get_legend_handles_labels()
+    layout_rect = [0, 0, 1, 0.95]
+    if handles:
+        layout_rect = [0, 0, 1, 0.9]
+        fig.legend(
+            handles,
+            labels,
+            loc="upper center",
+            ncol=min(4, len(handles)),
+            bbox_to_anchor=(0.5, 0.99),
+            bbox_transform=fig.transFigure,
+        )
+
+    fig.tight_layout(rect=layout_rect)
+    fig.savefig(filename, dpi=300, transparent=True)
+
+
+def _plot_traces_with_epochs(
     *,
     traces: np.array,
     behavior: pd.DataFrame,
@@ -1358,8 +1574,11 @@ def _plot_traces(
     state_names: List[str],
     period: float = 1.0,
     boundaries: Optional[List[float]] = None,
+    epoch_periods: Optional[List[Tuple[float, float]]] = None,
+    epoch_colors: Optional[List[str]] = None,
+    epoch_names: Optional[List[str]] = None,
 ) -> None:
-    """Plot all traces in given input matrix, and colors them by behavior
+    """Plot traces with state overlays plus optional epoch color bar.
     :param traces: neural activity of individual cells
                    (2D array <num_timepoints x num_cells>)
     :param behavior: binary 2D array indicating the presence/
@@ -1382,10 +1601,24 @@ def _plot_traces(
     # Create time axis in seconds
     time_axis = np.arange(traces.shape[0]) * period
 
-    # Traces figure
-    trace_fig, ax_traces = plt.subplots(
-        nrows=2, ncols=1, figsize=(15, 10), height_ratios=[1, 8]
-    )
+    # Determine layout based on epoch overlay availability
+    show_epoch_bar = bool(epoch_periods and len(epoch_periods) > 0)
+
+    trace_fig = plt.figure(figsize=(15, 10))
+    if show_epoch_bar:
+        grid = trace_fig.add_gridspec(
+            nrows=3, ncols=1, height_ratios=[1, 8, 0.4], hspace=0.05
+        )
+        ax_mean = trace_fig.add_subplot(grid[0])
+        ax_trace = trace_fig.add_subplot(grid[1], sharex=ax_mean)
+        ax_epoch = trace_fig.add_subplot(grid[2], sharex=ax_mean)
+    else:
+        grid = trace_fig.add_gridspec(
+            nrows=2, ncols=1, height_ratios=[1, 8], hspace=0.05
+        )
+        ax_mean = trace_fig.add_subplot(grid[0])
+        ax_trace = trace_fig.add_subplot(grid[1], sharex=ax_mean)
+        ax_epoch = None
 
     locations = [np.zeros(traces.shape[0]) for _ in state_names]
 
@@ -1397,7 +1630,7 @@ def _plot_traces(
 
     for y in range(num_to_plot):
         x = y * spacing + scipy.stats.zscore(traces[:, y], nan_policy="omit")
-        ax_traces[1].plot(time_axis, x, linewidth=1, color="black")
+        ax_trace.plot(time_axis, x, linewidth=1, color="black")
 
     # Plot vspan for all states
     for idx, _ in enumerate(state_names):
@@ -1413,7 +1646,7 @@ def _plot_traces(
             # Increment start by 1 for correct axvspan range
             plot_start = (start + 1) * period
             plot_end = end * period
-            ax_traces[0].axvspan(
+            ax_mean.axvspan(
                 plot_start,
                 plot_end,
                 color=state_colors[idx],
@@ -1422,7 +1655,7 @@ def _plot_traces(
                     state_names[idx] if start == starts[0] else ""
                 ),  # Label only first instance
             )
-            ax_traces[1].axvspan(
+            ax_trace.axvspan(
                 plot_start,
                 plot_end,
                 color=state_colors[idx],
@@ -1433,29 +1666,28 @@ def _plot_traces(
             )
 
     # Set x-limits in seconds
-    ax_traces[1].set_xlim([0, traces.shape[0] * period])
-    ax_traces[1].set_ylim([-5, 15 + num_to_plot * spacing])
+    ax_trace.set_xlim([0, traces.shape[0] * period])
+    ax_trace.set_ylim([-5, 15 + num_to_plot * spacing])
 
-    ax_traces[1].set_yticks([])
-    ax_traces[1].set_xlabel("Time (s)", fontdict=LABEL_FONT)
-    ax_traces[1].set_ylabel("Cell index", fontdict=LABEL_FONT)
-    ax_traces[1].spines.right.set_visible(False)
-    ax_traces[1].spines.top.set_visible(False)
+    ax_trace.set_yticks([])
+    ax_trace.set_ylabel("Cell index", fontdict=LABEL_FONT)
+    ax_trace.spines.right.set_visible(False)
+    ax_trace.spines.top.set_visible(False)
 
-    ax_traces[1].set_title(
+    ax_trace.set_title(
         f"Traces of the first {num_to_plot} cells", fontdict=TITLE_FONT
     )
 
     # Calculate mean activity of population and plot
     mean_activity = np.nanmean(traces, axis=1)
-    ax_traces[0].plot(time_axis, mean_activity, color="black")
-    ax_traces[0].set_xlim([0, traces.shape[0] * period])
-    ax_traces[0].set_title("Population Average Activity", fontdict=TITLE_FONT)
-    ax_traces[0].set_ylabel("Mean Activity", fontdict=LABEL_FONT)
-    ax_traces[0].spines.right.set_visible(False)
-    ax_traces[0].spines.top.set_visible(False)
-    ax_traces[0].spines.bottom.set_visible(False)
-    ax_traces[0].set_xticks([])
+    ax_mean.plot(time_axis, mean_activity, color="black")
+    ax_mean.set_xlim([0, traces.shape[0] * period])
+    ax_mean.set_title("Population Average Activity", fontdict=TITLE_FONT)
+    ax_mean.set_ylabel("Mean Activity", fontdict=LABEL_FONT)
+    ax_mean.spines.right.set_visible(False)
+    ax_mean.spines.top.set_visible(False)
+    ax_mean.spines.bottom.set_visible(False)
+    ax_mean.set_xticks([])
 
     # Add cellset boundaries as vertical dashed lines if several cellsets
     if boundaries is not None and len(boundaries) > 2:
@@ -1464,10 +1696,10 @@ def _plot_traces(
                 label = "cellset boundary"
             else:
                 label = None
-            ax_traces[0].axvline(
+            ax_mean.axvline(
                 boundary, linestyle="--", color="k", label=label
             )
-            ax_traces[1].axvline(
+            ax_trace.axvline(
                 boundary, linestyle="--", color="k", label=label
             )
 
@@ -1477,12 +1709,24 @@ def _plot_traces(
         handles.append(plt.Line2D([0], [0], color=color, lw=4, label=state))
 
     # Add legend to the top panel with padding for save function
-    ax_traces[0].legend(
+    ax_mean.legend(
         handles=handles,
         loc="center left",
         bbox_to_anchor=(1.02, 0.5),
         frameon=False,
     )
+
+    if show_epoch_bar and ax_epoch is not None:
+        ax_trace.tick_params(labelbottom=False)
+        ax_trace.set_xlabel("")
+        _draw_epoch_color_bar(
+            ax=ax_epoch,
+            epochs=epoch_periods,
+            epoch_colors=epoch_colors,
+            epoch_names=epoch_names,
+        )
+    else:
+        ax_trace.set_xlabel("Time (s)", fontdict=LABEL_FONT)
 
     save_optimized_svg(trace_fig, filename, max_size_mb=10, pad_inches=0.3)
     plt.close(trace_fig)
@@ -1529,7 +1773,7 @@ def plot_neuron_fractions(
     ax.spines["left"].set_visible(False)
 
 
-def _plot_raster(
+def _plot_raster_with_epochs(
     *,
     events: np.array,
     event_timeseries: np.array,
@@ -1540,8 +1784,11 @@ def _plot_raster(
     state_names: List[str],
     filename: str,
     boundaries: Optional[List[float]] = None,
+    epoch_periods: Optional[List[Tuple[float, float]]] = None,
+    epoch_colors: Optional[List[str]] = None,
+    epoch_names: Optional[List[str]] = None,
 ) -> None:
-    """Plot all traces in given input matrix, and colors them by behavior
+    """Plot event raster with state overlays plus optional epoch color bar.
     :param traces: neural activity of individual cells
                    (2D array <num_timepoints x num_cells>)
     :param behavior: binary 2D array indicating the presence/
@@ -1555,18 +1802,31 @@ def _plot_raster(
     # Set consistent font size
     plt.rcParams.update({"font.size": 12})
 
-    # Raster figure
-    trace_fig, ax = plt.subplots(
-        nrows=2, ncols=1, figsize=(15, 10), height_ratios=[1, 8]
-    )
-    ax[1].eventplot(
+    show_epoch_bar = bool(epoch_periods and len(epoch_periods) > 0)
+
+    trace_fig = plt.figure(figsize=(15, 10))
+    if show_epoch_bar:
+        grid = trace_fig.add_gridspec(
+            nrows=3, ncols=1, height_ratios=[1, 8, 0.4], hspace=0.05
+        )
+        ax_mean = trace_fig.add_subplot(grid[0])
+        ax_raster = trace_fig.add_subplot(grid[1], sharex=ax_mean)
+        ax_epoch = trace_fig.add_subplot(grid[2], sharex=ax_mean)
+    else:
+        grid = trace_fig.add_gridspec(
+            nrows=2, ncols=1, height_ratios=[1, 8], hspace=0.05
+        )
+        ax_mean = trace_fig.add_subplot(grid[0])
+        ax_raster = trace_fig.add_subplot(grid[1], sharex=ax_mean)
+        ax_epoch = None
+
+    ax_raster.eventplot(
         events, color="black", linelengths=0.5, linewidths=0.8, alpha=0.5
     )
 
-    ax[1].set_ylabel("Cell index", fontdict=LABEL_FONT)
-    ax[1].set_xlabel("Time (s)", fontdict=LABEL_FONT)
-    ax[1].spines["top"].set_visible(False)
-    ax[1].spines["right"].set_visible(False)
+    ax_raster.set_ylabel("Cell index", fontdict=LABEL_FONT)
+    ax_raster.spines["top"].set_visible(False)
+    ax_raster.spines["right"].set_visible(False)
 
     locations = [np.zeros(event_timeseries.shape[0]) for _ in state_names]
 
@@ -1589,7 +1849,7 @@ def _plot_raster(
             plot_start = (start + 1) * period
             plot_end = end * period
 
-            ax[0].axvspan(
+            ax_mean.axvspan(
                 plot_start,
                 plot_end,
                 color=state_colors[idx],
@@ -1598,7 +1858,7 @@ def _plot_raster(
                     state_names[idx] if start == starts[0] else ""
                 ),  # Label only first instance
             )
-            ax[1].axvspan(
+            ax_raster.axvspan(
                 plot_start,
                 plot_end,
                 color=state_colors[idx],
@@ -1607,12 +1867,12 @@ def _plot_raster(
                     state_names[idx] if start == starts[0] else ""
                 ),  # Label only first instance
             )
-    ax[1].set_ylim([0, len(events)])
-    ax[1].set_xlim([0, event_timeseries.shape[0] * period])
-    ax[1].spines.right.set_visible(False)
-    ax[1].spines.top.set_visible(False)
+    ax_raster.set_ylim([0, len(events)])
+    ax_raster.set_xlim([0, event_timeseries.shape[0] * period])
+    ax_raster.spines.right.set_visible(False)
+    ax_raster.spines.top.set_visible(False)
 
-    ax[1].set_title("Raster plot of events", fontdict=TITLE_FONT)
+    ax_raster.set_title("Raster plot of events", fontdict=TITLE_FONT)
 
     # Calculate mean activity of population and plot
     mean_activity = np.nanmean(event_timeseries, axis=1)
@@ -1623,6 +1883,246 @@ def _plot_raster(
     )
     # Create time axis for mean activity
     time_axis = np.arange(event_timeseries.shape[0]) * period
+    ax_mean.plot(time_axis, mean_activity, color="black")
+    ax_mean.set_xlim([0, event_timeseries.shape[0] * period])
+    ax_mean.set_title("Population Average Activity", fontdict=TITLE_FONT)
+    ax_mean.set_ylabel("Mean Event Rate (Hz)", fontdict=LABEL_FONT)
+    ax_mean.spines.right.set_visible(False)
+    ax_mean.spines.top.set_visible(False)
+    ax_mean.spines.bottom.set_visible(False)
+    ax_mean.set_xticks([])
+
+    # Add cellset boundaries as vertical dashed lines if several cellsets
+    if boundaries is not None and len(boundaries) > 2:
+        for idx, boundary in enumerate(boundaries[1:-1]):
+            if idx == 0:
+                label = "cellset boundary"
+            else:
+                label = None
+            ax_mean.axvline(boundary, linestyle="--", color="k", label=label)
+            ax_raster.axvline(boundary, linestyle="--", color="k", label=label)
+
+    # Create manual handles for the legend (consistent with _plot_traces)
+    handles = []
+    for state, color in zip(state_names, state_colors):
+        handles.append(plt.Line2D([0], [0], color=color, lw=4, label=state))
+
+    # Add legend to the top panel with better positioning
+    ax_mean.legend(
+        handles=handles,
+        loc="center left",
+        bbox_to_anchor=(1.01, 0.5),
+        frameon=False,
+    )
+
+    if show_epoch_bar and ax_epoch is not None:
+        ax_raster.tick_params(labelbottom=False)
+        ax_raster.set_xlabel("")
+        _draw_epoch_color_bar(
+            ax=ax_epoch,
+            epochs=epoch_periods,
+            epoch_colors=epoch_colors,
+            epoch_names=epoch_names,
+        )
+    else:
+        ax_raster.set_xlabel("Time (s)", fontdict=LABEL_FONT)
+
+    save_optimized_svg(trace_fig, filename, max_size_mb=10, pad_inches=0.3)
+    plt.close(trace_fig)
+
+
+def _plot_traces(
+    *,
+    traces: np.array,
+    behavior: pd.DataFrame,
+    data: dict,
+    column_name: str,
+    filename: str,
+    spacing: float = 5.01,
+    state_colors: List[str],
+    state_names: List[str],
+    period: float = 1.0,
+    boundaries: Optional[List[float]] = None,
+) -> None:
+    """Plot trace preview with state overlays (legacy behavior)."""
+    plt.rcParams.update({"font.size": 12})
+
+    traces = np.copy(traces)
+    num_neurons = traces.shape[1]
+    traces -= np.nanmin(traces, axis=0)
+
+    time_axis = np.arange(traces.shape[0]) * period
+
+    trace_fig, ax_traces = plt.subplots(
+        nrows=2, ncols=1, figsize=(15, 10), height_ratios=[1, 8]
+    )
+
+    locations = [np.zeros(traces.shape[0]) for _ in state_names]
+
+    for idx, state in enumerate(state_names):
+        locations[idx][behavior[column_name] == state] = 1
+
+    num_to_plot = min(50, num_neurons)
+
+    for y in range(num_to_plot):
+        x = y * spacing + scipy.stats.zscore(traces[:, y], nan_policy="omit")
+        ax_traces[1].plot(time_axis, x, linewidth=1, color="black")
+
+    for idx, _ in enumerate(state_names):
+        starts = np.where(np.diff(locations[idx]) == 1)[0]
+        ends = np.where(np.diff(locations[idx]) == -1)[0]
+        if locations[idx][0] == 1:
+            starts = np.insert(starts, 0, -1)
+        if locations[idx][-1] == 1:
+            ends = np.append(ends, len(locations[idx]) - 1)
+
+        for start, end in zip(starts, ends):
+            plot_start = (start + 1) * period
+            plot_end = end * period
+            ax_traces[0].axvspan(
+                plot_start,
+                plot_end,
+                color=state_colors[idx],
+                alpha=0.4,
+                label=(
+                    state_names[idx] if start == starts[0] else ""
+                ),
+            )
+            ax_traces[1].axvspan(
+                plot_start,
+                plot_end,
+                color=state_colors[idx],
+                alpha=0.4,
+                label=(
+                    state_names[idx] if start == starts[0] else ""
+                ),
+            )
+
+    ax_traces[1].set_xlim([0, traces.shape[0] * period])
+    ax_traces[1].set_ylim([-5, 15 + num_to_plot * spacing])
+    ax_traces[1].set_yticks([])
+    ax_traces[1].set_xlabel("Time (s)", fontdict=LABEL_FONT)
+    ax_traces[1].set_ylabel("Cell index", fontdict=LABEL_FONT)
+    ax_traces[1].spines.right.set_visible(False)
+    ax_traces[1].spines.top.set_visible(False)
+    ax_traces[1].set_title(
+        f"Traces of the first {num_to_plot} cells", fontdict=TITLE_FONT
+    )
+
+    mean_activity = np.nanmean(traces, axis=1)
+    ax_traces[0].plot(time_axis, mean_activity, color="black")
+    ax_traces[0].set_xlim([0, traces.shape[0] * period])
+    ax_traces[0].set_title("Population Average Activity", fontdict=TITLE_FONT)
+    ax_traces[0].set_ylabel("Mean Activity", fontdict=LABEL_FONT)
+    ax_traces[0].spines.right.set_visible(False)
+    ax_traces[0].spines.top.set_visible(False)
+    ax_traces[0].spines.bottom.set_visible(False)
+    ax_traces[0].set_xticks([])
+
+    if boundaries is not None and len(boundaries) > 2:
+        for idx, boundary in enumerate(boundaries[1:-1]):
+            if idx == 0:
+                label = "cellset boundary"
+            else:
+                label = None
+            ax_traces[0].axvline(
+                boundary, linestyle="--", color="k", label=label
+            )
+            ax_traces[1].axvline(
+                boundary, linestyle="--", color="k", label=label
+            )
+
+    handles = []
+    for state, color in zip(state_names, state_colors):
+        handles.append(plt.Line2D([0], [0], color=color, lw=4, label=state))
+
+    ax_traces[0].legend(
+        handles=handles,
+        loc="center left",
+        bbox_to_anchor=(1.02, 0.5),
+        frameon=False,
+    )
+
+    save_optimized_svg(trace_fig, filename, max_size_mb=10, pad_inches=0.3)
+    plt.close(trace_fig)
+
+
+def _plot_raster(
+    *,
+    events: np.array,
+    event_timeseries: np.array,
+    behavior: pd.DataFrame,
+    column_name: str,
+    period: float,
+    state_colors: List[str],
+    state_names: List[str],
+    filename: str,
+    boundaries: Optional[List[float]] = None,
+) -> None:
+    """Plot event raster with state overlays (legacy behavior)."""
+    plt.rcParams.update({"font.size": 12})
+
+    trace_fig, ax = plt.subplots(
+        nrows=2, ncols=1, figsize=(15, 10), height_ratios=[1, 8]
+    )
+    ax[1].eventplot(
+        events, color="black", linelengths=0.5, linewidths=0.8, alpha=0.5
+    )
+
+    ax[1].set_ylabel("Cell index", fontdict=LABEL_FONT)
+    ax[1].set_xlabel("Time (s)", fontdict=LABEL_FONT)
+    ax[1].spines["top"].set_visible(False)
+    ax[1].spines["right"].set_visible(False)
+
+    locations = [np.zeros(event_timeseries.shape[0]) for _ in state_names]
+
+    for idx, state in enumerate(state_names):
+        locations[idx][behavior[column_name] == state] = 1
+
+    for idx, _ in enumerate(state_names):
+        starts = np.where(np.diff(locations[idx]) == 1)[0]
+        ends = np.where(np.diff(locations[idx]) == -1)[0]
+
+        if locations[idx][0] == 1:
+            starts = np.insert(starts, 0, -1)
+        if locations[idx][-1] == 1:
+            ends = np.append(ends, len(locations[idx]) - 1)
+
+        for start, end in zip(starts, ends):
+            plot_start = (start + 1) * period
+            plot_end = end * period
+
+            ax[0].axvspan(
+                plot_start,
+                plot_end,
+                color=state_colors[idx],
+                alpha=0.4,
+                label=(
+                    state_names[idx] if start == starts[0] else ""
+                ),
+            )
+            ax[1].axvspan(
+                plot_start,
+                plot_end,
+                color=state_colors[idx],
+                alpha=0.4,
+                label=(
+                    state_names[idx] if start == starts[0] else ""
+                ),
+            )
+    ax[1].set_ylim([0, len(events)])
+    ax[1].set_xlim([0, event_timeseries.shape[0] * period])
+    ax[1].spines.right.set_visible(False)
+    ax[1].spines.top.set_visible(False)
+
+    ax[1].set_title("Raster plot of events", fontdict=TITLE_FONT)
+
+    mean_activity = np.nanmean(event_timeseries, axis=1)
+    window = int(1 / period)
+    mean_activity = np.convolve(
+        mean_activity, np.ones(window) / window, mode="same"
+    )
+    time_axis = np.arange(event_timeseries.shape[0]) * period
     ax[0].plot(time_axis, mean_activity, color="black")
     ax[0].set_xlim([0, event_timeseries.shape[0] * period])
     ax[0].set_title("Population Average Activity", fontdict=TITLE_FONT)
@@ -1632,7 +2132,6 @@ def _plot_raster(
     ax[0].spines.bottom.set_visible(False)
     ax[0].set_xticks([])
 
-    # Add cellset boundaries as vertical dashed lines if several cellsets
     if boundaries is not None and len(boundaries) > 2:
         for idx, boundary in enumerate(boundaries[1:-1]):
             if idx == 0:
@@ -1642,12 +2141,10 @@ def _plot_raster(
             ax[0].axvline(boundary, linestyle="--", color="k", label=label)
             ax[1].axvline(boundary, linestyle="--", color="k", label=label)
 
-    # Create manual handles for the legend (consistent with _plot_traces)
     handles = []
     for state, color in zip(state_names, state_colors):
         handles.append(plt.Line2D([0], [0], color=color, lw=4, label=state))
 
-    # Add legend to the top panel with better positioning
     ax[0].legend(
         handles=handles,
         loc="center left",

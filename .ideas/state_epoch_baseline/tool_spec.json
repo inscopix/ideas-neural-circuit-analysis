@@ -1,6 +1,6 @@
 {
     "key": "state_epoch_baseline",
-    "name": "State-Epoch Baseline Analysis",
+    "name": "Compare Neural State Data Across Epochs",
     "schema_version": "3.0.0",
     "container_image": {
         "repository": "platform/neuro-stats",
@@ -55,6 +55,59 @@
             "group": "Input Files"
         },
         {
+            "key": "define_epochs_by",
+            "name": "Define Epochs By",
+            "required": true,
+            "description": "Method to define epochs. If 'files', one epoch per input cell set will be automatically defined, for the whole duration of each cell set. If 'global file time', you can define as many epochs as you want, with 0 corresponding to start time of the first cell set. If 'local file time', you can define as many epochs as you want per input cell set, with 0 corresponding to start time of each cell set.",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "global file time",
+                "choices": [
+                    "files",
+                    "global file time",
+                    "local file time"
+                ],
+                "display_options": [
+                    "Files",
+                    "Global File Time",
+                    "Local File Time"
+                ]
+            },
+            "group": "Epoch Definition"
+        },
+        {
+            "key": "epochs",
+            "name": "Epochs",
+            "required": false,
+            "description": "Tuples of the start and end times (in seconds) for each epoch (e.g., if 'Define Epochs by' is set to 'Global file time', (0, 600), (650, 950), (950, 1250)). If 'Define Epochs by' is set to 'Local file time', provide one list of tuples per input cell set file (e.g., [(0, 600)], [(0, 300), (300, 600)]). If 'Define Epochs by' is set to 'Files', you can leave this parameter empty.",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "(0, 600), (650, 950), (950, 1250)"
+            },
+            "group": "Epoch Definition"
+        },
+        {
+            "key": "epoch_names",
+            "name": "Epoch Names",
+            "required": true,
+            "description": "Comma-separated list of time epoch names (e.g., 'baseline, training, test')",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": "Epoch Definition"
+        },
+        {
+            "key": "epoch_colors",
+            "name": "Epoch Colors",
+            "required": false,
+            "description": "Comma-separated list of colors for epochs (e.g., 'lightgray, lightblue, lightgreen')",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "lightgray, lightblue, lightgreen"
+            },
+            "group": "Epoch Definition"
+        },
+        {
             "key": "column_name",
             "name": "State Column Name",
             "required": false,
@@ -87,27 +140,6 @@
             "group": "Analysis Parameters"
         },
         {
-            "key": "correlation_statistic",
-            "name": "Correlation Statistic",
-            "required": false,
-            "description": "Per-cell correlation statistic to summarize in distribution previews (max, min, or mean).",
-            "type": {
-                "param_type": "ToolChoiceParam",
-                "default": "max",
-                "choices": [
-                    "max",
-                    "mean",
-                    "min"
-                ],
-                "display_options": [
-                    "Maximum",
-                    "Mean",
-                    "Minimum"
-                ]
-            },
-            "group": "Analysis Parameters"
-        },
-        {
             "key": "method",
             "name": "Method to Compare States",
             "required": true,
@@ -125,55 +157,23 @@
             "group": "Analysis Parameters"
         },
         {
-            "key": "define_epochs_by",
-            "name": "Define Epochs By",
-            "required": true,
-            "description": "Method to define epochs. If 'files', one epoch per input cell set will be automatically defined, for the whole duration of each cell set. If 'global file time', you can define as many epochs as you want, with 0 corresponding to start time of the first cell set. If 'local file time', you can define as many epochs as you want per input cell set, with 0 corresponding to start time of each cell set.",
+            "key": "correlation_statistic",
+            "name": "Correlation Statistic",
+            "required": false,
+            "description": "Per-cell correlation statistic to summarize in distribution previews (max, min, or mean).",
             "type": {
                 "param_type": "ToolChoiceParam",
-                "default": "global file time",
+                "default": "max",
                 "choices": [
-                    "files",
-                    "global file time",
-                    "local file time"
+                    "max",
+                    "mean",
+                    "min"
                 ],
                 "display_options": [
-                    "Files",
-                    "Global File Time",
-                    "Local File Time"
+                    "Maximum",
+                    "Mean",
+                    "Minimum"
                 ]
-            },
-            "group": "Epoch Definition"
-        },
-        {
-            "key": "epochs",
-            "name": "Epochs",
-            "required": false,
-            "description": "Tuples of the start and end times (in seconds) for each epoch (e.g., if 'Define Epochs by' is set to 'Global file time', (0, 600), (650, 950), (950, 1250)). If 'Define Epochs by' is set to 'Local file time', provide one list of tuple per input cell set file (e.g., [(0, 600)], [(0, 300), (300, 600)]). If 'Define Epochs by' is set to 'Files', you can leave this parameter empty.",
-            "type": {
-                "param_type": "ToolStringParam",
-                "default": "(0, 600), (650, 950), (950, 1250)"
-            },
-            "group": "Epoch Definition"
-        },
-        {
-            "key": "epoch_names",
-            "name": "Epoch Names",
-            "required": true,
-            "description": "Comma-separated list of time epoch names (e.g., 'baseline, training, test')",
-            "type": {
-                "param_type": "ToolStringParam"
-            },
-            "group": "Analysis Parameters"
-        },
-        {
-            "key": "epoch_colors",
-            "name": "Epoch Colors",
-            "required": false,
-            "description": "Comma-separated list of colors for epochs (e.g., 'lightgray, lightblue, lightgreen')",
-            "type": {
-                "param_type": "ToolStringParam",
-                "default": "lightgray, lightblue, lightgreen"
             },
             "group": "Analysis Parameters"
         },
@@ -261,6 +261,39 @@
             "group": "Data Processing"
         },
         {
+            "key": "include_event_correlation_preview",
+            "name": "Event Correlation Previews",
+            "required": false,
+            "description": "Attach event-based correlation previews to the outputs when event data and correlations are available.",
+            "type": {
+                "param_type": "ToolBooleanParam",
+                "default": false
+            },
+            "group": "Data Processing"
+        },
+        {
+            "key": "tolerance",
+            "name": "Tolerance",
+            "required": false,
+            "description": "Tolerance for temporal alignment and file concatenation",
+            "type": {
+                "param_type": "ToolFloatRangeParam",
+                "default": 0.0001
+            },
+            "group": "Data Processing"
+        },
+        {
+            "key": "sort_by_time",
+            "name": "Sort by Time",
+            "required": false,
+            "description": "Whether to sort cell sets by time when concatenating",
+            "type": {
+                "param_type": "ToolBooleanParam",
+                "default": true
+            },
+            "group": "Data Processing"
+        },
+        {
             "key": "alpha",
             "name": "Significance Level",
             "required": false,
@@ -285,28 +318,6 @@
                 "max": 10000
             },
             "group": "Statistical Parameters"
-        },
-        {
-            "key": "tolerance",
-            "name": "Tolerance",
-            "required": false,
-            "description": "Tolerance for temporal alignment and file concatenation",
-            "type": {
-                "param_type": "ToolFloatRangeParam",
-                "default": 0.0001
-            },
-            "group": "Data Processing Parameters"
-        },
-        {
-            "key": "sort_by_time",
-            "name": "Sort by Time",
-            "required": false,
-            "description": "Whether to sort cellsets by time when concatenating",
-            "type": {
-                "param_type": "ToolBooleanParam",
-                "default": true
-            },
-            "group": "Data Processing Parameters"
         }
     ],
     "results": [
