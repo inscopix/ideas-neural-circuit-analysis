@@ -1,7 +1,7 @@
 {
     "key": "population_activity",
     "name": "Compare Neural Activity Across States",
-    "version": "6.0.0-rc2",
+    "version": "6.0.1",
     "description": "Measure population activity during two states",
     "schema_version": "3.0.0",
     "container_image": {

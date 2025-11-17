@@ -1,7 +1,7 @@
 {
     "key": "peri_event_workflow",
     "name": "Peri-Event Analysis Workflow",
-    "version": "7.0.0-rc2",
+    "version": "7.0.1",
     "description": "Analyze neural activity around (peri) the time of each event, specifically testing for up- or down-modulation of both average population and single cells by comparing activity before (pre) and after (post) each event.",
     "schema_version": "3.0.0",
     "container_image": {
