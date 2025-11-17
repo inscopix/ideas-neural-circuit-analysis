@@ -12,8 +12,6 @@ from matplotlib.axes import Axes
 import seaborn as sns
 import numpy as np
 import pandas as pd
-# from ideas_commons.constants import FileFormat
-# from toolbox.utils.data_model import IdeasPreviewFile
 from ideas.exceptions import IdeasError
 import utils.config as config
 from utils.statistical_validation import (
@@ -27,7 +25,6 @@ from ideas import plots
 logger = logging.getLogger(__name__)
 
 
-# _suppress_pingouin_warnings moved to toolbox.utils.statistical_validation
 def plot_modulation_distribution(
     modulation_scores: pd.DataFrame,
     modulation_colors: List[str],
@@ -35,6 +32,7 @@ def plot_modulation_distribution(
     output_filename: str,
     group_name: Optional[str] = None,
     data_type: str = "activity",
+    dimension_label: Optional[str] = None,
 ) -> None:
     """Plot distribution of modulation scores.
 
@@ -52,6 +50,9 @@ def plot_modulation_distribution(
         Name of the group for the legend. If None, no legend is shown.
     data_type : str, optional
         Type of data being plotted ("activity" or "events"). Defaults to "activity".
+    dimension_label : Optional[str], optional
+        Human-readable label for the comparison dimension (e.g., "State" or "Epoch").
+        Defaults to "State".
 
     Returns
     -------
@@ -59,6 +60,9 @@ def plot_modulation_distribution(
         Plot file is saved to the specified filename
 
     """
+    # Normalize dimension label for plot titles
+    label_prefix = dimension_label.strip() if dimension_label else "State"
+
     # Check if this is a pairwise comparison
     is_pairwise = False
     if "state_comparison_type" in modulation_scores.columns:
@@ -135,7 +139,7 @@ def plot_modulation_distribution(
         ax.text(
             0.5,
             0.5,
-            f"No modulation data available for the requested states: {states}",
+            f"No modulation data available for the requested {label_prefix.lower()}s: {states}",
             horizontalalignment="center",
             verticalalignment="center",
             wrap=True,
@@ -229,7 +233,7 @@ def plot_modulation_distribution(
         vals = np.array(all_vals)
 
         if len(vals) == 0:
-            logger.warning(f"No valid modulation values for state '{state}'")
+            logger.warning(f"No valid modulation values for {label_prefix.lower()} '{state}'")
             ax[i].text(
                 0.5,
                 0.5,
@@ -237,7 +241,7 @@ def plot_modulation_distribution(
                 horizontalalignment="center",
                 verticalalignment="center",
             )
-            ax[i].set_title(f"State: {state}")
+            ax[i].set_title(f"{label_prefix}: {state}")
             continue
 
         if modulation_colors and len(modulation_colors) >= 2:
@@ -273,9 +277,9 @@ def plot_modulation_distribution(
         )
 
         if group_name:
-            ax[i].set_title(f"State: {title_state} - {group_name}")
+            ax[i].set_title(f"{label_prefix}: {title_state} - {group_name}")
         else:
-            ax[i].set_title(f"State: {title_state}")
+            ax[i].set_title(f"{label_prefix}: {title_state}")
 
     # Add a note to the figure if panels were limited
     if is_pairwise and original_count > MAX_PANELS:
@@ -685,14 +689,6 @@ def plot_state_lmm_comparison(
                     + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION,
                 )
                 plt.savefig(placeholder_filename, bbox_inches="tight")
-                # Return placeholder preview file
-                # placeholder_preview_file = IdeasPreviewFile(
-                #     name=f"{data_type.capitalize()} State Comparison - No Data",
-                #     help=f"No data available for {data_type} state comparison.",
-                #     file_path=os.path.abspath(placeholder_filename),
-                #     file_format=FileFormat.SVG_FILE.value[1],
-                # )
-                # return placeholder_preview_file
             return None
 
         fig, ax = plt.subplots(figsize=(7, 7))
@@ -917,14 +913,6 @@ def plot_group_anova_comparison(
                     + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION,
                 )
                 plt.savefig(placeholder_filename, bbox_inches="tight")
-                # Return placeholder preview file
-                # placeholder_preview_file = IdeasPreviewFile(
-                #     name=f"{data_type.capitalize()} Group Comparison - No Data",
-                #     help=f"No data available for {data_type} group comparison.",
-                #     file_path=os.path.abspath(placeholder_filename),
-                #     file_format=FileFormat.SVG_FILE.value[1],
-                # )
-                # return placeholder_preview_file
             return None
 
         fig, ax = plt.subplots(figsize=(7, 7))
@@ -1418,9 +1406,6 @@ def _get_clean_activity_title(
             return f"Subject-averaged {data_type.capitalize()}\n(Group Comparison)"
 
 
-# Statistical formatting functions have been moved to toolbox.utils.statistical_formatting
-
-
 def plot_single_state_group_comparison(
     *,
     df: pd.DataFrame,
@@ -1661,6 +1646,7 @@ def create_boxplot_preview(
     data_type: str = "activity",
     y_limits: tuple = None,
     include_points: bool = False,
+    dimension_label: Optional[str] = None,
 ) -> bool:
     """Create and save boxplot to the specified filename.
 
@@ -1692,6 +1678,8 @@ def create_boxplot_preview(
         Tuple of (min, max) for y-axis limits
     include_points : bool, optional
         Whether to include individual data points on the boxplot
+    dimension_label : Optional[str], optional
+        Label to use for the comparison dimension axis (defaults to "State")
 
     Returns
     -------
@@ -1699,6 +1687,10 @@ def create_boxplot_preview(
         True if plot was created successfully, False otherwise
 
     """
+    axis_label = (
+        dimension_label.strip() if dimension_label else "State"
+    )
+
     if col_name in data_df.columns and not data_df[col_name].isnull().all():
         try:
             fig, ax = plt.subplots(figsize=(8 if include_points else 6, 6))
@@ -1730,9 +1722,9 @@ def create_boxplot_preview(
             ax.spines["top"].set_visible(False)
             ax.spines["right"].set_visible(False)
             ax.set_ylabel(title_prefix, fontsize=12)
-            ax.set_xlabel("State", fontsize=12)
+            ax.set_xlabel(axis_label, fontsize=12)
             ax.set_title(
-                f"{group_name}: {title_prefix} by State",
+                f"{group_name}: {title_prefix} by {axis_label}",
                 fontsize=14,
             )
 
@@ -1778,6 +1770,7 @@ def create_cdf_preview(
     state_color_map: dict,
     filter_state_names: list,
     data_type: str = "activity",
+    dimension_label: Optional[str] = None,
 ) -> bool:
     """Create and save CDF plot to the specified filename.
 
@@ -1802,6 +1795,8 @@ def create_cdf_preview(
     data_type : str, optional
         Type of data being plotted (e.g., "activity", "correlation",
         "event_rate"), by default "activity"
+    dimension_label : Optional[str], optional
+        Label to use for the comparison dimension axis (defaults to "State")
 
     Returns
     -------
@@ -1809,6 +1804,10 @@ def create_cdf_preview(
         True if plot was created successfully, False otherwise
 
     """
+    axis_label = (
+        dimension_label.strip() if dimension_label else "State"
+    )
+
     if col_name in data_df.columns and not data_df[col_name].isnull().all():
         try:
             fig, ax = plt.subplots(figsize=(5, 4))
@@ -1832,7 +1831,7 @@ def create_cdf_preview(
             ax.set_ylabel("Cumulative Probability", fontsize=12)
             ax.set_xlabel(title_prefix, fontsize=12)
             ax.set_title(
-                f"{group_name}: {title_prefix} CDF",
+                f"{group_name}: {title_prefix} CDF by {axis_label}",
                 fontsize=14,
             )
 

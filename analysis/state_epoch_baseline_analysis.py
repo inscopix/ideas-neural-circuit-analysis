@@ -125,6 +125,13 @@ def _process_output_file(
         final_file_path = file_path
         target_dir = os.path.join(output_dir, basename)
 
+        def _should_skip_prefix(preview_name: str) -> bool:
+            lowered = preview_name.lower()
+            return (
+                lowered.startswith("group1_")
+                or lowered.startswith("group2_")
+            )
+
         if preview_files:
             os.makedirs(target_dir, exist_ok=True)
             final_file_path = os.path.join(
@@ -154,9 +161,16 @@ def _process_output_file(
                     )
                     continue
 
+                if _should_skip_prefix(preview_name):
+                    new_preview_filename = preview_name
+                else:
+                    new_preview_filename = (
+                        f"{output_file_basename}_{preview_name}"
+                    )
+
                 new_preview_path = os.path.join(
                     target_dir,
-                    f"{output_file_basename}_{preview_name}",
+                    new_preview_filename,
                 )
                 os.rename(preview_path, new_preview_path)
                 output_file.add_preview(new_preview_path, caption)

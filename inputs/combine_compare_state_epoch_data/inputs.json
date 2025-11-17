@@ -1,0 +1,54 @@
+{
+    "group1_activity_csv_files": [
+        "data/test_runs/combine_compare_state_epoch_data/group1_subject1_activity_per_state_epoch_data.csv",
+        "data/test_runs/combine_compare_state_epoch_data/group1_subject2_activity_per_state_epoch_data.csv",
+        "data/test_runs/combine_compare_state_epoch_data/group1_subject3_activity_per_state_epoch_data.csv"
+    ],
+    "group1_correlation_csv_files": [
+        "data/test_runs/combine_compare_state_epoch_data/group1_subject1_correlations_per_state_epoch_data.csv",
+        "data/test_runs/combine_compare_state_epoch_data/group1_subject2_correlations_per_state_epoch_data.csv",
+        "data/test_runs/combine_compare_state_epoch_data/group1_subject3_correlations_per_state_epoch_data.csv"
+    ],
+    "group1_modulation_csv_files": [
+        "data/test_runs/combine_compare_state_epoch_data/group1_subject1_modulation_vs_baseline_data.csv",
+        "data/test_runs/combine_compare_state_epoch_data/group1_subject2_modulation_vs_baseline_data.csv",
+        "data/test_runs/combine_compare_state_epoch_data/group1_subject3_modulation_vs_baseline_data.csv"
+    ],
+    "group1_name": "Control",
+    "group1_color": "blue",
+    "group2_activity_csv_files": [
+        "data/test_runs/combine_compare_state_epoch_data/group2_subject1_activity_per_state_epoch_data.csv",
+        "data/test_runs/combine_compare_state_epoch_data/group2_subject2_activity_per_state_epoch_data.csv",
+        "data/test_runs/combine_compare_state_epoch_data/group2_subject3_activity_per_state_epoch_data.csv"
+    ],
+    "group2_correlation_csv_files": [
+        "data/test_runs/combine_compare_state_epoch_data/group2_subject1_correlations_per_state_epoch_data.csv",
+        "data/test_runs/combine_compare_state_epoch_data/group2_subject2_correlations_per_state_epoch_data.csv",
+        "data/test_runs/combine_compare_state_epoch_data/group2_subject3_correlations_per_state_epoch_data.csv"
+    ],
+    "group2_modulation_csv_files": [
+        "data/test_runs/combine_compare_state_epoch_data/group2_subject1_modulation_vs_baseline_data.csv",
+        "data/test_runs/combine_compare_state_epoch_data/group2_subject2_modulation_vs_baseline_data.csv",
+        "data/test_runs/combine_compare_state_epoch_data/group2_subject3_modulation_vs_baseline_data.csv"
+    ],
+    "group2_name": "Treatment",
+    "group2_color": "red",
+    "comparison_dimension": "epochs",
+    "measure_source": "trace",
+    "state_colors": ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd"],
+    "epoch_colors": ["#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"],
+    "modulation_colors": "green,blue,black",
+    "data_pairing": "unpaired",
+    "subject_matching": "order",
+    "correlation_statistic": "max",
+    "significance_threshold": null,
+    "multiple_correction": "bonf",
+    "multiple_correction_scope": "global",
+    "effect_size": "cohen",
+    "group_comparison_type": "two_tailed",
+    "parametric": "auto",
+    "enable_lmm_analysis": true,
+    "save_lmm_outputs": false,
+    "output_dir": ""
+}
+
