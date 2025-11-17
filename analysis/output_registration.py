@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
-from ideas.outputs import OutputData
+from ideas.outputs import OutputData  # type: ignore[import-not-found]
 
 PreviewDefinition = Tuple[str, str]
 MetadataMapping = Mapping[str, Dict[str, Any]]

@@ -3236,8 +3236,8 @@ class TestOutputGeneration:
 
     def test_collect_available_previews_filters_missing_files(self, tmp_path):
         """Helper should only include previews that exist on disk."""
-        from analysis.state_epoch_baseline_analysis import (
-            _collect_available_previews,
+        from analysis.output_registration import (
+            collect_available_previews,
         )
 
         existing_file = tmp_path / "existing_preview.svg"
@@ -3248,7 +3248,7 @@ class TestOutputGeneration:
             ("missing_preview.svg", "Missing preview caption"),
         ]
 
-        available_previews = _collect_available_previews(
+        available_previews = collect_available_previews(
             str(tmp_path), preview_defs
         )
 

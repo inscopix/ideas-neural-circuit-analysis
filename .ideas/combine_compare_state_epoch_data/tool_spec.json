@@ -30,7 +30,7 @@
             "key": "group1_correlation_csv_files",
             "name": "Group 1 Correlation Files",
             "required": false,
-            "description": "Correlation outputs for Group 1 subjects (correlations_per_state_epoch_data.csv or pairwise_correlation_heatmaps.h5 from state_epoch_baseline_analysis).",
+            "description": "Correlation outputs for Group 1 subjects. Accepts either CSV files (correlations_per_state_epoch_data.csv) or H5 files (pairwise_correlation_heatmaps.h5) from state_epoch_baseline_analysis. Both formats produce identical analysis results.",
             "type": {
                 "param_type": "ToolPathParam",
                 "multiple": true,
@@ -59,23 +59,23 @@
             "key": "group1_name",
             "name": "Group 1 Name",
             "required": false,
-            "description": "Display name for the first experimental group (e.g., 'Control', 'Wild-type')",
+            "description": "Display name for the first experimental group (e.g., 'Control', 'Wild-type'). Must be unique if Group 2 is also provided.",
             "type": {
                 "param_type": "ToolStringParam",
                 "default": "Group 1"
             },
-            "group": "Group 1 Parameters"
+            "group": "Group Configuration"
         },
         {
             "key": "group1_color",
             "name": "Group 1 Color",
             "required": false,
-            "description": "Color for Group 1 in visualizations (e.g., 'blue', '#1f77b4')",
+            "description": "Color for Group 1 in visualizations. Accepts color names (e.g., 'blue') or hex codes (e.g., '#1f77b4').",
             "type": {
                 "param_type": "ToolStringParam",
                 "default": "blue"
             },
-            "group": "Group 1 Parameters"
+            "group": "Group Configuration"
         },
         {
             "key": "group2_activity_csv_files",
@@ -95,7 +95,7 @@
             "key": "group2_correlation_csv_files",
             "name": "Group 2 Correlation Files",
             "required": false,
-            "description": "Correlation outputs for Group 2 subjects (correlations_per_state_epoch_data.csv or pairwise_correlation_heatmaps.h5 from state_epoch_baseline_analysis).",
+            "description": "Correlation outputs for Group 2 subjects. Accepts either CSV files (correlations_per_state_epoch_data.csv) or H5 files (pairwise_correlation_heatmaps.h5) from state_epoch_baseline_analysis. Both formats produce identical analysis results.",
             "type": {
                 "param_type": "ToolPathParam",
                 "multiple": true,
@@ -124,23 +124,23 @@
             "key": "group2_name",
             "name": "Group 2 Name",
             "required": false,
-            "description": "Display name for the second experimental group (e.g., 'Treatment', 'Knockout')",
+            "description": "Display name for the second experimental group (e.g., 'Treatment', 'Knockout'). Must be unique and different from Group 1 name.",
             "type": {
                 "param_type": "ToolStringParam",
                 "default": "Group 2"
             },
-            "group": "Group 2 Parameters"
+            "group": "Group Configuration"
         },
         {
             "key": "group2_color",
             "name": "Group 2 Color",
             "required": false,
-            "description": "Color for Group 2 in visualizations (e.g., 'red', '#d62728')",
+            "description": "Color for Group 2 in visualizations. Accepts color names (e.g., 'red') or hex codes (e.g., '#d62728').",
             "type": {
                 "param_type": "ToolStringParam",
                 "default": "red"
             },
-            "group": "Group 2 Parameters"
+            "group": "Group Configuration"
         },
         {
             "key": "comparison_dimension",
@@ -177,7 +177,7 @@
                 "display_options": [
                     "Trace Data",
                     "Event Data",
-                    "Trace + Event"
+                    "Both (Trace + Event)"
                 ]
             },
             "group": "Comparison Parameters"
@@ -186,7 +186,7 @@
             "key": "state_colors",
             "name": "State Colors",
             "required": false,
-            "description": "Comma-separated list of colors for behavioral states in visualizations (e.g., '#1f77b4, #ff7f0e, #2ca02c')",
+            "description": "Comma-separated list of colors for behavioral states in visualizations. Accepts color names or hex codes (e.g., 'blue, orange, green' or '#1f77b4, #ff7f0e, #2ca02c').",
             "type": {
                 "param_type": "ToolStringParam"
             },
@@ -196,7 +196,7 @@
             "key": "epoch_colors",
             "name": "Epoch Colors",
             "required": false,
-            "description": "Comma-separated list of colors for time epochs in visualizations (e.g., '#8c564b, #e377c2, #7f7f7f')",
+            "description": "Comma-separated list of colors for time epochs in visualizations. Accepts color names or hex codes (e.g., 'gray, purple, cyan' or '#8c564b, #e377c2, #7f7f7f').",
             "type": {
                 "param_type": "ToolStringParam"
             },
@@ -278,7 +278,7 @@
             "key": "significance_threshold",
             "name": "Significance Threshold",
             "required": false,
-            "description": "P-value threshold for statistical comparisons. Defaults to 0.05 when not specified (neuronal modulation classifications continue to use pre-computed thresholds).",
+            "description": "P-value threshold for statistical comparisons. When not specified, uses pre-computed modulation classifications from state_epoch_baseline_analysis. If a value is provided, neurons will be reclassified using this threshold.",
             "type": {
                 "param_type": "ToolFloatRangeParam",
                 "min": 0.001,
@@ -398,7 +398,7 @@
                 "param_type": "ToolBooleanParam",
                 "default": true
             },
-            "group": "Advanced Statistical Options"
+            "group": "Linear Mixed Model Options"
         },
         {
             "key": "save_lmm_outputs",
@@ -409,7 +409,7 @@
                 "param_type": "ToolBooleanParam",
                 "default": false
             },
-            "group": "Advanced Statistical Options"
+            "group": "Linear Mixed Model Options"
         },
         {
             "key": "output_dir",
@@ -486,5 +486,5 @@
     },
     "description": "Compare neural state-epoch data between experimental groups with advanced statistical analysis including linear mixed models",
     "visibility": "public",
-    "version": "1.0.0-rc1"
+    "version": "1.0.0"
 }
