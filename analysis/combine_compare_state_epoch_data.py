@@ -1983,6 +1983,8 @@ def _load_group_data(
     activity_dfs = []
     for i, file_path in enumerate(activity_csv_files):
         df = pd.read_csv(file_path)
+        filename = file_path.name
+        df["file"] = filename
         df["subject_id"] = f"subject_{i + 1}"
         df["normalized_subject_id"] = f"{group_prefix}subject_{i + 1}"
         df["group_name"] = group_name
@@ -2011,6 +2013,8 @@ def _load_group_data(
                 # Load from CSV file
                 df = pd.read_csv(file_path)
 
+            filename = file_path.name
+            df["file"] = filename
             df["subject_id"] = f"subject_{i + 1}"
             df["normalized_subject_id"] = f"{group_prefix}subject_{i + 1}"
             df["group_name"] = group_name
@@ -2031,6 +2035,8 @@ def _load_group_data(
         for i, file_path in enumerate(modulation_csv_files):
             df = pd.read_csv(file_path)
             df = _materialize_modulation_columns(df)
+            filename = file_path.name
+            df["file"] = filename
             df["subject_id"] = f"subject_{i + 1}"
             df["normalized_subject_id"] = f"{group_prefix}subject_{i + 1}"
             df["group_name"] = group_name
