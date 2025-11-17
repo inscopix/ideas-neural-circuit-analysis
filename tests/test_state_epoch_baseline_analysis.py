@@ -1,3 +1,222 @@
+class TestAnnotationsRequirement:
+    """Validate that annotations_file is mandatory unless feature flag allows otherwise."""
+
+    def test_missing_annotations_file_list_raises_error(
+        self, standard_input_params
+    ):
+        """Calling the tool without annotations should raise IdeasError."""
+        params = standard_input_params.copy()
+        params["annotations_file"] = []
+
+        with patch(
+            "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
+        ) as mock_validate:
+            mock_validate.return_value = None
+            with pytest.raises(
+                IdeasError,
+                match="annotations_file is required unless allow_epoch_only_mode is enabled",
+            ):
+                state_epoch_baseline_analysis(**params)
+
+
+class TestEpochOnlyModeFeatureFlag:
+    """Tests for legacy epoch-only behavior when enabled via feature flag."""
+
+    def test_epoch_only_mode_no_annotations(
+        self, standard_input_params
+    ):
+        """Epoch-only mode works without annotations when flag enabled."""
+        params = standard_input_params.copy()
+        params["annotations_file"] = None
+
+        with temporary_state_epoch_analysis_feature_flags(
+            allow_epoch_only_mode=True
+        ):
+            with patch(
+                "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
+            ) as mock_dm_class, patch(
+                "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
+            ) as mock_validate:
+                mock_validate.return_value = None
+                mock_dm_instance = mock_dm_class.return_value
+
+                mock_traces = np.random.rand(100, 10)
+                mock_annotations = pd.DataFrame(
+                    {
+                        "dummy_state": ["epoch_activity"] * 100,
+                        "time": [i * 0.1 for i in range(100)],
+                    }
+                )
+                mock_cell_info = {"cell_names": [f"cell_{i}" for i in range(10)]}
+
+                mock_dm_instance.load_data.return_value = (
+                    mock_traces,
+                    None,
+                    mock_annotations,
+                    mock_cell_info,
+                )
+                mock_dm_instance.extract_state_epoch_data.return_value = {
+                    "traces": mock_traces[:50, :],
+                    "events": None,
+                    "annotations": mock_annotations[:50],
+                    "num_timepoints": 50,
+                }
+                mock_dm_instance.get_epoch_periods.return_value = [
+                    (0, 5),
+                    (5, 10),
+                ]
+
+                with patch(
+                    "analysis.state_epoch_baseline_analysis.StateEpochOutputGenerator"
+                ):
+                    state_epoch_baseline_analysis(**params)
+                    call_kwargs = mock_dm_class.call_args[1]
+                    assert call_kwargs["annotations_file"] is None
+
+    def test_epoch_only_mode_empty_state_names(
+        self, standard_input_params
+    ):
+        """Empty state names fallback to dummy state when flag enabled."""
+        params = standard_input_params.copy()
+        params["state_names"] = ""
+
+        with temporary_state_epoch_analysis_feature_flags(
+            allow_epoch_only_mode=True
+        ):
+            with patch(
+                "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
+            ) as mock_dm_class, patch(
+                "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
+            ) as mock_validate:
+                mock_validate.return_value = None
+                mock_dm_instance = mock_dm_class.return_value
+
+                mock_traces = np.random.rand(100, 10)
+                mock_annotations = pd.DataFrame(
+                    {
+                        "dummy_state": ["epoch_activity"] * 100,
+                        "time": [i * 0.1 for i in range(100)],
+                    }
+                )
+                mock_cell_info = {"cell_names": [f"cell_{i}" for i in range(10)]}
+
+                mock_dm_instance.load_data.return_value = (
+                    mock_traces,
+                    None,
+                    mock_annotations,
+                    mock_cell_info,
+                )
+                mock_dm_instance.extract_state_epoch_data.return_value = {
+                    "traces": mock_traces[:50, :],
+                    "events": None,
+                    "annotations": mock_annotations[:50],
+                    "num_timepoints": 50,
+                    "state": "epoch_activity",
+                    "epoch": "baseline",
+                }
+                mock_dm_instance.get_epoch_periods.return_value = [(0, 5)]
+
+                with patch(
+                    "analysis.state_epoch_baseline_analysis.StateEpochOutputGenerator"
+                ):
+                    state_epoch_baseline_analysis(**params)
+
+    def test_epoch_only_mode_vs_correlations_all_times(self):
+        """Ensure epoch-only mode parity with correlations tool when flag enabled."""
+        import tempfile
+        from unittest.mock import patch, MagicMock
+
+        np.random.seed(42)
+        n_timepoints, n_cells = 200, 5
+        traces = np.random.randn(n_timepoints, n_cells)
+
+        with temporary_state_epoch_analysis_feature_flags(
+            allow_epoch_only_mode=True
+        ):
+            with patch(
+                "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
+            ) as mock_dm_class, patch(
+                "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
+            ) as mock_validate:
+                mock_validate.return_value = None
+                mock_dm_instance = MagicMock()
+                mock_dm_class.return_value = mock_dm_instance
+
+                mock_dm_instance.load_data.return_value = (
+                    traces,
+                    None,
+                    pd.DataFrame(
+                        {
+                            "dummy_state": ["epoch_activity"] * n_timepoints,
+                            "time": [i * 0.1 for i in range(n_timepoints)],
+                        }
+                    ),
+                    {
+                        "cell_names": [f"cell_{i}" for i in range(n_cells)],
+                        "period": 0.1,
+                    },
+                )
+
+                mock_dm_instance.extract_state_epoch_data.side_effect = [
+                    {
+                        "traces": traces[:100],
+                        "events": None,
+                        "annotations": pd.DataFrame(
+                            {"dummy_state": ["epoch_activity"] * 100}
+                        ),
+                        "num_timepoints": 100,
+                        "state": "epoch_activity",
+                        "epoch": "epoch1",
+                    },
+                    {
+                        "traces": traces[100:],
+                        "events": None,
+                        "annotations": pd.DataFrame(
+                            {"dummy_state": ["epoch_activity"] * 100}
+                        ),
+                        "num_timepoints": 100,
+                        "state": "epoch_activity",
+                        "epoch": "epoch2",
+                    },
+                ]
+
+                mock_dm_instance.get_epoch_periods.return_value = [
+                    (0, 10),
+                    (10, 20),
+                ]
+
+                from analysis.state_epoch_baseline_analysis import (
+                    state_epoch_baseline_analysis,
+                )
+
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    state_epoch_baseline_analysis(
+                        cell_set_files=["mock_cellset.isxd"],
+                        annotations_file=None,
+                        epoch_names="epoch1, epoch2",
+                        epochs="(0, 10), (10, 20)",
+                        state_names="",
+                        state_colors="gray",
+                        epoch_colors="blue, orange",
+                        baseline_state="epoch_activity",
+                        baseline_epoch="epoch1",
+                        output_dir=tmpdir,
+                    )
+                    assert mock_dm_instance.extract_state_epoch_data.call_count == 2
+    def test_none_annotations_entry_raises_error(self, standard_input_params):
+        """None entries in annotations_file should be rejected."""
+        params = standard_input_params.copy()
+        params["annotations_file"] = [None]
+
+        with patch(
+            "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
+        ) as mock_validate:
+            mock_validate.return_value = None
+            with pytest.raises(
+                IdeasError, match="annotations_file cannot contain"
+            ):
+                state_epoch_baseline_analysis(**params)
+
 """
 Comprehensive tests for state_epoch_baseline_analysis tool.
 
@@ -1359,55 +1578,25 @@ class TestStateEpochInteractionScenarios:
 
     def test_edge_case_validation(self, tmp_path):
         """Test edge case parameter validation."""
-        # Test empty state names should trigger epoch-only mode, not error
+        # Empty state names should now raise an error
         with patch(
-            "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
-        ) as mock_dm_class, patch(
             "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
         ) as mock_validate:
             # Configure mocks
             mock_validate.return_value = None
-            mock_dm_instance = MagicMock()
-            mock_dm_class.return_value = mock_dm_instance
-
-            # Mock data for epoch-only mode
-            mock_traces = np.random.rand(100, 10)
-            mock_annotations = pd.DataFrame(
-                {
-                    "dummy_state": ["epoch_activity"] * 100,
-                    "time": [i * 0.1 for i in range(100)],
-                }
-            )
-            mock_cell_info = {"cell_names": [f"cell_{i}" for i in range(10)]}
-
-            mock_dm_instance.load_data.return_value = (
-                mock_traces,
-                None,
-                mock_annotations,
-                mock_cell_info,
-            )
-            mock_dm_instance.extract_state_epoch_data.return_value = {
-                "traces": mock_traces[:50, :],
-                "events": None,
-                "annotations": mock_annotations[:50],
-                "num_timepoints": 50,
-            }
-            mock_dm_instance.get_epoch_periods.return_value = [(0, 50)]
-
-            with patch(
-                "analysis.state_epoch_baseline_analysis.StateEpochOutputGenerator"
+            with pytest.raises(
+                IdeasError, match="state_names must include at least one valid state"
             ):
-                # Empty state names should trigger epoch-only mode, not raise error
                 state_epoch_baseline_analysis(
                     cell_set_files=[str(tmp_path / "cellset.isxd")],
                     annotations_file=[str(tmp_path / "annotations.parquet")],
                     define_epochs_by="global file time",
                     epochs="(0,100)",
-                    state_names="",  # Empty - should trigger epoch-only mode
-                    state_colors="",  # Empty to match
+                    state_names="",
+                    state_colors="",
                     epoch_names="epoch1",
                     epoch_colors="red",
-                    baseline_state="epoch_activity",  # Must match epoch-only mode
+                    baseline_state="epoch_activity",
                     baseline_epoch="epoch1",
                 )
 
@@ -2737,50 +2926,16 @@ class TestEdgeCasesAndErrorConditions:
     def test_empty_state_names(
         self, mock_validate_files, standard_input_params
     ):
-        """Test that empty state names triggers epoch-only mode."""
+        """Empty state names should raise an error now that annotations are required."""
         mock_validate_files.return_value = None  # Skip file validation
         params = standard_input_params.copy()
         params["state_names"] = ""
-        params["baseline_state"] = (
-            "epoch_activity"  # Must match epoch-only mode
-        )
+        params["baseline_state"] = "rest"
 
-        # Mock StateEpochDataManager to simulate epoch-only mode behavior
-        with patch(
-            "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
-        ) as mock_dm_class:
-            mock_dm_instance = MagicMock()
-            mock_dm_class.return_value = mock_dm_instance
-
-            # Mock data for epoch-only mode
-            mock_traces = np.random.rand(100, 10)
-            mock_annotations = pd.DataFrame(
-                {
-                    "dummy_state": ["epoch_activity"] * 100,
-                    "time": [i * 0.1 for i in range(100)],
-                }
-            )
-            mock_cell_info = {"cell_names": [f"cell_{i}" for i in range(10)]}
-
-            mock_dm_instance.load_data.return_value = (
-                mock_traces,
-                None,
-                mock_annotations,
-                mock_cell_info,
-            )
-            mock_dm_instance.extract_state_epoch_data.return_value = {
-                "traces": mock_traces[:50, :],
-                "events": None,
-                "annotations": mock_annotations[:50],
-                "num_timepoints": 50,
-            }
-            mock_dm_instance.get_epoch_periods.return_value = [(0, 50)]
-
-            with patch(
-                "analysis.state_epoch_baseline_analysis.StateEpochOutputGenerator"
-            ):
-                # Should succeed in epoch-only mode, not raise error
-                state_epoch_baseline_analysis(**params)
+        with pytest.raises(
+            IdeasError, match="state_names must include at least one valid state"
+        ):
+            state_epoch_baseline_analysis(**params)
 
     @patch("utils.utils.isx.CellSet.read")
     @patch(
@@ -5446,162 +5601,6 @@ class TestModulationFootprintVisualizationFix:
         ), "Modulation footprint plot should be created with detected modulation"
 
 
-class TestEpochOnlyMode:
-    """Test epoch-only analysis mode without annotations (consistent with correlations.py)."""
-
-    def test_epoch_only_mode_no_annotations(self, standard_input_params):
-        """Test epoch-only mode when no annotations file provided."""
-        # Remove annotations file to test epoch-only mode
-        params = standard_input_params.copy()
-        params["annotations_file"] = None
-
-        with patch(
-            "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
-        ) as mock_dm_class, patch(
-            "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
-        ) as mock_validate:
-            # Configure mocks
-            mock_validate.return_value = None  # Just pass validation
-            mock_dm_instance = mock_dm_class.return_value
-
-            # Mock the load_data method to return dummy annotations
-            mock_traces = np.random.rand(100, 10)
-            mock_annotations = pd.DataFrame(
-                {
-                    "dummy_state": ["epoch_activity"] * 100,
-                    "time": [i * 0.1 for i in range(100)],
-                }
-            )
-            mock_cell_info = {"cell_names": [f"cell_{i}" for i in range(10)]}
-
-            mock_dm_instance.load_data.return_value = (
-                mock_traces,
-                None,
-                mock_annotations,
-                mock_cell_info,
-            )
-            mock_dm_instance.extract_state_epoch_data.return_value = {
-                "traces": mock_traces[:50, :],
-                "events": None,
-                "annotations": mock_annotations[:50],
-                "num_timepoints": 50,
-            }
-            mock_dm_instance.get_epoch_periods.return_value = [(0, 5), (5, 10)]
-
-            with patch(
-                "analysis.state_epoch_baseline_analysis.StateEpochOutputGenerator"
-            ):
-                # Should not raise an error
-                state_epoch_baseline_analysis(**params)
-
-                # Verify StateEpochDataManager was called with None annotations
-                mock_dm_class.assert_called_once()
-                call_kwargs = mock_dm_class.call_args[1]
-                assert call_kwargs["annotations_file"] is None
-
-    def test_epoch_only_mode_empty_state_names(self, standard_input_params):
-        """Test epoch-only mode when empty state names provided."""
-        params = standard_input_params.copy()
-        params["state_names"] = (
-            ""  # Empty state names should trigger epoch-only mode
-        )
-
-        with patch(
-            "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
-        ) as mock_dm_class, patch(
-            "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
-        ) as mock_validate:
-            # Configure mocks
-            mock_validate.return_value = None  # Just pass validation
-            mock_dm_instance = mock_dm_class.return_value
-
-            # Mock the load_data method
-            mock_traces = np.random.rand(100, 10)
-            mock_annotations = pd.DataFrame(
-                {
-                    "dummy_state": ["epoch_activity"] * 100,
-                    "time": [i * 0.1 for i in range(100)],
-                }
-            )
-            mock_cell_info = {"cell_names": [f"cell_{i}" for i in range(10)]}
-
-            mock_dm_instance.load_data.return_value = (
-                mock_traces,
-                None,
-                mock_annotations,
-                mock_cell_info,
-            )
-            mock_dm_instance.extract_state_epoch_data.return_value = {
-                "traces": mock_traces[:50, :],
-                "events": None,
-                "annotations": mock_annotations[:50],
-                "num_timepoints": 50,
-            }
-            mock_dm_instance.get_epoch_periods.return_value = [(0, 5), (5, 10)]
-
-            with patch(
-                "analysis.state_epoch_baseline_analysis.StateEpochOutputGenerator"
-            ):
-                # Should not raise an error and use dummy state
-                state_epoch_baseline_analysis(**params)
-
-
-class TestCrossToolConsistency:
-    """Test consistency between state_epoch, correlations, and epoch_activity tools."""
-
-    def test_annotations_file_optional_like_correlations(self):
-        """Test that annotations_file is optional like in correlations.py."""
-        from analysis.state_epoch_baseline_analysis import (
-            state_epoch_baseline_analysis,
-        )
-        from analysis.correlations import correlation_tool
-        import inspect
-
-        # Check function signatures
-        state_epoch_sig = inspect.signature(state_epoch_baseline_analysis)
-        corr_sig = inspect.signature(correlation_tool)
-
-        # Both should have optional annotations_file
-        state_epoch_annotations = state_epoch_sig.parameters[
-            "annotations_file"
-        ]
-        corr_annotations = corr_sig.parameters["annotations_file"]
-
-        # Both should be Optional with default None
-        assert state_epoch_annotations.default is None
-        assert corr_annotations.default is None
-
-        # Check type annotations (both should be Optional)
-        state_epoch_type = str(state_epoch_annotations.annotation)
-        corr_type = str(corr_annotations.annotation)
-
-        assert "Optional" in state_epoch_type or "Union" in state_epoch_type
-        assert "Optional" in corr_type or "Union" in corr_type
-
-    def test_epoch_only_analysis_matches_epoch_activity_pattern(self):
-        """Test that epoch-only mode follows epoch_activity.py patterns."""
-        if epoch_activity_run is None:
-            pytest.skip("epoch_activity tool is not available in this environment.")
-        import inspect
-
-        # epoch_activity.py doesn't take annotations_file at all
-        epoch_sig = inspect.signature(epoch_activity_run)
-        assert "annotations_file" not in epoch_sig.parameters
-
-        # Both tools should support epoch-based analysis
-        epoch_params = list(epoch_sig.parameters.keys())
-        expected_epoch_params = [
-            "cell_set_files",
-            "event_set_files",
-            "define_epochs_by",
-            "epoch_names",
-            "epochs",
-            "epoch_colors",
-        ]
-
-        for param in expected_epoch_params:
-            assert param in epoch_params, f"epoch_activity.py missing {param}"
-
 
 class TestEpochToolCompatibility:
     """Test that state_epoch_baseline_analysis behaves like epoch_activity
@@ -7252,122 +7251,6 @@ class TestCrossToolAnalysisLogic:
             decimal=10,
             err_msg="Correlation matrices should be identical between tools",
         )
-
-    def test_epoch_only_mode_vs_correlations_all_times(self):
-        """Test that epoch-only mode produces similar results to correlations 'all times'."""
-        import tempfile
-        from unittest.mock import patch, MagicMock
-
-        # Create mock trace data
-        np.random.seed(42)
-        n_timepoints, n_cells = 200, 5
-        traces = np.random.randn(n_timepoints, n_cells)
-
-        # Mock data manager and file validation for state_epoch tool
-        with patch(
-            "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
-        ) as mock_dm_class, patch(
-            "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
-        ) as mock_validate:
-            # Configure mocks
-            mock_validate.return_value = None  # Just pass validation
-            mock_dm_instance = MagicMock()
-            mock_dm_class.return_value = mock_dm_instance
-
-            # Configure mock to return our test data
-            mock_dm_instance.load_data.return_value = (
-                traces,  # traces
-                None,  # events
-                pd.DataFrame(
-                    {
-                        "dummy_state": ["epoch_activity"] * n_timepoints,
-                        "time": [i * 0.1 for i in range(n_timepoints)],
-                    }
-                ),  # annotations_df
-                {
-                    "cell_names": [f"cell_{i}" for i in range(n_cells)],
-                    "period": 0.1,
-                },  # cell_info
-            )
-
-            mock_dm_instance.extract_state_epoch_data.side_effect = [
-                {
-                    "traces": traces[:100],  # epoch 1
-                    "events": None,
-                    "annotations": pd.DataFrame(
-                        {"dummy_state": ["epoch_activity"] * 100}
-                    ),
-                    "num_timepoints": 100,
-                    "state": "epoch_activity",
-                    "epoch": "epoch1",
-                },
-                {
-                    "traces": traces[100:],  # epoch 2
-                    "events": None,
-                    "annotations": pd.DataFrame(
-                        {"dummy_state": ["epoch_activity"] * 100}
-                    ),
-                    "num_timepoints": 100,
-                    "state": "epoch_activity",
-                    "epoch": "epoch2",
-                },
-            ]
-
-            mock_dm_instance.get_epoch_periods.return_value = [
-                (0, 10),
-                (10, 20),
-            ]
-
-            # Test state_epoch tool in epoch-only mode
-            from analysis.state_epoch_baseline_analysis import (
-                state_epoch_baseline_analysis,
-            )
-
-            with tempfile.TemporaryDirectory() as tmpdir:
-                try:
-                    state_epoch_baseline_analysis(
-                        cell_set_files=["mock_cellset.isxd"],
-                        annotations_file=None,  # Trigger epoch-only mode
-                        epoch_names="epoch1, epoch2",
-                        epochs="(0, 10), (10, 20)",
-                        state_names="",  # Empty to trigger epoch-only mode
-                        state_colors="gray",
-                        epoch_colors="blue, orange",
-                        baseline_state="epoch_activity",
-                        baseline_epoch="epoch1",
-                        output_dir=tmpdir,
-                    )
-
-                    # Verify that epoch-only mode was triggered correctly
-                    assert (
-                        mock_dm_instance.load_data.called
-                    ), "Data manager should have been called"
-                    assert (
-                        mock_dm_instance.extract_state_epoch_data.call_count
-                        == 2
-                    ), "Should extract 2 epoch combinations"
-
-                    # Verify the state was set to "epoch_activity" for both epochs
-                    calls = (
-                        mock_dm_instance.extract_state_epoch_data.call_args_list
-                    )
-                    for call in calls:
-                        args, kwargs = call
-                        assert (
-                            kwargs["state"] == "epoch_activity"
-                        ), "State should be epoch_activity in epoch-only mode"
-
-                except Exception as e:
-                    # Expected to fail due to missing dependencies, but should get past the
-                    # epoch-only logic
-                    # With proper mocking, we should reach analysis stages, not file validation
-                    assert (
-                        "epoch_activity" in str(e)
-                        or "baseline" in str(e)
-                        or "modulation" in str(e)
-                        or "validate_baseline_availability" in str(e)
-                        or "ideas" in str(e).lower()
-                    ), f"Should fail on analysis, not file validation: {e}"
 
     def test_activity_metrics_consistency_with_population_activity(self):
         """Test that activity metrics match population_activity.py calculations."""

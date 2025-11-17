@@ -43,8 +43,8 @@
         {
             "key": "annotations_file",
             "name": "Annotations File",
-            "required": false,
-            "description": "Optional experiment annotations file with state and epoch information. If not provided, uses epoch-only analysis mode.",
+            "required": true,
+            "description": "Experiment annotations file with state and epoch information",
             "type": {
                 "param_type": "ToolPathParam",
                 "multiple": true,

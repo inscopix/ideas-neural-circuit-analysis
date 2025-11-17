@@ -290,6 +290,7 @@ class StateEpochDataManager:
         define_epochs_by: str,
         tolerance: float = 1e-4,
         sort_by_time: bool = True,
+        allow_epoch_only_mode: bool = False,
     ):
         """Initialize StateEpochDataManager with file paths and validation parameters.
 
@@ -300,7 +301,7 @@ class StateEpochDataManager:
         event_set_files : Optional[List[str]]
             Optional list of eventset file paths
         annotations_file : Optional[List[str]]
-            Optional list of annotation file paths. If None, creates dummy annotations.
+            List of annotation file paths. Only the first file is used when provided.
         concatenate : bool
             Whether to concatenate multiple files
         use_registered_cellsets : bool
@@ -327,6 +328,8 @@ class StateEpochDataManager:
             Tolerance for temporal alignment and file concatenation
         sort_by_time : bool
             Whether to sort cellsets by time when concatenating
+        allow_epoch_only_mode : bool
+            Enables fallback to dummy annotations when annotations_file is not supplied.
 
         """
         # File and processing configuration
@@ -338,6 +341,7 @@ class StateEpochDataManager:
         self.registration_method = registration_method
         self.tolerance = tolerance
         self.sort_by_time = sort_by_time
+        self.allow_epoch_only_mode = allow_epoch_only_mode
 
         # Validation parameters
         self.epochs = epochs
@@ -519,14 +523,28 @@ class StateEpochDataManager:
         # 3. Load annotations (consistent with other tools - use first file only)
         # Note: Multiple annotation files are accepted but only the first is used
         if self.annotations_file and len(self.annotations_file) > 0:
-            if self.annotations_file[0].endswith(".csv"):
-                annotations_df = pd.read_csv(self.annotations_file[0])
-            elif self.annotations_file[0].endswith(".parquet"):
-                annotations_df = pd.read_parquet(self.annotations_file[0])
+            annotation_path = self.annotations_file[0]
+            if annotation_path and str(annotation_path).strip():
+                if str(annotation_path).endswith(".csv"):
+                    annotations_df = pd.read_csv(annotation_path)
+                elif str(annotation_path).endswith(".parquet"):
+                    annotations_df = pd.read_parquet(annotation_path)
+                else:
+                    raise IdeasError(
+                        "Unsupported file extension for annotations file. "
+                        "Expected .csv or .parquet."
+                    )
             else:
-                raise IdeasError("Unsupported file extension for annotations file")
+                annotation_path = None
         else:
-            # Create dummy annotations for epoch-only analysis (consistent with correlations.py)
+            annotation_path = None
+
+        if annotation_path is None:
+            if not self.allow_epoch_only_mode:
+                raise IdeasError(
+                    "annotations_file must contain at least one valid file path."
+                )
+            # Create dummy annotations for epoch-only analysis
             num_timepoints = self._traces.shape[0]
             annotations_df = pd.DataFrame(
                 {
