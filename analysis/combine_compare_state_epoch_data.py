@@ -99,6 +99,66 @@ from utils.visualization_helpers import (
 
 logger = logging.getLogger(__name__)
 
+
+# Metadata filtering for output registration
+# Controls which metadata fields are included in the registered output files
+USEFUL_OUTPUT_METADATA_KEYS = {
+    # "num_states",
+    # "num_epochs",
+    # "num_combinations",
+    "states",
+    "epochs",
+    "baseline_state",
+    "baseline_epoch",
+    "comparison_dimension",
+    "data_pairing",
+    "correlation_statistic",
+    "multiple_correction",
+    "effect_size",
+    # "num_groups",
+    # "group_names",
+    # "group_colors",
+    # "measure_source",
+    # "selected_measures",
+    # "selected_measure_sources",
+    "group_comparison_type",
+    "parametric",
+    # Optional fields that might be present
+    # "file_type",
+    # "description",
+    # "analysis_type",
+    # "test_type",
+    # "file_exists",
+}
+
+
+def _extract_useful_metadata(metadata: dict) -> dict:
+    """Return only the metadata fields we want to register with IDEAS.
+    
+    Filters the comprehensive metadata dictionary to include only fields
+    that are relevant for output registration and user information.
+    
+    Parameters
+    ----------
+    metadata : dict
+        Full metadata dictionary
+        
+    Returns
+    -------
+    dict
+        Filtered metadata containing only useful fields
+    """
+    if not metadata:
+        return {}
+
+    return {
+        key: value
+        for key, value in metadata.items()
+        if key in USEFUL_OUTPUT_METADATA_KEYS
+        and value not in (None, "", [], {})
+    }
+
+
 # Measure column mapping dictionary for comprehensive trace/event analysis
 # Defines all possible measure columns organized by category and data source
 #
@@ -5947,6 +6007,7 @@ def _register_combined_tool_outputs(
             preview_files=previews,
             attach_output_basename=attach_output_basename,
             preview_prefix_rules=prefix_rules,
+            metadata_filter=_extract_useful_metadata,
             logger_instance=logger,
         )
 
