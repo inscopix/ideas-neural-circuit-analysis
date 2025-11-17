@@ -12,6 +12,10 @@ from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from beartype.typing import List, Optional, Iterable, Tuple
 from ideas.exceptions import IdeasError
+from analysis.output_registration import (
+    collect_available_previews,
+    register_output_file,
+)
 from utils.state_epoch_data import (
     StateEpochDataManager,
     validate_input_files_exist,
@@ -94,91 +98,6 @@ def _extract_useful_metadata(metadata: dict) -> dict:
     }
 
 
-def _collect_available_previews(
-    output_dir: str,
-    preview_definitions: Iterable[Tuple[str, str]],
-) -> List[Tuple[str, str]]:
-    """Return preview tuples that exist on disk."""
-    available_previews: List[Tuple[str, str]] = []
-    for preview_name, caption in preview_definitions:
-        preview_path = os.path.join(output_dir, preview_name)
-        if os.path.exists(preview_path):
-            available_previews.append((preview_name, caption))
-    return available_previews
-
-def _process_output_file(
-    *,
-    output_data: OutputData,
-    output_dir: str,
-    output_metadata: dict,
-    file: str,
-    output_file_basename: str,
-    preview_files: Optional[List[tuple]] = None,
-) -> None:
-    """Attach an output file and its previews to the OutputData object."""
-
-    try:
-        file_path = os.path.join(output_dir, file)
-        filename = pathlib.Path(file_path).name
-        basename = pathlib.Path(file_path).stem
-
-        final_file_path = file_path
-        target_dir = os.path.join(output_dir, basename)
-
-        def _should_skip_prefix(preview_name: str) -> bool:
-            lowered = preview_name.lower()
-            return (
-                lowered.startswith("group1_")
-                or lowered.startswith("group2_")
-            )
-
-        if preview_files:
-            os.makedirs(target_dir, exist_ok=True)
-            final_file_path = os.path.join(
-                target_dir,
-                f"{output_file_basename}_{filename}",
-            )
-            os.rename(file_path, final_file_path)
-
-        output_file = output_data.add_file(final_file_path)
-
-        metadata = _extract_useful_metadata(output_metadata.get(basename, {}))
-        for key, value in metadata.items():
-            output_file.add_metadata(
-                key=key,
-                value=str(value),
-                name=key.title(),
-            )
-
-        if preview_files:
-            for preview_name, caption in preview_files:
-                preview_path = os.path.join(output_dir, preview_name)
-                if not os.path.exists(preview_path):
-                    logger.warning(
-                        "Preview '%s' not found for output '%s'; skipping attachment.",
-                        preview_name,
-                        filename,
-                    )
-                    continue
-
-                if _should_skip_prefix(preview_name):
-                    new_preview_filename = preview_name
-                else:
-                    new_preview_filename = (
-                        f"{output_file_basename}_{preview_name}"
-                    )
-
-                new_preview_path = os.path.join(
-                    target_dir,
-                    new_preview_filename,
-                )
-                os.rename(preview_path, new_preview_path)
-                output_file.add_preview(new_preview_path, caption)
-
-    except Exception:  # noqa: BLE001
-        logger.exception("failed to process file")
-
-    return basename
 # Analysis feature flags (not exposed via the main function)
 @dataclass(frozen=True)
 class StateEpochAnalysisFeatureFlags:
@@ -555,7 +474,7 @@ def state_epoch_baseline_analysis(
         output_file_basename += cell_set_file_name
 
     with OutputData() as output_data:
-        _process_output_file(
+        register_output_file(
             output_data=output_data,
             output_dir=output_dir,
             output_metadata=output_metadata,
@@ -584,6 +503,7 @@ def state_epoch_baseline_analysis(
                     "Event raster plot with state-colored events showing event patterns colored by behavioral state."
                 ),
             ],
+            metadata_filter=_extract_useful_metadata,
         )
 
         correlation_preview_files = [
@@ -594,7 +514,7 @@ def state_epoch_baseline_analysis(
         ]
         if include_event_correlation_preview:
             correlation_preview_files.extend(
-                _collect_available_previews(
+                collect_available_previews(
                     output_dir,
                     [
                         (
@@ -605,16 +525,17 @@ def state_epoch_baseline_analysis(
                 )
             )
 
-        _process_output_file(
+        register_output_file(
             output_data=output_data,
             output_dir=output_dir,
             output_metadata=output_metadata,
             file=CORRELATIONS_PER_STATE_EPOCH_DATA_CSV,
             output_file_basename=output_file_basename,
             preview_files=correlation_preview_files,
+            metadata_filter=_extract_useful_metadata,
         )
 
-        _process_output_file(
+        register_output_file(
             output_data=output_data,
             output_dir=output_dir,
             output_metadata=output_metadata,
@@ -638,7 +559,8 @@ def state_epoch_baseline_analysis(
                     "Spatial footprints of event-modulated neurons relative to baseline. Cell maps colored by event modulation significance when event data is available."
                 ),
 
-            ]
+            ],
+            metadata_filter=_extract_useful_metadata,
         )
 
         average_correlation_previews = [
@@ -649,7 +571,7 @@ def state_epoch_baseline_analysis(
         ]
         if include_event_correlation_preview:
             average_correlation_previews.extend(
-                _collect_available_previews(
+                collect_available_previews(
                     output_dir,
                     [
                         (
@@ -660,13 +582,14 @@ def state_epoch_baseline_analysis(
                 )
             )
 
-        _process_output_file(
+        register_output_file(
             output_data=output_data,
             output_dir=output_dir,
             output_metadata=output_metadata,
             file=AVERAGE_CORRELATIONS_CSV,
             output_file_basename=output_file_basename,
             preview_files=average_correlation_previews,
+            metadata_filter=_extract_useful_metadata,
         )
 
         correlation_matrix_previews = [
@@ -677,7 +600,7 @@ def state_epoch_baseline_analysis(
         ]
         if include_event_correlation_preview:
             correlation_matrix_previews.extend(
-                _collect_available_previews(
+                collect_available_previews(
                     output_dir,
                     [
                         (
@@ -688,13 +611,14 @@ def state_epoch_baseline_analysis(
                 )
             )
 
-        _process_output_file(
+        register_output_file(
             output_data=output_data,
             output_dir=output_dir,
             output_metadata=output_metadata,
             file=RAW_CORRELATIONS_H5_NAME,
             output_file_basename=output_file_basename,
             preview_files=correlation_matrix_previews,
+            metadata_filter=_extract_useful_metadata,
         )
 
         spatial_correlation_previews = [
@@ -709,7 +633,7 @@ def state_epoch_baseline_analysis(
         ]
         if include_event_correlation_preview:
             spatial_correlation_previews.extend(
-                _collect_available_previews(
+                collect_available_previews(
                     output_dir,
                     [
                         (
@@ -724,13 +648,14 @@ def state_epoch_baseline_analysis(
                 )
             )
 
-        _process_output_file(
+        register_output_file(
             output_data=output_data,
             output_dir=output_dir,
             output_metadata=output_metadata,
             file=RAW_CORRELATIONS_ZIP_NAME,
             output_file_basename=output_file_basename,
             preview_files=spatial_correlation_previews,
+            metadata_filter=_extract_useful_metadata,
         )
     logger.info("State-epoch baseline analysis completed successfully")
 

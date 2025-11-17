@@ -5,39 +5,37 @@ behavioral states or time epochs using pre-computed results from state_epoch_bas
 
 Output Files Structure
 ------------------------------------------------------------------
-1. Per-Group Data Files:
-   - group1_combined_activity_data.csv
-   - group1_combined_trace_correlation_data.csv
-   - group1_combined_modulation_data.csv
-   - group2_combined_activity_data.csv (if two groups)
-   - group2_combined_trace_correlation_data.csv (if two groups)
-   - group2_combined_modulation_data.csv (if two groups)
+Files with previews are organized in subdirectories for better organization:
 
-2. Statistical Comparison Files (Trace-specific):
-   - trace_aov_comparisons.csv (trace main effects and interactions)
-   - trace_pairwise_comparisons.csv (trace post-hoc pairwise tests)
+1. Per-Group Data Files (in subdirectories with previews):
+   - <group_name>_combined_activity_data/<comparison>_<group_name>_combined_activity_data.csv
+   - <group_name>_combined_trace_correlation_data/<comparison>_<group_name>_combined_trace_correlation_data.csv
+   - <group_name>_combined_modulation_data/<comparison>_<group_name>_combined_modulation_data.csv
+   - Where <comparison> is typically <group1>_vs_<group2>_<dimension> (e.g., "Control_vs_Treatment_epochs")
+   - Preview SVG files are in .previews/ subdirectories within each folder
 
-3. Statistical Comparison Files (Event-specific):
-   - event_aov_comparisons.csv (event main effects and interactions)
-   - event_pairwise_comparisons.csv (event post-hoc pairwise tests)
+2. Statistical Comparison Files (Trace-specific, in subdirectories with previews):
+   - trace_aov_comparisons/<comparison>_trace_aov_comparisons.csv (main effects and interactions)
+   - trace_pairwise_comparisons/<comparison>_trace_pairwise_comparisons.csv (post-hoc tests)
 
-4. Per-Group SVG Preview Files (generated when corresponding data columns exist):
-   - group1_trace_activity_boxplot.svg
-   - group1_event_activity_boxplot.svg
-   - group1_{stat}_trace_correlation_boxplot.svg / group1_{stat}_event_correlation_boxplot.svg
+3. Statistical Comparison Files (Event-specific, in subdirectories with previews):
+   - event_aov_comparisons/<comparison>_event_aov_comparisons.csv (main effects and interactions)
+   - event_pairwise_comparisons/<comparison>_event_pairwise_comparisons.csv (post-hoc tests)
+
+4. Per-Group SVG Preview Files (in .previews/ subdirectories):
+   - <group_name>_trace_activity_boxplot.svg
+   - <group_name>_event_activity_boxplot.svg
+   - <group_name>_{stat}_trace_correlation_boxplot.svg / <group_name>_{stat}_event_correlation_boxplot.svg
      where ``stat`` is the selected correlation statistic (max, min, or mean)
-   - group1_{stat}_trace_correlation_cdf.svg / group1_{stat}_event_correlation_cdf.svg
-   - group1_positive_trace_population_boxplot.svg
-   - group1_negative_trace_population_boxplot.svg
-   - group1_positive_event_population_boxplot.svg
-   - group1_negative_event_population_boxplot.svg
-   - (Equivalent group2_* files if two groups are provided)
+   - <group_name>_{stat}_trace_correlation_cdf.svg / <group_name>_{stat}_event_correlation_cdf.svg
+   - <group_name>_positive_trace_population_boxplot.svg
+   - <group_name>_negative_trace_population_boxplot.svg
+   - <group_name>_positive_event_population_boxplot.svg
+   - <group_name>_negative_event_population_boxplot.svg
 
-5. Trace Comparison SVG Files (conditional on comparison_dimension):
+5. Comparison SVG Files (in .previews/ subdirectories, conditional on comparison_dimension):
    - states_comparison_trace_activity.svg OR epochs_comparison_trace_activity.svg
    - states_comparison_trace_correlation.svg OR epochs_comparison_trace_correlation.svg
-
-6. Event Comparison SVG Files (conditional on comparison_dimension):
    - states_comparison_event_activity.svg OR epochs_comparison_event_activity.svg
    - states_comparison_event_correlation.svg OR epochs_comparison_event_correlation.svg
 
@@ -49,6 +47,7 @@ import os
 import pathlib
 import re
 from collections import defaultdict, deque
+from dataclasses import dataclass
 from pathlib import Path
 from typing import (
     List,
@@ -65,13 +64,15 @@ from typing import (
 
 import numpy as np
 import pandas as pd
-from ideas.exceptions import IdeasError
+from ideas.exceptions import IdeasError  # type: ignore[import-not-found]
 
-from ideas.outputs import OutputData
-from analysis.state_epoch_baseline_analysis import (
-    _process_output_file,
-    _collect_available_previews,
+from ideas.outputs import OutputData  # type: ignore[import-not-found]
+from analysis.output_registration import (
+    collect_available_previews,
+    register_output_file,
+    PreviewPrefixRules,
 )
+
 from utils.state_epoch_comparison_utils import (
     calculate_state_epoch_comparison_stats,
     calculate_state_epoch_lmm_stats,
@@ -145,15 +146,14 @@ MEASURE_COLUMNS = {
 }
 
 # Output file name constants
-# Group 1 data files
-GROUP1_COMBINED_ACTIVITY_DATA_CSV = "group1_combined_activity_data.csv"
-GROUP1_COMBINED_TRACE_CORRELATION_DATA_CSV = "group1_combined_trace_correlation_data.csv"
-GROUP1_COMBINED_MODULATION_DATA_CSV = "group1_combined_modulation_data.csv"
-
-# Group 2 data files
-GROUP2_COMBINED_ACTIVITY_DATA_CSV = "group2_combined_activity_data.csv"
-GROUP2_COMBINED_TRACE_CORRELATION_DATA_CSV = "group2_combined_trace_correlation_data.csv"
-GROUP2_COMBINED_MODULATION_DATA_CSV = "group2_combined_modulation_data.csv"
+GROUP_COMBINED_ACTIVITY_SUFFIX = "combined_activity_data.csv"
+GROUP_COMBINED_TRACE_CORRELATION_SUFFIX = "combined_trace_correlation_data.csv"
+GROUP_COMBINED_MODULATION_SUFFIX = "combined_modulation_data.csv"
+GROUP_OUTPUT_SUFFIXES = {
+    "activity": GROUP_COMBINED_ACTIVITY_SUFFIX,
+    "correlation": GROUP_COMBINED_TRACE_CORRELATION_SUFFIX,
+    "modulation": GROUP_COMBINED_MODULATION_SUFFIX,
+}
 
 # Statistical comparison files (trace-specific)
 TRACE_ANOVA_COMPARISONS_CSV = "trace_aov_comparisons.csv"
@@ -3100,6 +3100,14 @@ def _generate_combined_outputs_csv(
     # Ensure output directory exists
     os.makedirs(output_dir, exist_ok=True)
 
+    group_file_prefixes = _resolve_group_file_prefixes(group_names)  # ["group1", "group2"] for files/dirs
+    
+    # Create sanitized group name prefixes for human-readable preview filenames
+    group_preview_prefixes = [
+        _sanitize_filename_component(name, f"group{i+1}")
+        for i, name in enumerate(group_names)
+    ]
+
     default_selection: Dict[str, List[str]] = {
         "activity": [],
         "correlation": [],
@@ -3133,10 +3141,12 @@ def _generate_combined_outputs_csv(
     group1_activity_clean = _cleanup_final_csv_columns(
         group1_data["activity"], "mixed"
     )
-    group1_activity_path = os.path.join(
-        output_dir,
-        GROUP1_COMBINED_ACTIVITY_DATA_CSV,
+    group1_activity_filename = _group_output_filename(
+        group_file_prefixes,
+        0,
+        GROUP_COMBINED_ACTIVITY_SUFFIX,
     )
+    group1_activity_path = os.path.join(output_dir, group1_activity_filename)
     group1_activity_clean.to_csv(group1_activity_path, index=False)
     logger.info(
         f"Saved {group_names[0]} activity data to {group1_activity_path}"
@@ -3147,9 +3157,14 @@ def _generate_combined_outputs_csv(
         group1_correlation_clean = _cleanup_final_csv_columns(
             group1_data["correlation"], "mixed"
         )
+        group1_correlation_filename = _group_output_filename(
+            group_file_prefixes,
+            0,
+            GROUP_COMBINED_TRACE_CORRELATION_SUFFIX,
+        )
         group1_correlation_path = os.path.join(
             output_dir,
-            GROUP1_COMBINED_TRACE_CORRELATION_DATA_CSV,
+            group1_correlation_filename,
         )
         group1_correlation_clean.to_csv(group1_correlation_path, index=False)
         logger.info(
@@ -3165,9 +3180,14 @@ def _generate_combined_outputs_csv(
         group1_modulation_clean = _cleanup_final_csv_columns(
             group1_data["modulation"], "mixed"
         )
+        group1_modulation_filename = _group_output_filename(
+            group_file_prefixes,
+            0,
+            GROUP_COMBINED_MODULATION_SUFFIX,
+        )
         group1_modulation_path = os.path.join(
             output_dir,
-            GROUP1_COMBINED_MODULATION_DATA_CSV,
+            group1_modulation_filename,
         )
         group1_modulation_clean.to_csv(group1_modulation_path, index=False)
         logger.info(
@@ -3184,9 +3204,14 @@ def _generate_combined_outputs_csv(
         group2_activity_clean = _cleanup_final_csv_columns(
             group2_data["activity"], "mixed"
         )
+        group2_activity_filename = _group_output_filename(
+            group_file_prefixes,
+            1,
+            GROUP_COMBINED_ACTIVITY_SUFFIX,
+        )
         group2_activity_path = os.path.join(
             output_dir,
-            GROUP2_COMBINED_ACTIVITY_DATA_CSV,
+            group2_activity_filename,
         )
         group2_activity_clean.to_csv(group2_activity_path, index=False)
         logger.info(
@@ -3198,9 +3223,14 @@ def _generate_combined_outputs_csv(
             group2_correlation_clean = _cleanup_final_csv_columns(
                 group2_data["correlation"], "mixed"
             )
+            group2_correlation_filename = _group_output_filename(
+                group_file_prefixes,
+                1,
+                GROUP_COMBINED_TRACE_CORRELATION_SUFFIX,
+            )
             group2_correlation_path = os.path.join(
                 output_dir,
-                GROUP2_COMBINED_TRACE_CORRELATION_DATA_CSV,
+                group2_correlation_filename,
             )
             group2_correlation_clean.to_csv(
                 group2_correlation_path, index=False
@@ -3218,9 +3248,14 @@ def _generate_combined_outputs_csv(
             group2_modulation_clean = _cleanup_final_csv_columns(
                 group2_data["modulation"], "mixed"
             )
+            group2_modulation_filename = _group_output_filename(
+                group_file_prefixes,
+                1,
+                GROUP_COMBINED_MODULATION_SUFFIX,
+            )
             group2_modulation_path = os.path.join(
                 output_dir,
-                GROUP2_COMBINED_MODULATION_DATA_CSV,
+                group2_modulation_filename,
             )
             group2_modulation_clean.to_csv(group2_modulation_path, index=False)
             logger.info(
@@ -4213,6 +4248,328 @@ def _compute_correlation_y_limits(
     )
 
 
+@dataclass(frozen=True)
+class GroupPreviewMetric:
+    """Configuration describing a per-group preview to generate."""
+
+    dataset: str
+    column: str
+    suffix: str
+    title: str
+    data_type: str
+    y_limit_key: Optional[str] = None
+    stat_key: Optional[str] = None
+    cdf_suffix: Optional[str] = None
+    cdf_title: Optional[str] = None
+    population_category: Optional[str] = None
+
+
+GROUP_PREVIEW_METRICS: Tuple[GroupPreviewMetric, ...] = (
+    GroupPreviewMetric(
+        dataset="activity",
+        column="mean_trace_activity",
+        suffix="trace_activity_boxplot.svg",
+        title="Mean Trace Activity",
+        data_type="activity",
+    ),
+    GroupPreviewMetric(
+        dataset="activity",
+        column="mean_event_rate",
+        suffix="event_activity_boxplot.svg",
+        title="Mean Event Rate",
+        data_type="event_rate",
+    ),
+    GroupPreviewMetric(
+        dataset="correlation",
+        column="max_trace_correlation",
+        suffix="max_trace_correlation_boxplot.svg",
+        title="Max Trace Correlation (Per Cell)",
+        data_type="correlation",
+        y_limit_key="per_cell_max",
+        stat_key="max",
+        cdf_suffix="max_trace_correlation_cdf.svg",
+        cdf_title="Max Trace Correlation",
+    ),
+    GroupPreviewMetric(
+        dataset="correlation",
+        column="min_trace_correlation",
+        suffix="min_trace_correlation_boxplot.svg",
+        title="Min Trace Correlation (Per Cell)",
+        data_type="correlation",
+        y_limit_key="per_cell_min",
+        stat_key="min",
+        cdf_suffix="min_trace_correlation_cdf.svg",
+        cdf_title="Min Trace Correlation",
+    ),
+    GroupPreviewMetric(
+        dataset="correlation",
+        column="mean_trace_correlation",
+        suffix="mean_trace_correlation_boxplot.svg",
+        title="Mean Trace Correlation (Per Cell)",
+        data_type="correlation",
+        stat_key="mean",
+        cdf_suffix="mean_trace_correlation_cdf.svg",
+        cdf_title="Mean Trace Correlation",
+    ),
+    GroupPreviewMetric(
+        dataset="correlation",
+        column="max_event_correlation",
+        suffix="max_event_correlation_boxplot.svg",
+        title="Max Event Correlation (Per Cell)",
+        data_type="correlation",
+        y_limit_key="per_cell_max",
+        stat_key="max",
+        cdf_suffix="max_event_correlation_cdf.svg",
+        cdf_title="Max Event Correlation",
+    ),
+    GroupPreviewMetric(
+        dataset="correlation",
+        column="min_event_correlation",
+        suffix="min_event_correlation_boxplot.svg",
+        title="Min Event Correlation (Per Cell)",
+        data_type="correlation",
+        y_limit_key="per_cell_min",
+        stat_key="min",
+        cdf_suffix="min_event_correlation_cdf.svg",
+        cdf_title="Min Event Correlation",
+    ),
+    GroupPreviewMetric(
+        dataset="correlation",
+        column="mean_event_correlation",
+        suffix="mean_event_correlation_boxplot.svg",
+        title="Mean Event Correlation (Per Cell)",
+        data_type="correlation",
+        stat_key="mean",
+        cdf_suffix="mean_event_correlation_cdf.svg",
+        cdf_title="Mean Event Correlation",
+    ),
+    GroupPreviewMetric(
+        dataset="correlation",
+        column="positive_trace_correlation",
+        suffix="positive_trace_population_boxplot.svg",
+        title="Positive Trace Correlation (Population)",
+        data_type="correlation",
+        y_limit_key="population_positive",
+        population_category="positive",
+    ),
+    GroupPreviewMetric(
+        dataset="correlation",
+        column="negative_trace_correlation",
+        suffix="negative_trace_population_boxplot.svg",
+        title="Negative Trace Correlation (Population)",
+        data_type="correlation",
+        y_limit_key="population_negative",
+        population_category="negative",
+    ),
+    GroupPreviewMetric(
+        dataset="correlation",
+        column="positive_event_correlation",
+        suffix="positive_event_population_boxplot.svg",
+        title="Positive Event Correlation (Population)",
+        data_type="correlation",
+        y_limit_key="population_positive",
+        population_category="positive",
+    ),
+    GroupPreviewMetric(
+        dataset="correlation",
+        column="negative_event_correlation",
+        suffix="negative_event_population_boxplot.svg",
+        title="Negative Event Correlation (Population)",
+        data_type="correlation",
+        y_limit_key="population_negative",
+        population_category="negative",
+    ),
+)
+
+
+def _generate_group_metric_previews(
+    *,
+    group_index: int,
+    group_label: str,
+    group_data: Optional[Dict[str, Any]],
+    output_dir: str,
+    dimension_column: str,
+    dimension_color_map: Dict[str, str],
+    dimension_filter_list: List[str],
+    group_file_prefixes: Sequence[str],
+    metrics: Sequence[GroupPreviewMetric],
+    y_limit_lookup: Dict[str, Optional[Tuple[float, float]]],
+    allowed_per_cell_stats: Set[str],
+    include_positive_population: bool,
+    include_negative_population: bool,
+    dimension_suffix: Optional[str] = None,
+    group_preview_prefixes: Optional[Sequence[str]] = None,
+) -> None:
+    """Generate boxplot/CDF previews for the provided group.
+    
+    Args:
+        group_preview_prefixes: Optional list of prefixes for preview filenames.
+            If provided, uses real group names for preview files (e.g., "Control", "Treatment").
+            If None, falls back to group_file_prefixes.
+    """
+    if not group_data:
+        return
+
+    # Use real group names for preview filenames if provided
+    preview_prefixes = group_preview_prefixes if group_preview_prefixes is not None else group_file_prefixes
+
+    dataset_cache: Dict[str, Optional[pd.DataFrame]] = {}
+
+    for spec in metrics:
+        if not include_positive_population and spec.population_category == "positive":
+            continue
+        if not include_negative_population and spec.population_category == "negative":
+            continue
+        if spec.stat_key and spec.stat_key not in allowed_per_cell_stats:
+            continue
+
+        if spec.dataset not in dataset_cache:
+            dataset_cache[spec.dataset] = group_data.get(spec.dataset)
+        dataset_df = dataset_cache[spec.dataset]
+
+        if dataset_df is None or getattr(dataset_df, "empty", True):
+            continue
+        if spec.column not in dataset_df.columns:
+            continue
+
+        filename = _group_output_filename(
+            preview_prefixes,
+            group_index,
+            spec.suffix,
+            dimension_suffix=dimension_suffix,
+        )
+        boxplot_path = os.path.join(output_dir, filename)
+
+        success = _create_dimension_boxplot_preview(
+            dimension_column=dimension_column,
+            data_df=dataset_df,
+            col_name=spec.column,
+            group_name=group_label,
+            identifier=spec.column,
+            title_prefix=spec.title,
+            filename=boxplot_path,
+            state_color_map=dimension_color_map,
+            filter_state_names=dimension_filter_list,
+            data_type=spec.data_type,
+            y_limits=y_limit_lookup.get(spec.y_limit_key),
+        )
+        if success:
+            logger.info(
+                "Generated %s %s preview: %s",
+                group_label,
+                spec.title,
+                boxplot_path,
+            )
+
+        if not (spec.cdf_suffix and spec.cdf_title):
+            continue
+
+        cdf_filename = _group_output_filename(
+            preview_prefixes,
+            group_index,
+            spec.cdf_suffix,
+            dimension_suffix=dimension_suffix,
+        )
+        cdf_path = os.path.join(output_dir, cdf_filename)
+        cdf_success = _create_dimension_cdf_preview(
+            dimension_column=dimension_column,
+            data_df=dataset_df,
+            col_name=spec.column,
+            group_name=group_label,
+            identifier=spec.column,
+            title_prefix=spec.cdf_title,
+            filename=cdf_path,
+            state_color_map=dimension_color_map,
+            filter_state_names=dimension_filter_list,
+            data_type=spec.data_type,
+        )
+        if cdf_success:
+            logger.info(
+                "Generated %s %s CDF preview: %s",
+                group_label,
+                spec.cdf_title,
+                cdf_path,
+            )
+
+
+def _generate_modulation_histograms_for_group(
+    *,
+    group_index: int,
+    group_label: str,
+    group_data: Optional[Dict[str, Any]],
+    output_dir: str,
+    dimension_column: str,
+    dimension_filter_list: List[str],
+    dimension_label: str,
+    group_file_prefixes: Sequence[str],
+    modulation_colors: Optional[List[str]],
+    dimension_suffix: Optional[str] = None,
+    group_preview_prefixes: Optional[Sequence[str]] = None,
+) -> None:
+    """Generate modulation histograms for a single group when available.
+    
+    Args:
+        group_preview_prefixes: Optional list of prefixes for preview filenames.
+            If provided, uses real group names for preview files (e.g., "Control", "Treatment").
+            If None, falls back to group_file_prefixes.
+    """
+    if (
+        not group_data
+        or "modulation" not in group_data
+        or group_data["modulation"] is None
+        or group_data["modulation"].empty
+    ):
+        return
+
+    # Use real group names for preview filenames if provided
+    preview_prefixes = group_preview_prefixes if group_preview_prefixes is not None else group_file_prefixes
+
+    modulation_df = group_data["modulation"]
+    palette = modulation_colors if modulation_colors else ["green", "blue", "black"]
+
+    for score_column, suffix, data_type in (
+        ("trace_modulation_scores", "trace_modulation_distribution.svg", "activity"),
+        ("event_modulation_scores", "event_modulation_distribution.svg", "events"),
+    ):
+        if score_column not in modulation_df.columns:
+            continue
+
+        distribution_df = _prepare_modulation_distribution_data(
+            modulation_df=modulation_df,
+            score_column=score_column,
+            dimension_column=dimension_column,
+        )
+        filename = _group_output_filename(
+            preview_prefixes,
+            group_index,
+            suffix,
+            dimension_suffix=dimension_suffix,
+        )
+        output_path = os.path.join(output_dir, filename)
+        try:
+            plot_modulation_distribution(
+                modulation_scores=distribution_df,
+                modulation_colors=palette,
+                states=dimension_filter_list,
+                output_filename=output_path,
+                group_name=group_label,
+                data_type=data_type,
+                dimension_label=dimension_label,
+            )
+            logger.info(
+                "Generated %s %s modulation histogram",
+                group_label,
+                data_type,
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "Could not generate %s %s modulation histogram: %s",
+                group_label,
+                data_type,
+                exc,
+            )
+
+
 def _generate_per_group_previews(
     group1_data: Dict[str, Any],
     group2_data: Optional[Dict[str, Any]],
@@ -4258,6 +4615,19 @@ def _generate_per_group_previews(
         [up-modulated, down-modulated, non-modulated]
 
     """
+    # Resolve group names and generate filesystem-safe prefixes
+    group_names = list(group_names) if group_names else ["Group 1"]
+    if group2_data is not None and len(group_names) < 2:
+        group_names.append("Group 2")
+
+    group_file_prefixes = _resolve_group_file_prefixes(group_names)  # ["group1", "group2"] for files/dirs
+    
+    # Create sanitized group name prefixes for human-readable preview filenames
+    group_preview_prefixes = [
+        _sanitize_filename_component(name, f"group{i+1}")
+        for i, name in enumerate(group_names)
+    ]
+
     # Resolve color maps based on comparison dimension
     if comparison_dimension == "states":
         dimension_color_map = _resolve_state_color_map(
@@ -4279,6 +4649,7 @@ def _generate_per_group_previews(
         dimension_column = "epoch"
 
     dimension_label = "State" if dimension_column == "state" else "Epoch"
+    dimension_suffix = (comparison_dimension or "").strip().lower() or None
 
     (
         per_cell_max_limits,
@@ -4297,1186 +4668,81 @@ def _generate_per_group_previews(
     include_positive_population = True
     include_negative_population = True
 
+    y_limit_lookup = {
+        "per_cell_max": per_cell_max_limits,
+        "per_cell_min": per_cell_min_limits,
+        "population_positive": population_positive_limits,
+        "population_negative": population_negative_limits,
+    }
+
     try:
-        # GROUP 1 ACTIVITY BOXPLOTS
-        if "activity" in group1_data and not group1_data["activity"].empty:
-            # Trace activity boxplot
-            if "mean_trace_activity" in group1_data["activity"].columns:
-                activity_filename = "group1_trace_activity_boxplot.svg"
-                activity_boxplot_path = os.path.join(
-                    output_dir,
-                    activity_filename,
-                )
-                success = _create_dimension_boxplot_preview(
-                    dimension_column=dimension_column,
-                    data_df=group1_data["activity"],
-                    col_name="mean_trace_activity",
-                    group_name=group_names[0],
-                    identifier="mean_trace_activity",
-                    title_prefix="Mean Trace Activity",
-                    filename=activity_boxplot_path,
-                    state_color_map=dimension_color_map,
-                    filter_state_names=dimension_filter_list,
-                    data_type="activity",
-                    y_limits=None,
-                )
-                if success:
-                    logger.info(
-                        f"Generated {group_names[0]} trace activity boxplot: "
-                        f"{activity_boxplot_path}"
-                    )
+        group1_label = group_names[0]
+        _generate_group_metric_previews(
+            group_index=0,
+            group_label=group1_label,
+            group_data=group1_data,
+            output_dir=output_dir,
+            dimension_column=dimension_column,
+            dimension_color_map=dimension_color_map,
+            dimension_filter_list=dimension_filter_list,
+            group_file_prefixes=group_file_prefixes,
+            metrics=GROUP_PREVIEW_METRICS,
+            y_limit_lookup=y_limit_lookup,
+            allowed_per_cell_stats=allowed_per_cell_stats,
+            include_positive_population=include_positive_population,
+            include_negative_population=include_negative_population,
+            dimension_suffix=dimension_suffix,
+            group_preview_prefixes=group_preview_prefixes,  # Use real group names for previews
+        )
 
-            # Event activity boxplot
-            if "mean_event_rate" in group1_data["activity"].columns:
-                event_activity_filename = "group1_event_activity_boxplot.svg"
-                event_activity_boxplot_path = os.path.join(
-                    output_dir,
-                    event_activity_filename,
-                )
-                success = _create_dimension_boxplot_preview(
-                    dimension_column=dimension_column,
-                    data_df=group1_data["activity"],
-                    col_name="mean_event_rate",
-                    group_name=group_names[0],
-                    identifier="mean_event_rate",
-                    title_prefix="Mean Event Rate",
-                    filename=event_activity_boxplot_path,
-                    state_color_map=dimension_color_map,
-                    filter_state_names=dimension_filter_list,
-                    data_type="event_rate",
-                    y_limits=None,
-                )
-                if success:
-                    logger.info(
-                        f"Generated {group_names[0]} event activity boxplot: "
-                        f"{event_activity_boxplot_path}"
-                    )
-
-        # GROUP 1 CORRELATION BOXPLOTS
-        if (
-            "correlation" in group1_data
-            and group1_data["correlation"] is not None
-            and not group1_data["correlation"].empty
-        ):
-            # PER-CELL TRACE CORRELATION BOXPLOTS
-            # Max trace correlation (positive)
-            if (
-                "max_trace_correlation" in group1_data["correlation"].columns
-                and "max" in allowed_per_cell_stats
-            ):
-                pos_corr_filename = "group1_max_trace_correlation_boxplot.svg"
-                pos_corr_boxplot_path = os.path.join(
-                    output_dir,
-                    pos_corr_filename,
-                )
-                success = _create_dimension_boxplot_preview(
-                    dimension_column=dimension_column,
-                    data_df=group1_data["correlation"],
-                    col_name="max_trace_correlation",
-                    group_name=group_names[0],
-                    identifier="max_trace_correlation",
-                    title_prefix="Max Trace Correlation (Per Cell)",
-                    filename=pos_corr_boxplot_path,
-                    state_color_map=dimension_color_map,
-                    filter_state_names=dimension_filter_list,
-                    data_type="correlation",
-                    y_limits=per_cell_max_limits,
-                )
-                if success:
-                    logger.info(
-                        f"Generated {group_names[0]} max trace correlation boxplot"
-                    )
-
-                # Generate CDF plot for max trace correlation
-                max_trace_cdf_filename = "group1_max_trace_correlation_cdf.svg"
-                max_trace_cdf_path = os.path.join(
-                    output_dir,
-                    max_trace_cdf_filename,
-                )
-                cdf_success = _create_dimension_cdf_preview(
-                    dimension_column=dimension_column,
-                    data_df=group1_data["correlation"],
-                    col_name="max_trace_correlation",
-                    group_name=group_names[0],
-                    identifier="max_trace_correlation",
-                    title_prefix="Max Trace Correlation",
-                    filename=max_trace_cdf_path,
-                    state_color_map=dimension_color_map,
-                    filter_state_names=dimension_filter_list,
-                    data_type="correlation",
-                )
-                if cdf_success:
-                    logger.info(
-                        f"Generated {group_names[0]} max trace correlation CDF plot"
-                    )
-
-            # Min trace correlation (negative)
-            if (
-                "min_trace_correlation" in group1_data["correlation"].columns
-                and "min" in allowed_per_cell_stats
-            ):
-                neg_corr_filename = "group1_min_trace_correlation_boxplot.svg"
-                neg_corr_boxplot_path = os.path.join(
-                    output_dir,
-                    neg_corr_filename,
-                )
-                success = _create_dimension_boxplot_preview(
-                    dimension_column=dimension_column,
-                    data_df=group1_data["correlation"],
-                    col_name="min_trace_correlation",
-                    group_name=group_names[0],
-                    identifier="min_trace_correlation",
-                    title_prefix="Min Trace Correlation (Per Cell)",
-                    filename=neg_corr_boxplot_path,
-                    state_color_map=dimension_color_map,
-                    filter_state_names=dimension_filter_list,
-                    data_type="correlation",
-                    y_limits=per_cell_min_limits,
-                )
-                if success:
-                    logger.info(
-                        f"Generated {group_names[0]} min trace correlation boxplot"
-                    )
-
-                # Generate CDF plot for min trace correlation
-                min_trace_cdf_filename = "group1_min_trace_correlation_cdf.svg"
-                min_trace_cdf_path = os.path.join(
-                    output_dir,
-                    min_trace_cdf_filename,
-                )
-                cdf_success = _create_dimension_cdf_preview(
-                    dimension_column=dimension_column,
-                    data_df=group1_data["correlation"],
-                    col_name="min_trace_correlation",
-                    group_name=group_names[0],
-                    identifier="min_trace_correlation",
-                    title_prefix="Min Trace Correlation",
-                    filename=min_trace_cdf_path,
-                    state_color_map=dimension_color_map,
-                    filter_state_names=dimension_filter_list,
-                    data_type="correlation",
-                )
-                if cdf_success:
-                    logger.info(
-                        f"Generated {group_names[0]} min trace correlation CDF plot"
-                    )
-
-            # Mean trace correlation
-            if (
-                "mean_trace_correlation" in group1_data["correlation"].columns
-                and "mean" in allowed_per_cell_stats
-            ):
-                mean_trace_corr_filename = (
-                    "group1_mean_trace_correlation_boxplot.svg"
-                )
-                mean_trace_corr_boxplot_path = os.path.join(
-                    output_dir,
-                    mean_trace_corr_filename,
-                )
-                success = _create_dimension_boxplot_preview(
-                    dimension_column=dimension_column,
-                    data_df=group1_data["correlation"],
-                    col_name="mean_trace_correlation",
-                    group_name=group_names[0],
-                    identifier="mean_trace_correlation",
-                    title_prefix="Mean Trace Correlation (Per Cell)",
-                    filename=mean_trace_corr_boxplot_path,
-                    state_color_map=dimension_color_map,
-                    filter_state_names=dimension_filter_list,
-                    data_type="correlation",
-                    y_limits=None,
-                )
-                if success:
-                    logger.info(
-                        f"Generated {group_names[0]} mean trace correlation boxplot"
-                    )
-
-                # Generate CDF plot for mean trace correlation
-                mean_trace_cdf_filename = (
-                    "group1_mean_trace_correlation_cdf.svg"
-                )
-                mean_trace_cdf_path = os.path.join(
-                    output_dir,
-                    mean_trace_cdf_filename,
-                )
-                cdf_success = _create_dimension_cdf_preview(
-                    dimension_column=dimension_column,
-                    data_df=group1_data["correlation"],
-                    col_name="mean_trace_correlation",
-                    group_name=group_names[0],
-                    identifier="mean_trace_correlation",
-                    title_prefix="Mean Trace Correlation",
-                    filename=mean_trace_cdf_path,
-                    state_color_map=dimension_color_map,
-                    filter_state_names=dimension_filter_list,
-                    data_type="correlation",
-                )
-                if cdf_success:
-                    logger.info(
-                        f"Generated {group_names[0]} mean trace correlation CDF plot"
-                    )
-
-            # PER-CELL EVENT CORRELATION BOXPLOTS
-            # Max event correlation
-            if (
-                "max_event_correlation" in group1_data["correlation"].columns
-                and "max" in allowed_per_cell_stats
-            ):
-                max_event_corr_filename = (
-                    "group1_max_event_correlation_boxplot.svg"
-                )
-                max_event_corr_boxplot_path = os.path.join(
-                    output_dir,
-                    max_event_corr_filename,
-                )
-                success = _create_dimension_boxplot_preview(
-                    dimension_column=dimension_column,
-                    data_df=group1_data["correlation"],
-                    col_name="max_event_correlation",
-                    group_name=group_names[0],
-                    identifier="max_event_correlation",
-                    title_prefix="Max Event Correlation (Per Cell)",
-                    filename=max_event_corr_boxplot_path,
-                    state_color_map=dimension_color_map,
-                    filter_state_names=dimension_filter_list,
-                    data_type="correlation",
-                    y_limits=per_cell_max_limits,
-                )
-                if success:
-                    logger.info(
-                        f"Generated {group_names[0]} max event correlation boxplot"
-                    )
-
-                # Generate CDF plot for max event correlation
-                max_event_cdf_filename = "group1_max_event_correlation_cdf.svg"
-                max_event_cdf_path = os.path.join(
-                    output_dir,
-                    max_event_cdf_filename,
-                )
-                cdf_success = _create_dimension_cdf_preview(
-                    dimension_column=dimension_column,
-                    data_df=group1_data["correlation"],
-                    col_name="max_event_correlation",
-                    group_name=group_names[0],
-                    identifier="max_event_correlation",
-                    title_prefix="Max Event Correlation",
-                    filename=max_event_cdf_path,
-                    state_color_map=dimension_color_map,
-                    filter_state_names=dimension_filter_list,
-                    data_type="correlation",
-                )
-                if cdf_success:
-                    logger.info(
-                        f"Generated {group_names[0]} max event correlation CDF plot"
-                    )
-
-            # Min event correlation
-            if (
-                "min_event_correlation" in group1_data["correlation"].columns
-                and "min" in allowed_per_cell_stats
-            ):
-                min_event_corr_filename = (
-                    "group1_min_event_correlation_boxplot.svg"
-                )
-                min_event_corr_boxplot_path = os.path.join(
-                    output_dir,
-                    min_event_corr_filename,
-                )
-                success = _create_dimension_boxplot_preview(
-                    dimension_column=dimension_column,
-                    data_df=group1_data["correlation"],
-                    col_name="min_event_correlation",
-                    group_name=group_names[0],
-                    identifier="min_event_correlation",
-                    title_prefix="Min Event Correlation (Per Cell)",
-                    filename=min_event_corr_boxplot_path,
-                    state_color_map=dimension_color_map,
-                    filter_state_names=dimension_filter_list,
-                    data_type="correlation",
-                    y_limits=per_cell_min_limits,
-                )
-                if success:
-                    logger.info(
-                        f"Generated {group_names[0]} min event correlation boxplot"
-                    )
-
-                # Generate CDF plot for min event correlation
-                min_event_cdf_filename = "group1_min_event_correlation_cdf.svg"
-                min_event_cdf_path = os.path.join(
-                    output_dir,
-                    min_event_cdf_filename,
-                )
-                cdf_success = _create_dimension_cdf_preview(
-                    dimension_column=dimension_column,
-                    data_df=group1_data["correlation"],
-                    col_name="min_event_correlation",
-                    group_name=group_names[0],
-                    identifier="min_event_correlation",
-                    title_prefix="Min Event Correlation",
-                    filename=min_event_cdf_path,
-                    state_color_map=dimension_color_map,
-                    filter_state_names=dimension_filter_list,
-                    data_type="correlation",
-                )
-                if cdf_success:
-                    logger.info(
-                        f"Generated {group_names[0]} min event correlation CDF plot"
-                    )
-
-            # Mean event correlation
-            if (
-                "mean_event_correlation" in group1_data["correlation"].columns
-                and "mean" in allowed_per_cell_stats
-            ):
-                mean_event_corr_filename = (
-                    "group1_mean_event_correlation_boxplot.svg"
-                )
-                mean_event_corr_boxplot_path = os.path.join(
-                    output_dir,
-                    mean_event_corr_filename,
-                )
-                success = _create_dimension_boxplot_preview(
-                    dimension_column=dimension_column,
-                    data_df=group1_data["correlation"],
-                    col_name="mean_event_correlation",
-                    group_name=group_names[0],
-                    identifier="mean_event_correlation",
-                    title_prefix="Mean Event Correlation (Per Cell)",
-                    filename=mean_event_corr_boxplot_path,
-                    state_color_map=dimension_color_map,
-                    filter_state_names=dimension_filter_list,
-                    data_type="correlation",
-                    y_limits=None,
-                )
-                if success:
-                    logger.info(
-                        f"Generated {group_names[0]} mean event correlation boxplot"
-                    )
-
-                # Generate CDF plot for mean event correlation
-                mean_event_cdf_filename = (
-                    "group1_mean_event_correlation_cdf.svg"
-                )
-                mean_event_cdf_path = os.path.join(
-                    output_dir,
-                    mean_event_cdf_filename,
-                )
-                cdf_success = _create_dimension_cdf_preview(
-                    dimension_column=dimension_column,
-                    data_df=group1_data["correlation"],
-                    col_name="mean_event_correlation",
-                    group_name=group_names[0],
-                    identifier="mean_event_correlation",
-                    title_prefix="Mean Event Correlation",
-                    filename=mean_event_cdf_path,
-                    state_color_map=dimension_color_map,
-                    filter_state_names=dimension_filter_list,
-                    data_type="correlation",
-                )
-                if cdf_success:
-                    logger.info(
-                        f"Generated {group_names[0]} mean event correlation CDF plot"
-                    )
-
-            # POPULATION-LEVEL TRACE CORRELATION BOXPLOTS
-            # Positive trace correlation (population)
-            if (
-                include_positive_population
-                and "positive_trace_correlation"
-                in group1_data["correlation"].columns
-            ):
-                pos_trace_pop_filename = (
-                    "group1_positive_trace_population_boxplot.svg"
-                )
-                pos_trace_pop_boxplot_path = os.path.join(
-                    output_dir,
-                    pos_trace_pop_filename,
-                )
-                success = _create_dimension_boxplot_preview(
-                    dimension_column=dimension_column,
-                    data_df=group1_data["correlation"],
-                    col_name="positive_trace_correlation",
-                    group_name=group_names[0],
-                    identifier="positive_trace_correlation",
-                    title_prefix="Positive Trace Correlation (Population)",
-                    filename=pos_trace_pop_boxplot_path,
-                    state_color_map=dimension_color_map,
-                    filter_state_names=dimension_filter_list,
-                    data_type="correlation",
-                    y_limits=population_positive_limits,
-                )
-                if success:
-                    logger.info(
-                        f"Generated {group_names[0]} positive trace population boxplot"
-                    )
-
-            # Negative trace correlation (population)
-            if (
-                include_negative_population
-                and "negative_trace_correlation"
-                in group1_data["correlation"].columns
-            ):
-                neg_trace_pop_filename = (
-                    "group1_negative_trace_population_boxplot.svg"
-                )
-                neg_trace_pop_boxplot_path = os.path.join(
-                    output_dir,
-                    neg_trace_pop_filename,
-                )
-                success = _create_dimension_boxplot_preview(
-                    dimension_column=dimension_column,
-                    data_df=group1_data["correlation"],
-                    col_name="negative_trace_correlation",
-                    group_name=group_names[0],
-                    identifier="negative_trace_correlation",
-                    title_prefix="Negative Trace Correlation (Population)",
-                    filename=neg_trace_pop_boxplot_path,
-                    state_color_map=dimension_color_map,
-                    filter_state_names=dimension_filter_list,
-                    data_type="correlation",
-                    y_limits=population_negative_limits,
-                )
-                if success:
-                    logger.info(
-                        f"Generated {group_names[0]} negative trace population boxplot"
-                    )
-
-            # POPULATION-LEVEL EVENT CORRELATION BOXPLOTS
-            # Positive event correlation (population)
-            if (
-                include_positive_population
-                and "positive_event_correlation"
-                in group1_data["correlation"].columns
-            ):
-                pos_event_pop_filename = (
-                    "group1_positive_event_population_boxplot.svg"
-                )
-                pos_event_pop_boxplot_path = os.path.join(
-                    output_dir,
-                    pos_event_pop_filename,
-                )
-                success = _create_dimension_boxplot_preview(
-                    dimension_column=dimension_column,
-                    data_df=group1_data["correlation"],
-                    col_name="positive_event_correlation",
-                    group_name=group_names[0],
-                    identifier="positive_event_correlation",
-                    title_prefix="Positive Event Correlation (Population)",
-                    filename=pos_event_pop_boxplot_path,
-                    state_color_map=dimension_color_map,
-                    filter_state_names=dimension_filter_list,
-                    data_type="correlation",
-                    y_limits=population_positive_limits,
-                )
-                if success:
-                    logger.info(
-                        f"Generated {group_names[0]} positive event population boxplot"
-                    )
-
-            # Negative event correlation (population)
-            if (
-                include_negative_population
-                and "negative_event_correlation"
-                in group1_data["correlation"].columns
-            ):
-                neg_event_pop_filename = (
-                    "group1_negative_event_population_boxplot.svg"
-                )
-                neg_event_pop_boxplot_path = os.path.join(
-                    output_dir,
-                    neg_event_pop_filename,
-                )
-                success = _create_dimension_boxplot_preview(
-                    dimension_column=dimension_column,
-                    data_df=group1_data["correlation"],
-                    col_name="negative_event_correlation",
-                    group_name=group_names[0],
-                    identifier="negative_event_correlation",
-                    title_prefix="Negative Event Correlation (Population)",
-                    filename=neg_event_pop_boxplot_path,
-                    state_color_map=dimension_color_map,
-                    filter_state_names=dimension_filter_list,
-                    data_type="correlation",
-                    y_limits=population_negative_limits,
-                )
-                if success:
-                    logger.info(
-                        f"Generated {group_names[0]} negative event population boxplot"
-                    )
-
-        # GROUP 2 ACTIVITY BOXPLOTS
         if group2_data is not None and len(group_names) > 1:
-            if "activity" in group2_data and not group2_data["activity"].empty:
-                # Trace activity boxplot
-                if "mean_trace_activity" in group2_data["activity"].columns:
-                    activity_filename = "group2_trace_activity_boxplot.svg"
-                    activity_boxplot_path = os.path.join(
-                        output_dir,
-                        activity_filename,
-                    )
-                    success = _create_dimension_boxplot_preview(
-                        dimension_column=dimension_column,
-                        data_df=group2_data["activity"],
-                        col_name="mean_trace_activity",
-                        group_name=group_names[1],
-                        identifier="mean_trace_activity",
-                        title_prefix="Mean Trace Activity",
-                        filename=activity_boxplot_path,
-                        state_color_map=dimension_color_map,
-                        filter_state_names=dimension_filter_list,
-                        data_type="activity",
-                        y_limits=None,
-                    )
-                    if success:
-                        logger.info(
-                            f"Generated {group_names[1]} trace activity boxplot: "
-                            f"{activity_boxplot_path}"
-                        )
+            group2_label = group_names[1]
+            _generate_group_metric_previews(
+                group_index=1,
+                group_label=group2_label,
+                group_data=group2_data,
+                output_dir=output_dir,
+                dimension_column=dimension_column,
+                dimension_color_map=dimension_color_map,
+                dimension_filter_list=dimension_filter_list,
+                group_file_prefixes=group_file_prefixes,
+                metrics=GROUP_PREVIEW_METRICS,
+                y_limit_lookup=y_limit_lookup,
+                allowed_per_cell_stats=allowed_per_cell_stats,
+                include_positive_population=include_positive_population,
+                include_negative_population=include_negative_population,
+                dimension_suffix=dimension_suffix,
+                group_preview_prefixes=group_preview_prefixes,  # Use real group names for previews
+            )
 
-                # Event activity boxplot
-                if "mean_event_rate" in group2_data["activity"].columns:
-                    event_activity_filename = (
-                        "group2_event_activity_boxplot.svg"
-                    )
-                    event_activity_boxplot_path = os.path.join(
-                        output_dir,
-                        event_activity_filename,
-                    )
-                    success = _create_dimension_boxplot_preview(
-                        dimension_column=dimension_column,
-                        data_df=group2_data["activity"],
-                        col_name="mean_event_rate",
-                        group_name=group_names[1],
-                        identifier="mean_event_rate",
-                        title_prefix="Mean Event Rate",
-                        filename=event_activity_boxplot_path,
-                        state_color_map=dimension_color_map,
-                        filter_state_names=dimension_filter_list,
-                        data_type="event_rate",
-                        y_limits=None,
-                    )
-                    if success:
-                        logger.info(
-                            f"Generated {group_names[1]} event activity boxplot: "
-                            f"{event_activity_boxplot_path}"
-                        )
+        _generate_modulation_histograms_for_group(
+            group_index=0,
+            group_label=group1_label,
+            group_data=group1_data,
+            output_dir=output_dir,
+            dimension_column=dimension_column,
+            dimension_filter_list=dimension_filter_list,
+            dimension_label=dimension_label,
+            group_file_prefixes=group_file_prefixes,
+            modulation_colors=modulation_colors,
+            dimension_suffix=dimension_suffix,
+            group_preview_prefixes=group_preview_prefixes,  # Use real group names for previews
+        )
 
-            # GROUP 2 CORRELATION BOXPLOTS
-            if (
-                "correlation" in group2_data
-                and group2_data["correlation"] is not None
-                and not group2_data["correlation"].empty
-            ):
-                # PER-CELL TRACE CORRELATION BOXPLOTS
-                # Max trace correlation (positive)
-                if (
-                    "max_trace_correlation"
-                    in group2_data["correlation"].columns
-                    and "max" in allowed_per_cell_stats
-                ):
-                    pos_corr_filename = (
-                        "group2_max_trace_correlation_boxplot.svg"
-                    )
-                    pos_corr_boxplot_path = os.path.join(
-                        output_dir,
-                        pos_corr_filename,
-                    )
-                    success = _create_dimension_boxplot_preview(
-                        dimension_column=dimension_column,
-                        data_df=group2_data["correlation"],
-                        col_name="max_trace_correlation",
-                        group_name=group_names[1],
-                        identifier="max_trace_correlation",
-                        title_prefix="Max Trace Correlation (Per Cell)",
-                        filename=pos_corr_boxplot_path,
-                        state_color_map=dimension_color_map,
-                        filter_state_names=dimension_filter_list,
-                        data_type="correlation",
-                        y_limits=per_cell_max_limits,
-                    )
-                    if success:
-                        logger.info(
-                            f"Generated {group_names[1]} max trace correlation boxplot"
-                        )
-
-                    # Generate CDF plot for max trace correlation
-                    max_trace_cdf_filename = (
-                        "group2_max_trace_correlation_cdf.svg"
-                    )
-                    max_trace_cdf_path = os.path.join(
-                        output_dir,
-                        max_trace_cdf_filename,
-                    )
-                    cdf_success = _create_dimension_cdf_preview(
-                        dimension_column=dimension_column,
-                        data_df=group2_data["correlation"],
-                        col_name="max_trace_correlation",
-                        group_name=group_names[1],
-                        identifier="max_trace_correlation",
-                        title_prefix="Max Trace Correlation",
-                        filename=max_trace_cdf_path,
-                        state_color_map=dimension_color_map,
-                        filter_state_names=dimension_filter_list,
-                        data_type="correlation",
-                    )
-                    if cdf_success:
-                        logger.info(
-                            f"Generated {group_names[1]} max trace correlation CDF plot"
-                        )
-
-                # Min trace correlation (negative)
-                if (
-                    "min_trace_correlation"
-                    in group2_data["correlation"].columns
-                    and "min" in allowed_per_cell_stats
-                ):
-                    neg_corr_filename = (
-                        "group2_min_trace_correlation_boxplot.svg"
-                    )
-                    neg_corr_boxplot_path = os.path.join(
-                        output_dir,
-                        neg_corr_filename,
-                    )
-                    success = _create_dimension_boxplot_preview(
-                        dimension_column=dimension_column,
-                        data_df=group2_data["correlation"],
-                        col_name="min_trace_correlation",
-                        group_name=group_names[1],
-                        identifier="min_trace_correlation",
-                        title_prefix="Min Trace Correlation (Per Cell)",
-                        filename=neg_corr_boxplot_path,
-                        state_color_map=dimension_color_map,
-                        filter_state_names=dimension_filter_list,
-                        data_type="correlation",
-                        y_limits=per_cell_min_limits,
-                    )
-                    if success:
-                        logger.info(
-                            f"Generated {group_names[1]} min trace correlation boxplot"
-                        )
-
-                    # Generate CDF plot for min trace correlation
-                    min_trace_cdf_filename = (
-                        "group2_min_trace_correlation_cdf.svg"
-                    )
-                    min_trace_cdf_path = os.path.join(
-                        output_dir,
-                        min_trace_cdf_filename,
-                    )
-                    cdf_success = _create_dimension_cdf_preview(
-                        dimension_column=dimension_column,
-                        data_df=group2_data["correlation"],
-                        col_name="min_trace_correlation",
-                        group_name=group_names[1],
-                        identifier="min_trace_correlation",
-                        title_prefix="Min Trace Correlation",
-                        filename=min_trace_cdf_path,
-                        state_color_map=dimension_color_map,
-                        filter_state_names=dimension_filter_list,
-                        data_type="correlation",
-                    )
-                    if cdf_success:
-                        logger.info(
-                            f"Generated {group_names[1]} min trace correlation CDF plot"
-                        )
-
-                # Mean trace correlation
-                if (
-                    "mean_trace_correlation"
-                    in group2_data["correlation"].columns
-                    and "mean" in allowed_per_cell_stats
-                ):
-                    mean_trace_corr_filename = (
-                        "group2_mean_trace_correlation_boxplot.svg"
-                    )
-                    mean_trace_corr_boxplot_path = os.path.join(
-                        output_dir,
-                        mean_trace_corr_filename,
-                    )
-                    success = _create_dimension_boxplot_preview(
-                        dimension_column=dimension_column,
-                        data_df=group2_data["correlation"],
-                        col_name="mean_trace_correlation",
-                        group_name=group_names[1],
-                        identifier="mean_trace_correlation",
-                        title_prefix="Mean Trace Correlation (Per Cell)",
-                        filename=mean_trace_corr_boxplot_path,
-                        state_color_map=dimension_color_map,
-                        filter_state_names=dimension_filter_list,
-                        data_type="correlation",
-                        y_limits=None,
-                    )
-                    if success:
-                        logger.info(
-                            f"Generated {group_names[1]} mean trace correlation boxplot"
-                        )
-
-                    # Generate CDF plot for mean trace correlation
-                    mean_trace_cdf_filename = (
-                        "group2_mean_trace_correlation_cdf.svg"
-                    )
-                    mean_trace_cdf_path = os.path.join(
-                        output_dir,
-                        mean_trace_cdf_filename,
-                    )
-                    cdf_success = _create_dimension_cdf_preview(
-                        dimension_column=dimension_column,
-                        data_df=group2_data["correlation"],
-                        col_name="mean_trace_correlation",
-                        group_name=group_names[1],
-                        identifier="mean_trace_correlation",
-                        title_prefix="Mean Trace Correlation",
-                        filename=mean_trace_cdf_path,
-                        state_color_map=dimension_color_map,
-                        filter_state_names=dimension_filter_list,
-                        data_type="correlation",
-                    )
-                    if cdf_success:
-                        logger.info(
-                            f"Generated {group_names[1]} mean trace correlation CDF plot"
-                        )
-
-                # PER-CELL EVENT CORRELATION BOXPLOTS
-                # Max event correlation
-                if (
-                    "max_event_correlation"
-                    in group2_data["correlation"].columns
-                    and "max" in allowed_per_cell_stats
-                ):
-                    max_event_corr_filename = (
-                        "group2_max_event_correlation_boxplot.svg"
-                    )
-                    max_event_corr_boxplot_path = os.path.join(
-                        output_dir,
-                        max_event_corr_filename,
-                    )
-                    success = _create_dimension_boxplot_preview(
-                        dimension_column=dimension_column,
-                        data_df=group2_data["correlation"],
-                        col_name="max_event_correlation",
-                        group_name=group_names[1],
-                        identifier="max_event_correlation",
-                        title_prefix="Max Event Correlation (Per Cell)",
-                        filename=max_event_corr_boxplot_path,
-                        state_color_map=dimension_color_map,
-                        filter_state_names=dimension_filter_list,
-                        data_type="correlation",
-                        y_limits=per_cell_max_limits,
-                    )
-                    if success:
-                        logger.info(
-                            f"Generated {group_names[1]} max event correlation boxplot"
-                        )
-
-                    # Generate CDF plot for max event correlation
-                    max_event_cdf_filename = (
-                        "group2_max_event_correlation_cdf.svg"
-                    )
-                    max_event_cdf_path = os.path.join(
-                        output_dir,
-                        max_event_cdf_filename,
-                    )
-                    cdf_success = _create_dimension_cdf_preview(
-                        dimension_column=dimension_column,
-                        data_df=group2_data["correlation"],
-                        col_name="max_event_correlation",
-                        group_name=group_names[1],
-                        identifier="max_event_correlation",
-                        title_prefix="Max Event Correlation",
-                        filename=max_event_cdf_path,
-                        state_color_map=dimension_color_map,
-                        filter_state_names=dimension_filter_list,
-                        data_type="correlation",
-                    )
-                    if cdf_success:
-                        logger.info(
-                            f"Generated {group_names[1]} max event correlation CDF plot"
-                        )
-
-                # Min event correlation
-                if (
-                    "min_event_correlation"
-                    in group2_data["correlation"].columns
-                    and "min" in allowed_per_cell_stats
-                ):
-                    min_event_corr_filename = (
-                        "group2_min_event_correlation_boxplot.svg"
-                    )
-                    min_event_corr_boxplot_path = os.path.join(
-                        output_dir,
-                        min_event_corr_filename,
-                    )
-                    success = _create_dimension_boxplot_preview(
-                        dimension_column=dimension_column,
-                        data_df=group2_data["correlation"],
-                        col_name="min_event_correlation",
-                        group_name=group_names[1],
-                        identifier="min_event_correlation",
-                        title_prefix="Min Event Correlation (Per Cell)",
-                        filename=min_event_corr_boxplot_path,
-                        state_color_map=dimension_color_map,
-                        filter_state_names=dimension_filter_list,
-                        data_type="correlation",
-                        y_limits=per_cell_min_limits,
-                    )
-                    if success:
-                        logger.info(
-                            f"Generated {group_names[1]} min event correlation boxplot"
-                        )
-
-                    # Generate CDF plot for min event correlation
-                    min_event_cdf_filename = (
-                        "group2_min_event_correlation_cdf.svg"
-                    )
-                    min_event_cdf_path = os.path.join(
-                        output_dir,
-                        min_event_cdf_filename,
-                    )
-                    cdf_success = _create_dimension_cdf_preview(
-                        dimension_column=dimension_column,
-                        data_df=group2_data["correlation"],
-                        col_name="min_event_correlation",
-                        group_name=group_names[1],
-                        identifier="min_event_correlation",
-                        title_prefix="Min Event Correlation",
-                        filename=min_event_cdf_path,
-                        state_color_map=dimension_color_map,
-                        filter_state_names=dimension_filter_list,
-                        data_type="correlation",
-                    )
-                    if cdf_success:
-                        logger.info(
-                            f"Generated {group_names[1]} min event correlation CDF plot"
-                        )
-
-                # Mean event correlation
-                if (
-                    "mean_event_correlation"
-                    in group2_data["correlation"].columns
-                    and "mean" in allowed_per_cell_stats
-                ):
-                    mean_event_corr_filename = (
-                        "group2_mean_event_correlation_boxplot.svg"
-                    )
-                    mean_event_corr_boxplot_path = os.path.join(
-                        output_dir,
-                        mean_event_corr_filename,
-                    )
-                    success = _create_dimension_boxplot_preview(
-                        dimension_column=dimension_column,
-                        data_df=group2_data["correlation"],
-                        col_name="mean_event_correlation",
-                        group_name=group_names[1],
-                        identifier="mean_event_correlation",
-                        title_prefix="Mean Event Correlation (Per Cell)",
-                        filename=mean_event_corr_boxplot_path,
-                        state_color_map=dimension_color_map,
-                        filter_state_names=dimension_filter_list,
-                        data_type="correlation",
-                        y_limits=None,
-                    )
-                    if success:
-                        logger.info(
-                            f"Generated {group_names[1]} mean event correlation boxplot"
-                        )
-
-                    # Generate CDF plot for mean event correlation
-                    mean_event_cdf_filename = (
-                        "group2_mean_event_correlation_cdf.svg"
-                    )
-                    mean_event_cdf_path = os.path.join(
-                        output_dir,
-                        mean_event_cdf_filename,
-                    )
-                    cdf_success = _create_dimension_cdf_preview(
-                        dimension_column=dimension_column,
-                        data_df=group2_data["correlation"],
-                        col_name="mean_event_correlation",
-                        group_name=group_names[1],
-                        identifier="mean_event_correlation",
-                        title_prefix="Mean Event Correlation",
-                        filename=mean_event_cdf_path,
-                        state_color_map=dimension_color_map,
-                        filter_state_names=dimension_filter_list,
-                        data_type="correlation",
-                    )
-                    if cdf_success:
-                        logger.info(
-                            f"Generated {group_names[1]} mean event correlation CDF plot"
-                        )
-
-                # POPULATION-LEVEL TRACE CORRELATION BOXPLOTS
-                # Positive trace correlation (population)
-                if (
-                    include_positive_population
-                    and "positive_trace_correlation"
-                    in group2_data["correlation"].columns
-                ):
-                    pos_trace_pop_filename = (
-                        "group2_positive_trace_population_boxplot.svg"
-                    )
-                    pos_trace_pop_boxplot_path = os.path.join(
-                        output_dir,
-                        pos_trace_pop_filename,
-                    )
-                    success = _create_dimension_boxplot_preview(
-                        dimension_column=dimension_column,
-                        data_df=group2_data["correlation"],
-                        col_name="positive_trace_correlation",
-                        group_name=group_names[1],
-                        identifier="positive_trace_correlation",
-                        title_prefix="Positive Trace Correlation (Population)",
-                        filename=pos_trace_pop_boxplot_path,
-                        state_color_map=dimension_color_map,
-                        filter_state_names=dimension_filter_list,
-                        data_type="correlation",
-                        y_limits=population_positive_limits,
-                    )
-                    if success:
-                        logger.info(
-                            f"Generated {group_names[1]} positive trace population boxplot"
-                        )
-
-                # Negative trace correlation (population)
-                if (
-                    include_negative_population
-                    and "negative_trace_correlation"
-                    in group2_data["correlation"].columns
-                ):
-                    neg_trace_pop_filename = (
-                        "group2_negative_trace_population_boxplot.svg"
-                    )
-                    neg_trace_pop_boxplot_path = os.path.join(
-                        output_dir,
-                        neg_trace_pop_filename,
-                    )
-                    success = _create_dimension_boxplot_preview(
-                        dimension_column=dimension_column,
-                        data_df=group2_data["correlation"],
-                        col_name="negative_trace_correlation",
-                        group_name=group_names[1],
-                        identifier="negative_trace_correlation",
-                        title_prefix="Negative Trace Correlation (Population)",
-                        filename=neg_trace_pop_boxplot_path,
-                        state_color_map=dimension_color_map,
-                        filter_state_names=dimension_filter_list,
-                        data_type="correlation",
-                        y_limits=population_negative_limits,
-                    )
-                    if success:
-                        logger.info(
-                            f"Generated {group_names[1]} negative trace population boxplot"
-                        )
-
-                # POPULATION-LEVEL EVENT CORRELATION BOXPLOTS
-                # Positive event correlation (population)
-                if (
-                    include_positive_population
-                    and "positive_event_correlation"
-                    in group2_data["correlation"].columns
-                ):
-                    pos_event_pop_filename = (
-                        "group2_positive_event_population_boxplot.svg"
-                    )
-                    pos_event_pop_boxplot_path = os.path.join(
-                        output_dir,
-                        pos_event_pop_filename,
-                    )
-                    success = _create_dimension_boxplot_preview(
-                        dimension_column=dimension_column,
-                        data_df=group2_data["correlation"],
-                        col_name="positive_event_correlation",
-                        group_name=group_names[1],
-                        identifier="positive_event_correlation",
-                        title_prefix="Positive Event Correlation (Population)",
-                        filename=pos_event_pop_boxplot_path,
-                        state_color_map=dimension_color_map,
-                        filter_state_names=dimension_filter_list,
-                        data_type="correlation",
-                        y_limits=population_positive_limits,
-                    )
-                    if success:
-                        logger.info(
-                            f"Generated {group_names[1]} positive event population boxplot"
-                        )
-
-                # Negative event correlation (population)
-                if (
-                    include_negative_population
-                    and "negative_event_correlation"
-                    in group2_data["correlation"].columns
-                ):
-                    neg_event_pop_filename = (
-                        "group2_negative_event_population_boxplot.svg"
-                    )
-                    neg_event_pop_boxplot_path = os.path.join(
-                        output_dir,
-                        neg_event_pop_filename,
-                    )
-                    success = _create_dimension_boxplot_preview(
-                        dimension_column=dimension_column,
-                        data_df=group2_data["correlation"],
-                        col_name="negative_event_correlation",
-                        group_name=group_names[1],
-                        identifier="negative_event_correlation",
-                        title_prefix="Negative Event Correlation (Population)",
-                        filename=neg_event_pop_boxplot_path,
-                        state_color_map=dimension_color_map,
-                        filter_state_names=dimension_filter_list,
-                        data_type="correlation",
-                        y_limits=population_negative_limits,
-                    )
-                    if success:
-                        logger.info(
-                            f"Generated {group_names[1]} negative event population boxplot"
-                        )
-
-        # ====================================================================
-        # GENERATE MODULATION DISTRIBUTION HISTOGRAMS
-        # ====================================================================
-        # Generate modulation histograms for each group (matching standard-python toolbox)
-        # Use the appropriate dimension (states or epochs) based on comparison_dimension
-
-        # Group 1 modulation histograms
-        if (
-            "modulation" in group1_data
-            and group1_data["modulation"] is not None
-            and not group1_data["modulation"].empty
-        ):
-            modulation_df = group1_data["modulation"]
-
-            # Generate trace modulation histogram if scores are available
-            if "trace_modulation_scores" in modulation_df.columns:
-                trace_mod_scores = _prepare_modulation_distribution_data(
-                    modulation_df=modulation_df,
-                    score_column="trace_modulation_scores",
-                    dimension_column=dimension_column,
-                )
-                trace_mod_filename = "group1_trace_modulation_distribution.svg"
-                trace_mod_path = os.path.join(output_dir, trace_mod_filename)
-                try:
-                    plot_modulation_distribution(
-                        modulation_scores=trace_mod_scores,
-                        modulation_colors=(
-                            modulation_colors
-                            if modulation_colors
-                            else ["green", "blue", "black"]
-                        ),
-                        states=dimension_filter_list,
-                        output_filename=trace_mod_path,
-                        group_name=group_names[0],
-                        data_type="activity",
-                        dimension_label=dimension_label,
-                    )
-                    logger.info(
-                        f"Generated {group_names[0]} trace modulation distribution histogram"
-                    )
-                except Exception as e:
-                    logger.warning(
-                        f"Could not generate {group_names[0]} trace modulation histogram: {e}"
-                    )
-
-            # Generate event modulation histogram if scores are available
-            if "event_modulation_scores" in modulation_df.columns:
-                event_mod_scores = _prepare_modulation_distribution_data(
-                    modulation_df=modulation_df,
-                    score_column="event_modulation_scores",
-                    dimension_column=dimension_column,
-                )
-                event_mod_filename = "group1_event_modulation_distribution.svg"
-                event_mod_path = os.path.join(output_dir, event_mod_filename)
-                try:
-                    plot_modulation_distribution(
-                        modulation_scores=event_mod_scores,
-                        modulation_colors=(
-                            modulation_colors
-                            if modulation_colors
-                            else ["green", "blue", "black"]
-                        ),
-                        states=dimension_filter_list,
-                        output_filename=event_mod_path,
-                        group_name=group_names[0],
-                        data_type="events",
-                        dimension_label=dimension_label,
-                    )
-                    logger.info(
-                        f"Generated {group_names[0]} event modulation distribution histogram"
-                    )
-                except Exception as e:
-                    logger.warning(
-                        f"Could not generate {group_names[0]} event modulation histogram: {e}"
-                    )
-
-        # Group 2 modulation histograms (if present)
-        if (
-            group2_data
-            and "modulation" in group2_data
-            and group2_data["modulation"] is not None
-            and not group2_data["modulation"].empty
-        ):
-            modulation_df = group2_data["modulation"]
-
-            # Generate trace modulation histogram if scores are available
-            if "trace_modulation_scores" in modulation_df.columns:
-                trace_mod_scores = _prepare_modulation_distribution_data(
-                    modulation_df=modulation_df,
-                    score_column="trace_modulation_scores",
-                    dimension_column=dimension_column,
-                )
-                trace_mod_filename = "group2_trace_modulation_distribution.svg"
-                trace_mod_path = os.path.join(output_dir, trace_mod_filename)
-                try:
-                    plot_modulation_distribution(
-                        modulation_scores=trace_mod_scores,
-                        modulation_colors=(
-                            modulation_colors
-                            if modulation_colors
-                            else ["green", "blue", "black"]
-                        ),
-                        states=dimension_filter_list,
-                        output_filename=trace_mod_path,
-                        group_name=group_names[1],
-                        data_type="activity",
-                        dimension_label=dimension_label,
-                    )
-                    logger.info(
-                        f"Generated {group_names[1]} trace modulation distribution histogram"
-                    )
-                except Exception as e:
-                    logger.warning(
-                        f"Could not generate {group_names[1]} trace modulation histogram: {e}"
-                    )
-
-            # Generate event modulation histogram if scores are available
-            if "event_modulation_scores" in modulation_df.columns:
-                event_mod_scores = _prepare_modulation_distribution_data(
-                    modulation_df=modulation_df,
-                    score_column="event_modulation_scores",
-                    dimension_column=dimension_column,
-                )
-                event_mod_filename = "group2_event_modulation_distribution.svg"
-                event_mod_path = os.path.join(output_dir, event_mod_filename)
-                try:
-                    plot_modulation_distribution(
-                        modulation_scores=event_mod_scores,
-                        modulation_colors=(
-                            modulation_colors
-                            if modulation_colors
-                            else ["green", "blue", "black"]
-                        ),
-                        states=dimension_filter_list,
-                        output_filename=event_mod_path,
-                        group_name=group_names[1],
-                        data_type="events",
-                        dimension_label=dimension_label,
-                    )
-                    logger.info(
-                        f"Generated {group_names[1]} event modulation distribution histogram"
-                    )
-                except Exception as e:
-                    logger.warning(
-                        f"Could not generate {group_names[1]} event modulation histogram: {e}"
-                    )
+        if group2_data is not None and len(group_names) > 1:
+            _generate_modulation_histograms_for_group(
+                group_index=1,
+                group_label=group_names[1],
+                group_data=group2_data,
+                output_dir=output_dir,
+                dimension_column=dimension_column,
+                dimension_filter_list=dimension_filter_list,
+                dimension_label=dimension_label,
+                group_file_prefixes=group_file_prefixes,
+                modulation_colors=modulation_colors,
+                dimension_suffix=dimension_suffix,
+                group_preview_prefixes=group_preview_prefixes,  # Use real group names for previews
+            )
 
         logger.info("Completed per-group preview generation")
 
@@ -5929,6 +5195,19 @@ def _save_output_metadata(
             activity_df_g2, ["normalized_subject_id", "subject_id"]
         )
 
+    group_file_prefixes = _resolve_group_file_prefixes(group_names)
+    normalized_dimension_suffix = (
+        (comparison_dimension or "").strip().lower() or None
+    )
+
+    def _group_filename(idx: int, suffix: str) -> str:
+        return _group_output_filename(
+            group_file_prefixes,
+            idx,
+            suffix,
+            dimension_suffix=None,  # Group files don't use dimension suffix
+        )
+
     # Create base values for all output files
     base_values = {
         "num_states": len(states),
@@ -5955,9 +5234,17 @@ def _save_output_metadata(
 
     # Comprehensive metadata combining file descriptions and analysis details
     # Use Path().stem to extract keys from constants
+    group1_activity_filename = _group_filename(0, GROUP_COMBINED_ACTIVITY_SUFFIX)
+    group1_correlation_filename = _group_filename(
+        0, GROUP_COMBINED_TRACE_CORRELATION_SUFFIX
+    )
+    group1_modulation_filename = _group_filename(
+        0, GROUP_COMBINED_MODULATION_SUFFIX
+    )
+
     metadata = {
         # Group 1 combined data files
-        Path(GROUP1_COMBINED_ACTIVITY_DATA_CSV).stem: {
+        Path(group1_activity_filename).stem: {
             **base_values,
             "file_type": "combined_activity_data",
             "description": f"Combined mean activity data for {group_names[0]}",
@@ -5965,7 +5252,7 @@ def _save_output_metadata(
             "num_cells": num_cells_g1,
             "num_subjects": num_subjects_g1,
         },
-        Path(GROUP1_COMBINED_TRACE_CORRELATION_DATA_CSV).stem: {
+        Path(group1_correlation_filename).stem: {
             **base_values,
             "file_type": "combined_correlation_data",
             "description": f"Combined correlation statistics for {group_names[0]}",
@@ -5973,7 +5260,7 @@ def _save_output_metadata(
             "num_cells": num_cells_g1,
             "num_subjects": num_subjects_g1,
         },
-        Path(GROUP1_COMBINED_MODULATION_DATA_CSV).stem: {
+        Path(group1_modulation_filename).stem: {
             **base_values,
             "file_type": "combined_modulation_data",
             "description": f"Combined modulation data for {group_names[0]}",
@@ -6065,7 +5352,16 @@ def _save_output_metadata(
 
     # Add group 2 metadata if present
     if group2_data is not None:
-        metadata[Path(GROUP2_COMBINED_ACTIVITY_DATA_CSV).stem] = {
+        group2_activity_filename = _group_filename(
+            1, GROUP_COMBINED_ACTIVITY_SUFFIX
+        )
+        group2_correlation_filename = _group_filename(
+            1, GROUP_COMBINED_TRACE_CORRELATION_SUFFIX
+        )
+        group2_modulation_filename = _group_filename(
+            1, GROUP_COMBINED_MODULATION_SUFFIX
+        )
+        metadata[Path(group2_activity_filename).stem] = {
             **base_values,
             "file_type": "combined_activity_data",
             "description": f"Combined mean activity data for {group_names[1]}",
@@ -6073,7 +5369,7 @@ def _save_output_metadata(
             "num_cells": num_cells_g2,
             "num_subjects": num_subjects_g2,
         }
-        metadata[Path(GROUP2_COMBINED_TRACE_CORRELATION_DATA_CSV).stem] = {
+        metadata[Path(group2_correlation_filename).stem] = {
             **base_values,
             "file_type": "combined_correlation_data",
             "description": f"Combined correlation statistics for {group_names[1]}",
@@ -6081,7 +5377,7 @@ def _save_output_metadata(
             "num_cells": num_cells_g2,
             "num_subjects": num_subjects_g2,
         }
-        metadata[Path(GROUP2_COMBINED_MODULATION_DATA_CSV).stem] = {
+        metadata[Path(group2_modulation_filename).stem] = {
             **base_values,
             "file_type": "combined_modulation_data",
             "description": f"Combined modulation data for {group_names[1]}",
@@ -6127,6 +5423,107 @@ def _load_output_metadata_dict(output_dir: str) -> Dict[str, Any]:
     return metadata
 
 
+def _sanitize_filename_component(
+    raw_value: Optional[str],
+    fallback: str,
+) -> str:
+    """Convert a raw string value into a filesystem-safe filename component.
+    
+    Replaces all non-alphanumeric characters with underscores and strips
+    leading/trailing underscores. Returns the fallback if the result is empty.
+    
+    Args:
+        raw_value: The raw string to sanitize (e.g., "Group 1: Control")
+        fallback: The fallback value if sanitization produces an empty string
+        
+    Returns:
+        A filesystem-safe string (e.g., "Group_1_Control")
+        
+    Examples:
+        >>> _sanitize_filename_component("Wild-Type Mice", "Group1")
+        'Wild_Type_Mice'
+        >>> _sanitize_filename_component("", "Group1")
+        'Group1'
+        >>> _sanitize_filename_component(None, "Group1")
+        'Group1'
+    """
+    if raw_value is None:
+        return fallback
+    clean = re.sub(r"[^A-Za-z0-9]+", "_", str(raw_value)).strip("_")
+    return clean or fallback
+
+
+def _resolve_group_file_prefixes(group_names: Sequence[str]) -> List[str]:
+    """Generate unique, filesystem-safe filename prefixes for each group.
+    
+    Always uses generic group1, group2, etc. prefixes for consistency with
+    tool spec patterns and output registration. Group names are used for
+    display purposes in captions and metadata, not in file paths.
+    
+    Args:
+        group_names: Sequence of group display names (used only to determine count)
+        
+    Returns:
+        List of generic prefixes: ["group1", "group2", ...]
+        
+    Examples:
+        >>> _resolve_group_file_prefixes(["Control", "Treatment"])
+        ['group1', 'group2']
+        >>> _resolve_group_file_prefixes(["Wild-Type"])
+        ['group1']
+        >>> _resolve_group_file_prefixes([])
+        ['group1']
+    """
+    num_groups = max(len(group_names) if group_names else 1, 1)
+    return [f"group{idx}" for idx in range(1, num_groups + 1)]
+
+
+def _group_output_filename(
+    group_prefixes: Sequence[str],
+    group_index: int,
+    suffix: str,
+    dimension_suffix: Optional[str] = None,
+) -> str:
+    """Construct the full filename for a group's output file.
+    
+    Args:
+        group_prefixes: Pre-computed sanitized prefixes for each group
+        group_index: Zero-based index of the group (0 for Group 1, 1 for Group 2)
+        suffix: Filename suffix (e.g., "combined_activity_data.csv")
+        dimension_suffix: Optional label ("states", "epochs") inserted before the suffix
+        
+    Returns:
+        Complete filename like "Control_combined_activity_data.csv"
+        Falls back to "Group_N_suffix" if index is out of bounds.
+        
+    Examples:
+        >>> prefixes = ["Control", "Treatment"]
+        >>> _group_output_filename(prefixes, 0, "combined_activity_data.csv")
+        'Control_combined_activity_data.csv'
+        >>> _group_output_filename(prefixes, 2, "test.csv")  # Out of bounds
+        'Group_3_test.csv'
+    """
+    if group_index < len(group_prefixes):
+        prefix = group_prefixes[group_index]
+    else:
+        prefix = f"Group_{group_index + 1}"
+        
+    filename = prefix
+
+    if dimension_suffix:
+        clean_dimension = _sanitize_filename_component(
+            dimension_suffix,
+            dimension_suffix,
+        )
+        if clean_dimension:
+            filename = f"{filename}_{clean_dimension}"
+
+    if suffix:
+        filename = f"{filename}_{suffix}"
+
+    return filename
+
+
 def _derive_output_file_basename(
     group_names: List[str],
     comparison_dimension: str,
@@ -6139,11 +5536,9 @@ def _derive_output_file_basename(
     sanitized_names: List[str] = []
     for idx, raw_name in enumerate(group_names, start=1):
         fallback = f"Group_{idx}"
-        if not raw_name:
-            sanitized_names.append(fallback)
-            continue
-        clean = re.sub(r"[^A-Za-z0-9]+", "_", raw_name).strip("_")
-        sanitized_names.append(clean or fallback)
+        sanitized_names.append(
+            _sanitize_filename_component(raw_name, fallback)
+        )
 
     if len(sanitized_names) == 1:
         base = sanitized_names[0]
@@ -6159,17 +5554,31 @@ def _derive_output_file_basename(
 def _build_group_activity_previews(
     group_index: int,
     group_label: str,
+    group_file_prefixes: Sequence[str],
+    dimension_suffix: Optional[str] = None,
 ) -> List[Tuple[str, str]]:
     """Return activity preview definitions for a given group."""
-    prefix = f"group{group_index}"
     label = group_label or f"Group {group_index}"
+    zero_based_index = max(group_index - 1, 0)
+    trace_activity_filename = _group_output_filename(
+        group_file_prefixes,
+        zero_based_index,
+        "trace_activity_boxplot.svg",
+        dimension_suffix=dimension_suffix,
+    )
+    event_activity_filename = _group_output_filename(
+        group_file_prefixes,
+        zero_based_index,
+        "event_activity_boxplot.svg",
+        dimension_suffix=dimension_suffix,
+    )
     return [
         (
-            f"{prefix}_trace_activity_boxplot.svg",
+            trace_activity_filename,
             f"{label} trace activity distributions across state-epoch combinations.",
         ),
         (
-            f"{prefix}_event_activity_boxplot.svg",
+            event_activity_filename,
             f"{label} event rate distributions across state-epoch combinations.",
         ),
     ]
@@ -6178,11 +5587,13 @@ def _build_group_activity_previews(
 def _build_group_correlation_previews(
     group_index: int,
     group_label: str,
+    group_file_prefixes: Sequence[str],
+    dimension_suffix: Optional[str] = None,
     allowed_stats: Optional[Iterable[str]] = None,
 ) -> List[Tuple[str, str]]:
     """Return correlation preview definitions for a given group."""
-    prefix = f"group{group_index}"
     label = group_label or f"Group {group_index}"
+    zero_based_index = max(group_index - 1, 0)
     stat_map = {
         "max": "maximum",
         "min": "minimum",
@@ -6204,6 +5615,14 @@ def _build_group_correlation_previews(
     else:
         normalized_allowed_stats = set(stat_map.keys())
 
+    def _per_cell_filename(stat: str, trace_or_event: str, suffix: str) -> str:
+        return _group_output_filename(
+            group_file_prefixes,
+            zero_based_index,
+            f"{stat}_{trace_or_event}_correlation_{suffix}.svg",
+            dimension_suffix=dimension_suffix,
+        )
+
     previews: List[Tuple[str, str]] = []
     for stat_key, stat_text in stat_map.items():
         if stat_key not in normalized_allowed_stats:
@@ -6211,13 +5630,13 @@ def _build_group_correlation_previews(
         for source_key, source_text in data_sources.items():
             previews.append(
                 (
-                    f"{prefix}_{stat_key}_{source_key}_correlation_boxplot.svg",
+                    _per_cell_filename(stat_key, source_key, "boxplot"),
                     f"{label} {source_text} {stat_text} correlation boxplots.",
                 )
             )
             previews.append(
                 (
-                    f"{prefix}_{stat_key}_{source_key}_correlation_cdf.svg",
+                    _per_cell_filename(stat_key, source_key, "cdf"),
                     f"{label} {source_text} {stat_text} correlation ECDFs.",
                 )
             )
@@ -6229,7 +5648,12 @@ def _build_group_correlation_previews(
         for source_key, source_text in data_sources.items():
             previews.append(
                 (
-                    f"{prefix}_{direction_key}_{source_key}_population_boxplot.svg",
+                    _group_output_filename(
+                        group_file_prefixes,
+                        zero_based_index,
+                        f"{direction_key}_{source_key}_population_boxplot.svg",
+                        dimension_suffix=dimension_suffix,
+                    ),
                     f"{label} {source_text} {direction_text} population correlations.",
                 )
             )
@@ -6240,17 +5664,29 @@ def _build_group_correlation_previews(
 def _build_group_modulation_previews(
     group_index: int,
     group_label: str,
+    group_file_prefixes: Sequence[str],
+    dimension_suffix: Optional[str] = None,
 ) -> List[Tuple[str, str]]:
     """Return modulation preview definitions for a given group."""
-    prefix = f"group{group_index}"
     label = group_label or f"Group {group_index}"
+    zero_based_index = max(group_index - 1, 0)
     return [
         (
-            f"{prefix}_trace_modulation_distribution.svg",
+            _group_output_filename(
+                group_file_prefixes,
+                zero_based_index,
+                "trace_modulation_distribution.svg",
+                dimension_suffix=dimension_suffix,
+            ),
             f"{label} trace modulation classifications relative to baseline.",
         ),
         (
-            f"{prefix}_event_modulation_distribution.svg",
+            _group_output_filename(
+                group_file_prefixes,
+                zero_based_index,
+                "event_modulation_distribution.svg",
+                dimension_suffix=dimension_suffix,
+            ),
             f"{label} event modulation classifications relative to baseline.",
         ),
     ]
@@ -6369,7 +5805,8 @@ def _register_combined_tool_outputs(
 ) -> None:
     """Register output files and previews using the shared state-epoch utilities."""
 
-    registration_dir = output_dir if output_dir else ""
+    # Normalize empty output_dir to current directory for file operations
+    registration_dir = output_dir if output_dir else "."
     output_metadata = _load_output_metadata_dict(output_dir)
     output_file_basename = _derive_output_file_basename(
         group_names,
@@ -6377,12 +5814,56 @@ def _register_combined_tool_outputs(
     )
 
     resolved_group_names = group_names or ["Group 1"]
+    group_file_prefixes = _resolve_group_file_prefixes(resolved_group_names)  # ["group1", "group2"] for files/dirs
+    
+    # Create sanitized group name prefixes for human-readable preview filenames
+    group_preview_prefixes = [
+        _sanitize_filename_component(name, f"group{i+1}")
+        for i, name in enumerate(resolved_group_names)
+    ]
+    
+    normalized_dimension_suffix = (
+        (comparison_dimension or "").strip().lower() or None
+    )
+
+    def _group_file(idx: int, suffix: str) -> str:
+        # Don't include dimension_suffix for group files - they're created without it
+        return _group_output_filename(
+            group_file_prefixes,
+            idx,
+            suffix,
+            dimension_suffix=None,
+        )
+
     trace_comparison_previews = _build_trace_comparison_previews(
         comparison_dimension
     )
     event_comparison_previews = _build_event_comparison_previews(
         comparison_dimension
     )
+    comparison_preview_skip_prefixes = ("states", "epochs")
+
+    def _prerelocate_previews_to_subdir() -> None:
+        """Move all SVG preview files to .previews/ subdirectory before OutputData discovers them."""
+        if not registration_dir or not os.path.exists(registration_dir):
+            logger.warning("Registration dir is empty or doesn't exist, skipping preview relocation")
+            return
+        
+        preview_subdir = os.path.join(registration_dir, ".previews")
+        os.makedirs(preview_subdir, exist_ok=True)
+        
+        # Move all .svg files to .previews/ subdirectory
+        svg_files_moved = 0
+        for filename in os.listdir(registration_dir):
+            if filename.lower().endswith('.svg'):
+                src_path = os.path.join(registration_dir, filename)
+                dst_path = os.path.join(preview_subdir, filename)
+                if os.path.isfile(src_path):
+                    os.replace(src_path, dst_path)
+                    svg_files_moved += 1
+                    logger.debug(f"Pre-relocated preview {filename} to .previews/")
+        
+        logger.info(f"Pre-relocated {svg_files_moved} SVG preview files to .previews/ subdirectory")
 
     def _resolve_manual_previews(filename: str) -> List[Tuple[str, str]]:
         """Return statically configured preview definitions for the given file."""
@@ -6417,26 +5898,50 @@ def _register_combined_tool_outputs(
                     )
         return collected
 
-    def _register_file(filename: str, preview_defs: List[Tuple[str, str]]):
+    def _register_file(
+        filename: str,
+        preview_defs: List[Tuple[str, str]],
+        skip_preview_prefixes: Optional[Sequence[str]] = None,
+        attach_output_basename: bool = True,
+    ):
+        """Register an output file with previews, following state_epoch_baseline pattern.
+        
+        This function:
+        1. Checks if the CSV file exists
+        2. Filters preview_defs to only existing files using collect_available_previews
+        3. Adds any manually configured previews
+        4. Registers the file with filtered previews attached
+        """
         file_path = os.path.join(registration_dir, filename)
         if not os.path.exists(file_path):
             logger.debug("Skipping registration for %s (not found)", file_path)
             return
 
+        # Filter to only previews that actually exist on disk
         previews = (
-            _collect_available_previews(registration_dir, preview_defs)
+            collect_available_previews(registration_dir, preview_defs)
             if preview_defs
             else []
         )
+        
+        # Add any manual preview entries from MANUAL_PREVIEW_MAP
         manual_preview_entries = _resolve_manual_previews(filename)
         previews.extend(manual_preview_entries)
-        _process_output_file(
+        
+        prefix_rules = PreviewPrefixRules(
+            output_basename=output_file_basename,
+            skip_preview_prefixes=tuple(skip_preview_prefixes or ()),
+        )
+        register_output_file(
             output_data=output_data,
             output_dir=registration_dir,
             output_metadata=output_metadata,
             file=filename,
             output_file_basename=output_file_basename,
             preview_files=previews,
+            attach_output_basename=attach_output_basename,
+            preview_prefix_rules=prefix_rules,
+            logger_instance=logger,
         )
 
     normalized_stats: Set[str]
@@ -6450,53 +5955,130 @@ def _register_combined_tool_outputs(
     if not normalized_stats:
         normalized_stats = {"max", "min", "mean"}
 
+    # Move all preview SVG files to .previews/ subdirectory BEFORE OutputData discovers them
+    _prerelocate_previews_to_subdir()
+
     with OutputData() as output_data:
         # Group 1 outputs
         group1_label = resolved_group_names[0]
         _register_file(
-            GROUP1_COMBINED_ACTIVITY_DATA_CSV,
-            _build_group_activity_previews(1, group1_label),
-        )
-        _register_file(
-            GROUP1_COMBINED_TRACE_CORRELATION_DATA_CSV,
-            _build_group_correlation_previews(
-                1, group1_label, allowed_stats=normalized_stats
+            _group_file(0, GROUP_COMBINED_ACTIVITY_SUFFIX),
+            _build_group_activity_previews(
+                1,
+                group1_label,
+                group_preview_prefixes,  # Use real group names for previews
+                dimension_suffix=normalized_dimension_suffix,
             ),
+            skip_preview_prefixes=[group_preview_prefixes[0]],
+            attach_output_basename=False,  # Clean filenames - subdirectory provides context
         )
         _register_file(
-            GROUP1_COMBINED_MODULATION_DATA_CSV,
-            _build_group_modulation_previews(1, group1_label),
+            _group_file(0, GROUP_COMBINED_TRACE_CORRELATION_SUFFIX),
+            _build_group_correlation_previews(
+                1,
+                group1_label,
+                group_preview_prefixes,  # Use real group names for previews
+                dimension_suffix=normalized_dimension_suffix,
+                allowed_stats=normalized_stats,
+            ),
+            skip_preview_prefixes=[group_preview_prefixes[0]],
+            attach_output_basename=False,
+        )
+        _register_file(
+            _group_file(0, GROUP_COMBINED_MODULATION_SUFFIX),
+            _build_group_modulation_previews(
+                1,
+                group1_label,
+                group_preview_prefixes,  # Use real group names for previews
+                dimension_suffix=normalized_dimension_suffix,
+            ),
+            skip_preview_prefixes=[group_preview_prefixes[0]],
+            attach_output_basename=False,
         )
 
         # Group 2 outputs (if provided)
         if len(resolved_group_names) > 1:
             group2_label = resolved_group_names[1]
             _register_file(
-                GROUP2_COMBINED_ACTIVITY_DATA_CSV,
-                _build_group_activity_previews(2, group2_label),
-            )
-            _register_file(
-                GROUP2_COMBINED_TRACE_CORRELATION_DATA_CSV,
-                _build_group_correlation_previews(
-                    2, group2_label, allowed_stats=normalized_stats
+                _group_file(1, GROUP_COMBINED_ACTIVITY_SUFFIX),
+                _build_group_activity_previews(
+                    2,
+                    group2_label,
+                    group_preview_prefixes,  # Use real group names for previews
+                    dimension_suffix=normalized_dimension_suffix,
                 ),
+                skip_preview_prefixes=[group_preview_prefixes[1]],
+                attach_output_basename=False,
             )
             _register_file(
-                GROUP2_COMBINED_MODULATION_DATA_CSV,
-                _build_group_modulation_previews(2, group2_label),
+                _group_file(1, GROUP_COMBINED_TRACE_CORRELATION_SUFFIX),
+                _build_group_correlation_previews(
+                    2,
+                    group2_label,
+                    group_preview_prefixes,  # Use real group names for previews
+                    dimension_suffix=normalized_dimension_suffix,
+                    allowed_stats=normalized_stats,
+                ),
+                skip_preview_prefixes=[group_preview_prefixes[1]],
+                attach_output_basename=False,
+            )
+            _register_file(
+                _group_file(1, GROUP_COMBINED_MODULATION_SUFFIX),
+                _build_group_modulation_previews(
+                    2,
+                    group2_label,
+                    group_preview_prefixes,  # Use real group names for previews
+                    dimension_suffix=normalized_dimension_suffix,
+                ),
+                skip_preview_prefixes=[group_preview_prefixes[1]],
+                attach_output_basename=False,
             )
 
         # Statistical outputs
-        _register_file(TRACE_ANOVA_COMPARISONS_CSV, trace_comparison_previews)
-        _register_file(TRACE_PAIRWISE_COMPARISONS_CSV, [])
-        _register_file(EVENT_ANOVA_COMPARISONS_CSV, event_comparison_previews)
-        _register_file(EVENT_PAIRWISE_COMPARISONS_CSV, [])
+        _register_file(
+            TRACE_ANOVA_COMPARISONS_CSV,
+            trace_comparison_previews,
+            skip_preview_prefixes=comparison_preview_skip_prefixes,
+            attach_output_basename=False,
+        )
+        _register_file(
+            TRACE_PAIRWISE_COMPARISONS_CSV,
+            [],
+            attach_output_basename=False,
+        )
+        _register_file(
+            EVENT_ANOVA_COMPARISONS_CSV,
+            event_comparison_previews,
+            skip_preview_prefixes=comparison_preview_skip_prefixes,
+            attach_output_basename=False,
+        )
+        _register_file(
+            EVENT_PAIRWISE_COMPARISONS_CSV,
+            [],
+            attach_output_basename=False,
+        )
 
         # LMM outputs (only saved when requested)
-        _register_file(TRACE_LMM_COMPARISONS_CSV, [])
-        _register_file(TRACE_LMM_PAIRWISE_COMPARISONS_CSV, [])
-        _register_file(EVENT_LMM_COMPARISONS_CSV, [])
-        _register_file(EVENT_LMM_PAIRWISE_COMPARISONS_CSV, [])
+        _register_file(
+            TRACE_LMM_COMPARISONS_CSV,
+            [],
+            attach_output_basename=False,
+        )
+        _register_file(
+            TRACE_LMM_PAIRWISE_COMPARISONS_CSV,
+            [],
+            attach_output_basename=False,
+        )
+        _register_file(
+            EVENT_LMM_COMPARISONS_CSV,
+            [],
+            attach_output_basename=False,
+        )
+        _register_file(
+            EVENT_LMM_PAIRWISE_COMPARISONS_CSV,
+            [],
+            attach_output_basename=False,
+        )
 
 # function alias
 compare = combine_compare_state_epoch_data

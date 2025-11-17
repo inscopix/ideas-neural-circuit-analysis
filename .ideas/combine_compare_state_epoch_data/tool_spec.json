@@ -429,7 +429,7 @@
             "name": "Activity Group Comparison",
             "description": "Combined neural activity tables per group.",
             "file_patterns": [
-                "group*_combined_activity_data.csv"
+                "group*_combined_activity_data/**/*.csv"
             ]
         },
         {
@@ -437,7 +437,7 @@
             "name": "Correlation Group Comparison",
             "description": "Combined per-cell correlation tables per group.",
             "file_patterns": [
-                "group*_combined_trace_correlation_data.csv"
+                "group*_combined_trace_correlation_data/**/*.csv"
             ]
         },
         {
@@ -445,7 +445,7 @@
             "name": "Modulation Group Comparison",
             "description": "Combined modulation vs baseline tables per group.",
             "file_patterns": [
-                "group*_combined_modulation_data.csv"
+                "group*_combined_modulation_data/**/*.csv"
             ]
         },
         {
@@ -453,10 +453,10 @@
             "name": "Summary Statistics",
             "description": "ANOVA-style statistics and pairwise comparisons for trace and event measures.",
             "file_patterns": [
-                "trace_aov_comparisons.csv",
-                "trace_pairwise_comparisons.csv",
-                "event_aov_comparisons.csv",
-                "event_pairwise_comparisons.csv"
+                "trace_aov_comparisons/**/*.csv",
+                "trace_pairwise_comparisons/**/*.csv",
+                "event_aov_comparisons/**/*.csv",
+                "event_pairwise_comparisons/**/*.csv"
             ]
         },
         {
@@ -464,10 +464,10 @@
             "name": "Linear Mixed Model Results",
             "description": "Linear mixed model summaries and pairwise comparisons (generated when save_lmm_outputs=true).",
             "file_patterns": [
-                "trace_lmm_comparisons.csv",
-                "trace_lmm_pairwise_comparisons.csv",
-                "event_lmm_comparisons.csv",
-                "event_lmm_pairwise_comparisons.csv"
+                "trace_lmm_comparisons/**/*.csv",
+                "trace_lmm_pairwise_comparisons/**/*.csv",
+                "event_lmm_comparisons/**/*.csv",
+                "event_lmm_pairwise_comparisons/**/*.csv"
             ]
         },
         {
