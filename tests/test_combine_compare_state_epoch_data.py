@@ -59,6 +59,7 @@ except ImportError:  # pragma: no cover - executed only when exceptions missing
 
 from analysis.combine_compare_state_epoch_data import (  # noqa: E402
     _add_modulation_count_columns,
+    _add_modulation_counts_to_statistical_output,
 )
 from utils.state_epoch_comparison_utils import _detect_measure_column  # noqa: E402
 
@@ -562,4 +563,201 @@ class TestModulationCountsIntegration:
         # Verify updated counts (1 up, 2 down)
         assert (df_updated['trace_up_modulation_number'] == 1).all()
         assert (df_updated['trace_down_modulation_number'] == 2).all()
+
+
+class TestAddModulationCountsToStatisticalOutput:
+    """Tests for the _add_modulation_counts_to_statistical_output function."""
+
+    def test_add_counts_to_pairwise_output_trace(self):
+        """Test adding modulation counts to pairwise comparison output for trace data."""
+        # Create mock pairwise statistical output
+        pairwise_df = pd.DataFrame({
+            'A': ['baseline', 'baseline'],
+            'B': ['training', 'test'],
+            'state': ['rest', 'rest'],
+            'p-value': [0.01, 0.05],
+            'Measure_Type': ['modulation', 'modulation'],
+            'Data_Source': ['trace', 'trace'],
+        })
+
+        # Create mock modulation source data
+        modulation_df = pd.DataFrame({
+            'normalized_subject_id': ['subj1'] * 6 + ['subj2'] * 6,
+            'state': ['rest'] * 12,
+            'epoch': ['baseline'] * 2 + ['training'] * 2 + ['test'] * 2 + ['baseline'] * 2 + ['training'] * 2 + ['test'] * 2,
+            'cell_id': [1, 2, 1, 2, 1, 2] * 2,
+            'trace_modulation': [1, -1, 1, 0, -1, -1, 1, 1, 0, 1, 1, -1],
+        })
+
+        # Add counts to pairwise output
+        result = _add_modulation_counts_to_statistical_output(
+            stat_df=pairwise_df,
+            modulation_df=modulation_df,
+            comparison_dimension='epochs',
+            data_source='trace',
+            comparison_values=['baseline', 'training', 'test'],
+        )
+
+        # Verify count columns were added
+        assert 'trace_up_modulation_number' in result.columns
+        assert 'trace_down_modulation_number' in result.columns
+
+        # Verify that counts are present (exact values depend on merge logic)
+        assert result['trace_up_modulation_number'].notna().any()
+        assert result['trace_down_modulation_number'].notna().any()
+
+    def test_add_counts_to_anova_output_event(self):
+        """Test adding modulation counts to ANOVA output for event data."""
+        # Create mock ANOVA statistical output
+        anova_df = pd.DataFrame({
+            'Source': ['epoch', 'group_name', 'Interaction'],
+            'state': ['rest', 'rest', 'rest'],
+            'p_value': [0.001, 0.05, 0.1],
+            'F_statistic': [15.2, 4.1, 2.5],
+            'Measure_Type': ['modulation', 'modulation', 'modulation'],
+            'Data_Source': ['event', 'event', 'event'],
+        })
+
+        # Create mock modulation source data
+        modulation_df = pd.DataFrame({
+            'normalized_subject_id': ['subj1'] * 4 + ['subj2'] * 4,
+            'state': ['rest'] * 8,
+            'epoch': ['baseline', 'baseline', 'training', 'training'] * 2,
+            'cell_id': [1, 2, 1, 2] * 2,
+            'event_modulation': [1, -1, 1, 1, -1, -1, 0, 1],
+        })
+
+        # Add counts to ANOVA output
+        result = _add_modulation_counts_to_statistical_output(
+            stat_df=anova_df,
+            modulation_df=modulation_df,
+            comparison_dimension='epochs',
+            data_source='event',
+            comparison_values=['baseline', 'training'],
+        )
+
+        # Verify count columns were added
+        assert 'event_up_modulation_number' in result.columns
+        assert 'event_down_modulation_number' in result.columns
+
+    def test_empty_dataframes(self):
+        """Test handling of empty dataframes."""
+        empty_stat = pd.DataFrame()
+        empty_mod = pd.DataFrame()
+
+        result = _add_modulation_counts_to_statistical_output(
+            stat_df=empty_stat,
+            modulation_df=empty_mod,
+            comparison_dimension='epochs',
+            data_source='trace',
+            comparison_values=['baseline'],
+        )
+
+        assert result.empty
+
+    def test_missing_modulation_column(self):
+        """Test handling when modulation column is missing."""
+        stat_df = pd.DataFrame({
+            'A': ['baseline'],
+            'B': ['training'],
+            'state': ['rest'],
+        })
+
+        # Modulation data without trace_modulation column
+        modulation_df = pd.DataFrame({
+            'normalized_subject_id': ['subj1'],
+            'state': ['rest'],
+            'epoch': ['baseline'],
+        })
+
+        result = _add_modulation_counts_to_statistical_output(
+            stat_df=stat_df,
+            modulation_df=modulation_df,
+            comparison_dimension='epochs',
+            data_source='trace',
+            comparison_values=['baseline'],
+        )
+
+        # Should return original dataframe unchanged
+        assert 'trace_up_modulation_number' not in result.columns
+        assert 'trace_down_modulation_number' not in result.columns
+        pd.testing.assert_frame_equal(result, stat_df)
+
+    def test_counts_filtered_to_requested_states(self):
+        """Counts should respect comparison values even if state column missing."""
+        stat_df = pd.DataFrame({
+            'epoch': ['baseline'],
+            'Measure_Type': ['modulation'],
+            'Data_Source': ['trace'],
+        })
+
+        modulation_df = pd.DataFrame({
+            'epoch': ['baseline'] * 4,
+            'state': ['rest', 'rest', 'active', 'active'],
+            'trace_modulation': [1, -1, 1, -1],
+        })
+
+        result = _add_modulation_counts_to_statistical_output(
+            stat_df=stat_df,
+            modulation_df=modulation_df,
+            comparison_dimension='states',
+            data_source='trace',
+            comparison_values=['rest'],
+        )
+
+        assert len(result) == 1
+        assert result.loc[0, 'trace_up_modulation_number'] == 1
+        assert result.loc[0, 'trace_down_modulation_number'] == 1
+
+    def test_merge_does_not_duplicate_rows_without_comparison_column(self):
+        """Merging on partial columns should not duplicate statistical rows."""
+        stat_df = pd.DataFrame({
+            'epoch': ['baseline', 'training'],
+            'Measure_Type': ['modulation', 'modulation'],
+            'Data_Source': ['trace', 'trace'],
+            'value': [0.1, 0.2],
+        })
+
+        modulation_df = pd.DataFrame({
+            'epoch': ['baseline'] * 4 + ['training'] * 4,
+            'state': ['rest', 'active', 'rest', 'active'] * 2,
+            'trace_modulation': [1, -1, 1, -1, 1, 1, -1, -1],
+        })
+
+        result = _add_modulation_counts_to_statistical_output(
+            stat_df=stat_df,
+            modulation_df=modulation_df,
+            comparison_dimension='states',
+            data_source='trace',
+            comparison_values=['rest', 'active'],
+        )
+
+        assert len(result) == len(stat_df)
+        assert (result['trace_up_modulation_number'] >= 0).all()
+
+    def test_placeholder_state_values_are_ignored(self):
+        """Placeholder values like 'NA' should not prevent merges."""
+        stat_df = pd.DataFrame({
+            'state': ['NA', 'NA'],
+            'epoch': ['baseline', 'training'],
+            'Measure_Type': ['modulation', 'modulation'],
+            'Data_Source': ['trace', 'trace'],
+        })
+
+        modulation_df = pd.DataFrame({
+            'epoch': ['baseline'] * 3 + ['training'] * 3,
+            'state': ['rest', 'active', 'rest', 'rest', 'active', 'rest'],
+            'trace_modulation': [1, -1, 1, 1, -1, -1],
+        })
+
+        result = _add_modulation_counts_to_statistical_output(
+            stat_df=stat_df,
+            modulation_df=modulation_df,
+            comparison_dimension='states',
+            data_source='trace',
+            comparison_values=['rest', 'active'],
+        )
+
+        assert 'trace_up_modulation_number' in result.columns
+        assert result.loc[result['epoch'] == 'baseline', 'trace_up_modulation_number'].iloc[0] == 2
 

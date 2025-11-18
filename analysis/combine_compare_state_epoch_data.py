@@ -2473,6 +2473,175 @@ def _add_modulation_count_columns(
     return result
 
 
+def _add_modulation_counts_to_statistical_output(
+    stat_df: pd.DataFrame,
+    modulation_df: pd.DataFrame,
+    comparison_dimension: str,
+    data_source: str,
+    comparison_values: Optional[List[str]] = None,
+) -> pd.DataFrame:
+    """Add modulation count columns to statistical output dataframes.
+    
+    This function enriches statistical output (ANOVA or pairwise) with modulation counts
+    (up/down-modulated cell counts) by aggregating from the cell-level modulation dataframe.
+    
+    Parameters
+    ----------
+    stat_df : pd.DataFrame
+        Statistical output dataframe (ANOVA or pairwise results)
+    modulation_df : pd.DataFrame
+        Modulation dataframe with cell-level modulation values
+    comparison_dimension : str
+        Either "states" or "epochs" - indicates which dimension is being compared
+    data_source : str
+        Either "trace" or "event" - indicates which data source is being analyzed
+    comparison_values : Optional[List[str]]
+        Explicit list of comparison dimension values included in the statistical analysis.
+        When provided, modulation counts are limited to these values so they align with the
+        population of cells used to compute the statistics.
+    
+    Returns
+    -------
+    pd.DataFrame
+        Statistical output dataframe with added modulation count columns
+    """
+    if (
+        stat_df is None
+        or stat_df.empty
+        or modulation_df is None
+        or modulation_df.empty
+    ):
+        return stat_df
+
+    result = stat_df.copy()
+    filtered_modulation = modulation_df.copy()
+
+    # Determine column names based on data source
+    modulation_col = f"{data_source}_modulation"
+    up_count_col = f"{data_source}_up_modulation_number"
+    down_count_col = f"{data_source}_down_modulation_number"
+
+    # Check if modulation column exists
+    if modulation_col not in modulation_df.columns:
+        logger.debug(
+            f"Modulation column {modulation_col} not found in source data. "
+            "Skipping modulation count addition."
+        )
+        return result
+    
+    # Determine the comparison column name (state or epoch)
+    comp_col = comparison_dimension[:-1]  # "state" or "epoch"
+    other_col = "epoch" if comp_col == "state" else "state"
+
+    # Restrict modulation data to requested comparison values (if provided)
+    if (
+        comparison_values
+        and comp_col in filtered_modulation.columns
+        and not filtered_modulation.empty
+    ):
+        filtered_modulation = filtered_modulation[
+            filtered_modulation[comp_col].isin(comparison_values)
+        ]
+
+    if filtered_modulation.empty:
+        logger.debug("No modulation data after filtering by comparison values")
+        return result
+
+    placeholder_values = {"na", "not_applicable", "not applicable", ""}
+
+    def _is_placeholder(value: Any) -> bool:
+        if pd.isna(value):
+            return True
+        if isinstance(value, str):
+            return value.strip().lower() in placeholder_values
+        return False
+
+    # Determine grouping columns available for aggregation
+    grouping_cols: List[str] = []
+    if "group_name" in filtered_modulation.columns:
+        grouping_cols.append("group_name")
+    if comp_col in filtered_modulation.columns:
+        grouping_cols.append(comp_col)
+    if other_col in filtered_modulation.columns:
+        grouping_cols.append(other_col)
+
+    if not grouping_cols:
+        logger.debug("No suitable grouping columns found for modulation counts")
+        return result
+
+    merge_cols: List[str] = []
+    value_filters: Dict[str, np.ndarray] = {}
+    for col in grouping_cols:
+        if col not in result.columns:
+            continue
+        stat_series = result[col]
+        stat_values = stat_series.dropna().unique()
+        meaningful_values = np.array(
+            [val for val in stat_values if not _is_placeholder(val)]
+        )
+        if meaningful_values.size == 0:
+            continue
+        merge_cols.append(col)
+        value_filters[col] = meaningful_values
+
+    if not merge_cols:
+        logger.debug(
+            "Could not merge modulation counts: no matching columns between "
+            "statistical output and modulation data"
+        )
+        return result
+
+    # Filter modulation data to values present in statistical output for merge cols
+    for col in merge_cols:
+        filter_values = value_filters.get(col)
+        if filter_values is None or filter_values.size == 0:
+            continue
+        filtered_modulation = filtered_modulation[
+            filtered_modulation[col].isin(filter_values)
+        ]
+        if filtered_modulation.empty:
+            logger.debug(
+                "No overlapping modulation data after filtering by statistical output values"
+            )
+            return result
+
+    # Align grouping to merge columns to avoid duplicating statistical rows
+    counts_grouping_cols = merge_cols.copy()
+
+    if not counts_grouping_cols:
+        logger.debug(
+            "No grouping columns remained after filtering; skipping modulation counts merge"
+        )
+        return result
+
+    # Compute counts using agg to get proper columns
+    counts_df = (
+        filtered_modulation.groupby(counts_grouping_cols, dropna=False)[
+            modulation_col
+        ].agg(
+            [
+                (up_count_col, lambda x: (x == 1).sum()),
+                (down_count_col, lambda x: (x == -1).sum()),
+            ]
+        )
+    ).reset_index()
+
+    if counts_df.empty:
+        logger.debug("No modulation counts computed after filtering")
+        return result
+
+    result = result.merge(
+        counts_df,
+        on=counts_grouping_cols,
+        how="left",
+    )
+    logger.debug(
+        f"Added modulation counts to statistical output: {up_count_col}, {down_count_col}"
+    )
+
+    return result
+
+
 def _reclassify_state_epoch_neurons(
     group_data: Dict[str, Any],
     states: List[str],
@@ -2965,6 +3134,17 @@ def _perform_statistical_comparison_csv(
                     measure_type  # "activity", "correlation", "modulation"
                 )
                 aov_df["Data_Source"] = data_source  # "trace" or "event"
+                
+                # Add modulation counts for modulation measures
+                if measure_type == "modulation":
+                    aov_df = _add_modulation_counts_to_statistical_output(
+                        stat_df=aov_df,
+                        modulation_df=source_frame,
+                        comparison_dimension=comparison_dimension,
+                        data_source=data_source,
+                        comparison_values=comparison_values,
+                    )
+                
                 all_aov_dfs.append(aov_df)
 
             if pairwise_df is not None and not pairwise_df.empty:
@@ -2972,6 +3152,17 @@ def _perform_statistical_comparison_csv(
                 pairwise_df["Measure"] = measure_label
                 pairwise_df["Measure_Type"] = measure_type
                 pairwise_df["Data_Source"] = data_source
+                
+                # Add modulation counts for modulation measures
+                if measure_type == "modulation":
+                    pairwise_df = _add_modulation_counts_to_statistical_output(
+                        stat_df=pairwise_df,
+                        modulation_df=source_frame,
+                        comparison_dimension=comparison_dimension,
+                        data_source=data_source,
+                        comparison_values=comparison_values,
+                    )
+                
                 all_pairwise_dfs.append(pairwise_df)
 
             if lmm_df is not None and not lmm_df.empty:
@@ -2992,6 +3183,17 @@ def _perform_statistical_comparison_csv(
                 lmm_df["Comparison"] = (
                     f"{comparison_col.capitalize()} Comparison"
                 )
+                
+                # Add modulation counts for modulation measures
+                if measure_type == "modulation":
+                    lmm_df = _add_modulation_counts_to_statistical_output(
+                        stat_df=lmm_df,
+                        modulation_df=source_frame,
+                        comparison_dimension=comparison_dimension,
+                        data_source=data_source,
+                        comparison_values=comparison_values,
+                    )
+                
                 all_lmm_output_dfs.append(lmm_df.copy())
                 lmm_df = _finalize_statistical_output(lmm_df, "anova")
                 all_lmm_dfs.append(lmm_df)
@@ -3005,6 +3207,17 @@ def _perform_statistical_comparison_csv(
                     lmm_pairwise_df["Comparison"] = (
                         f"{comparison_col.capitalize()} Comparison"
                     )
+                
+                # Add modulation counts for modulation measures
+                if measure_type == "modulation":
+                    lmm_pairwise_df = _add_modulation_counts_to_statistical_output(
+                        stat_df=lmm_pairwise_df,
+                        modulation_df=source_frame,
+                        comparison_dimension=comparison_dimension,
+                        data_source=data_source,
+                        comparison_values=comparison_values,
+                    )
+                
                 all_lmm_pairwise_dfs.append(lmm_pairwise_df)
 
         # Combine all results
