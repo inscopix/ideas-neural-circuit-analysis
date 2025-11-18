@@ -316,80 +316,85 @@ def state_epoch_baseline_analysis(
             output_file_basename += "_"
         output_file_basename += cell_set_file_name + "_"
 
-    with open_output_data() as output_data:
-        output_data.register_file(
-            "activity_per_state_epoch_data.csv",
-            subdir="activity_per_state_epoch_data",
-            prefix=output_file_basename
-        ).register_preview(
-            "population_average_preview.svg",
-            caption="Average neural activity across state-epoch combinations. Bar plot showing mean activity ± standard error for each state-epoch combination."
-        ).register_preview(
-            "event_average_preview.svg",
-            caption="Average event rates across state-epoch combinations. Box plots showing event frequency distributions when event data is available."
-        ).register_preview(
-            "trace_state_overlay.svg",
-            caption="Trace preview with state-colored traces showing neural activity patterns colored by behavioral state."
-        ).register_preview(
-            "trace_epoch_overlay.svg",
-            caption="Trace preview with epoch overlay boxes showing neural activity patterns with epoch time periods highlighted."
-        ).register_preview(
-            "event_state_overlay.svg",
-            caption="Event raster plot with state-colored events showing event patterns colored by behavioral state."
-        ).register_preview(
-            "event_epoch_overlay.svg",
-            caption="Combined event visualization with population average activity and raster plot showing event patterns with epoch time periods highlighted, formatted similar to Event_State_Overlay."
-        ).register_metadata_dict(
-            **output_metadata["activity_per_state_epoch_data"]
-        )
+    try:
+        with open_output_data(raise_missing_file=False) as output_data:
+            output_data.register_file(
+                "activity_per_state_epoch_data.csv",
+                subdir="activity_per_state_epoch_data",
+                prefix=output_file_basename
+            ).register_preview(
+                "population_average_preview.svg",
+                caption="Average neural activity across state-epoch combinations. Bar plot showing mean activity ± standard error for each state-epoch combination."
+            ).register_preview(
+                "event_average_preview.svg",
+                caption="Average event rates across state-epoch combinations. Box plots showing event frequency distributions when event data is available."
+            ).register_preview(
+                "trace_state_overlay.svg",
+                caption="Trace preview with state-colored traces showing neural activity patterns colored by behavioral state."
+            ).register_preview(
+                "trace_epoch_overlay.svg",
+                caption="Trace preview with epoch overlay boxes showing neural activity patterns with epoch time periods highlighted."
+            ).register_preview(
+                "event_state_overlay.svg",
+                caption="Event raster plot with state-colored events showing event patterns colored by behavioral state."
+            ).register_preview(
+                "event_epoch_overlay.svg",
+                caption="Combined event visualization with population average activity and raster plot showing event patterns with epoch time periods highlighted, formatted similar to Event_State_Overlay."
+            ).register_metadata_dict(
+                **output_metadata["activity_per_state_epoch_data"]
+            )
 
-        output_data.register_file(
-            "correlations_per_state_epoch_data.csv",
-            subdir="correlations_per_state_epoch_data"
-        ).register_preview(
-            "spatial_correlation_preview.svg",
-            caption="Relationship between spatial distance and neural correlation across different state-epoch combinations. Scatter plots show pairwise neural correlation versus physical distance between cell centroids."
-        ).register_preview(
-            "spatial_correlation_map_preview.svg",
-            caption="Spatial map of neural correlations across state-epoch combinations. Colored lines connect neuron pairs above the correlation threshold, with line color indicating correlation strength."
-        ).register_preview(
-            "correlation_matrices_preview.svg",
-            caption="Pairwise Pearson correlation matrices between neurons for each state-epoch combination. Shows how neural correlations change across different conditions."
-        ).register_preview(
-            "average_correlations_preview.svg",
-            caption="Bar plots showing average positive and negative correlations for each state-epoch combination. Provides summary statistics of correlation patterns."
-        ).register_metadata_dict(
-            **output_metadata["correlations_per_state_epoch_data"]
-        )
-        
-        output_data.register_file(
-            "modulation_vs_baseline_data.csv",
-            subdir="modulation_vs_baseline_data"
-        ).register_preview(
-            "modulation_histogram_preview.svg",
-            caption="Distribution of modulation scores across neurons relative to baseline. Histograms show the modulation scores for all neurons compared to the baseline state-epoch combination."
-        ).register_preview(
-            "modulation_footprint_preview.svg",
-            caption="Spatial distribution of modulated neurons relative to baseline. Cell footprints are colored by modulation direction and significance relative to the baseline state-epoch combination."
-        ).register_preview(
-            "event_modulation_preview.svg",
-            caption="Spatial footprints of event-modulated neurons relative to baseline. Cell maps colored by event modulation significance when event data is available."
-        ).register_preview(
-            "event_modulation_histogram_preview.svg",
-            caption="Distribution of event modulation scores across neurons relative to baseline. Histograms showing event modulation when event data is available."
-        ).register_metadata_dict(
-            **output_metadata["modulation_vs_baseline_data"]
-        )
+            output_data.register_file(
+                "correlations_per_state_epoch_data.csv",
+                subdir="correlations_per_state_epoch_data",
+                prefix=output_file_basename
+            ).register_preview(
+                "spatial_correlation_preview.svg",
+                caption="Relationship between spatial distance and neural correlation across different state-epoch combinations. Scatter plots show pairwise neural correlation versus physical distance between cell centroids."
+            ).register_preview(
+                "spatial_correlation_map_preview.svg",
+                caption="Spatial map of neural correlations across state-epoch combinations. Colored lines connect neuron pairs above the correlation threshold, with line color indicating correlation strength."
+            ).register_preview(
+                "correlation_matrices_preview.svg",
+                caption="Pairwise Pearson correlation matrices between neurons for each state-epoch combination. Shows how neural correlations change across different conditions."
+            ).register_preview(
+                "average_correlations_preview.svg",
+                caption="Bar plots showing average positive and negative correlations for each state-epoch combination. Provides summary statistics of correlation patterns."
+            ).register_metadata_dict(
+                **output_metadata["correlations_per_state_epoch_data"]
+            )
+            
+            output_data.register_file(
+                "modulation_vs_baseline_data.csv",
+                subdir="modulation_vs_baseline_data",
+                prefix=output_file_basename
+            ).register_preview(
+                "modulation_histogram_preview.svg",
+                caption="Distribution of modulation scores across neurons relative to baseline. Histograms show the modulation scores for all neurons compared to the baseline state-epoch combination."
+            ).register_preview(
+                "modulation_footprint_preview.svg",
+                caption="Spatial distribution of modulated neurons relative to baseline. Cell footprints are colored by modulation direction and significance relative to the baseline state-epoch combination."
+            ).register_preview(
+                "event_modulation_preview.svg",
+                caption="Spatial footprints of event-modulated neurons relative to baseline. Cell maps colored by event modulation significance when event data is available."
+            ).register_preview(
+                "event_modulation_histogram_preview.svg",
+                caption="Distribution of event modulation scores across neurons relative to baseline. Histograms showing event modulation when event data is available."
+            ).register_metadata_dict(
+                **output_metadata["modulation_vs_baseline_data"]
+            )
 
-        output_data.register_file("average_correlations.csv").register_metadata_dict(
-            **output_metadata["average_correlations"]
-        )
-        output_data.register_file("pairwise_correlation_heatmaps.h5").register_metadata_dict(
-            **output_metadata["pairwise_correlation_heatmaps"]
-        )
-        output_data.register_file("spatial_analysis_pairwise_correlations.zip").register_metadata_dict(
-            **output_metadata["spatial_analysis_pairwise_correlations"]
-        )
+            output_data.register_file("average_correlations.csv", prefix=output_file_basename).register_metadata_dict(
+                **output_metadata["average_correlations"]
+            )
+            output_data.register_file("pairwise_correlation_heatmaps.h5", prefix=output_file_basename).register_metadata_dict(
+                **output_metadata["pairwise_correlation_heatmaps"]
+            )
+            output_data.register_file("spatial_analysis_pairwise_correlations.zip", prefix=output_file_basename).register_metadata_dict(
+                **output_metadata["spatial_analysis_pairwise_correlations"]
+            )
+    except Exception:
+        logger.exception("Failed to generate output data!")
 
     logger.info("State-epoch baseline analysis completed successfully")
 

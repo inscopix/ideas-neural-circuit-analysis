@@ -5777,6 +5777,7 @@ class TestEpochToolCompatibility:
 
     def _verify_modulation_values_are_epoch_based(self, output_dir: str):
         """Verify that modulation analysis compares epochs (not states)."""
+        print("HIIII ", os.listdir(output_dir))
         modulation_file = Path(output_dir) / "modulation_vs_baseline_data" / "cellset_modulation_vs_baseline_data.csv"
         assert (
             modulation_file.exists()
