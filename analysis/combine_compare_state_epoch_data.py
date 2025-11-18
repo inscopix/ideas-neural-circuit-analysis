@@ -38,6 +38,10 @@ Files with previews are organized in subdirectories for better organization:
    - states_comparison_trace_correlation.svg OR epochs_comparison_trace_correlation.svg
    - states_comparison_event_activity.svg OR epochs_comparison_event_activity.svg
    - states_comparison_event_correlation.svg OR epochs_comparison_event_correlation.svg
+   - states_comparison_trace_up_modulated_counts.svg OR epochs_comparison_trace_up_modulated_counts.svg
+   - states_comparison_trace_down_modulated_counts.svg OR epochs_comparison_trace_down_modulated_counts.svg
+   - states_comparison_event_up_modulated_counts.svg OR epochs_comparison_event_up_modulated_counts.svg
+   - states_comparison_event_down_modulated_counts.svg OR epochs_comparison_event_down_modulated_counts.svg
 
 """
 
@@ -285,6 +289,32 @@ STATES_COMPARISON_EVENT_MODULATION_SVG = (
 )
 EPOCHS_COMPARISON_EVENT_MODULATION_SVG = (
     "epochs_comparison_event_modulation.svg"
+)
+
+# Modulated cell counts comparison preview files
+STATES_COMPARISON_TRACE_UP_MODULATED_COUNTS_SVG = (
+    "states_comparison_trace_up_modulated_counts.svg"
+)
+EPOCHS_COMPARISON_TRACE_UP_MODULATED_COUNTS_SVG = (
+    "epochs_comparison_trace_up_modulated_counts.svg"
+)
+STATES_COMPARISON_TRACE_DOWN_MODULATED_COUNTS_SVG = (
+    "states_comparison_trace_down_modulated_counts.svg"
+)
+EPOCHS_COMPARISON_TRACE_DOWN_MODULATED_COUNTS_SVG = (
+    "epochs_comparison_trace_down_modulated_counts.svg"
+)
+STATES_COMPARISON_EVENT_UP_MODULATED_COUNTS_SVG = (
+    "states_comparison_event_up_modulated_counts.svg"
+)
+EPOCHS_COMPARISON_EVENT_UP_MODULATED_COUNTS_SVG = (
+    "epochs_comparison_event_up_modulated_counts.svg"
+)
+STATES_COMPARISON_EVENT_DOWN_MODULATED_COUNTS_SVG = (
+    "states_comparison_event_down_modulated_counts.svg"
+)
+EPOCHS_COMPARISON_EVENT_DOWN_MODULATED_COUNTS_SVG = (
+    "epochs_comparison_event_down_modulated_counts.svg"
 )
 
 
@@ -2104,6 +2134,8 @@ def _load_group_data(
             modulation_dfs.append(df)
 
         combined_modulation = pd.concat(modulation_dfs, ignore_index=True)
+        # Add count columns for up/down modulated cells
+        combined_modulation = _add_modulation_count_columns(combined_modulation)
         logger.info(f"Loaded modulation data for {group_name}")
     else:
         logger.info(
@@ -2336,6 +2368,111 @@ def _extract_metadata_from_data(
     return states, epochs, baseline_state, baseline_epoch
 
 
+def _add_modulation_count_columns(
+    modulation_df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Add count columns for up-modulated and down-modulated cells to the modulation dataframe.
+    
+    For each source (trace, event), this function adds columns that count the number of
+    up-modulated and down-modulated cells per subject/state/epoch grouping (and per group
+    when group identifiers are available). This allows downstream consumers (including bar
+    plots) to use the standard modulation dataframe with _filter_data_by_source and melt
+    operations.
+    
+    Parameters
+    ----------
+    modulation_df : pd.DataFrame
+        Modulation dataframe with trace_modulation and/or event_modulation columns
+        
+    Returns
+    -------
+    pd.DataFrame
+        Modulation dataframe with added count columns:
+        - trace_up_modulation_number
+        - trace_down_modulation_number
+        - event_up_modulation_number
+        - event_down_modulation_number
+    """
+    if modulation_df is None or modulation_df.empty:
+        return modulation_df
+    
+    # Check for required grouping columns
+    base_grouping_cols = ["normalized_subject_id", "state", "epoch"]
+    missing_cols = [col for col in base_grouping_cols if col not in modulation_df.columns]
+    if missing_cols:
+        logger.warning(
+            "Cannot add modulation count columns: missing required grouping columns "
+            f"({missing_cols}). Skipping count column addition."
+        )
+        return modulation_df
+    
+    result = modulation_df.copy()
+    grouping_columns = base_grouping_cols.copy()
+    optional_grouping_cols = ["group_name", "group_id"]
+    for column in optional_grouping_cols:
+        if column in result.columns and column not in grouping_columns:
+            grouping_columns.append(column)
+    
+    # Process each source (trace, event)
+    for source in ("trace", "event"):
+        modulation_col = f"{source}_modulation"
+        up_col_name = f"{source}_up_modulation_number"
+        down_col_name = f"{source}_down_modulation_number"
+        
+        # Skip if this source's modulation column doesn't exist
+        if modulation_col not in result.columns:
+            continue
+        
+        # Drop existing count columns if they exist (to allow recomputation)
+        if up_col_name in result.columns:
+            result = result.drop(columns=[up_col_name])
+        if down_col_name in result.columns:
+            result = result.drop(columns=[down_col_name])
+        
+        # Compute counts per grouping (subject/state/epoch[/group])
+        grouped = result.groupby(grouping_columns, dropna=False)
+        
+        # Count up-modulated cells (value == 1)
+        up_counts = grouped[modulation_col].apply(
+            lambda x: (x == 1).sum()
+        ).reset_index()
+        up_counts.columns = grouping_columns + [up_col_name]
+        
+        # Count down-modulated cells (value == -1)
+        down_counts = grouped[modulation_col].apply(
+            lambda x: (x == -1).sum()
+        ).reset_index()
+        down_counts.columns = grouping_columns + [down_col_name]
+        
+        # Merge counts back into the result dataframe
+        result = result.merge(
+            up_counts,
+            on=grouping_columns,
+            how="left",
+        )
+        result = result.merge(
+            down_counts,
+            on=grouping_columns,
+            how="left",
+        )
+        
+        # Fill NaN values with 0 (shouldn't happen, but be safe)
+        result[up_col_name] = (
+            result[up_col_name].fillna(0).astype(int)
+        )
+        result[down_col_name] = (
+            result[down_col_name].fillna(0).astype(int)
+        )
+        
+        logger.debug(
+            f"Added modulation count columns for {source}: "
+            f"{source}_up_modulation_number, {source}_down_modulation_number "
+            f"(grouped by {grouping_columns})"
+        )
+    
+    return result
+
+
 def _reclassify_state_epoch_neurons(
     group_data: Dict[str, Any],
     states: List[str],
@@ -2464,6 +2601,10 @@ def _reclassify_state_epoch_neurons(
         logger.debug(
             f"  {combination}: {up} up-modulated, {down} down-modulated, {non} non-modulated"
         )
+
+    # Recompute modulation count columns after reclassification
+    # This ensures the count columns reflect the new classifications
+    modulation_df = _add_modulation_count_columns(modulation_df)
 
     # Update the modulation DataFrame in the group data
     updated_data["modulation"] = modulation_df
@@ -3132,6 +3273,7 @@ def _perform_statistical_comparison_csv(
         }
 
 
+
 def _generate_combined_outputs_csv(
     group1_data: Dict[str, Any],
     group2_data: Optional[Dict[str, Any]],
@@ -3398,6 +3540,8 @@ def _generate_combined_outputs_csv(
     event_activity_selected = "event" in selected_source_sets["activity"]
     trace_correlation_selected = "trace" in selected_source_sets["correlation"]
     event_correlation_selected = "event" in selected_source_sets["correlation"]
+    trace_modulation_selected = "trace" in selected_source_sets["modulation"]
+    event_modulation_selected = "event" in selected_source_sets["modulation"]
 
     # ========================================================================
     # GENERATE PER-GROUP PREVIEW PLOTS (matching standard-python toolbox)
@@ -3490,6 +3634,89 @@ def _generate_combined_outputs_csv(
                         data_pairing=data_pairing,
                         output_dir=output_dir,
                         data_type="event_modulation",
+                    )
+                
+                # Generate modulated cell counts comparison plots
+                # Following the same pattern as positive/negative correlation plots
+                
+                # Trace up-modulated cell counts
+                if (
+                    not trace_modulation.empty
+                    and "trace_up_modulation_number" in trace_modulation.columns
+                    and trace_modulation["trace_up_modulation_number"].notna().any()
+                ):
+                    plot_state_epoch_comparison(
+                        data=trace_modulation,
+                        group_names=group_names,
+                        group_colors=group_colors,
+                        states=states,
+                        epochs=epochs,
+                        baseline_state=baseline_state,
+                        baseline_epoch=baseline_epoch,
+                        comparison_dimension=comparison_dimension,
+                        data_pairing=data_pairing,
+                        output_dir=output_dir,
+                        data_type="trace_up_modulated_counts",
+                    )
+                
+                # Trace down-modulated cell counts
+                if (
+                    not trace_modulation.empty
+                    and "trace_down_modulation_number" in trace_modulation.columns
+                    and trace_modulation["trace_down_modulation_number"].notna().any()
+                ):
+                    plot_state_epoch_comparison(
+                        data=trace_modulation,
+                        group_names=group_names,
+                        group_colors=group_colors,
+                        states=states,
+                        epochs=epochs,
+                        baseline_state=baseline_state,
+                        baseline_epoch=baseline_epoch,
+                        comparison_dimension=comparison_dimension,
+                        data_pairing=data_pairing,
+                        output_dir=output_dir,
+                        data_type="trace_down_modulated_counts",
+                    )
+                
+                # Event up-modulated cell counts
+                if (
+                    not event_modulation.empty
+                    and "event_up_modulation_number" in event_modulation.columns
+                    and event_modulation["event_up_modulation_number"].notna().any()
+                ):
+                    plot_state_epoch_comparison(
+                        data=event_modulation,
+                        group_names=group_names,
+                        group_colors=group_colors,
+                        states=states,
+                        epochs=epochs,
+                        baseline_state=baseline_state,
+                        baseline_epoch=baseline_epoch,
+                        comparison_dimension=comparison_dimension,
+                        data_pairing=data_pairing,
+                        output_dir=output_dir,
+                        data_type="event_up_modulated_counts",
+                    )
+                
+                # Event down-modulated cell counts
+                if (
+                    not event_modulation.empty
+                    and "event_down_modulation_number" in event_modulation.columns
+                    and event_modulation["event_down_modulation_number"].notna().any()
+                ):
+                    plot_state_epoch_comparison(
+                        data=event_modulation,
+                        group_names=group_names,
+                        group_colors=group_colors,
+                        states=states,
+                        epochs=epochs,
+                        baseline_state=baseline_state,
+                        baseline_epoch=baseline_epoch,
+                        comparison_dimension=comparison_dimension,
+                        data_pairing=data_pairing,
+                        output_dir=output_dir,
+                        data_type="event_down_modulated_counts",
                     )
             else:
                 logger.info(
@@ -5784,6 +6011,14 @@ def _build_trace_comparison_previews(
                 STATES_COMPARISON_TRACE_MODULATION_SVG,
                 "Trace modulation prevalence across states.",
             ),
+            (
+                STATES_COMPARISON_TRACE_UP_MODULATED_COUNTS_SVG,
+                "Number of up-modulated cells compared across states (trace data).",
+            ),
+            (
+                STATES_COMPARISON_TRACE_DOWN_MODULATED_COUNTS_SVG,
+                "Number of down-modulated cells compared across states (trace data).",
+            ),
         ]
 
     return [
@@ -5806,6 +6041,14 @@ def _build_trace_comparison_previews(
         (
             EPOCHS_COMPARISON_TRACE_MODULATION_SVG,
             "Trace modulation prevalence across epochs.",
+        ),
+        (
+            EPOCHS_COMPARISON_TRACE_UP_MODULATED_COUNTS_SVG,
+            "Number of up-modulated cells compared across epochs (trace data).",
+        ),
+        (
+            EPOCHS_COMPARISON_TRACE_DOWN_MODULATED_COUNTS_SVG,
+            "Number of down-modulated cells compared across epochs (trace data).",
         ),
     ]
 
@@ -5836,6 +6079,14 @@ def _build_event_comparison_previews(
                 STATES_COMPARISON_EVENT_MODULATION_SVG,
                 "Event modulation prevalence across states.",
             ),
+            (
+                STATES_COMPARISON_EVENT_UP_MODULATED_COUNTS_SVG,
+                "Number of up-modulated cells compared across states (event data).",
+            ),
+            (
+                STATES_COMPARISON_EVENT_DOWN_MODULATED_COUNTS_SVG,
+                "Number of down-modulated cells compared across states (event data).",
+            ),
         ]
 
     return [
@@ -5858,6 +6109,14 @@ def _build_event_comparison_previews(
         (
             EPOCHS_COMPARISON_EVENT_MODULATION_SVG,
             "Event modulation prevalence across epochs.",
+        ),
+        (
+            EPOCHS_COMPARISON_EVENT_UP_MODULATED_COUNTS_SVG,
+            "Number of up-modulated cells compared across epochs (event data).",
+        ),
+        (
+            EPOCHS_COMPARISON_EVENT_DOWN_MODULATED_COUNTS_SVG,
+            "Number of down-modulated cells compared across epochs (event data).",
         ),
     ]
 

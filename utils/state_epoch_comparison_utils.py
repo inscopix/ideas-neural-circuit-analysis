@@ -2785,6 +2785,9 @@ def _detect_measure_column(
     available_columns = set(data.columns)
 
     normalized_type = data_type.lower().strip()
+    # Normalize common synonyms so that "modulated" variants map to modulation logic
+    if "modulated" in normalized_type and "modulation" not in normalized_type:
+        normalized_type = normalized_type.replace("modulated", "modulation")
     if "activity" in normalized_type:
         base_type = "activity"
     elif "correlation" in normalized_type:
@@ -2893,11 +2896,35 @@ def _detect_measure_column(
             ]
         )
     elif base_type == "modulation":
-        # Priority order: trace or event modulation
-        candidate_columns = [
-            "trace_modulation",
-            "event_modulation",
-        ]
+        # Handle modulation counts (up/down) as well as modulation scores
+        if "up" in normalized_type and "count" in normalized_type:
+            # Up-modulated cell counts
+            if "trace" in normalized_type:
+                candidate_columns = ["trace_up_modulation_number"]
+            elif "event" in normalized_type:
+                candidate_columns = ["event_up_modulation_number"]
+            else:
+                candidate_columns = [
+                    "trace_up_modulation_number",
+                    "event_up_modulation_number",
+                ]
+        elif "down" in normalized_type and "count" in normalized_type:
+            # Down-modulated cell counts
+            if "trace" in normalized_type:
+                candidate_columns = ["trace_down_modulation_number"]
+            elif "event" in normalized_type:
+                candidate_columns = ["event_down_modulation_number"]
+            else:
+                candidate_columns = [
+                    "trace_down_modulation_number",
+                    "event_down_modulation_number",
+                ]
+        else:
+            # Priority order: trace or event modulation scores
+            candidate_columns = [
+                "trace_modulation",
+                "event_modulation",
+            ]
     else:
         # For unknown types, look for common patterns
         candidate_columns = [
