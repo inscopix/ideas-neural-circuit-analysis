@@ -1,6 +1,6 @@
 {
     "key": "state_epoch_baseline",
-    "name": "State-Epoch Baseline Analysis",
+    "name": "state_epoch_baseline",
     "schema_version": "3.0.0",
     "container_image": {
         "repository": "platform/neuro-stats",
@@ -14,382 +14,266 @@
     "params": [
         {
             "key": "cell_set_files",
-            "name": "Cell Set File(s)",
-            "required": true,
-            "description": "ISXD cell set file(s) containing neural activity data",
+            "name": "cell_set_files",
+            "required": false,
+            "description": "cell_set_files",
             "type": {
                 "param_type": "ToolPathParam",
-                "multiple": true,
-                "file_formats": [
-                    "isxd"
-                ]
-            },
-            "group": "Input Files"
+                "multiple": true
+            }
         },
         {
             "key": "event_set_files",
-            "name": "Event Set File(s)",
+            "name": "event_set_files",
             "required": false,
-            "description": "ISXD event set file(s) containing neural events data",
+            "description": "event_set_files",
             "type": {
                 "param_type": "ToolPathParam",
-                "multiple": true,
-                "file_formats": [
-                    "isxd"
-                ]
-            },
-            "group": "Input Files"
+                "multiple": true
+            }
         },
         {
             "key": "annotations_file",
-            "name": "Annotations File",
+            "name": "annotations_file",
             "required": false,
-            "description": "Optional experiment annotations file with state and epoch information. If not provided, uses epoch-only analysis mode.",
+            "description": "annotations_file",
             "type": {
                 "param_type": "ToolPathParam",
-                "multiple": true,
-                "file_formats": [
-                    "parquet"
-                ]
-            },
-            "group": "Input Files"
+                "multiple": true
+            }
         },
         {
             "key": "column_name",
-            "name": "State Column Name",
+            "name": "column_name",
             "required": false,
-            "description": "Name of the column in annotations file containing state information",
+            "description": "column_name",
             "type": {
                 "param_type": "ToolStringParam",
                 "default": "state"
-            },
-            "group": "Analysis Parameters"
+            }
         },
         {
             "key": "state_names",
-            "name": "State Names",
-            "required": true,
-            "description": "Comma-separated list of behavioral state names (e.g., 'rest, active, exploration')",
+            "name": "state_names",
+            "required": false,
+            "description": "state_names",
             "type": {
                 "param_type": "ToolStringParam"
-            },
-            "group": "Analysis Parameters"
+            }
         },
         {
             "key": "state_colors",
-            "name": "State Colors",
+            "name": "state_colors",
             "required": false,
-            "description": "Comma-separated list of colors for states (e.g., 'gray, blue, green')",
+            "description": "state_colors",
             "type": {
                 "param_type": "ToolStringParam",
                 "default": "gray, blue, orange"
-            },
-            "group": "Analysis Parameters"
+            }
         },
         {
             "key": "define_epochs_by",
-            "name": "Define Epochs By",
-            "required": true,
-            "description": "Method to define epochs. If 'files', one epoch per input cell set will be automatically defined, for the whole duration of each cell set. If 'global file time', you can define as many epochs as you want, with 0 corresponding to start time of the first cell set. If 'local file time', you can define as many epochs as you want per input cell set, with 0 corresponding to start time of each cell set.",
+            "name": "define_epochs_by",
+            "required": false,
+            "description": "define_epochs_by",
             "type": {
-                "param_type": "ToolChoiceParam",
-                "default": "global file time",
-                "choices": [
-                    "files",
-                    "global file time",
-                    "local file time"
-                ],
-                "display_options": [
-                    "Files",
-                    "Global File Time",
-                    "Local File Time"
-                ]
-            },
-            "group": "Epoch Definition"
+                "param_type": "ToolStringParam",
+                "default": "global file time"
+            }
         },
         {
             "key": "epochs",
-            "name": "Epochs",
+            "name": "epochs",
             "required": false,
-            "description": "Tuples of the start and end times (in seconds) for each epoch (e.g., if 'Define Epochs by' is set to 'Global file time', (0, 600), (650, 950), (950, 1250)). If 'Define Epochs by' is set to 'Local file time', provide one list of tuple per input cell set file (e.g., [(0, 600)], [(0, 300), (300, 600)]). If 'Define Epochs by' is set to 'Files', you can leave this parameter empty.",
+            "description": "epochs",
             "type": {
                 "param_type": "ToolStringParam",
                 "default": "(0, 600), (650, 950), (950, 1250)"
-            },
-            "group": "Epoch Definition"
+            }
         },
         {
             "key": "epoch_names",
-            "name": "Epoch Names",
-            "required": true,
-            "description": "Comma-separated list of time epoch names (e.g., 'baseline, training, test')",
+            "name": "epoch_names",
+            "required": false,
+            "description": "epoch_names",
             "type": {
                 "param_type": "ToolStringParam"
-            },
-            "group": "Analysis Parameters"
+            }
         },
         {
             "key": "epoch_colors",
-            "name": "Epoch Colors",
+            "name": "epoch_colors",
             "required": false,
-            "description": "Comma-separated list of colors for epochs (e.g., 'lightgray, lightblue, lightgreen')",
+            "description": "epoch_colors",
             "type": {
                 "param_type": "ToolStringParam",
                 "default": "lightgray, lightblue, lightgreen"
-            },
-            "group": "Analysis Parameters"
+            }
         },
         {
             "key": "baseline_state",
-            "name": "Baseline State",
-            "required": true,
-            "description": "State to use as baseline for modulation calculations",
+            "name": "baseline_state",
+            "required": false,
+            "description": "baseline_state",
             "type": {
                 "param_type": "ToolStringParam",
                 "default": "rest"
-            },
-            "group": "Baseline Parameters"
+            }
         },
         {
             "key": "baseline_epoch",
-            "name": "Baseline Epoch",
-            "required": true,
-            "description": "Epoch to use as baseline for modulation calculations",
+            "name": "baseline_epoch",
+            "required": false,
+            "description": "baseline_epoch",
             "type": {
                 "param_type": "ToolStringParam",
                 "default": "baseline"
-            },
-            "group": "Baseline Parameters"
+            }
         },
         {
             "key": "concatenate",
-            "name": "Concatenate Files",
+            "name": "concatenate",
             "required": false,
-            "description": "Whether to concatenate multiple input files",
+            "description": "concatenate",
             "type": {
                 "param_type": "ToolBooleanParam",
                 "default": true
-            },
-            "group": "Data Processing"
+            }
         },
         {
             "key": "trace_scale_method",
-            "name": "Trace Scaling Method",
+            "name": "trace_scale_method",
             "required": false,
-            "description": "Method for scaling trace data. Baseline methods require baseline_state to be specified.",
+            "description": "trace_scale_method",
             "type": {
-                "param_type": "ToolChoiceParam",
-                "default": "none",
-                "choices": [
-                    "none",
-                    "standardize",
-                    "normalize",
-                    "fractional_change",
-                    "standardize_baseline"
-                ],
-                "display_options": [
-                    "None",
-                    "Standardize",
-                    "Normalize",
-                    "Fractional change from baseline",
-                    "Standardize to baseline"
-                ]
-            },
-            "group": "Data Processing"
+                "param_type": "ToolStringParam",
+                "default": "none"
+            }
         },
         {
             "key": "event_scale_method",
-            "name": "Event Scaling Method",
+            "name": "event_scale_method",
             "required": false,
-            "description": "Method for scaling event data. Baseline methods require baseline_state to be specified.",
+            "description": "event_scale_method",
             "type": {
-                "param_type": "ToolChoiceParam",
-                "default": "none",
-                "choices": [
-                    "none",
-                    "standardize",
-                    "normalize",
-                    "fractional_change",
-                    "standardize_baseline"
-                ],
-                "display_options": [
-                    "None",
-                    "Standardize",
-                    "Normalize",
-                    "Fractional change from baseline",
-                    "Standardize to baseline"
-                ]
-            },
-            "group": "Data Processing"
+                "param_type": "ToolStringParam",
+                "default": "none"
+            }
         },
         {
             "key": "include_correlations",
-            "name": "Include Correlation Analysis",
+            "name": "include_correlations",
             "required": false,
-            "description": "Whether to include correlation analysis",
+            "description": "include_correlations",
             "type": {
                 "param_type": "ToolBooleanParam",
                 "default": true
-            },
-            "group": "Analysis Options"
+            }
         },
         {
             "key": "include_population_activity",
-            "name": "Include Population Activity Analysis",
+            "name": "include_population_activity",
             "required": false,
-            "description": "Whether to include population activity analysis",
+            "description": "include_population_activity",
             "type": {
                 "param_type": "ToolBooleanParam",
                 "default": true
-            },
-            "group": "Analysis Options"
+            }
         },
         {
             "key": "include_event_analysis",
-            "name": "Include Event Analysis",
+            "name": "include_event_analysis",
             "required": false,
-            "description": "Whether to include event rate analysis",
+            "description": "include_event_analysis",
             "type": {
                 "param_type": "ToolBooleanParam",
                 "default": true
-            },
-            "group": "Analysis Options"
+            }
         },
         {
             "key": "use_registered_cellsets",
-            "name": "Use Registered Cellsets",
+            "name": "use_registered_cellsets",
             "required": false,
-            "description": "Whether to use registered cellsets from CaImAn MSR",
+            "description": "use_registered_cellsets",
             "type": {
                 "param_type": "ToolBooleanParam",
                 "default": false
-            },
-            "group": "Registration Options"
+            }
         },
         {
             "key": "registration_method",
-            "name": "Registration Method",
+            "name": "registration_method",
             "required": false,
-            "description": "Method for cell registration detection",
+            "description": "registration_method",
             "type": {
-                "param_type": "ToolChoiceParam",
-                "default": "auto_detect",
-                "choices": [
-                    "auto_detect",
-                    "caiman_msr"
-                ],
-                "display_options": [
-                    "auto_detect",
-                    "caiman_msr"
-                ]
-            },
-            "group": "Registration Options"
+                "param_type": "ToolStringParam",
+                "default": "auto_detect"
+            }
         },
         {
             "key": "alpha",
-            "name": "Significance Level",
+            "name": "alpha",
             "required": false,
-            "description": "Significance level for statistical tests",
+            "description": "alpha",
             "type": {
                 "param_type": "ToolFloatRangeParam",
-                "default": 0.05,
-                "min": 0.001,
-                "max": 0.1
-            },
-            "group": "Statistical Parameters"
+                "default": 0.05
+            }
         },
         {
             "key": "n_shuffle",
-            "name": "Number of Shuffles",
+            "name": "n_shuffle",
             "required": false,
-            "description": "Number of shuffles for permutation tests",
+            "description": "n_shuffle",
             "type": {
                 "param_type": "ToolIntRangeParam",
-                "default": 1000,
-                "min": 100,
-                "max": 10000
-            },
-            "group": "Statistical Parameters"
+                "default": 1000
+            }
         },
         {
             "key": "tolerance",
-            "name": "Tolerance",
+            "name": "tolerance",
             "required": false,
-            "description": "Tolerance for temporal alignment and file concatenation",
+            "description": "tolerance",
             "type": {
                 "param_type": "ToolFloatRangeParam",
                 "default": 0.0001
-            },
-            "group": "Data Processing Parameters"
+            }
         },
         {
             "key": "sort_by_time",
-            "name": "Sort by Time",
+            "name": "sort_by_time",
             "required": false,
-            "description": "Whether to sort cellsets by time when concatenating",
+            "description": "sort_by_time",
             "type": {
                 "param_type": "ToolBooleanParam",
                 "default": true
-            },
-            "group": "Data Processing Parameters"
+            }
+        },
+        {
+            "key": "output_dir",
+            "name": "output_dir",
+            "required": false,
+            "description": "output_dir",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": ""
+            }
         }
     ],
     "results": [
         {
-            "key": "activity_per_state_epoch_data",
-            "name": "Activity Per State-Epoch Data",
-            "description": "CSV file with activity metrics for each cell in each state-epoch combination",
+            "key": "tool_output_group",
+            "name": "Tool Outputs",
+            "description": "Tool outputs",
             "file_patterns": [
-                "activity_per_state_epoch_data/**/*"
-            ]
-        },
-        {
-            "key": "correlations_per_state_epoch_data",
-            "name": "Correlations Per State-Epoch Data",
-            "description": "CSV file with correlation statistics for each state-epoch combination",
-            "file_patterns": [
-                "correlations_per_state_epoch_data/**/*"
-            ]
-        },
-        {
-            "key": "modulation_vs_baseline_data",
-            "name": "Modulation vs Baseline Data",
-            "description": "CSV file with modulation indices relative to baseline",
-            "file_patterns": [
-                "modulation_vs_baseline_data/**/*"
-            ]
-        },
-        {
-            "key": "average_correlations",
-            "name": "Average Correlations",
-            "description": "Average positive and negative correlations for each state-epoch combination",
-            "file_patterns": [
-                "*average_correlations.csv"
-            ]
-        },
-        {
-            "key": "pairwise_correlation_heatmaps",
-            "name": "Pairwise Correlation Heatmaps",
-            "description": "Raw correlation matrices for each state-epoch combination stored in HDF5 format",
-            "file_patterns": [
-                "*pairwise_correlation_heatmaps.h5"
-            ]
-        },
-        {
-            "key": "spatial_analysis_pairwise_correlations",
-            "name": "Spatial Analysis of Pairwise Correlations",
-            "description": "Raw correlation matrices and cell pair correlations with spatial position information for each cell pair across state-epoch combinations",
-            "file_patterns": [
-                "*spatial_analysis_pairwise_correlations.zip"
+                "**/*"
             ]
         }
     ],
     "resources": {
         "cpu": 1,
         "gpu": 0,
-        "memory": 15000
-    },
-    "description": "Combined analysis of neural activity and correlations across behavioral states and time epochs with baseline comparison",
-    "visibility": "public",
-    "version": "1.0.0-rc1"
+        "memory": 1000
+    }
 }

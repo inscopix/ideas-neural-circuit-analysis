@@ -10,13 +10,13 @@ import scipy
 from scipy import stats
 import seaborn as sns
 from beartype import beartype
-from ideas import plots
+from ideas.analysis import plots
 from matplotlib.ticker import FixedLocator, FixedFormatter
 
 from utils.utils import Comp, Rescale, save_optimized_svg
 from utils import config
 from utils.utils import get_num_cells_by_status
-from ideas import io
+from ideas.analysis import io
 from ideas.exceptions import IdeasError
 
 logger = logging.getLogger(__name__)

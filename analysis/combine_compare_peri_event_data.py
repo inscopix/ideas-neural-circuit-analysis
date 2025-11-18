@@ -32,7 +32,7 @@ from analysis.peri_event_workflow import (
 from ideas.exceptions import IdeasError
 # from toolbox.utils.output_manifest import save_output_manifest
 from utils.stats_utils import ttest
-from ideas.utils import (
+from ideas.analysis.utils import (
     get_file_size,
 )
 

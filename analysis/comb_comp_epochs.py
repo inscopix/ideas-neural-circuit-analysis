@@ -15,10 +15,10 @@ from utils.plots import _plot_combined_data
 from utils.utils import _combine_data
 from utils.validation import _validate_files
 from ideas.exceptions import IdeasError
-from ideas.utils import _set_up_logger
+from ideas.tools.log import get_logger
 
-_set_up_logger()
-logger = logging.getLogger(__name__)
+
+logger = get_logger()
 
 
 def run_cc_epochs(

@@ -9,8 +9,8 @@ import os
 import zipfile
 import tempfile
 import shutil
-from ideas.io import cell_set_to_positions
-from ideas.outputs import OutputData
+from ideas.analysis.io import cell_set_to_positions
+from ideas.tools.outputs import OutputData
 
 # Add isx import
 import isx
@@ -20,8 +20,8 @@ import pandas as pd
 import seaborn as sns
 from beartype import beartype
 from beartype.typing import List, Dict, Tuple, Any
-from ideas import measures, plots
-from ideas.utils import _set_up_logger
+from ideas.analysis import measures, plots
+from ideas.tools.log import get_logger
 from ideas.exceptions import IdeasError
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.gridspec import GridSpec
@@ -39,7 +39,7 @@ from utils.plots import (
     LABEL_FONT,
 )
 
-logger = logging.getLogger()
+logger = get_logger()
 MINIMUM_STATE_LENGTH = 10
 statistic_types = Literal["max", "mean", "min"]
 
@@ -58,7 +58,7 @@ RAW_CORRELATIONS_ZIP_NAME = "spatial_analysis_pairwise_correlations.zip"
 SPATIAL_CORRELATION_SVG_NAME = "spatial_correlation.svg"
 SPATIAL_MAP_SVG_NAME = "spatial_correlation_map.svg"
 
-_set_up_logger()
+
 
 # @beartype
 def _average_correlations(

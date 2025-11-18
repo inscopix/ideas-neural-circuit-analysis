@@ -11,10 +11,10 @@ import numpy as np
 import pandas as pd
 from beartype import beartype
 from beartype.typing import List, Optional
-from ideas import io
+from ideas.analysis import io
 from ideas.exceptions import IdeasError
-from ideas.types import NumpyFloatArray
-from ideas.utils import _set_up_logger
+from ideas.analysis.types import NumpyFloatArray
+from ideas.tools.log import get_logger
 
 from utils.plots import (
     _plot_population_average,
@@ -35,8 +35,8 @@ from utils.utils import (
 )
 from utils.validation import _validate_correlation_params
 
-_set_up_logger()
-logger = logging.getLogger()
+
+logger = get_logger()
 
 
 # define output file locs and constants

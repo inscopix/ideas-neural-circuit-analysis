@@ -23,7 +23,7 @@ import utils.config as config
 #     IdeasPreviewFile,
 # )
 from ideas.exceptions import IdeasError
-from ideas.utils import _set_up_logger
+from ideas.tools.log import get_logger
 # from toolbox.utils.output_manifest import save_output_manifest
 
 # Import utilities for this tool
@@ -55,8 +55,8 @@ from utils.visualization_helpers import (
 )
 from analysis.combine_compare_peri_event_data import assign_modulation
 
-_set_up_logger()
-logger = logging.getLogger(__name__)
+
+logger = get_logger()
 
 
 def _combine_group_data_frames(

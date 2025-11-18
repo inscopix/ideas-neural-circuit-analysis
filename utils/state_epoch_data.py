@@ -50,7 +50,7 @@ def load_and_filter_cell_contours(
         IdeasError: If cell files are missing or no valid cells are found
 
     """
-    from ideas.io import cell_set_to_contours, cell_set_to_status
+    from ideas.analysis.io import cell_set_to_contours, cell_set_to_status
 
     # Validate input files
     cell_set_files = cell_info.get("cell_set_files", [])

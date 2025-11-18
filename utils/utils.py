@@ -11,12 +11,12 @@ import numpy as np
 import pandas as pd
 from beartype import beartype
 from beartype.typing import List, Union, Optional
-from ideas import io
+from ideas.analysis import io
 from ideas.exceptions import IdeasError
 from matplotlib.spines import Spine
-from ideas.validation import event_set_series
+from ideas.analysis.validation import event_set_series
 from utils.metadata import read_isxd_metadata
-from ideas.utils import _sort_isxd_files_by_start_time
+from ideas.analysis.utils import _sort_isxd_files_by_start_time
 import warnings
 
 logger = logging.getLogger()

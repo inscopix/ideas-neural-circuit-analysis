@@ -24,10 +24,10 @@ import utils.config as config
 # from toolbox.utils.exceptions import ExitStatus, ToolException
 from ideas.exceptions import IdeasError
 # from toolbox.utils.output_manifest import save_output_manifest
-from ideas.utils import (
+from ideas.analysis.utils import (
     get_file_size,
-    _set_up_logger
 )
+from ideas.tools.log import get_logger
 from analysis.combine_compare_population_data import (
     match_subjects,
     validate_colors,
@@ -57,8 +57,7 @@ from utils.statistical_validation import (
     _suppress_pingouin_warnings,
 )
 
-_set_up_logger()
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 def _expand_statistic_name(statistic: str) -> str:

@@ -79,8 +79,8 @@ class TestPreviewIntegrationWorkflow:
     @patch("utils.state_epoch_data.event_set_to_events")
     @patch("utils.utils._get_cellset_data")
     @patch("utils.validation._validate_files")
-    @patch("ideas.io.cell_set_to_traces")
-    @patch("ideas.io.cell_set_to_status")
+    @patch("ideas.analysis.io.cell_set_to_traces")
+    @patch("ideas.analysis.io.cell_set_to_status")
     @patch("isx.CellSet.read")
     @patch("utils.plots._plot_timecourse")
     @patch("utils.plots.plot_trace_preview")
@@ -193,8 +193,8 @@ class TestPreviewIntegrationWorkflow:
     @patch("utils.state_epoch_data.event_set_to_events")
     @patch("utils.utils._get_cellset_data")
     @patch("utils.validation._validate_files")
-    @patch("ideas.io.cell_set_to_traces")
-    @patch("ideas.io.cell_set_to_status")
+    @patch("ideas.analysis.io.cell_set_to_traces")
+    @patch("ideas.analysis.io.cell_set_to_status")
     @patch("isx.CellSet.read")
     def test_trace_preview_real_timepoints_integration(
         self,
@@ -302,8 +302,8 @@ class TestPreviewIntegrationWorkflow:
     @patch("utils.state_epoch_data.event_set_to_events")
     @patch("utils.utils._get_cellset_data")
     @patch("utils.validation._validate_files")
-    @patch("ideas.io.cell_set_to_traces")
-    @patch("ideas.io.cell_set_to_status")
+    @patch("ideas.analysis.io.cell_set_to_traces")
+    @patch("ideas.analysis.io.cell_set_to_status")
     @patch("isx.CellSet.read")
     @patch("utils.plots._plot_timecourse")
     def test_event_preview_real_timepoints_integration(
@@ -409,8 +409,8 @@ class TestPreviewIntegrationWorkflow:
     @patch("utils.state_epoch_data.event_set_to_events")
     @patch("utils.utils._get_cellset_data")
     @patch("utils.validation._validate_files")
-    @patch("ideas.io.cell_set_to_traces")
-    @patch("ideas.io.cell_set_to_status")
+    @patch("ideas.analysis.io.cell_set_to_traces")
+    @patch("ideas.analysis.io.cell_set_to_status")
     @patch("isx.CellSet.read")
     def test_color_mapping_with_multiple_combinations(
         self,
@@ -546,8 +546,8 @@ class TestPreviewIntegrationWorkflow:
     @patch("utils.state_epoch_data.event_set_to_events")
     @patch("utils.utils._get_cellset_data")
     @patch("utils.validation._validate_files")
-    @patch("ideas.io.cell_set_to_traces")
-    @patch("ideas.io.cell_set_to_status")
+    @patch("ideas.analysis.io.cell_set_to_traces")
+    @patch("ideas.analysis.io.cell_set_to_status")
     @patch("isx.CellSet.read")
     def test_preview_files_created(
         self,

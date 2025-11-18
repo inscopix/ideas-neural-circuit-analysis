@@ -22,7 +22,7 @@ from utils.footprint_utils import compute_cell_centroid
 #     save_metadata_manifest,
 #     save_output_manifest,
 # )
-from ideas.utils import (
+from ideas.analysis.utils import (
     # compute_sampling_rate,
     get_file_size,
     # read_isxd_metadata,
