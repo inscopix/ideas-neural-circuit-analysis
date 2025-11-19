@@ -10,7 +10,7 @@ import zipfile
 import tempfile
 import shutil
 from ideas.analysis.io import cell_set_to_positions
-from ideas.tools.outputs import open_output_data, input_paths_to_output_prefix
+from ideas.tools import outputs
 from ideas.tools.types import IdeasFile
 
 # Add isx import
@@ -509,6 +509,21 @@ Will compute correlation matrix for entire recording"""
         "colors": colors[: len(actual_states)],
         "statistic": statistic,
     }
+
+    stat_key = Path(STAT_CORRELATIONS_CSV_NAME).stem
+    avg_key = Path(AVG_CORRELATIONS_CSV_NAME).stem
+    raw_h5_key = Path(RAW_CORRELATIONS_H5_NAME).stem
+    raw_zip_key = Path(RAW_CORRELATIONS_ZIP_NAME).stem
+
+    metadata = {
+        stat_key: stat_values,
+        avg_key: values,
+        raw_h5_key: values,
+        raw_zip_key: values
+    }
+
+    with open("output_metadata.json", "w") as file:
+        json.dump(metadata, file, indent=2)
 
     # Return an empty dictionary to satisfy the return type
     return {"values": values, "stat_values": stat_values}
@@ -1637,7 +1652,7 @@ def correlation_tool_ideas_wrapper(
         2. With valid annotations, frames belonging to specified states maintain their labels
         3. With valid annotations, frames not in any specified state are labeled as "not_defined"
     """
-    result = correlation_tool(
+    correlation_tool(
         cell_set_files=cell_set_files,
         annotations_file=annotations_file,
         column_name=column_name,
@@ -1648,14 +1663,14 @@ def correlation_tool_ideas_wrapper(
         include_positions=include_positions,
         correlation_threshold=correlation_threshold
     )
-    values = result["values"]
-    stat_values = result["stat_values"]
+
+    metadata = outputs._load_and_remove_output_metadata()
 
     # generate basename for output files based on input cell sets
-    output_prefix = input_paths_to_output_prefix(cell_set_files, annotations_file)
+    output_prefix = outputs.input_paths_to_output_prefix(cell_set_files, annotations_file)
 
     try:
-        with open_output_data(raise_missing_file=False) as output_data:
+        with outputs.register(raise_missing_file=False) as output_data:
             output_data.register_file(
                 AVG_CORRELATIONS_CSV_NAME,
                 subdir="average_correlations",
@@ -1664,7 +1679,7 @@ def correlation_tool_ideas_wrapper(
                 "average_correlations_preview.svg",
                 caption="Mean positive (top) and negative (bottom) correlations across behavioral states. These barplots show how average correlation values differ between states, providing insight into overall network connectivity patterns."
             ).register_metadata_dict(
-                **values
+                **metadata["average_correlations"]
             )
 
             output_data.register_file(
@@ -1675,7 +1690,7 @@ def correlation_tool_ideas_wrapper(
                 "correlation_matrices.svg",
                 caption="Pairwise Pearson correlation matrices between neural activity across behavioral states. Neurons are hierarchically clustered to reveal functional organization, with color intensity representing correlation strength from -1 (negative) to +1 (positive)."
             ).register_metadata_dict(
-                **values
+                **metadata["pairwise_correlation_heatmaps"]
             )
 
             output_data.register_file(
@@ -1689,7 +1704,7 @@ def correlation_tool_ideas_wrapper(
                 "spatial_correlation_map.svg",
                 caption="Spatial map of neural correlations across behavioral states. Gray dots show all neurons with known positions. Colored lines connect neuron pairs above the correlation threshold, with line color indicating correlation strength and direction. Bold black dots highlight neurons with very strong correlations (|r| > 0.7)."
             ).register_metadata_dict(
-                **values
+                **metadata["spatial_analysis_pairwise_correlations"]
             )
 
             output_data.register_file(
@@ -1700,9 +1715,9 @@ def correlation_tool_ideas_wrapper(
                 "correlation_plot.svg",
                 caption="Distribution of correlation values across behavioral states. Shows cumulative distribution functions of correlation values and boxplot comparisons between states, illustrating the proportion of neurons with correlations below each threshold."
             ).register_metadata_dict(
-                **stat_values
+                **metadata["correlation_statistic_comparison"]
             )
 
-        logger.info("State Analysis: correlation tool completed")
+        logger.info("State Analysis: registered output data")
     except Exception:
         logger.exception("Failed to generate output data!")

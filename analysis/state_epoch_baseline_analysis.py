@@ -23,7 +23,7 @@ from utils.state_epoch_results import (
 from utils.state_epoch_output import StateEpochOutputGenerator
 # from ideas.tools.log import get_logger
 from ideas.tools.log import get_logger
-from ideas.tools.outputs import OutputData, open_output_data
+from ideas.tools import outputs
 
 
 logger = get_logger()
@@ -317,7 +317,7 @@ def state_epoch_baseline_analysis(
         output_file_basename += cell_set_file_name + "_"
 
     try:
-        with open_output_data(raise_missing_file=False) as output_data:
+        with outputs.register(raise_missing_file=False) as output_data:
             output_data.register_file(
                 "activity_per_state_epoch_data.csv",
                 subdir="activity_per_state_epoch_data",
