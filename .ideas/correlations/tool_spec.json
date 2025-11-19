@@ -1,7 +1,7 @@
 {
     "key": "correlations",
     "name": "Compare Neural Circuit Correlations Across States",
-    "version": "8.0.4",
+    "version": "8.0.5",
     "schema_version": "3.0.0",
     "description": "Calculate pairwise correlations between cell traces, and estimates how correlations change between two states of interest",
     "container_image": {
@@ -109,9 +109,9 @@
         },
         {
             "key": "include_positions",
-            "name": "include_positions",
+            "name": "Include Positions",
             "required": false,
-            "description": "include_positions",
+            "description": "Whether to include cell position information in output files",
             "type": {
                 "param_type": "ToolBooleanParam",
                 "default": true
