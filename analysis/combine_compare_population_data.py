@@ -2734,38 +2734,38 @@ def combine_compare_population_data_ideas_wrapper(
                         ),
                     )
 
-                output_names = ["aov_comparisons.csv", "pairwise_comparisons.csv"]
-                for output_name in output_names:
-                    output_file = output_data.register_file(
-                        output_name,
-                    )
-                    for md in metadata.get(output_name, {}):
-                        output_file.register_metadata(**md)
-                    
-                    for data_type in data_types:
-                        output_file.register_preview(
-                            f"{data_type}_modulation_distribution{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                            caption=(
-                                f"Stacked bar chart displaying the proportion of neurons with "
-                                f"increased, decreased, and unchanged {data_type} for each "
-                                f"experimental state across {group1_name}, {group2_name}  groups."
-                            ),
-                        ).register_preview(
-                            f"{data_type}_state_lmm{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                            caption=(
-                                f"Statistical comparison of {data_type} data across experimental "
-                                f"states using Linear Mixed Models (LMM). The plot displays mean "
-                                f"values with error bars and individual data points."
-                            ),
-                        ).register_preview(
-                            f"{data_type}_group_{anova_type}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                            caption=(
-                                f"Statistical comparison of {data_type} data between "
-                                f"experimental groups across different states using Analysis "
-                                f"of Variance (ANOVA). The plot shows group differences with "
-                                f"mean values, error bars, and individual data points."
-                            ),
-                        )  
+            output_names = ["aov_comparisons.csv", "pairwise_comparisons.csv"]
+            for output_name in output_names:
+                output_file = output_data.register_file(
+                    output_name,
+                )
+                for md in metadata.get(output_name, {}):
+                    output_file.register_metadata(**md)
+                
+                for data_type in data_types:
+                    output_file.register_preview(
+                        f"{data_type}_modulation_distribution{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                        caption=(
+                            f"Stacked bar chart displaying the proportion of neurons with "
+                            f"increased, decreased, and unchanged {data_type} for each "
+                            f"experimental state across {group1_name}, {group2_name}  groups."
+                        ),
+                    ).register_preview(
+                        f"{data_type}_state_lmm{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                        caption=(
+                            f"Statistical comparison of {data_type} data across experimental "
+                            f"states using Linear Mixed Models (LMM). The plot displays mean "
+                            f"values with error bars and individual data points."
+                        ),
+                    ).register_preview(
+                        f"{data_type}_group_{anova_type}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                        caption=(
+                            f"Statistical comparison of {data_type} data between "
+                            f"experimental groups across different states using Analysis "
+                            f"of Variance (ANOVA). The plot shows group differences with "
+                            f"mean values, error bars, and individual data points."
+                        ),
+                    )  
 
         logger.info("Registered output data")
     except Exception:

@@ -257,7 +257,6 @@
             "name": "Method to Compare States",
             "required": false,
             "description": "Method for comparing states. 'Auto-detect' will automatically determine the method from the data. 'State vs Not State' and 'State vs Not Defined' both work with standard state comparison analysis. 'State vs Baseline' compares each state to a baseline state. 'Pairwise' compares states directly to each other.",
-
             "type": {
                 "param_type": "ToolChoiceParam",
                 "default": "auto",
@@ -322,7 +321,7 @@
     },
     "description": "Combine population activity data from multiple recordings and perform a statistical comparison between two groups across two states to determine if there is a difference either in the fractions of up- or down-modulated neurons or the mean neural activity.",
     "visibility": "public",
-    "version": "5.0.5",
+    "version": "5.0.6",
     "docs": "https://inscopix.github.io/ideas-docs/tools/standard-python/combine_compare_population_data/combine_compare_population_data.html",
     "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis"
 }
