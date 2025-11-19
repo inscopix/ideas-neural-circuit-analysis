@@ -171,7 +171,5 @@
         "gpu": 0,
         "memory": 10000
     },
-    "visibility": "public",
-    "docs_link": "https://inscopix.github.io/ideas-docs/tools/epochs/correlations__correlation_tool/correlations__correlation_tool.html",
-    "code_link": "https://github.com/inscopix/ideas-neural-circuit-analysis"
+    "visibility": "public"
 }

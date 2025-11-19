@@ -259,7 +259,5 @@
         "gpu": 0,
         "memory": 16000
     },
-    "visibility": "public",
-    "docs_link": "https://inscopix.github.io/ideas-docs/tools/standard-python/peri_event_workflow/peri_event_workflow.html",
-    "code_link": "https://github.com/inscopix/ideas-neural-circuit-analysis"
+    "visibility": "public"
 }

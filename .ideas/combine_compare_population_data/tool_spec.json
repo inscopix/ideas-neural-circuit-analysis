@@ -295,8 +295,6 @@
         "memory": 10000
     },
     "description": "Combine population activity data from multiple recordings and perform a statistical comparison between two groups across two states to determine if there is a difference either in the fractions of up- or down-modulated neurons or the mean neural activity.",
-    "docs_link": "https://inscopix.github.io/ideas-docs/tools/standard-python/combine_compare_population_data/combine_compare_population_data.html",
-    "code_link": "https://github.com/inscopix/ideas-neural-circuit-analysis",
     "visibility": "public",
     "version": "5.0.3"
 }
