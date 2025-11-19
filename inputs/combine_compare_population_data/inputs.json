@@ -1,0 +1,18 @@
+{    
+    
+    "group1_population_activity_files": ["data/combine_compare_population_activity_data/New_Outputs/group1/pairwise_group1_subject1.csv","data/combine_compare_population_activity_data/New_Outputs/group1/pairwise_group1_subject2.csv"],
+    "group1_name": "Vehicle",
+    "group1_color": "tab:red",
+    "group2_population_activity_files": ["data/combine_compare_population_activity_data/New_Outputs/group2/pairwise_group2_subject1.csv","data/combine_compare_population_activity_data/New_Outputs/group2/pairwise_group2_subject2.csv"],
+    "group2_name": "Drug",
+    "group2_color": "tab:orange",
+    "state_names": "center, quad 4, quad 1, quad 2",
+    "state_colors": "tab:grey, tab:cyan, tab:blue, red",
+    "modulation_colors": "tab:red,tab:blue",
+    "data_pairing": "unpaired",
+    "subject_matching": "order",
+    "multiple_correction": "bonf",
+    "effect_size": "cohen",
+    "significance_threshold": 0.05,
+    "state_comparison_method": "auto"
+}

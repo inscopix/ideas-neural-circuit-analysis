@@ -6,7 +6,7 @@
     "schema_version": "3.0.0",
     "container_image": {
         "repository": "platform/neuro-stats",
-        "label": "0.0.3"
+        "label": "0.0.4"
     },
     "command": {
         "file_path": "analysis/population_activity.py",
