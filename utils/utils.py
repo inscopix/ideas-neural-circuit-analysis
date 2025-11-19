@@ -1109,3 +1109,16 @@ def validate_cellset_series_compatibility(input_files):
 
         # validate that all input files share the same microscope identifier
         # TODO: if not, log this as a warning but allow processing to continue
+
+
+def compute_sampling_rate(period_num: int, period_den: int) -> float:
+    """Compute the sampling rate given the period numerator and denominator.
+
+    :param period_num: numerator in the period
+    :param period_den: denominator in the period
+    :return: the sampling rate or None if there is a division by zero error.
+    """
+    try:
+        return np.round(1 / (period_num / period_den), 2)
+    except ZeroDivisionError:
+        return None
