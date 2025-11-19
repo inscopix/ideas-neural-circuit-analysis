@@ -2722,13 +2722,13 @@ def combine_compare_population_data_ideas_wrapper(
                         f"{data_type}_modulation_distribution_{group_name}.preview.svg",
                         caption=(
                             f"Stacked bar chart displaying the proportion of neurons with "
-                            f"increased, decreased, and unchanged activity for each "
+                            f"increased, decreased, and unchanged {data_type} for each "
                             f"experimental state in the {group_name} group."
                         ),
                     ).register_preview(
                         f"{group_name}_mean_{data_type}_barplot{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
                         caption=(
-                            f"Box and whisker plot displaying the distribution of mean neural activity "
+                            f"Box and whisker plot displaying the distribution of mean neural {data_type} "
                             f"across experimental states for {group1_name}. The plot shows "
                             f"median values, quartiles, and outliers for each state."
                         ),
@@ -2747,13 +2747,13 @@ def combine_compare_population_data_ideas_wrapper(
                             f"{data_type}_modulation_distribution{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
                             caption=(
                                 f"Stacked bar chart displaying the proportion of neurons with "
-                                f"increased, decreased, and unchanged activity for each "
+                                f"increased, decreased, and unchanged {data_type} for each "
                                 f"experimental state across {group1_name}, {group2_name}  groups."
                             ),
                         ).register_preview(
                             f"{data_type}_state_lmm{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
                             caption=(
-                                f"Statistical comparison of activity data across experimental "
+                                f"Statistical comparison of {data_type} data across experimental "
                                 f"states using Linear Mixed Models (LMM). The plot displays mean "
                                 f"values with error bars and individual data points."
                             ),

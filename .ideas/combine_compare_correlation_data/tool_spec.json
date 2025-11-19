@@ -27,26 +27,6 @@
             "group": "Input Group 1"
         },
         {
-            "key": "state_names",
-            "name": "State Names",
-            "required": true,
-            "description": "Names of analyzed states",
-            "type": {
-                "param_type": "ToolStringParam"
-            },
-            "group": "State Details"
-        },
-        {
-            "key": "state_colors",
-            "name": "State Colors",
-            "required": true,
-            "description": "Colors of analyzed states",
-            "type": {
-                "param_type": "ToolStringParam"
-            },
-            "group": "State Details"
-        },
-        {
             "key": "group1_name",
             "name": "Group 1 Name",
             "required": true,
@@ -102,6 +82,26 @@
                 "default": "tab:orange"
             },
             "group": "Input Group 2"
+        },
+        {
+            "key": "state_names",
+            "name": "State Names",
+            "required": true,
+            "description": "Names of analyzed states",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": "State Details"
+        },
+        {
+            "key": "state_colors",
+            "name": "State Colors",
+            "required": true,
+            "description": "Colors of analyzed states",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": "State Details"
         },
         {
             "key": "statistic",
@@ -295,5 +295,5 @@
     },
     "description": "Combine correlation data from multiple recordings and perform a statistical comparison between two groups across multiple states to determine if there is a difference in the average positive or negative correlation, maximum, minimum, or average cell-to-cell correlation",
     "visibility": "public",
-    "version": "6.0.3"
+    "version": "6.0.4"
 }
