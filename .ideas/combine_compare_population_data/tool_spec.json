@@ -253,9 +253,14 @@
             "group": "Statistical Test"
         },
         {
+            "key": "state_comparison_method",
             "name": "Method to Compare States",
+            "required": false,
+            "description": "Method for comparing states. 'Auto-detect' will automatically determine the method from the data. 'State vs Not State' and 'State vs Not Defined' both work with standard state comparison analysis. 'State vs Baseline' compares each state to a baseline state. 'Pairwise' compares states directly to each other.",
+
             "type": {
                 "param_type": "ToolChoiceParam",
+                "default": "auto",
                 "choices": [
                     "auto",
                     "state_vs_not_state",
@@ -263,24 +268,15 @@
                     "state_vs_baseline",
                     "pairwise"
                 ],
-                "param_datatype": "string",
                 "display_options": [
                     "Auto-detect",
                     "State vs Not State",
                     "State vs Not Defined",
                     "State vs Baseline",
                     "Pairwise"
-                ],
-                "display": {
-                    "group": "Statistical Test",
-                    "group_order": 5
-                }
+                ]
             },
-            "required": false,
-            "default": "auto",
-            "help": "Method for comparing states. 'Auto-detect' will automatically determine the method from the data. 'State vs Not State' and 'State vs Not Defined' both work with standard state comparison analysis. 'State vs Baseline' compares each state to a baseline state. 'Pairwise' compares states directly to each other.",
-            "hidden": false,
-            "key": "state_comparison_method"
+            "group": "Statistical Test"
         }
     ],
     "results": [
