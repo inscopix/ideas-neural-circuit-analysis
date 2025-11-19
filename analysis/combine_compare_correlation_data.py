@@ -607,7 +607,7 @@ def combine_compare_correlation_data(
             else 0
         )
 
-        output_metadata[f"{group1_name}_combined_average_correlation"] = [
+        output_metadata[f"{group1_name}_combined_{statistic}_correlation"] = [
             {
                 "key" : "ideas.dataset.states",
                 "name": "States",

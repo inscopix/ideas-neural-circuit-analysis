@@ -926,10 +926,10 @@ def combine_compare_population_data(
             "pairwise_comparisons.csv": comparison_metadata,
         }
         if group2_name:
-            output_metadata[f"population_activity_data_{group2_name}"] = group2_population_md,
+            output_metadata[f"population_activity_data_{group2_name}"] = group2_population_md
         
         with open(os.path.join(output_dir, "output_metadata.json"), "w") as f:
-            json.dump(output_metadata, f)
+            json.dump(output_metadata, f, indent=4)
 
     except Exception as e:
         logger.error(f"Error in combine_compare_population_data: {str(e)}")
@@ -2740,7 +2740,7 @@ def combine_compare_population_data_ideas_wrapper(
                         output_name,
                     )
                     for md in metadata.get(output_name, {}):
-                        output_file.register_metadata(**md) 
+                        output_file.register_metadata(**md)
                     
                     for data_type in data_types:
                         output_file.register_preview(

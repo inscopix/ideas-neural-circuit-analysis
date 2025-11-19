@@ -4,7 +4,7 @@
     "schema_version": "3.0.0",
     "container_image": {
         "repository": "platform/neuro-stats",
-        "label": "0.0.4"
+        "label": "0.0.3"
     },
     "command": {
         "file_path": "analysis/combine_compare_population_data.py",
@@ -259,7 +259,7 @@
             "name": "Population Activity (Group 1)",
             "description": "Population activity data",
             "file_patterns": [
-                "group1_population_activity_csv_file**"
+                "group1_population_activity_data/**/*"
             ]
         },
         {
@@ -267,7 +267,7 @@
             "name": "Population Activity (Group 2)",
             "description": "Population activity data",
             "file_patterns": [
-                "group2_population_activity_csv_file**"
+                "group2_population_activity_data/**/*"
             ]
         },
         {
@@ -275,7 +275,8 @@
             "name": "ANOVA Comparison Data",
             "description": "ANOVA statistical results",
             "file_patterns": [
-                "aov_comparison_data**"
+                "aov_comparisons.csv",
+                "*.svg"
             ]
         },
         {
@@ -283,7 +284,8 @@
             "name": "Pairwise Comparison Data",
             "description": "Pairwise statistical results",
             "file_patterns": [
-                "pairwise_comparison_data**"
+                "pairwise_comparisons.csv",
+                "*.svg"
             ]
         }
     ],
@@ -293,6 +295,8 @@
         "memory": 10000
     },
     "description": "Combine population activity data from multiple recordings and perform a statistical comparison between two groups across two states to determine if there is a difference either in the fractions of up- or down-modulated neurons or the mean neural activity.",
+    "docs_link": "https://inscopix.github.io/ideas-docs/tools/standard-python/combine_compare_population_data/combine_compare_population_data.html",
+    "code_link": "https://github.com/inscopix/ideas-neural-circuit-analysis",
     "visibility": "public",
-    "version": "5.0.0"
+    "version": "5.0.3"
 }

@@ -6,7 +6,7 @@
     "schema_version": "3.0.0",
     "container_image": {
         "repository": "platform/neuro-stats",
-        "label": "0.0.4"
+        "label": "0.0.3"
     },
     "command": {
         "file_path": "analysis/population_activity.py",
@@ -242,5 +242,7 @@
         "gpu": 0,
         "memory": 10000
     },
-    "visibility": "public"
+    "visibility": "public",
+    "docs_link": "https://inscopix.github.io/ideas-docs/tools/epochs/population_activity__population_activity/population_activity__population_activity.html",
+    "code_link": "https://github.com/inscopix/ideas-neural-circuit-analysis"
 }
