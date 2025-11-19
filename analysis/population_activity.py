@@ -15,6 +15,8 @@ from ideas.analysis import io
 from ideas.exceptions import IdeasError
 from ideas.analysis.types import NumpyFloatArray
 from ideas.tools.log import get_logger
+from ideas.tools import outputs
+from ideas.tools.types import IdeasFile
 
 from utils.plots import (
     _plot_population_average,
@@ -411,9 +413,9 @@ def compute_modulation(
 # @beartype
 def population_activity(
     *,
-    cell_set_files: List[pathlib.Path],
-    event_set_files: Optional[List[pathlib.Path]] = None,
-    annotations_file: List[pathlib.Path],
+    cell_set_files: List[IdeasFile],
+    event_set_files: Optional[List[IdeasFile]] = None,
+    annotations_file: List[IdeasFile],
     concatenate: bool = True,
     trace_scale_method: str = Rescale.NONE.value,
     event_scale_method: str = Rescale.NONE.value,
@@ -1111,3 +1113,117 @@ def _add_modulation_columns(
     df_data[f"modulation scores in {label}"] = state_data["modulation_scores"]
     df_data[f"p-values in {label}"] = state_data["p_val"]
     df_data[f"modulation in {label}"] = modulated_neurons
+
+
+def population_activity_ideas_wrapper(
+    *,
+    cell_set_files: List[IdeasFile],
+    event_set_files: Optional[List[IdeasFile]] = None,
+    annotations_file: List[IdeasFile],
+    concatenate: bool = True,
+    trace_scale_method: str = Rescale.NONE.value,
+    event_scale_method: str = Rescale.NONE.value,
+    column_name: str = "state",
+    state_names: str,
+    state_colors: str,
+    method: str = Comp.NOT_STATE.value,
+    baseline_state: Optional[str] = None,
+    modulation_colors: str = "tab:red,tab:blue",
+    n_shuffle: int = 1000,
+    alpha: float = 0.05,
+):
+    """IDEAS wrapper for Inscopix population activity algorithm.
+    Calculate population activity during behavioral states.
+
+    This function analyzes neural population activity across different behavioral states
+    and generates visualizations of state-dependent modulation.
+
+    :param cell_set_files: List of paths to isxd cell set files
+    :param event_set_files: Optional list of paths to event set files
+    :param annotations_file: Path to an annotations file (in IDEAS format)
+    :param concatenate: Whether to concatenate multiple cell sets
+    :param trace_scale_method: Method to scale trace data ("none", "normalize", "standardize", etc.)
+    :param event_scale_method: Method to scale event data
+    :param column_name: Column name in annotations file containing state information
+    :param state_names: Comma-separated list of state names to analyze
+    :param state_colors: Comma-separated list of colors for each state
+    :param method: Comparison method (e.g., NOT_STATE, PAIRWISE, BASELINE)
+    :param baseline_state: Name of state to use as baseline (required for some methods)
+    :param modulation_colors: Comma-separated list of colors for up/down modulated cells
+    :param n_shuffle: Number of shuffles for statistical significance testing
+    :param alpha: Significance threshold for modulation
+    """
+    population_activity(
+        cell_set_files=cell_set_files,
+        event_set_files=event_set_files,
+        annotations_file=annotations_file,
+        concatenate=concatenate,
+        trace_scale_method=trace_scale_method,
+        event_scale_method=event_scale_method,
+        column_name=column_name,
+        state_names=state_names,
+        state_colors=state_colors,
+        method=method,
+        baseline_state=baseline_state,
+        modulation_colors=modulation_colors,
+        n_shuffle=n_shuffle,
+        alpha=alpha,
+    )
+
+    metadata = outputs._load_and_remove_output_metadata()
+
+    # generate basename for output files based on input cell sets
+    output_prefix = outputs.input_paths_to_output_prefix(cell_set_files, annotations_file)
+
+    try:
+        logger.info("Registering output data")
+        with outputs.register(raise_missing_file=False) as output_data:
+            output_data.register_file(
+                "trace_population_data.csv",
+                subdir="trace_population_data",
+                prefix=output_prefix,
+            ).register_preview(
+                "time_in_state_preview.svg",
+                caption="Time spent in the different behavioral states. Left panel shows the total time (in seconds) spent in each of the behavioral states. Right panel displays the fraction of the total recording time occupied by each state."
+            ).register_preview(
+                "trace_preview.svg",
+                caption="Neural activity traces during different behavioral states. Upper panel shows the population average activity over time. Lower panel displays individual traces from neurons, with colored regions indicating different behavioral states."
+            ).register_preview(
+                "activity_average_preview.svg",
+                caption="Average neural activity across behavioral states. Box plot showing the distribution of activity for all neurons in each state. Individual points represent single neurons, with connecting lines showing paired comparisons across states."
+            ).register_preview(
+                "modulation_histogram_preview.svg",
+                caption="Distribution of modulation scores across neurons. Histograms show the modulation scores for all neurons."
+            ).register_preview(
+                "modulation_preview.svg",
+                caption="Spatial distribution of state-modulated neurons. Cell footprints are colored by modulation direction. The left stacked bar chart shows the proportion of cells up and down regulated. In the cell map in the center the face color of the cell is the modulation score, and the color of the outline shows whether that cell was significantly modulated or not. On the right is a color bar mapping of modulation score."
+            ).register_metadata_dict(
+                **metadata["trace_population_data"]
+            )
+
+            output_data.register_file(
+                "event_population_data.csv",
+                subdir="event_population_data",
+                prefix=output_prefix,
+            ).register_preview(
+                "time_in_state_preview.svg",
+                caption="Time spent in the different behavioral states. Left panel shows the total time (in seconds) spent in each of the behavioral states. Right panel displays the fraction of the total recording time occupied by each state."
+            ).register_preview(
+                "event_preview.svg",
+                caption="Event raster plot during different behavioral states. Upper panel shows the population average event rate over time. Lower panel displays neural events from all neurons, with colored regions indicating different behavioral states."
+            ).register_preview(
+                "event_average_preview.svg",
+                caption="Average event rate across behavioral states. Box plot showing the distribution of event rates for all neurons in each state. Individual points represent single neurons, with connecting lines showing paired comparisons across states."
+            ).register_preview(
+                "event_modulation_histogram_preview.svg",
+                caption="Distribution of event rate modulation scores across neurons. Histograms show the modulation scores for all neurons."
+            ).register_preview(
+                "event_modulation_preview.svg",
+                caption="Spatial distribution of state-modulated event rates. (left) The stacked bar chart shows the proportions of up- and down-modulated cells. (center) Cell footprints are colored by event rate modulation direction and score, and outline color shows modulation significance. (right) Color bar for the modulation score."
+            ).register_metadata_dict(
+                **metadata["event_population_data"]
+            )
+
+        logger.info("Registered output data")
+    except Exception:
+        logger.exception("Failed to generate output data!")

@@ -1670,6 +1670,7 @@ def correlation_tool_ideas_wrapper(
     output_prefix = outputs.input_paths_to_output_prefix(cell_set_files, annotations_file)
 
     try:
+        logger.info("Registering output data")
         with outputs.register(raise_missing_file=False) as output_data:
             output_data.register_file(
                 AVG_CORRELATIONS_CSV_NAME,
@@ -1718,6 +1719,6 @@ def correlation_tool_ideas_wrapper(
                 **metadata["correlation_statistic_comparison"]
             )
 
-        logger.info("State Analysis: registered output data")
+        logger.info("Registered output data")
     except Exception:
         logger.exception("Failed to generate output data!")
