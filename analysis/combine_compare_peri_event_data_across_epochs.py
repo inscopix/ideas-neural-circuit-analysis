@@ -22,7 +22,7 @@ from analysis.peri_event_workflow import (
     plot_population_mean_event_window,
     plot_single_neurons_heatmap,
 )
-from ideas.utils import (
+from ideas.analysis.utils import (
     get_file_size,
     # compute_sampling_rate,
 )

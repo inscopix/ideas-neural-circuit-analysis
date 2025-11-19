@@ -14,7 +14,6 @@ dependencies = [
     "pingouin",
     "opencv-python-headless",
     "statsmodels",
-    "ideas-public-python-utils @ git+https://github.com/inscopix/ideas-public-python-utils.git@ID-4920",
     "matplotlib",
     "plotly",
     "seaborn",

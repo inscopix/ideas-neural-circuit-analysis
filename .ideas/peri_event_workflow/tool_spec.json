@@ -1,16 +1,16 @@
 {
     "key": "peri_event_workflow",
     "name": "Peri-Event Analysis Workflow",
-    "version": "7.0.0-rc2",
+    "version": "7.0.3",
     "description": "Analyze neural activity around (peri) the time of each event, specifically testing for up- or down-modulation of both average population and single cells by comparing activity before (pre) and after (post) each event.",
     "schema_version": "3.0.0",
     "container_image": {
         "repository": "platform/neuro-stats",
-        "label": "0.0.2"
+        "label": "0.0.3"
     },
     "command": {
         "file_path": "analysis/peri_event_workflow.py",
-        "entry_point": "run_peri_event_workflow",
+        "entry_point": "run_peri_event_workflow_ideas_wrapper",
         "program_type": "PYTHON"
     },
     "params": [
@@ -50,30 +50,6 @@
             "type": {
                 "param_type": "ToolStringParam"
             }
-        },
-        {
-            "key": "visual_window_pre",
-            "name": "Visual window (pre)",
-            "required": true,
-            "description": "Time in seconds to visualize before each event in output figures (not used for statistics)",
-            "type": {
-                "param_type": "ToolFloatRangeParam",
-                "default": -2,
-                "max": 0
-            },
-            "group": "Visualization Parameters"
-        },
-        {
-            "key": "visual_window_post",
-            "name": "Visual window (post)",
-            "required": true,
-            "description": "Time in seconds to visualize after each event in output graphs (not used for statistics)",
-            "type": {
-                "param_type": "ToolFloatRangeParam",
-                "default": 2,
-                "min": 0
-            },
-            "group": "Visualization Parameters"
         },
         {
             "key": "statistical_window_pre_start",
@@ -159,39 +135,6 @@
             }
         },
         {
-            "key": "modulation_colors",
-            "name": "Modulation colors",
-            "required": false,
-            "description": "Colors that represent up-, down- and non-modulation respectively",
-            "type": {
-                "param_type": "ToolStringParam",
-                "default": "green,blue,black"
-            },
-            "group": "Visualization Parameters"
-        },
-        {
-            "key": "single_group_color",
-            "name": "Neural activity trace color",
-            "required": false,
-            "description": "The mean and sem trace color for event-aligned population activity",
-            "type": {
-                "param_type": "ToolStringParam",
-                "default": "#1f77b4"
-            },
-            "group": "Visualization Parameters"
-        },
-        {
-            "key": "cmap",
-            "name": "Activity heatmap colormap",
-            "required": false,
-            "description": "Colormap applied to the activity heatmap",
-            "type": {
-                "param_type": "ToolStringParam",
-                "default": "coolwarm"
-            },
-            "group": "Visualization Parameters"
-        },
-        {
             "key": "temporal_downsampling_factor",
             "name": "Temporal downsampling factor",
             "required": true,
@@ -201,6 +144,30 @@
                 "default": 1,
                 "min": 1
             }
+        },
+        {
+            "key": "visual_window_pre",
+            "name": "Visual window (pre)",
+            "required": true,
+            "description": "Time in seconds to visualize before each event in output figures (not used for statistics)",
+            "type": {
+                "param_type": "ToolFloatRangeParam",
+                "default": -2,
+                "max": 0
+            },
+            "group": "Visualization Parameters"
+        },
+        {
+            "key": "visual_window_post",
+            "name": "Visual window (post)",
+            "required": true,
+            "description": "Time in seconds to visualize after each event in output graphs (not used for statistics)",
+            "type": {
+                "param_type": "ToolFloatRangeParam",
+                "default": 2,
+                "min": 0
+            },
+            "group": "Visualization Parameters"
         },
         {
             "key": "population_activity_plot_limits",
@@ -236,13 +203,37 @@
             "group": "Visualization Parameters"
         },
         {
-            "key": "output_dir",
-            "name": "output_dir",
+            "key": "modulation_colors",
+            "name": "Modulation colors",
             "required": false,
-            "description": "output_dir",
+            "description": "Colors that represent up-, down- and non-modulation respectively",
             "type": {
-                "param_type": "ToolStringParam"
-            }
+                "param_type": "ToolStringParam",
+                "default": "green,blue,black"
+            },
+            "group": "Visualization Parameters"
+        },
+        {
+            "key": "single_group_color",
+            "name": "Neural activity trace color",
+            "required": false,
+            "description": "The mean and sem trace color for event-aligned population activity",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "#1f77b4"
+            },
+            "group": "Visualization Parameters"
+        },
+        {
+            "key": "cmap",
+            "name": "Activity heatmap colormap",
+            "required": false,
+            "description": "Colormap applied to the activity heatmap",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "coolwarm"
+            },
+            "group": "Visualization Parameters"
         }
     ],
     "results": [
@@ -268,5 +259,7 @@
         "gpu": 0,
         "memory": 16000
     },
-    "visibility": "public"
+    "visibility": "public",
+    "docs_link": "https://inscopix.github.io/ideas-docs/tools/standard-python/peri_event_workflow/peri_event_workflow.html",
+    "code_link": "https://github.com/inscopix/ideas-neural-circuit-analysis"
 }

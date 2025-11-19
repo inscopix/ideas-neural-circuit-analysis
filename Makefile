@@ -24,7 +24,7 @@ build:
 		--platform ${PLATFORM} \
 		--target ${TARGET}
 	docker tag ${LATEST_IMAGE_TAG} ${IMAGE_TAG}
-	$(foreach f, $(TOOL_SPECS), jq --indent 4 '.container_image.label = "${LABEL}"' $(f) > tmp.json && mv tmp.json ${f};)
+	@$(foreach f, $(TOOL_SPECS), jq --indent 4 '.container_image.label = "${LABEL}"' $(f) > tmp.json && mv tmp.json ${f};)
 
 test: TARGET=test
 test: IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:${LABEL}-test

@@ -2,6 +2,6 @@
     "container": "platform/neuro-stats:latest",
     "executor_type": "PYTHON",
     "file": "analysis/peri_event_workflow.py",
-    "function": "run_peri_event_workflow",
+    "function": "run_peri_event_workflow_ideas_wrapper",
     "schema_version": "1.0.0"
 }

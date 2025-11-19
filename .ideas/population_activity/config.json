@@ -2,6 +2,6 @@
     "container": "platform/neuro-stats:latest",
     "executor_type": "PYTHON",
     "file": "analysis/population_activity.py",
-    "function": "population_activity",
+    "function": "population_activity_ideas_wrapper",
     "schema_version": "1.0.0"
 }

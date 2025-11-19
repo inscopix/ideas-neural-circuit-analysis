@@ -20,10 +20,10 @@ import utils.config as config
 from scipy import stats
 # from toolbox.utils.data_model import IdeasFile, IdeasGroup, IdeasPreviewFile
 from ideas.exceptions import IdeasError
-from ideas.utils import _set_up_logger
+from ideas.tools.log import get_logger
 from utils.footprint_utils import compute_cell_centroid
 from utils.stats_utils import perform_paired_pairwise_comparisons
-from ideas.utils import (
+from ideas.analysis.utils import (
     get_file_size,
 )
 from utils.utils import (
@@ -61,8 +61,8 @@ from utils.plots import (
     plot_post_minus_pre_activity_differences_with_cell_map,
 )
 
-_set_up_logger()
-logger = logging.getLogger()
+
+logger = get_logger()
 
 
 def _epoch_time_to_index(epochs, period):

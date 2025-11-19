@@ -1,0 +1,18 @@
+{
+    "group1_population_activity_files": null,
+    "state_names": null,
+    "state_colors": null,
+    "group1_population_events_files": null,
+    "group1_name": null,
+    "group1_color": null,
+    "group2_population_activity_files": null,
+    "group2_population_events_files": null,
+    "group2_name": null,
+    "group2_color": null,
+    "modulation_colors": "red, blue",
+    "data_pairing": "unpaired",
+    "subject_matching": "number",
+    "significance_threshold": 0.05,
+    "multiple_correction": "bonf",
+    "effect_size": "cohen"
+}

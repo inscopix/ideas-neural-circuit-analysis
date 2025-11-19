@@ -11,12 +11,12 @@ import numpy as np
 import pandas as pd
 from beartype import beartype
 from beartype.typing import List, Union, Optional
-from ideas import io
+from ideas.analysis import io
 from ideas.exceptions import IdeasError
 from matplotlib.spines import Spine
-from ideas.validation import event_set_series
+from ideas.analysis.validation import event_set_series
 from utils.metadata import read_isxd_metadata
-from ideas.utils import _sort_isxd_files_by_start_time
+from ideas.analysis.utils import _sort_isxd_files_by_start_time
 import warnings
 
 logger = logging.getLogger()
@@ -1109,3 +1109,16 @@ def validate_cellset_series_compatibility(input_files):
 
         # validate that all input files share the same microscope identifier
         # TODO: if not, log this as a warning but allow processing to continue
+
+
+def compute_sampling_rate(period_num: int, period_den: int) -> float:
+    """Compute the sampling rate given the period numerator and denominator.
+
+    :param period_num: numerator in the period
+    :param period_den: denominator in the period
+    :return: the sampling rate or None if there is a division by zero error.
+    """
+    try:
+        return np.round(1 / (period_num / period_den), 2)
+    except ZeroDivisionError:
+        return None

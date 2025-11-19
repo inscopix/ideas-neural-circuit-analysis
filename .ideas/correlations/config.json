@@ -2,6 +2,6 @@
     "container": "platform/neuro-stats:latest",
     "executor_type": "PYTHON",
     "file": "analysis/correlations.py",
-    "function": "correlation_tool",
+    "function": "correlation_tool_ideas_wrapper",
     "schema_version": "1.0.0"
 }
