@@ -1,0 +1,299 @@
+{
+    "key": "combine_compare_correlation_data",
+    "name": "Combine and Compare Correlation Data",
+    "schema_version": "3.0.0",
+    "container_image": {
+        "repository": "platform/neuro-stats",
+        "label": "0.0.4"
+    },
+    "command": {
+        "file_path": "analysis/combine_compare_correlation_data.py",
+        "entry_point": "combine_compare_correlation_data_ideas_wrapper",
+        "program_type": "PYTHON"
+    },
+    "params": [
+        {
+            "key": "group1_correlation_files",
+            "name": "Group 1 Correlation Data Files",
+            "required": true,
+            "description": "Select correlation data from the first group to use for analysis",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "h5"
+                ]
+            },
+            "group": "Input Group 1"
+        },
+        {
+            "key": "state_names",
+            "name": "State Names",
+            "required": true,
+            "description": "Names of analyzed states",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": "State Details"
+        },
+        {
+            "key": "state_colors",
+            "name": "State Colors",
+            "required": true,
+            "description": "Colors of analyzed states",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": "State Details"
+        },
+        {
+            "key": "group1_name",
+            "name": "Group 1 Name",
+            "required": true,
+            "description": "Name of the first group",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "group1"
+            },
+            "group": "Input Group 1"
+        },
+        {
+            "key": "group1_color",
+            "name": "Group 1 Color",
+            "required": true,
+            "description": "Color of the first group",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "tab:red"
+            },
+            "group": "Input Group 1"
+        },
+        {
+            "key": "group2_correlation_files",
+            "name": "Group 2 Correlation Data Files",
+            "required": false,
+            "description": "Select correlation data from the second group to use for analysis",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "h5"
+                ]
+            },
+            "group": "Input Group 2"
+        },
+        {
+            "key": "group2_name",
+            "name": "Group 2 Name",
+            "required": false,
+            "description": "Name of the second group",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": "Input Group 2"
+        },
+        {
+            "key": "group2_color",
+            "name": "Group 2 Color",
+            "required": true,
+            "description": "Color of the second group",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "tab:orange"
+            },
+            "group": "Input Group 2"
+        },
+        {
+            "key": "statistic",
+            "name": "Comparison Type",
+            "required": false,
+            "description": "Type of statistical test to perform",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "max",
+                "choices": [
+                    "max",
+                    "min",
+                    "mean"
+                ],
+                "display_options": [
+                    "Maximum",
+                    "Minimum",
+                    "Mean"
+                ]
+            },
+            "group": "Statistical Test"
+        },
+        {
+            "key": "multiple_correction",
+            "name": "Multiple Comparison Correction method",
+            "required": true,
+            "description": "Method for correcting for multiple comparisons",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "bonf",
+                "choices": [
+                    "none",
+                    "bonf",
+                    "sidak",
+                    "holm",
+                    "fdr_bh",
+                    "fdr_by"
+                ],
+                "display_options": [
+                    "None",
+                    "Bonferroni",
+                    "Sidak",
+                    "Holm",
+                    "Benjamini-Hochberg",
+                    "Benjamini-Yekutieli"
+                ]
+            },
+            "group": "Statistical Test"
+        },
+        {
+            "key": "effect_size",
+            "name": "Effect Size Method",
+            "required": true,
+            "description": "Method for calculating the effect size",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "cohen",
+                "choices": [
+                    "none",
+                    "cohen",
+                    "hedges",
+                    "r",
+                    "eta_square",
+                    "odds-ratio",
+                    "AUC",
+                    "CLES"
+                ],
+                "display_options": [
+                    "None",
+                    "Cohen's d",
+                    "Hedges' g",
+                    "Pearson's r",
+                    "Eta squared",
+                    "Odds ratio",
+                    "Area under the curve",
+                    "Common language effect size"
+                ]
+            },
+            "group": "Statistical Test"
+        },
+        {
+            "key": "data_pairing",
+            "name": "Data Pairing",
+            "required": false,
+            "description": "Indicates whether observations should be paired for statistical comparison",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "unpaired",
+                "choices": [
+                    "unpaired",
+                    "paired"
+                ],
+                "display_options": [
+                    "Unpaired",
+                    "Paired"
+                ]
+            },
+            "group": "Statistical Test"
+        },
+        {
+            "key": "subject_matching",
+            "name": "Subject Matching Method",
+            "required": false,
+            "description": "Method for matching subjects between groups in paired analysis",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "order",
+                "choices": [
+                    "number",
+                    "filename",
+                    "order"
+                ],
+                "display_options": [
+                    "Number Matching",
+                    "Filename Matching",
+                    "Order Matching"
+                ]
+            },
+            "group": "Statistical Test"
+        },
+        {
+            "key": "significance_threshold",
+            "name": "Significance Threshold",
+            "required": true,
+            "description": "p-value threshold for classifying neurons as up- or down-modulated",
+            "type": {
+                "param_type": "ToolFloatRangeParam",
+                "default": 0.05,
+                "min": 0,
+                "max": 1
+            },
+            "group": "Statistical Test"
+        }
+    ],
+    "results": [
+        {
+            "key": "group1_combined_avg_correlation_data",
+            "name": "Group 1 Combined Average Correlation",
+            "description": "Combined average correlation data for Group 1",
+            "file_patterns": [
+                "group1_combined_average_correlation/**/*"
+            ]
+        },
+        {
+            "key": "group1_combined_cell_correlation_data",
+            "name": "Group 1 Combined Statistic Correlation",
+            "description": "Combined statistic correlation data for Group 1",
+            "file_patterns": [
+                "group1_combined_correlation/**/*"
+            ]
+        },
+        {
+            "key": "group2_combined_avg_correlation_data",
+            "name": "Group 2 Combined Average Correlation",
+            "description": "Combined average correlation data for Group 2",
+            "file_patterns": [
+                "group2_combined_average_correlation/**/*"
+            ]
+        },
+        {
+            "key": "group2_combined_cell_correlation_data",
+            "name": "Group 2 Combined Statistic Correlation",
+            "description": "Combined statistic correlation data for Group 2",
+            "file_patterns": [
+                "group2_combined_correlation/**/*"
+            ]
+        },
+        {
+            "key": "aov_comparison_data",
+            "name": "Anova Comparisons",
+            "description": "ANOVA comparison of correlation data",
+            "file_patterns": [
+                "ANOVA_comparisons.csv",
+                "*.svg"
+            ]
+        },
+        {
+            "key": "pairwise_comparison_data",
+            "name": "Pairwise Comparisons",
+            "description": "Pairwise comparison of correlation data",
+            "file_patterns": [
+                "pairwise_comparisons.csv",
+                "*.svg"
+            ]
+        }
+    ],
+    "resources": {
+        "cpu": 2,
+        "gpu": 0,
+        "memory": 10000
+    },
+    "description": "Combine correlation data from multiple recordings and perform a statistical comparison between two groups across multiple states to determine if there is a difference in the average positive or negative correlation, maximum, minimum, or average cell-to-cell correlation",
+    "visibility": "public",
+    "version": "6.0.1"
+}

@@ -2918,14 +2918,14 @@ def run_peri_event_workflow_ideas_wrapper(
         activity_by_modulation_plot_limits=activity_by_modulation_plot_limits,
     )
 
-    output_dir = pathlib.Path.cwd()
-    subdirectories = [str(x.relative_to(output_dir)) for x in output_dir.iterdir() if x.is_dir()]
-    event_types = [x for x in subdirectories if x.startswith("event_type")]
-
-    metadata = outputs._load_and_remove_output_metadata()
     try:
         logger.info("Registering output data")
         with outputs.register(raise_missing_file=False) as output_data:
+            output_dir = pathlib.Path.cwd()
+            metadata = outputs._load_and_remove_output_metadata()
+            subdirectories = [str(x.relative_to(output_dir)) for x in output_dir.iterdir() if x.is_dir()]
+            event_types = [x for x in subdirectories if x.startswith("event_type")]
+            
             for event_type in event_types:
                 output_file = output_data.register_file(
                     "event_aligned_activity.TRACES.csv",

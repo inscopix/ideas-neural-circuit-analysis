@@ -1,0 +1,7 @@
+{
+    "container": "platform/neuro-stats:latest",
+    "executor_type": "PYTHON",
+    "file": "analysis/combine_compare_correlation_data.py",
+    "function": "combine_compare_correlation_data_ideas_wrapper",
+    "schema_version": "1.0.0"
+}
