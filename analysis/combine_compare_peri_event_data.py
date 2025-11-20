@@ -1,4 +1,4 @@
-import logging
+import json
 import os
 import warnings
 from typing import List
@@ -36,7 +36,10 @@ from ideas.analysis.utils import (
     get_file_size,
 )
 
-logger = logging.getLogger()
+from ideas.tools import log
+from ideas.tools.types import IdeasFile
+
+logger = log.get_logger()
 
 PROCESSING_PARAMS = {}
 PLOT_PARAMS = {}
@@ -1144,7 +1147,7 @@ def assign_modulation(row, threshold, score_col, p_col):
 
     :return: the new modulation classification
     """
-    if row[p_col] <= threshold:
+    if row[p_col] < (threshold / 2):
         if row[score_col] < 0:
             return -1.0
         elif row[score_col] > 0:
@@ -1992,4 +1995,48 @@ def combine_compare_peri_event_data(
     #     output_dir=output_dir,
     # )
 
+    output_metadata = {}
+    with open(os.path.join(output_dir, "output_metadata.json"), "w") as f:
+        json.dump(output_metadata, f)
+
     logger.info("Combination and comparison of peri-event data completed")
+
+
+def combine_compare_peri_event_data_ideas_wrapper(
+    group1_traces_files: List[IdeasFile],
+    group1_stats_files: List[IdeasFile],
+    group1_name: str,
+    group2_traces_files: List[IdeasFile],
+    group2_stats_files: List[IdeasFile],
+    group2_name: str,
+    comparison_type: str,
+    data_pairing: str,
+    significance_threshold: float,
+    average_method: str,
+    tolerance: float,
+    group_colors: str = "#1f77b4, #ff7f0e",
+    modulation_colors: str = "green, blue, black",
+    cmap: str = "coolwarm",
+    population_activity_plot_limits: str = "auto",
+    activity_heatmap_color_limits: str = "auto",
+    activity_by_modulation_plot_limits: str = "auto",
+):
+    combine_compare_peri_event_data(
+        group1_traces_files=group1_traces_files,
+        group1_stats_files=group1_stats_files,
+        group1_name=group1_name,
+        group2_traces_files=group2_traces_files,
+        group2_stats_files=group2_stats_files,
+        group2_name=group2_name,
+        comparison_type=comparison_type,
+        data_pairing=data_pairing,
+        significance_threshold=significance_threshold,
+        average_method=average_method,
+        tolerance=tolerance,
+        group_colors=group_colors,
+        modulation_colors=modulation_colors,
+        cmap=cmap,
+        population_activity_plot_limits=population_activity_plot_limits,
+        activity_heatmap_color_limits=activity_heatmap_color_limits,
+        activity_by_modulation_plot_limits=activity_by_modulation_plot_limits,
+    )
