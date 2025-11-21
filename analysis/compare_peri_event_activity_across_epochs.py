@@ -35,6 +35,7 @@ from utils.utils import (
     _parse_string_to_tuples,
     _redefine_epochs,
     _get_cellset_boundaries,
+    compute_sampling_rate
 )
 from utils.metadata import read_isxd_metadata
 from analysis.peri_event_workflow import (
@@ -1124,29 +1125,29 @@ def peri_event_analysis_for_single_event_type(
     #     file_category=FileCategory.SOURCE.value[1],
     # )
 
-    # # construct events metadata (number of valid events per epoch)
-    # num_events_str = ""
-    # for i, (epoch_name, epoch_data_item) in enumerate(epoch_data.items()):
-    #     num_events_str += f"{epoch_name}: {len(epoch_data_item['event_indices'])}{', ' if i < num_epochs - 1 else ''}"
+    # construct events metadata (number of valid events per epoch)
+    num_events_str = ""
+    for i, (epoch_name, epoch_data_item) in enumerate(epoch_data.items()):
+        num_events_str += f"{epoch_name}: {len(epoch_data_item['event_indices'])}{', ' if i < num_epochs - 1 else ''}"
 
-    # # construct modulated cells metadata (number of up/down/non modulated cells per epoch)
-    # num_up_modulated_cells_str = ""
-    # num_down_modulated_cells_str = ""
-    # num_non_modulated_cells_str = ""
-    # for i, epoch_name in enumerate(epoch_data.keys()):
-    #     num_up_modulated_cells = output_data["single_cell"][epoch_name][
-    #         "up_modulated"
-    #     ]["num_cells"]
-    #     num_down_modulated_cells = output_data["single_cell"][epoch_name][
-    #         "down_modulated"
-    #     ]["num_cells"]
-    #     num_non_modulated_cells = output_data["single_cell"][epoch_name][
-    #         "non_modulated"
-    #     ]["num_cells"]
+    # construct modulated cells metadata (number of up/down/non modulated cells per epoch)
+    num_up_modulated_cells_str = ""
+    num_down_modulated_cells_str = ""
+    num_non_modulated_cells_str = ""
+    for i, epoch_name in enumerate(epoch_data.keys()):
+        num_up_modulated_cells = output_data["single_cell"][epoch_name][
+            "up_modulated"
+        ]["num_cells"]
+        num_down_modulated_cells = output_data["single_cell"][epoch_name][
+            "down_modulated"
+        ]["num_cells"]
+        num_non_modulated_cells = output_data["single_cell"][epoch_name][
+            "non_modulated"
+        ]["num_cells"]
 
-    #     num_up_modulated_cells_str += f"{epoch_name}: {num_up_modulated_cells}{', ' if i < num_epochs - 1 else ''}"
-    #     num_down_modulated_cells_str += f"{epoch_name}: {num_down_modulated_cells}{', ' if i < num_epochs - 1 else ''}"
-    #     num_non_modulated_cells_str += f"{epoch_name}: {num_non_modulated_cells}{', ' if i < num_epochs - 1 else ''}"
+        num_up_modulated_cells_str += f"{epoch_name}: {num_up_modulated_cells}{', ' if i < num_epochs - 1 else ''}"
+        num_down_modulated_cells_str += f"{epoch_name}: {num_down_modulated_cells}{', ' if i < num_epochs - 1 else ''}"
+        num_non_modulated_cells_str += f"{epoch_name}: {num_non_modulated_cells}{', ' if i < num_epochs - 1 else ''}"
 
     # # event-aligned METADATA
     # first_cs_metadata = read_isxd_metadata(input_cellset_files[0])
@@ -1186,6 +1187,45 @@ def peri_event_analysis_for_single_event_type(
     #         "spacingInfo": first_cs_metadata["spacingInfo"],
     #     }
     # }
+    metadata = [
+        {
+            "key": "ideas.metrics.num_valid_events",
+            "name": "Number of events",
+            "value": num_events_str
+        },
+        {
+            "key": "ideas.metrics.num_up_modulated_cells",
+            "name": "Number of up-modulated cells",
+            "value": num_up_modulated_cells_str
+        },
+        {
+            "key": "ideas.metrics.num_down_modulated_cells",
+            "name": "Number of down-modulated cells",
+            "value": num_down_modulated_cells_str
+        },        
+        {
+            "key": "ideas.metrics.num_non_modulated_cells",
+            "name": "Number of non-modulated cells",
+            "value": num_non_modulated_cells_str
+        },
+        {
+            "key": "ideas.metrics.num_non_modulated_cells",
+            "name": "Number of non-modulated cells",
+            "value": num_non_modulated_cells_str
+        },
+        {
+            "key": "ideas.timingInfo.numTimes",
+            "name": "Number of timepoints",
+            "value": len(x_values)
+        },
+        {
+            "key": "ideas.timingInfo.sampling_rate",
+            "name": "Sampling Rate (Hz)",
+            "value": compute_sampling_rate(
+                period_num=int(period * 1e6), period_den=1000000
+            ),
+        },
+    ]
 
     # # event-aligned traces FILE
     # event_aligned_traces_file = IdeasFile(
@@ -1276,13 +1316,13 @@ def peri_event_analysis_for_single_event_type(
     # )
     # return peri_event_analysis_group
 
-    output_metadata = {}
-    output_metadata_path = os.path.join(output_dir, "output_metadata.json")
-    if os.path.exists(output_metadata_path):
-        with open(output_metadata_path, "r") as f:
-            output_metadata = json.load(f)
+    output_metadata = {
+        "event_aligned_traces": metadata,
+        "event_aligned_statistics": metadata,
+        "event_aligned_epoch_comparison_data": metadata
+    }
 
-    with open(output_metadata_path, "w") as f:
+    with open(os.path.join(output_dir, "output_metadata.json"), "w") as f:
         json.dump(output_metadata, f)
 
 
@@ -2436,3 +2476,100 @@ def compare_peri_event_activity_across_epochs_ideas_wrapper(
         activity_heatmap_color_limits=activity_heatmap_color_limits,
         activity_by_modulation_plot_limits=activity_by_modulation_plot_limits,
     )
+
+    try:
+        logger.info("Registering output data")
+        metadata = outputs._load_and_remove_output_metadata()
+        epoch_names = [e.strip().replace(" ", "") for e in epoch_names.split(",")]
+        with outputs.register(raise_missing_file=False) as output_data:
+            output_file = output_data.register_file(
+                "event_aligned_activity.TRACES.csv",
+                subdir="event_aligned_traces"
+            ).register_preview(
+                f"population_activity{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                caption="Mean population activity over time. Shaded areas represent the different epochs."
+            ).register_preview(
+                f"event_aligned_population_activity{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                caption="Comparison of event-aligned average population activity across the epochs."
+            )
+
+            for epoch_name in epoch_names:
+                output_file.register_preview(
+                    f"event_aligned_population_activity_{epoch_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                    caption=f"Event-aligned average population activity line plot (epoch: {epoch_name}).",
+                ).register_preview(
+                    f"event_aligned_single_cell_activity_heatmap_{epoch_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                    caption=f"Event-aligned single-cell activity heatmap (epoch: {epoch_name})",
+                )
+
+            for md in metadata.get("event_aligned_traces", {}):
+                output_file.register_metadata(**md)
+            
+            output_file = output_data.register_file(
+                "event_aligned_activity.STATISTICS.csv",
+                subdir="event_aligned_statistics"
+            )
+            for epoch_name in epoch_names:
+                output_file.register_preview(
+                    f"event_aligned_activity_by_modulation_{epoch_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                    caption=f"Event-aligned average sub-population activity line plot (up-, down-, and non-modulated neurons) (epoch: {epoch_name})."
+                ).register_preview(
+                    f"cell_map_{epoch_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                    caption=f"Cell map visualizing spatial organization of modulation (epoch: {epoch_name}).",
+                )
+
+            mod_groups = ["up_modulated", "down_modulated", "non_modulated"]
+            for mod_group in mod_groups:
+                output_file.register_preview(
+                    f"event_aligned_activity_{mod_group}.svg",
+                    caption=f"Comparison of event-aligned activity of {mod_group.replace('_', ' ')} cells across epochs.",
+                )
+
+            output_file.register_preview(
+                "num_modulated_cells_per_epoch.svg",
+                caption="Number of up-, down-, and non-modulated neurons per epoch.",
+            ).register_preview(
+                f"event_count_per_epoch{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                caption="Number of events in each epoch."
+            ).register_preview(
+                "mean_post_minus_pre_activity_per_epoch.svg",
+                caption="Comparison of mean post-pre activity across the epochs. The error bars represent the standard error of the mean.",
+            )
+
+            for md in metadata.get("event_aligned_statistics", {}):
+                output_file.register_metadata(**md)
+
+            output_file = output_data.register_file(
+                "pairwise_epoch_comparisons.csv",
+                subdir="event_aligned_epoch_comparison_data"
+            ).register_preview(
+                "post_minus_pre_boxplot.svg",
+                caption=(
+                    "Distribution of post-pre activity across epochs displayed using a "
+                    "box plot. Lines connect the same cells together."
+                ),
+            )
+            
+            for i in range(len(epoch_names)):
+                for j in range(i, len(epoch_names) - 1):
+                    epoch_name1 = epoch_names[i]
+                    epoch_name2 = epoch_names[j + 1]
+
+                    output_file.register_preview(
+                        f"post_minus_pre_differences_{epoch_name1}_{epoch_name2}.svg",
+                        caption=(
+                            f"Pairwise difference of post-pre activity between epochs "
+                            f"{epoch_name1} and {epoch_name2}. The left panel presents "
+                            f"the data as a histogram. The right panel contains a cell "
+                            f"map colored by the magnitude of the difference in "
+                            f"post-pre activity between the epochs."
+                        )
+                    ) 
+
+            for md in metadata.get("event_aligned_epoch_comparison_data", {}):
+                output_file.register_metadata(**md)
+            
+        logger.info("Registered output data")
+    except Exception:
+        logger.exception("Failed to generate output data!")
+    

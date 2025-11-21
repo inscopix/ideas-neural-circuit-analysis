@@ -2086,7 +2086,7 @@ def combine_compare_peri_event_data_across_epochs_ideas_wrapper(
                 for mod_group in mod_groups:
                     output_file.register_preview(
                         f"event_aligned_activity_{mod_group}_{group_name}.svg",
-                        caption=f"Comparison of event-aligned activity of {mod_group.replace("_", " ")} cells across epochs.",
+                        caption=f"Comparison of event-aligned activity of {mod_group.replace('_', ' ')} cells across epochs.",
                     )
                 for md in metadata.get(f"{subdir_base}_event_aligned_statistics", {}):
                     output_file.register_metadata(**md) 

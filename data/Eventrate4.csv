@@ -1,0 +1,247 @@
+Epoch,Cell,Activity
+early drug,0,0.0
+early drug,1,0.0
+early drug,2,0.0
+early drug,3,0.0
+early drug,4,0.0
+early drug,5,0.0
+early drug,6,0.0
+early drug,7,0.0
+early drug,8,0.0
+early drug,9,0.0
+early drug,10,0.0
+early drug,11,0.0
+early drug,12,0.0
+early drug,13,0.5003952932615283
+early drug,14,0.0
+early drug,15,0.5003952932615283
+early drug,16,0.5003952932615283
+early drug,17,0.5003952932615283
+early drug,18,0.0
+early drug,19,0.0
+early drug,20,0.0
+early drug,21,0.0
+early drug,22,0.0
+early drug,23,0.0
+early drug,24,0.5003952932615283
+early drug,25,0.0
+early drug,26,0.0
+early drug,27,0.5003952932615283
+early drug,28,0.0
+early drug,29,0.0
+early drug,30,0.0
+early drug,31,0.5003952932615283
+early drug,32,0.5003952932615283
+early drug,33,0.0
+early drug,34,0.0
+early drug,35,0.0
+early drug,36,0.0
+early drug,37,0.0
+early drug,38,0.0
+early drug,39,0.0
+early drug,40,0.0
+early drug,41,0.0
+early drug,42,0.0
+early drug,43,0.0
+early drug,44,0.5003952932615283
+early drug,45,0.0
+early drug,46,0.0
+early drug,47,0.0
+early drug,48,0.0
+early drug,49,0.5003952932615283
+early drug,50,0.5003952932615283
+early drug,51,0.0
+early drug,52,0.0
+early drug,53,0.5003952932615283
+early drug,54,0.0
+early drug,55,0.0
+early drug,56,0.0
+early drug,57,0.0
+early drug,58,0.0
+early drug,59,0.0
+early drug,60,0.0
+early drug,61,0.0
+early drug,62,0.5003952932615283
+early drug,63,0.0
+early drug,64,0.0
+early drug,65,0.0
+early drug,66,0.0
+early drug,67,0.5003952932615283
+early drug,68,0.0
+early drug,69,0.0
+early drug,70,0.5003952932615283
+early drug,71,0.0
+early drug,72,0.0
+early drug,73,0.0
+early drug,74,0.0
+early drug,75,0.5003952932615283
+early drug,76,0.5003952932615283
+early drug,77,0.0
+early drug,78,0.0
+early drug,79,0.0
+early drug,80,0.0
+early drug,81,0.0
+BASELINE,0,0.0
+BASELINE,1,0.0
+BASELINE,2,0.0
+BASELINE,3,0.0
+BASELINE,4,0.0
+BASELINE,5,0.0
+BASELINE,6,0.0
+BASELINE,7,0.0
+BASELINE,8,0.5267318876437139
+BASELINE,9,0.0
+BASELINE,10,0.0
+BASELINE,11,0.5267318876437139
+BASELINE,12,0.0
+BASELINE,13,0.0
+BASELINE,14,0.0
+BASELINE,15,0.0
+BASELINE,16,0.0
+BASELINE,17,0.0
+BASELINE,18,0.0
+BASELINE,19,0.0
+BASELINE,20,0.0
+BASELINE,21,0.0
+BASELINE,22,0.0
+BASELINE,23,0.0
+BASELINE,24,0.0
+BASELINE,25,0.0
+BASELINE,26,0.0
+BASELINE,27,0.0
+BASELINE,28,0.0
+BASELINE,29,0.0
+BASELINE,30,0.0
+BASELINE,31,0.0
+BASELINE,32,0.0
+BASELINE,33,0.0
+BASELINE,34,0.0
+BASELINE,35,0.0
+BASELINE,36,0.0
+BASELINE,37,0.5267318876437139
+BASELINE,38,0.0
+BASELINE,39,0.0
+BASELINE,40,0.0
+BASELINE,41,0.0
+BASELINE,42,0.0
+BASELINE,43,0.0
+BASELINE,44,0.0
+BASELINE,45,0.0
+BASELINE,46,0.5267318876437139
+BASELINE,47,0.0
+BASELINE,48,0.0
+BASELINE,49,0.0
+BASELINE,50,0.0
+BASELINE,51,0.0
+BASELINE,52,0.0
+BASELINE,53,0.0
+BASELINE,54,0.0
+BASELINE,55,0.5267318876437139
+BASELINE,56,0.0
+BASELINE,57,0.5267318876437139
+BASELINE,58,0.0
+BASELINE,59,0.0
+BASELINE,60,0.0
+BASELINE,61,0.0
+BASELINE,62,0.5267318876437139
+BASELINE,63,0.5267318876437139
+BASELINE,64,0.5267318876437139
+BASELINE,65,0.0
+BASELINE,66,0.0
+BASELINE,67,0.0
+BASELINE,68,0.0
+BASELINE,69,0.0
+BASELINE,70,0.0
+BASELINE,71,0.0
+BASELINE,72,0.0
+BASELINE,73,0.5267318876437139
+BASELINE,74,0.0
+BASELINE,75,0.0
+BASELINE,76,0.0
+BASELINE,77,0.5267318876437139
+BASELINE,78,0.0
+BASELINE,79,0.5267318876437139
+BASELINE,80,0.5267318876437139
+BASELINE,81,0.0
+late-Drug,0,0.0
+late-Drug,1,0.0
+late-Drug,2,0.0
+late-Drug,3,0.5267318876437139
+late-Drug,4,0.0
+late-Drug,5,0.0
+late-Drug,6,0.0
+late-Drug,7,0.0
+late-Drug,8,0.0
+late-Drug,9,0.0
+late-Drug,10,0.0
+late-Drug,11,0.0
+late-Drug,12,0.0
+late-Drug,13,0.0
+late-Drug,14,0.0
+late-Drug,15,0.0
+late-Drug,16,0.0
+late-Drug,17,0.0
+late-Drug,18,0.0
+late-Drug,19,0.0
+late-Drug,20,0.0
+late-Drug,21,0.0
+late-Drug,22,0.0
+late-Drug,23,0.0
+late-Drug,24,0.0
+late-Drug,25,0.0
+late-Drug,26,0.0
+late-Drug,27,0.0
+late-Drug,28,0.0
+late-Drug,29,0.0
+late-Drug,30,0.0
+late-Drug,31,0.0
+late-Drug,32,0.0
+late-Drug,33,0.0
+late-Drug,34,0.0
+late-Drug,35,0.0
+late-Drug,36,0.0
+late-Drug,37,0.0
+late-Drug,38,0.0
+late-Drug,39,0.0
+late-Drug,40,0.0
+late-Drug,41,0.0
+late-Drug,42,0.5267318876437139
+late-Drug,43,0.0
+late-Drug,44,0.0
+late-Drug,45,0.0
+late-Drug,46,0.0
+late-Drug,47,0.0
+late-Drug,48,0.0
+late-Drug,49,0.0
+late-Drug,50,0.0
+late-Drug,51,0.0
+late-Drug,52,0.0
+late-Drug,53,0.0
+late-Drug,54,0.0
+late-Drug,55,0.0
+late-Drug,56,0.0
+late-Drug,57,0.0
+late-Drug,58,0.0
+late-Drug,59,0.0
+late-Drug,60,0.0
+late-Drug,61,0.0
+late-Drug,62,0.0
+late-Drug,63,0.0
+late-Drug,64,0.0
+late-Drug,65,0.0
+late-Drug,66,0.0
+late-Drug,67,0.0
+late-Drug,68,0.0
+late-Drug,69,0.0
+late-Drug,70,0.0
+late-Drug,71,0.0
+late-Drug,72,0.0
+late-Drug,73,0.0
+late-Drug,74,0.0
+late-Drug,75,0.0
+late-Drug,76,0.0
+late-Drug,77,0.0
+late-Drug,78,0.0
+late-Drug,79,0.0
+late-Drug,80,0.0
+late-Drug,81,0.0

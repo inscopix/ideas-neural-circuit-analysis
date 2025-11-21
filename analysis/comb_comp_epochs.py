@@ -15,10 +15,12 @@ from utils.plots import _plot_combined_data
 from utils.utils import _combine_data
 from utils.validation import _validate_files
 from ideas.exceptions import IdeasError
-from ideas.tools.log import get_logger
 
+from ideas.tools import log
+from ideas.tools.types import IdeasFile
+from ideas.tools import outputs
 
-logger = get_logger()
+logger = logging.getLogger(__name__)
 
 
 def run_cc_epochs(
@@ -56,10 +58,10 @@ def run_cc_epochs(
         effect_size (Optional[str], optional):
         Method for effect size calculation. Defaults to "cohen".
     :Raises
-        ValueError: If the number of trace, event, and correlation
+        IdeasError: If the number of trace, event, and correlation
         files are not the same for each group.
-        ValueError: If there are fewer than two files for any group.
-        ValueError: If the number of epoch names and colors are not the same.
+        IdeasError: If there are fewer than two files for any group.
+        IdeasError: If the number of epoch names and colors are not the same.
         IdeasError: If group names contain special characters.
     :Returns
         None
@@ -99,7 +101,7 @@ def run_cc_epochs(
 
     epoch_colors = epoch_colors.replace(" ", "").split(",")
     if len(epoch_names) != len(epoch_colors):
-        raise ValueError(
+        raise IdeasError(
             "The number of epoch names and colors must be the same."
         )
 
