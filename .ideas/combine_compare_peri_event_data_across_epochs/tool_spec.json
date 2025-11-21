@@ -1,0 +1,226 @@
+{
+    "key": "combine_compare_peri_event_data_across_epochs",
+    "name": "combine_compare_peri_event_data_across_epochs",
+    "schema_version": "3.0.0",
+    "container_image": {
+        "repository": "platform/neural-analysis",
+        "label": "latest"
+    },
+    "command": {
+        "file_path": "analysis/combine_compare_peri_event_data_across_epochs.py",
+        "entry_point": "combine_compare_peri_event_data_across_epochs_ideas_wrapper",
+        "program_type": "PYTHON"
+    },
+    "params": [
+        {
+            "key": "group1_traces_files",
+            "name": "group1_traces_files",
+            "required": false,
+            "description": "group1_traces_files",
+            "type": {
+                "param_type": "ToolStringParam"
+            }
+        },
+        {
+            "key": "group1_stats_files",
+            "name": "group1_stats_files",
+            "required": false,
+            "description": "group1_stats_files",
+            "type": {
+                "param_type": "ToolStringParam"
+            }
+        },
+        {
+            "key": "group1_name",
+            "name": "group1_name",
+            "required": false,
+            "description": "group1_name",
+            "type": {
+                "param_type": "ToolStringParam"
+            }
+        },
+        {
+            "key": "group2_traces_files",
+            "name": "group2_traces_files",
+            "required": false,
+            "description": "group2_traces_files",
+            "type": {
+                "param_type": "ToolStringParam"
+            }
+        },
+        {
+            "key": "group2_stats_files",
+            "name": "group2_stats_files",
+            "required": false,
+            "description": "group2_stats_files",
+            "type": {
+                "param_type": "ToolStringParam"
+            }
+        },
+        {
+            "key": "group2_name",
+            "name": "group2_name",
+            "required": false,
+            "description": "group2_name",
+            "type": {
+                "param_type": "ToolStringParam"
+            }
+        },
+        {
+            "key": "epoch_names",
+            "name": "epoch_names",
+            "required": false,
+            "description": "epoch_names",
+            "type": {
+                "param_type": "ToolStringParam"
+            }
+        },
+        {
+            "key": "epoch_colors",
+            "name": "epoch_colors",
+            "required": false,
+            "description": "epoch_colors",
+            "type": {
+                "param_type": "ToolStringParam"
+            }
+        },
+        {
+            "key": "comparison_type",
+            "name": "comparison_type",
+            "required": false,
+            "description": "comparison_type",
+            "type": {
+                "param_type": "ToolStringParam"
+            }
+        },
+        {
+            "key": "data_pairing",
+            "name": "data_pairing",
+            "required": false,
+            "description": "data_pairing",
+            "type": {
+                "param_type": "ToolStringParam"
+            }
+        },
+        {
+            "key": "parametric",
+            "name": "parametric",
+            "required": false,
+            "description": "parametric",
+            "type": {
+                "param_type": "ToolStringParam"
+            }
+        },
+        {
+            "key": "significance_threshold",
+            "name": "significance_threshold",
+            "required": false,
+            "description": "significance_threshold",
+            "type": {
+                "param_type": "ToolFloatRangeParam"
+            }
+        },
+        {
+            "key": "average_method",
+            "name": "average_method",
+            "required": false,
+            "description": "average_method",
+            "type": {
+                "param_type": "ToolStringParam"
+            }
+        },
+        {
+            "key": "tolerance",
+            "name": "tolerance",
+            "required": false,
+            "description": "tolerance",
+            "type": {
+                "param_type": "ToolFloatRangeParam"
+            }
+        },
+        {
+            "key": "group_colors",
+            "name": "group_colors",
+            "required": false,
+            "description": "group_colors",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "#1f77b4, #ff7f0e"
+            }
+        },
+        {
+            "key": "modulation_colors",
+            "name": "modulation_colors",
+            "required": false,
+            "description": "modulation_colors",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "green, blue, black"
+            }
+        },
+        {
+            "key": "cmap",
+            "name": "cmap",
+            "required": false,
+            "description": "cmap",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "coolwarm"
+            }
+        },
+        {
+            "key": "population_activity_plot_limits",
+            "name": "population_activity_plot_limits",
+            "required": false,
+            "description": "population_activity_plot_limits",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "auto"
+            }
+        },
+        {
+            "key": "activity_heatmap_color_limits",
+            "name": "activity_heatmap_color_limits",
+            "required": false,
+            "description": "activity_heatmap_color_limits",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "auto"
+            }
+        },
+        {
+            "key": "activity_by_modulation_plot_limits",
+            "name": "activity_by_modulation_plot_limits",
+            "required": false,
+            "description": "activity_by_modulation_plot_limits",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "auto"
+            }
+        },
+        {
+            "key": "output_dir",
+            "name": "output_dir",
+            "required": false,
+            "description": "output_dir",
+            "type": {
+                "param_type": "ToolStringParam"
+            }
+        }
+    ],
+    "results": [
+        {
+            "key": "tool_output_group",
+            "name": "Tool Outputs",
+            "description": "Tool outputs",
+            "file_patterns": [
+                "**/*"
+            ]
+        }
+    ],
+    "resources": {
+        "cpu": 1,
+        "gpu": 0,
+        "memory": 1000
+    }
+}

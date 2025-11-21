@@ -42,7 +42,6 @@ from utils.plots import (
 )
 from utils.utils import (
     remove_unsupported_characters,
-
 )
 # from toolbox.utils.data_model import IdeasFile, IdeasPreviewFile
 # from ideas_commons.constants import (
@@ -51,9 +50,11 @@ from utils.utils import (
 #     FileType,
 #     FileCategory,
 # )
-import logging
+from ideas.tools import log
+from ideas.tools.types import IdeasFile
+from ideas.tools import outputs
 
-logger = logging.getLogger()
+logger = log.get_logger()
 
 # Define a constant for small values used in division or variance checks
 DIVISION_THRESHOLD = 1e-10
@@ -1915,4 +1916,78 @@ def combine_compare_peri_event_data_across_epochs(
 
     logger.info(
         "Combination and comparison of peri-event data across epochs completed"
+    )
+
+
+def combine_compare_peri_event_data_across_epochs_ideas_wrapper(
+    group1_traces_files: List[IdeasFile],
+    group1_stats_files: List[IdeasFile],
+    group1_name: str,
+    group2_traces_files: List[IdeasFile],
+    group2_stats_files: List[IdeasFile],
+    group2_name: str,
+    epoch_names: str,
+    epoch_colors: str,
+    comparison_type: str,
+    data_pairing: str,
+    parametric: str,
+    significance_threshold: float,
+    average_method: str,
+    tolerance: float,
+    group_colors: str = "#1f77b4, #ff7f0e",
+    modulation_colors: str = "green, blue, black",
+    cmap: str = "coolwarm",
+    population_activity_plot_limits: str = "auto",
+    activity_heatmap_color_limits: str = "auto",
+    activity_by_modulation_plot_limits: str = "auto",
+    output_dir: str = None,
+):
+    """IDEAS tool wrapper for combine and compare peri-event analysis data.
+
+    :param group1_traces_files: peri-event analysis traces files from the first group
+    :param group1_stats_files: peri-event analysis statistics files from the first group
+    :param group1_name: name of the first group
+    :param group2_traces_files: peri-event analysis traces files from the second group
+    :param group2_stats_files: peri-event analysis statistics files from the second group
+    :param group2_name: name of the second group
+    :param comparison_type: type of statistical test to perform
+    :param data_pairing: indicates whether the observations are paired or not
+    :param significance_threshold: p-value threshold for classifying neurons as
+                                   up- or down-modulated
+    :param average_method: indicates whether averaging should be done across all
+                           observations or over each recording
+    :param tolerance: Maximum time shift in seconds between the time windows of the input traces files
+    :param group_colors: comma separated strings with color inputs
+    These colors represent the two comparison groups.
+    :param modulation_colors: comma separated strings with color inputs
+    :param cmap: colormap applied to the activity heatmap
+    :param population_activity_plot_limits: y-axis range (z-score) applied to the event-aligned
+     population activity plot specified as 'min,max' (e.g. -1,1) or 'auto'
+    :param activity_heatmap_color_limits: colormap range (z-score) applied to the activity heatmap
+     specified as 'min,max' (e.g. -1,1) or 'auto'
+    :param activity_by_modulation_plot_limits: y-axis range (z-score) applied to the event-aligned
+     activity by modulation plot specified as 'min,max' (e.g. -1,1) or 'auto'
+    """
+
+    combine_compare_peri_event_data_across_epochs(
+        group1_traces_files=group1_traces_files,
+        group1_stats_files=group1_stats_files,
+        group1_name=group1_name,
+        group2_traces_files=group2_traces_files,
+        group2_stats_files=group2_stats_files,
+        group2_name=group2_name,
+        epoch_names=epoch_names,
+        epoch_colors=epoch_colors,
+        comparison_type=comparison_type,
+        data_pairing=data_pairing,
+        parametric=parametric,
+        significance_threshold=significance_threshold,
+        average_method=average_method,
+        tolerance=tolerance,
+        group_colors=group_colors,
+        modulation_colors=modulation_colors,
+        cmap=cmap,
+        population_activity_plot_limits=population_activity_plot_limits,
+        activity_heatmap_color_limits=activity_heatmap_color_limits,
+        activity_by_modulation_plot_limits=activity_by_modulation_plot_limits,
     )
