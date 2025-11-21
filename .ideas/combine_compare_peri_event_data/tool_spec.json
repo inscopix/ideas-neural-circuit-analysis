@@ -180,7 +180,7 @@
             },
             "group": "Visualization Parameters"
         },
-         {
+        {
             "key": "activity_heatmap_color_limits",
             "name": "Activity heatmap (colormap range)",
             "required": false,
@@ -235,7 +235,6 @@
             },
             "group": "Visualization Parameters"
         }
-        
     ],
     "results": [
         {

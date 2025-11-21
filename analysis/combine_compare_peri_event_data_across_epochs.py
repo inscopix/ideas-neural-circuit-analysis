@@ -1,3 +1,4 @@
+import json
 import os
 import warnings
 from typing import List
@@ -1868,7 +1869,7 @@ def combine_compare_peri_event_data_across_epochs(
             #     )
             #     output_files.append(anova_file)
 
-            # pairwise FILE
+            # # pairwise FILE
             # pairwise_preview_file = IdeasPreviewFile(
             #     name="Comparisons of post-pre activity between the two groups",
             #     help="Comparisons of post-pre activity between the two groups",
@@ -1908,6 +1909,9 @@ def combine_compare_peri_event_data_across_epochs(
     #     output_dir=output_dir,
     #     output_group_key="combine_compare_peri_event_data_across_epochs_output",
     # )
+    output_metadata = {}
+    with open(os.path.join(output_dir, "output_metadata.json"), "w") as f:
+        json.dump(output_metadata, f)
 
     logger.info(
         "Combination and comparison of peri-event data across epochs completed"
