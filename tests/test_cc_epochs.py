@@ -617,7 +617,7 @@ def test_cc_epochs_medium_neuronal_data(tmp_path, monkeypatch, cleanup_plots):
     import pandas as pd
     import numpy as np
     import pytest
-    from toolbox.tools.comb_comp_epochs import run_cc_epochs
+    from analysis.comb_comp_epochs import run_cc_epochs
     from ideas.exceptions import IdeasError
 
     # Generate medium data: 50 cells across 3 epochs (each simulated with one observation per cell)
@@ -699,7 +699,7 @@ def test_cc_epochs_large_neuronal_data(tmp_path, monkeypatch, cleanup_plots):
     import pandas as pd
     import numpy as np
     import pytest
-    from toolbox.tools.comb_comp_epochs import run_cc_epochs
+    from analysis.comb_comp_epochs import run_cc_epochs
     from ideas.exceptions import IdeasError
 
     # Generate large data: 200 cells across 3 epochs.
