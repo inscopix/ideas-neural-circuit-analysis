@@ -5,8 +5,8 @@
     "description": "Measure population activity during two states",
     "schema_version": "3.0.0",
     "container_image": {
-        "repository": "platform/neuro-stats",
-        "label": "0.0.3"
+        "repository": "platform/neural-analysis",
+        "label": "0.0.6"
     },
     "command": {
         "file_path": "analysis/population_activity.py",

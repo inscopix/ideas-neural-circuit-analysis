@@ -1,5 +1,5 @@
 {
-    "container": "platform/neuro-stats:latest",
+    "container": "platform/neural-analysis:latest",
     "executor_type": "PYTHON",
     "file": "analysis/population_activity.py",
     "function": "population_activity_ideas_wrapper",

@@ -1,7 +1,7 @@
 .PHONY:  clean build test
 
 IMAGE_REPO=platform
-IMAGE_NAME=neuro-stats
+IMAGE_NAME=neural-analysis
 LABEL=$(shell cat .ideas/images_spec.json | jq -r ".[0].label")
 IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:${LABEL}
 LATEST_IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:latest
@@ -10,7 +10,7 @@ ifndef TARGET
 	TARGET=base
 endif
 
-# Update the tool specs whenever a new version of a container imagee is created
+# Update the tool specs whenever a new version of a container image is created
 TOOL_SPECS=${shell ls -d .ideas/*/tool_spec.json}
 
 .DEFAULT_GOAL := build

@@ -1,5 +1,5 @@
 {
-    "container": "platform/neuro-stats:latest",
+    "container": "platform/neural-analysis:latest",
     "executor_type": "PYTHON",
     "file": "analysis/peri_event_workflow.py",
     "function": "run_peri_event_workflow_ideas_wrapper",

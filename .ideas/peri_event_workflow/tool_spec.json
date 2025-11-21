@@ -5,8 +5,8 @@
     "description": "Analyze neural activity around (peri) the time of each event, specifically testing for up- or down-modulation of both average population and single cells by comparing activity before (pre) and after (post) each event.",
     "schema_version": "3.0.0",
     "container_image": {
-        "repository": "platform/neuro-stats",
-        "label": "0.0.3"
+        "repository": "platform/neural-analysis",
+        "label": "0.0.6"
     },
     "command": {
         "file_path": "analysis/peri_event_workflow.py",

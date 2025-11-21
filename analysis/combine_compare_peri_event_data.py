@@ -35,9 +35,11 @@ from utils.stats_utils import ttest
 from ideas.analysis.utils import (
     get_file_size,
 )
+from utils.utils import compute_sampling_rate
 
 from ideas.tools import log
 from ideas.tools.types import IdeasFile
+from ideas.tools import outputs
 
 logger = log.get_logger()
 
@@ -1537,6 +1539,43 @@ def combine_peri_event_data(
     # )
 
     # # define event-aligned metadata
+    event_aligned_metadata = [
+        {
+            "key": "ideas.metrics.num_up_modulated_cells",
+            "name": "Number of up-modulated cells",
+            "value": combined_cell_data["up_modulated"][
+                "num_cells"
+            ]
+        },
+        {
+            "key": "ideas.metrics.num_down_modulated_cells",
+            "name": "Number of down-modulated cells",
+            "value": combined_cell_data["down_modulated"][
+                "num_cells"
+            ]
+        },
+        {
+            "key": "ideas.metrics.num_non_modulated_cells",
+            "name": "Number of non-modulated cells",
+            "value": combined_cell_data["non_modulated"][
+                "num_cells"
+            ]
+        },
+        {
+            "key": "ideas.timingInfo.numTime",
+            "name": "Number of timepoints",
+            "value": len(traces_timeline)
+        },
+        {
+            "key": "ideas.timingInfo.sampling_rate",
+            "name": "Sampling Rate (Hz)",
+            "value": compute_sampling_rate(
+                period_num=abs(traces_timeline[0] - traces_timeline[1]),
+                period_den=1,
+            )
+        }
+    ]
+
     # event_aligned_metadata = {
     #     config.IDEAS_METADATA_KEY: {
     #         "metrics": {
@@ -1616,7 +1655,7 @@ def combine_peri_event_data(
     #     add_metadata=statistics_metadata,
     # )
 
-    return combined_cell_data
+    return combined_cell_data, event_aligned_metadata
 
 
 def generate_comparison_plots(
@@ -1835,6 +1874,7 @@ def combine_compare_peri_event_data(
 
     # define list of files to include in the output manifest
     output_files = []
+    output_metadata = {}
 
     # combine data from group 1
     if len(group1_traces_files) > 1:
@@ -1843,7 +1883,7 @@ def combine_compare_peri_event_data(
         #     # group1_traces_manifest_files,
         #     # group1_statistics_manifest_files,
         # ) 
-        group1_data = combine_peri_event_data(
+        group1_data, group1_md = combine_peri_event_data(
             traces_files=group1_traces_files,
             stats_files=group1_stats_files,
             significance_threshold=significance_threshold,
@@ -1856,6 +1896,9 @@ def combine_compare_peri_event_data(
             modulation_colors=modulation_colors,
             cmap=cmap,
         )
+        output_metadata["group1_event_aligned_activity_traces"] = group1_md
+        output_metadata["group1_event_aligned_statistics"] = group1_md
+
         # output_files.extend(
         #     [group1_traces_manifest_files, group1_statistics_manifest_files]
         # )
@@ -1868,7 +1911,7 @@ def combine_compare_peri_event_data(
         #     # group2_traces_manifest_files,
         #     # group2_statistics_manifest_files,
         # ) = 
-        group2_data = combine_peri_event_data(
+        group2_data, group2_md = combine_peri_event_data(
             traces_files=group2_traces_files,
             stats_files=group2_stats_files,
             significance_threshold=significance_threshold,
@@ -1881,6 +1924,9 @@ def combine_compare_peri_event_data(
             modulation_colors=modulation_colors,
             cmap=cmap,
         )
+
+        output_metadata["group2_event_aligned_activity_traces"] = group2_md
+        output_metadata["group2_event_aligned_statistics"] = group2_md
         # output_files.extend(
         #     [group2_traces_manifest_files, group2_statistics_manifest_files]
         # )
@@ -1959,6 +2005,9 @@ def combine_compare_peri_event_data(
         logger.info("Comparison plots generated")
 
         # # define comparison file metadata
+        output_metadata["comparison_data"] = [
+            group1_md[3], group1_md[4]
+        ]
         # comparison_metadata = {
         #     config.IDEAS_METADATA_KEY: {
         #         "timingInfo": group1_traces_manifest_files.file_metadata[
@@ -1995,7 +2044,7 @@ def combine_compare_peri_event_data(
     #     output_dir=output_dir,
     # )
 
-    output_metadata = {}
+    
     with open(os.path.join(output_dir, "output_metadata.json"), "w") as f:
         json.dump(output_metadata, f)
 
@@ -2040,3 +2089,59 @@ def combine_compare_peri_event_data_ideas_wrapper(
         activity_heatmap_color_limits=activity_heatmap_color_limits,
         activity_by_modulation_plot_limits=activity_by_modulation_plot_limits,
     )
+
+    try:
+        logger.info("Registering output data")
+        metadata = outputs._load_and_remove_output_metadata()
+        with outputs.register(raise_missing_file=False) as output_data:
+            for group_name in [group1_name, group2_name]:
+                group_name = group_name.replace(" ", "_")
+                subdir_base = "group1" if group_name == group1_name else "group2"
+                
+                output_file = output_data.register_file(
+                    f"event_aligned_activity_{group_name}.csv",
+                    subdir=f"{subdir_base}_event_aligned_activity_traces",
+                ).register_preview(
+                    f"event_aligned_single_cell_activity_heatmap_{group_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                    caption="Event-aligned single-cell activity heatmap"
+                ).register_preview(
+                    f"event_aligned_population_activity_{group_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                    caption="Event-aligned average sub-population activity line plot (up-, down-, and non-modulated neurons)"
+                )
+                for md in metadata.get(f"{subdir_base}_event_aligned_activity_traces", {}):
+                    output_file.register_metadata(**md) 
+
+
+                output_file = output_data.register_file(
+                    f"event_aligned_statistics_{group_name}.csv",
+                    subdir=f"{subdir_base}_event_aligned_statistics",
+                ).register_preview(
+                    f"event_aligned_activity_by_modulation_{group_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                    caption="Event-aligned average sub-population activity line plot (up-, down-, and non-modulated neurons)",
+                ).register_preview(
+                    f"fraction_of_modulated_neurons_{group_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                    caption="Pie chart depicting the fraction of neurons in each sub-population (up-, down-, and non-modulated neurons)",
+                )
+                for md in metadata.get(f"{subdir_base}_event_aligned_statistics", {}):
+                    output_file.register_metadata(**md)
+
+            output_file = output_data.register_file(
+                "comparison_data.csv",
+                subdir="comparison_data"
+            ).register_preview(
+                f"modulated_fractions_comparison{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                caption="Fraction of neurons in each modulation group"
+            ).register_preview(
+                f"event_aligned_subpopulation_activity_comparison{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                caption="Event-aligned average sub-population activity line plot",
+            ).register_preview(
+                f"event_aligned_population_activity_comparison{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                caption="Event-aligned average population activity line plot",
+            )
+            for md in metadata.get("comparison_data", {}):
+                output_file.register_metadata(**md)
+        
+        logger.info("Registered output data")
+    except Exception:
+        logger.exception("Failed to generate output data!")
+    
