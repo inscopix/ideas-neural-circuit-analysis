@@ -1,3 +1,4 @@
+import json
 import copy
 import logging
 import os
@@ -1274,6 +1275,15 @@ def peri_event_analysis_for_single_event_type(
     # )
     # return peri_event_analysis_group
 
+    output_metadata = {}
+    output_metadata_path = os.path.join(output_dir, "output_metadata.json")
+    if os.path.exists(output_metadata_path):
+        with open(output_metadata_path, "r") as f:
+            output_metadata = json.load(f)
+
+    with open(output_metadata_path, "w") as f:
+        json.dump(output_metadata, f)
+
 
 def peri_event_population_analysis(
     traces_df,
@@ -1516,7 +1526,7 @@ def peri_event_population_analysis(
     #     "Shaded areas represent the different epochs. "
     #     "Individual events are displayed underneath the population activity trace.",
     #     file_path=os.path.abspath(population_activity_plot_preview_filename),
-    #     file_format="svg",
+    #     file_format=FileFormat.SVG_FILE.value[1],
     # )
 
     # # event-aligned population activity figures
@@ -1529,7 +1539,7 @@ def peri_event_population_analysis(
     #         file_path=os.path.abspath(
     #             pop_act_comparison_plot_preview_filename
     #         ),
-    #         file_format="svg",
+    #         file_format=FileFormat.SVG_FILE.value[1],
     #     )
     # )
     # # individual plot showing population activity for each epoch
@@ -1542,7 +1552,7 @@ def peri_event_population_analysis(
     #             name="Event-aligned population activity",
     #             help=f"Event-aligned average population activity line plot (epoch: {epoch_name}).",
     #             file_path=os.path.abspath(preview_filename),
-    #             file_format="svg",
+    #             file_format=FileFormat.SVG_FILE.value[1],
     #         )
     #     )
 
@@ -1551,7 +1561,7 @@ def peri_event_population_analysis(
     #     name="Number of events per epoch",
     #     help="Number of events in each epoch.",
     #     file_path=os.path.abspath(num_events_per_epoch_plot_preview_filename),
-    #     file_format="svg",
+    #     file_format=FileFormat.SVG_FILE.value[1],
     # )
 
     return (
@@ -2054,7 +2064,7 @@ def peri_event_single_cell_analysis(
         #         name="Event-aligned single-cell activity figure",
         #         help=f"Event-aligned single-cell activity heatmap (epoch: {epoch_name})",
         #         file_path=os.path.abspath(heatmap_preview_filename),
-        #         file_format="svg",
+        #         file_format=FileFormat.SVG_FILE.value[1],
         #     )
         # )
 
@@ -2065,7 +2075,7 @@ def peri_event_single_cell_analysis(
         #         help="Event-aligned average sub-population activity line plot "
         #         f"(up-, down-, and non-modulated neurons) (epoch: {epoch_name}).",
         #         file_path=os.path.abspath(modulation_plot_preview_filename),
-        #         file_format="svg",
+        #         file_format=FileFormat.SVG_FILE.value[1],
         #     )
         # )
 
@@ -2075,7 +2085,7 @@ def peri_event_single_cell_analysis(
         #         name="Spatial organization of modulation",
         #         help=f"Cell map visualizing spatial organization of modulation (epoch: {epoch_name}).",
         #         file_path=os.path.abspath(cell_map_preview_filename),
-        #         file_format="svg",
+        #         file_format=FileFormat.SVG_FILE.value[1],
         #     )
         # )
 
@@ -2102,7 +2112,7 @@ def peri_event_single_cell_analysis(
     #             name=f"Event-aligned activity of {group_title.lower()} cells",
     #             help=f"Comparison of event-aligned activity of {group_title.lower()} cells across epochs.",
     #             file_path=os.path.abspath(output_filename),
-    #             file_format="svg",
+    #             file_format=FileFormat.SVG_FILE.value[1],
     #         )
     #     )
 
@@ -2119,7 +2129,7 @@ def peri_event_single_cell_analysis(
     #     name="Mean post-pre activity per epoch",
     #     help="Comparison of mean post-pre activity across the epochs. The error bars represent the standard error of the mean.",
     #     file_path=os.path.abspath(post_minus_pre_per_epoch_preview_filename),
-    #     file_format="svg",
+    #     file_format=FileFormat.SVG_FILE.value[1],
     # )
 
     # plot the number of modulated cells per epoch
@@ -2137,7 +2147,7 @@ def peri_event_single_cell_analysis(
     #     file_path=os.path.abspath(
     #         num_modulated_cells_per_epoch_preview_filename
     #     ),
-    #     file_format="svg",
+    #     file_format=FileFormat.SVG_FILE.value[1],
     # )
 
     return (

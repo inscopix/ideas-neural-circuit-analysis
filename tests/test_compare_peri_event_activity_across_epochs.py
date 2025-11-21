@@ -8,10 +8,7 @@ from analysis.compare_peri_event_activity_across_epochs import (
 )
 from ideas.exceptions import IdeasError
 
-import pytest
 
-
-@pytest.mark.skip(reason="This test case is temporarily disabled.")
 class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
     """Tests for the compare peri-event activity across epochs tool."""
 
@@ -20,6 +17,7 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
 
     # define directories
     temporary_dir = "/tmp"
+    data_dir = "data"
     input_dir = "data/peri_event_workflow"
     output_dir = os.path.join(
         temporary_dir, "tmp_compare_peri_event_activity_across_epochs_outputs"
@@ -45,9 +43,9 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
 
     # input files
     input_cellset_isxd_files = [
-        os.path.join(input_dir, "cellset_series_part1-PCA-ICA.isxd")
+        os.path.join(data_dir, "cellset_series_part1-PCA-ICA.isxd")
     ]
-    input_events_h5_file = os.path.join(input_dir, "events.h5")
+    input_events_h5_file = os.path.join(data_dir, "events.h5")
 
     def setUp(self):
         if os.path.exists(self.output_dir):
@@ -57,10 +55,6 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
     def tearDown(self):
         if os.path.exists(self.output_dir):
             shutil.rmtree(self.output_dir)
-        try:
-            os.remove("exit_status.txt")
-        except:
-            pass
 
     def validate_existence_of_output_files(
         self, output_dir, files_to_exclude=[]
@@ -100,10 +94,10 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
             "post_minus_pre_boxplot.svg",
             # output manifest & metadata
             # "output_manifest.json",
-            # "output_metadata.json",
+            "output_metadata.json",
         ]:
             if f not in files_to_exclude:
-                self.assertTrue(f in output_files, f"Output file {f} does not exist")
+                self.assertTrue(f in output_files)
 
     def validate_traces_file_column_names(
         self, traces_df, epoch_names, cell_ids
@@ -178,238 +172,6 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
 
         act_cols = list(df.columns)
         self.assertEqual(exp_cols, act_cols)
-
-    def get_expected_output_manifest(self):
-        """Returns the expected output manifest.
-        * Note that this the expected output manifest returned by this function
-          will not match all cases and should only be used in applicable test cases.
-        """
-        exp_manifest = {
-            "schema_version": "2.0.0",
-            "groups": [
-                {
-                    "group_key": "compare_peri_event_activity_across_epochs_output",
-                    "group_type": "tool_output",
-                    "group_id": "94fbbf32-25ff-4509-aec7-2b2edca122b9",
-                    "series": [],
-                    "files": [
-                        {
-                            "file_key": "input_cellset_files",
-                            "file_name": "cellset_series_part1-PCA-ICA.isxd",
-                            "file_id": "ed1b62b0-883b-4738-85e6-e64f6e177418",
-                            "file_path": "/ideas/toolbox/tests/data/peri_event_workflow/cellset_series_part1-PCA-ICA.isxd",
-                            "file_type": "cell_set",
-                            "file_format": "isxd",
-                            "file_structure": "binary",
-                            "file_category": "source",
-                        },
-                        {
-                            "file_key": "input_events_h5_file",
-                            "file_name": "events.h5",
-                            "file_id": "c8e6fb09-7267-4643-937c-8eb15f9c4789",
-                            "file_path": "/ideas/toolbox/tests/data/peri_event_workflow/events.h5",
-                            "file_type": "timestamp_events",
-                            "file_format": "h5",
-                            "file_structure": "sparse_time_series",
-                            "file_category": "source",
-                        },
-                        {
-                            "file_key": "event_aligned_traces",
-                            "file_name": "event_aligned_activity.TRACES.csv",
-                            "file_id": "397a2acc-dd9c-4a4b-98dd-a5d4c62753d2",
-                            "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/event_aligned_activity.TRACES.csv",
-                            "file_type": "event_aligned_neural_data",
-                            "file_format": "csv",
-                            "file_structure": "time_series",
-                            "file_category": "result",
-                            "parent_ids": [
-                                "ed1b62b0-883b-4738-85e6-e64f6e177418"
-                            ],
-                            "preview": [
-                                {
-                                    "name": "Mean population activity",
-                                    "help": "Mean population activity over time. Shaded areas represent the different epochs. Individual events are displayed underneath the population activity trace.",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/population_activity.preview.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Event-aligned population activity across epochs",
-                                    "help": "Comparison of event-aligned average population activity across the epochs.",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/event_aligned_population_activity.preview.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Event-aligned population activity",
-                                    "help": "Event-aligned average population activity line plot (epoch: Baseline).",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/event_aligned_population_activity_Baseline.preview.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Event-aligned population activity",
-                                    "help": "Event-aligned average population activity line plot (epoch: Early Drug).",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/event_aligned_population_activity_EarlyDrug.preview.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Event-aligned population activity",
-                                    "help": "Event-aligned average population activity line plot (epoch: Late Drug).",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/event_aligned_population_activity_LateDrug.preview.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Event-aligned single-cell activity figure",
-                                    "help": "Event-aligned single-cell activity heatmap (epoch: Baseline)",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/event_aligned_single_cell_activity_heatmap_Baseline.preview.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Event-aligned single-cell activity figure",
-                                    "help": "Event-aligned single-cell activity heatmap (epoch: Early Drug)",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/event_aligned_single_cell_activity_heatmap_EarlyDrug.preview.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Event-aligned single-cell activity figure",
-                                    "help": "Event-aligned single-cell activity heatmap (epoch: Late Drug)",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/event_aligned_single_cell_activity_heatmap_LateDrug.preview.svg",
-                                    "file_format": "svg",
-                                },
-                            ],
-                        },
-                        {
-                            "file_key": "event_aligned_statistics",
-                            "file_name": "event_aligned_activity.STATISTICS.csv",
-                            "file_id": "4b96f018-98d0-40c9-981a-1db18e20b5a2",
-                            "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/event_aligned_activity.STATISTICS.csv",
-                            "file_type": "statistics",
-                            "file_format": "csv",
-                            "file_structure": "table",
-                            "file_category": "result",
-                            "parent_ids": [
-                                "ed1b62b0-883b-4738-85e6-e64f6e177418",
-                                "397a2acc-dd9c-4a4b-98dd-a5d4c62753d2",
-                            ],
-                            "preview": [
-                                {
-                                    "name": "Event-aligned sub-population activity figure",
-                                    "help": "Event-aligned average sub-population activity line plot (up-, down-, and non-modulated neurons) (epoch: Baseline).",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/event_aligned_activity_by_modulation_Baseline.preview.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Event-aligned sub-population activity figure",
-                                    "help": "Event-aligned average sub-population activity line plot (up-, down-, and non-modulated neurons) (epoch: Early Drug).",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/event_aligned_activity_by_modulation_EarlyDrug.preview.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Event-aligned sub-population activity figure",
-                                    "help": "Event-aligned average sub-population activity line plot (up-, down-, and non-modulated neurons) (epoch: Late Drug).",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/event_aligned_activity_by_modulation_LateDrug.preview.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Spatial organization of modulation",
-                                    "help": "Cell map visualizing spatial organization of modulation (epoch: Baseline).",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/cell_map_Baseline.preview.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Spatial organization of modulation",
-                                    "help": "Cell map visualizing spatial organization of modulation (epoch: Early Drug).",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/cell_map_EarlyDrug.preview.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Spatial organization of modulation",
-                                    "help": "Cell map visualizing spatial organization of modulation (epoch: Late Drug).",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/cell_map_LateDrug.preview.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Event-aligned activity of up-modulated cells",
-                                    "help": "Comparison of event-aligned activity of up-modulated cells across epochs.",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/event_aligned_activity_up_modulated.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Event-aligned activity of down-modulated cells",
-                                    "help": "Comparison of event-aligned activity of down-modulated cells across epochs.",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/event_aligned_activity_down_modulated.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Event-aligned activity of non-modulated cells",
-                                    "help": "Comparison of event-aligned activity of non-modulated cells across epochs.",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/event_aligned_activity_non_modulated.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Number of modulated cells per epoch",
-                                    "help": "Number of up-, down-, and non-modulated neurons per epoch.",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/num_modulated_cells_per_epoch.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Number of events per epoch",
-                                    "help": "Number of events in each epoch.",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/event_count_per_epoch.preview.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Mean post-pre activity per epoch",
-                                    "help": "Comparison of mean post-pre activity across the epochs. The error bars represent the standard error of the mean.",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/mean_post_minus_pre_activity_per_epoch.svg",
-                                    "file_format": "svg",
-                                },
-                            ],
-                        },
-                        {
-                            "file_key": "event_aligned_epoch_comparison_data",
-                            "file_name": "pairwise_epoch_comparisons.csv",
-                            "file_id": "bfc9d1f3-7f38-4578-9549-d2eb4a1eff2a",
-                            "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/pairwise_epoch_comparisons.csv",
-                            "file_type": "peri_event_comparison_data",
-                            "file_format": "csv",
-                            "file_structure": "table",
-                            "file_category": "result",
-                            "parent_ids": [
-                                "ed1b62b0-883b-4738-85e6-e64f6e177418",
-                                "397a2acc-dd9c-4a4b-98dd-a5d4c62753d2",
-                                "4b96f018-98d0-40c9-981a-1db18e20b5a2",
-                            ],
-                            "preview": [
-                                {
-                                    "name": "Post-pre differences between Baseline and Early Drug",
-                                    "help": "Pairwise difference of post-pre activity between epochs Baseline and Early Drug. The left panel presents the data as a histogram. The right panel contains a cell map colored by the magnitude of the difference in post-pre activity between the epochs.",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/post_minus_pre_differences_Baseline_EarlyDrug.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Post-pre differences between Baseline and Late Drug",
-                                    "help": "Pairwise difference of post-pre activity between epochs Baseline and Late Drug. The left panel presents the data as a histogram. The right panel contains a cell map colored by the magnitude of the difference in post-pre activity between the epochs.",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/post_minus_pre_differences_Baseline_LateDrug.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Post-pre differences between Early Drug and Late Drug",
-                                    "help": "Pairwise difference of post-pre activity between epochs Early Drug and Late Drug. The left panel presents the data as a histogram. The right panel contains a cell map colored by the magnitude of the difference in post-pre activity between the epochs.",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/post_minus_pre_differences_EarlyDrug_LateDrug.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Post-pre distribution across the epochs",
-                                    "help": "Distribution of post-pre activity across epochs displayed using a box plot. Lines connect the same cells together.",
-                                    "file_path": "/tmp/tmp_compare_peri_event_activity_across_epochs_outputs/post_minus_pre_boxplot.svg",
-                                    "file_format": "svg",
-                                },
-                            ],
-                        },
-                    ],
-                }
-            ],
-        }
-        return exp_manifest
 
     def test_compare_peri_event_activity_across_epochs_single_cell_set(
         self,
@@ -1472,7 +1234,7 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
                 }
             ],
         }
-        # validate output manifest
+        # # validate output manifest
         # self.assertTrue(
         #     validate_output_manifest(
         #         expected_output_manifest=exp_manifest,
@@ -1980,7 +1742,7 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
             # event-aligned epoch comparison data --> no comparison data for 1 epoch
             # output manifest & metadata
             # "output_manifest.json",
-            # "output_metadata.json",
+            "output_metadata.json",
         ]:
             self.assertTrue(f in output_files)
 
@@ -2176,8 +1938,8 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
 
         # execute workflow
         input_cellset_files = [
-            os.path.join(self.input_dir, "cellset_series_part1-PCA-ICA.isxd"),
-            os.path.join(self.input_dir, "cellset_series_part2-PCA-ICA.isxd"),
+            os.path.join(self.data_dir, "cellset_series_part1-PCA-ICA.isxd"),
+            os.path.join(self.data_dir, "cellset_series_part2-PCA-ICA.isxd"),
         ]
         compare_peri_event_activity_across_epochs(
             input_cellset_files=input_cellset_files,
@@ -2897,7 +2659,7 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
             "post_minus_pre_boxplot.svg",
             # output manifest & metadata
             # "output_manifest.json",
-            # "output_metadata.json",
+            "output_metadata.json",
         ]:
             self.assertTrue(f in act_output_files)
 
@@ -3145,8 +2907,8 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
 
         # execute workflow
         input_cellset_files = [
-            os.path.join(self.input_dir, "cellset_series_part1-PCA-ICA.isxd"),
-            os.path.join(self.input_dir, "cellset_series_part2-PCA-ICA.isxd"),
+            os.path.join(self.data_dir, "cellset_series_part1-PCA-ICA.isxd"),
+            os.path.join(self.data_dir, "cellset_series_part2-PCA-ICA.isxd"),
         ]
         compare_peri_event_activity_across_epochs(
             input_cellset_files=input_cellset_files,
@@ -3206,7 +2968,7 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
             "post_minus_pre_boxplot.svg",
             # output manifest & metadata
             # "output_manifest.json",
-            # "output_metadata.json",
+            "output_metadata.json",
         ]:
             self.assertTrue(f in act_output_files)
 
@@ -3465,8 +3227,8 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
 
         # execute workflow
         input_cellset_files = [
-            os.path.join(self.input_dir, "cellset_series_part1-PCA-ICA.isxd"),
-            os.path.join(self.input_dir, "cellset_series_part2-PCA-ICA.isxd"),
+            os.path.join(self.data_dir, "cellset_series_part1-PCA-ICA.isxd"),
+            os.path.join(self.data_dir, "cellset_series_part2-PCA-ICA.isxd"),
         ]
         compare_peri_event_activity_across_epochs(
             input_cellset_files=input_cellset_files,
@@ -3526,7 +3288,7 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
             "post_minus_pre_boxplot.svg",
             # output manifest & metadata
             # "output_manifest.json",
-            # "output_metadata.json",
+            "output_metadata.json",
         ]:
             self.assertTrue(f in act_output_files)
 
