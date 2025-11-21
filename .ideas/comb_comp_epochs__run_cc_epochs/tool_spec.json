@@ -1,0 +1,275 @@
+{
+    "key": "comb_comp_epochs__run_cc_epochs",
+    "name": "Combine and Compare Neural Activity Across Epochs",
+    "schema_version": "3.0.0",
+    "container_image": {
+        "repository": "platform/neural-analysis",
+        "label": "0.0.8"
+    },
+    "command": {
+        "file_path": "analysis/comb_comp_epochs.py",
+        "entry_point": "run_cc_epochs_ideas_wrapper",
+        "program_type": "PYTHON"
+    },
+    "params": [
+        {
+            "key": "group1_traces",
+            "name": "Group 1 Trace Files",
+            "required": true,
+            "description": "Group 1 Trace Files",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "csv"
+                ]
+            },
+            "group": ""
+        },
+        {
+            "key": "group2_traces",
+            "name": "Group 2 Trace Files",
+            "required": false,
+            "description": "Group 2 Trace Files",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "csv"
+                ]
+            },
+            "group": ""
+        },
+        {
+            "key": "group1_events",
+            "name": "Group 1 Eventrate Files",
+            "required": false,
+            "description": "Group 1 Eventrate Files",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "csv"
+                ]
+            },
+            "group": ""
+        },
+        {
+            "key": "group2_events",
+            "name": "Group 2 Eventrate Files",
+            "required": false,
+            "description": "Group 2 Eventrate Files",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "csv"
+                ]
+            },
+            "group": ""
+        },
+        {
+            "key": "group1_corr",
+            "name": "Group 1 Correlation Files",
+            "required": false,
+            "description": "Group 1 Correlation Files",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "npy"
+                ]
+            },
+            "group": ""
+        },
+        {
+            "key": "group2_corr",
+            "name": "Group 2 Correlation Files",
+            "required": false,
+            "description": "Group 2 Correlation Files",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "npy"
+                ]
+            },
+            "group": ""
+        },
+        {
+            "key": "epoch_names",
+            "name": "Name of Epochs",
+            "required": true,
+            "description": "List of names of epochs",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "Epoch 1, Epoch 2, Epoch 3"
+            },
+            "group": ""
+        },
+        {
+            "key": "group1_name",
+            "name": "Name of the first group",
+            "required": true,
+            "description": "Name of the first group",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": ""
+        },
+        
+        {
+            "key": "group2_name",
+            "name": "Name of the second group",
+            "required": false,
+            "description": "Name of the second group",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": ""
+        },
+        {
+            "key": "epoch_colors",
+            "name": "Epoch Color Palette",
+            "required": true,
+            "description": "List of matplotlib compatible colors to represent each epoch",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "tab:grey, tab:blue, tab:cyan"
+            },
+            "group": ""
+        },
+        {
+            "key": "group1_color",
+            "name": "Color of the first group",
+            "required": true,
+            "description": "Color of the first group",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "tab:red"
+            },
+            "group": ""
+        },
+        {
+            "key": "group2_color",
+            "name": "Color of the second group",
+            "required": true,
+            "description": "Color of the second group",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "tab:orange"
+            },
+            "group": ""
+        },
+        {
+            "key": "multiple_correction",
+            "name": "Multiple Comparison Correction Method",
+            "required": true,
+            "description": "Method to correct for multiple comparisons",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "bonf",
+                "choices": [
+                    "bonf",
+                    "fdr",
+                    "fdr_bh",
+                    "none"
+                ],
+                "display_options": [
+                    "Bonferroni",
+                    "False Discovery Rate (FDR)",
+                    "Benjamini-Hochberg FDR",
+                    "None"
+                ]
+            },
+            "group": ""
+        },
+        {
+            "key": "effect_size",
+            "name": "Effect Size Method",
+            "required": true,
+            "description": "Method to calculate effect size",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "cohen",
+                "choices": [
+                    "cohen",
+                    "hedges",
+                    "r",
+                    "eta-square",
+                    "odds-ratio",
+                    "AUC",
+                    "CLES"
+                ],
+                "display_options": [
+                    "Cohen's d",
+                    "Hedges' g",
+                    "Pearson's r",
+                    "Eta-squared",
+                    "Odds ratio",
+                    "Area under the curve",
+                    "Common Language Effect Size"
+                ]
+            },
+            "group": ""
+        }
+    ],
+    "results": [
+        {
+            "key": "group_1_combined_data",
+            "name": "Group 1 Combined Trace & Event Data",
+            "description": "Combined trace and event rate data for group 1 recordings",
+            "file_patterns": [
+                "group_1_combined_data/**/*"
+            ]
+        },
+        {
+            "key": "group_1_correlation_data",
+            "name": "Group 1 Combined Correlation Data",
+            "description": "Combined correlation data for group 1 recordings",
+            "file_patterns": [
+                "group_1_correlation_data/**/*"
+            ]
+        },
+        {
+            "key": "group_2_combined_data",
+            "name": "Group 2 Combined Trace & Event Data",
+            "description": "Combined trace and event rate data for the group 2 recordings",
+            "file_patterns": [
+                "group_2_combined_data/**/*"
+            ]
+        },
+        {
+            "key": "group_2_correlation_data",
+            "name": "Group 2 Correlation Data",
+            "description": "Combined correlation data for group 2 recordings",
+            "file_patterns": [
+                "group_2_correlation_data/**/*"
+            ]
+        },
+        {
+            "key": "ANOVA_results",
+            "name": "Anova Comparisons",
+            "description": "ANOVA comparisons for each group and for both groups combined",
+            "file_patterns": [
+                "ANOVA_results/**/*"
+            ]
+        },
+        {
+            "key": "pairwise_results",
+            "name": "Pairwise Comparisons",
+            "description": "Pairwise comparisons for each group and for both groups combined",
+            "file_patterns": [
+                "pairwise_results/**/*"
+            ]
+        }
+    ],
+    "resources": {
+        "cpu": 1,
+        "gpu": 0,
+        "memory": 32000
+    },
+    "description": "Statistically compare neural activity across epochs between two different groups",
+    "visibility": "public",
+    "version": "2.0.1"
+}

@@ -1,0 +1,7 @@
+{
+    "container": "platform/neural-analysis:latest",
+    "executor_type": "PYTHON",
+    "file": "analysis/comb_comp_epochs.py",
+    "function": "run_cc_epochs_ideas_wrapper",
+    "schema_version": "1.0.0"
+}
