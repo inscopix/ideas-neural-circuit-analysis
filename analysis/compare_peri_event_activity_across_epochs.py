@@ -62,7 +62,8 @@ from utils.plots import (
     plot_post_minus_pre_activity_differences_with_cell_map,
 )
 
-
+from ideas.tools.types import IdeasFile
+from ideas.tools import outputs
 logger = get_logger()
 
 
@@ -2348,3 +2349,90 @@ def save_event_aligned_statistics_to_csv(
 
     # save stats dataframe to disk
     output_stats_dataframe.to_csv(output_filename, index=False)
+
+def compare_peri_event_activity_across_epochs_ideas_wrapper(
+    input_cellset_files: List[IdeasFile],
+    input_events_h5_file: IdeasFile,
+    event_type: str,
+    define_epochs_by: str,
+    epoch_names: str,
+    epoch_periods: str,
+    epoch_colors: str,
+    epoch_min_events: int,
+    visual_window_pre: float = -2.0,
+    visual_window_post: float = 2.0,
+    statistical_window_pre_start: float = -1.0,
+    statistical_window_pre_end: float = 1.0,
+    statistical_window_post_start: float = 0.0,
+    statistical_window_post_end: float = 1.0,
+    num_shuffles: int = 1000,
+    significance_threshold: float = 0.05,
+    seed: int = 0,
+    comparison_type: str = "two_tailed",
+    modulation_colors: str = "green, blue, black",
+    cmap: str = "coolwarm",
+    temporal_downsampling_factor: int = 1,
+    population_activity_plot_limits: str = "auto",
+    activity_heatmap_color_limits: str = "auto",
+    activity_by_modulation_plot_limits: str = "auto",
+):
+    """Ideas tools wrapper for compare peri-event activity across epochs.
+
+    :param input_cellset_files: list of paths to the cell set files
+    :param input_events_h5_file: path to the events file
+    :param event_type: string representing an event type (currently only supports 1 event type)
+    :param epoch_names: list of epoch names
+    :param epoch_periods: list of epoch periods specified as list of tuples encoded as a string (e.g. "(1,10), (11,20)")
+    :param epoch_colors: list of epoch colors
+    :param epoch_min_events: minimum number of events per epoch
+    :param visual_window_pre: time in seconds before each event to use for visualization
+    :param visual_window_post: time in seconds after each event to use for visualization
+    :param statistical_window_pre_start: start of time range in seconds before each event
+     to use for statistical tests
+    :param statistical_window_pre_end: end of time range in seconds before each event
+     to use for statistical tests
+    :param statistical_window_post_start: start of time range in seconds after each event
+     to use for statistical tests
+    :param statistical_window_post_end: end of time range in seconds after each event
+     to use for statistical tests
+    :param num_shuffles: number of random shuffles of the event times to perform
+    :param significance_threshold: threshold to use for statistical significance tests
+    :param seed: seed for the random generator used to shuffle event indices
+    :param modulation_colors: comma separated strings with color inputs
+    These colors represent [up-modulated, down-modulated, non-modulated] groups.
+    :param cmap: colormap applied to the activity heatmap
+    :param temporal_downsampling_factor: downsampling factor to apply to the traces during the analysis
+    :param population_activity_plot_limits: y-axis range (z-score) applied to the event-aligned
+     population activity plot specified as 'min,max' (e.g. -1,1) or 'auto'
+    :param activity_heatmap_color_limits: colormap range (z-score) applied to the activity heatmap
+     specified as 'min,max' (e.g. -1,1) or 'auto'
+    :param activity_by_modulation_plot_limits: y-axis range (z-score) applied to the event-aligned
+     activity by modulation plot specified as 'min,max' (e.g. -1,1) or 'auto'
+    """
+
+    compare_peri_event_activity_across_epochs(
+        input_cellset_files=input_cellset_files,
+        input_events_h5_file=input_events_h5_file,
+        event_type=event_type,
+        define_epochs_by=define_epochs_by,
+        epoch_names=epoch_names,
+        epoch_periods=epoch_periods,
+        epoch_colors=epoch_colors,
+        epoch_min_events=epoch_min_events,
+        visual_window_pre=visual_window_pre,
+        visual_window_post=visual_window_post,
+        statistical_window_pre_start=statistical_window_pre_start,
+        statistical_window_pre_end=statistical_window_pre_end,
+        statistical_window_post_start=statistical_window_post_start,
+        statistical_window_post_end=statistical_window_post_end,
+        num_shuffles=num_shuffles,
+        significance_threshold=significance_threshold,
+        seed=seed,
+        comparison_type=comparison_type,
+        modulation_colors=modulation_colors,
+        cmap=cmap,
+        temporal_downsampling_factor=temporal_downsampling_factor,
+        population_activity_plot_limits=population_activity_plot_limits,
+        activity_heatmap_color_limits=activity_heatmap_color_limits,
+        activity_by_modulation_plot_limits=activity_by_modulation_plot_limits,
+    )
