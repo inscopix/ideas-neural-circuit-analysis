@@ -1,6 +1,6 @@
 {
     "key": "compare_peri_event_activity_across_epochs",
-    "name": "compare_peri_event_activity_across_epochs",
+    "name": "Compare Peri-Event Activity Across Epochs",
     "schema_version": "3.0.0",
     "container_image": {
         "repository": "platform/neural-analysis",
@@ -14,252 +14,336 @@
     "params": [
         {
             "key": "input_cellset_files",
-            "name": "input_cellset_files",
-            "required": false,
-            "description": "input_cellset_files",
+            "name": "Cell Set(s)",
+            "required": true,
+            "description": "Select cell sets to use for analysis",
             "type": {
                 "param_type": "ToolPathParam",
-                "multiple": true
-            }
+                "multiple": true,
+                "file_formats": [
+                    "isxd"
+                ]
+            },
+            "group": "Input Files"
         },
         {
             "key": "input_events_h5_file",
-            "name": "input_events_h5_file",
-            "required": false,
-            "description": "input_events_h5_file",
+            "name": "Events",
+            "required": true,
+            "description": "Select event data to use for analysis",
             "type": {
                 "param_type": "ToolPathParam",
-                "multiple": false
-            }
-        },
-        {
-            "key": "event_type",
-            "name": "event_type",
-            "required": false,
-            "description": "event_type",
-            "type": {
-                "param_type": "ToolStringParam"
-            }
+                "multiple": false,
+                "file_formats": [
+                    "h5"
+                ]
+            },
+            "group": "Input Files"
         },
         {
             "key": "define_epochs_by",
-            "name": "define_epochs_by",
-            "required": false,
-            "description": "define_epochs_by",
+            "name": "Define epochs by",
+            "required": true,
+            "description": "Method to define epochs. If 'files' is selected, one epoch will automatically be defined for each input cell set file, matching the start and end time of the corresponding files. When 'global file time' is selected, an arbitrary number of epochs can be defined under the 'Epoch periods' columns by specifying the start and end time of each epoch in seconds relative to the start time of the first cell set. Example: (0,10),(11,20). When 'local file time' is selected, an arbitrary number of epochs within each cell set file can be defined by specifying the start and end time of each epoch in seconds relative to the start time of the corresponding cell set. Example: [(0, 10)], [(0,20),(30,50)]",
             "type": {
-                "param_type": "ToolStringParam"
-            }
+                "param_type": "ToolChoiceParam",
+                "choices": [
+                    "files",
+                    "global file time",
+                    "local file time"
+                ],
+                "display_options": [
+                    "files",
+                    "global file time",
+                    "local file time"
+                ],
+                "default": "global file time"
+            },
+            "group": "Epochs"
         },
         {
             "key": "epoch_names",
-            "name": "epoch_names",
-            "required": false,
-            "description": "epoch_names",
+            "name": "Epoch names",
+            "required": true,
+            "description": "Comma-separated list of epoch names (e.g. Epoch 1, Epoch 2, Epoch 3)",
             "type": {
                 "param_type": "ToolStringParam"
-            }
+            },
+            "group": "Epochs"
         },
         {
             "key": "epoch_periods",
-            "name": "epoch_periods",
+            "name": "Epoch periods",
             "required": false,
-            "description": "epoch_periods",
+            "description": "Comma-separated list of tuples containing the start and end times (in seconds) of each epoch (e.g. (0, 10), (11, 20), (21, 30)). This parameter will be ignored when 'Define epochs by' is set to 'files'.",
             "type": {
                 "param_type": "ToolStringParam"
-            }
+            },
+            "group": "Epochs"
         },
         {
             "key": "epoch_colors",
-            "name": "epoch_colors",
-            "required": false,
-            "description": "epoch_colors",
+            "name": "Epoch colors",
+            "required": true,
+            "description": "Comma-separated list of matplotlib compatible colors to represent each epoch (e.g. grey, blue, cyan)",
             "type": {
                 "param_type": "ToolStringParam"
-            }
+            },
+            "group": "Epochs"
         },
         {
             "key": "epoch_min_events",
-            "name": "epoch_min_events",
-            "required": false,
-            "description": "epoch_min_events",
+            "name": "Minimum number of events",
+            "required": true,
+            "description": "Minimum number of events per epoch. Epochs for which the number of events is below the specified value will be excluded from the analysis.",
             "type": {
-                "param_type": "ToolIntRangeParam"
-            }
+                "param_type": "ToolIntRangeParam",
+                "min": 1,
+                "default": 1
+            },
+            "group": "Epochs"
         },
         {
-            "key": "visual_window_pre",
-            "name": "visual_window_pre",
-            "required": false,
-            "description": "visual_window_pre",
+            "key": "event_type",
+            "name": "Event type",
+            "required": true,
+            "description": "Select type of event to analyze from the column names of the event file",
             "type": {
-                "param_type": "ToolFloatRangeParam",
-                "default": -2.0
-            }
-        },
-        {
-            "key": "visual_window_post",
-            "name": "visual_window_post",
-            "required": false,
-            "description": "visual_window_post",
-            "type": {
-                "param_type": "ToolFloatRangeParam",
-                "default": 2.0
-            }
+                "param_type": "ToolStringParam"
+            },
+            "group": "Events"
         },
         {
             "key": "statistical_window_pre_start",
-            "name": "statistical_window_pre_start",
-            "required": false,
-            "description": "statistical_window_pre_start",
+            "name": "Statistical window (pre, start)",
+            "required": true,
+            "description": "Start of time window in seconds before each event to use for statistical tests",
             "type": {
                 "param_type": "ToolFloatRangeParam",
-                "default": -1.0
-            }
+                "default": -1,
+                "max": 0
+            },
+            "group": "Statistics"
         },
         {
             "key": "statistical_window_pre_end",
-            "name": "statistical_window_pre_end",
-            "required": false,
-            "description": "statistical_window_pre_end",
+            "name": "Statistical window (pre, end)",
+            "required": true,
+            "description": "End of time window in seconds before each event to use for statistical tests",
             "type": {
                 "param_type": "ToolFloatRangeParam",
-                "default": 1.0
-            }
+                "default": 0,
+                "max": 0
+            },
+            "group": "Statistics"
         },
         {
             "key": "statistical_window_post_start",
-            "name": "statistical_window_post_start",
-            "required": false,
-            "description": "statistical_window_post_start",
+            "name": "Statistical window (post, start)",
+            "required": true,
+            "description": "Start of time window in seconds after each event to use for statistical tests",
             "type": {
                 "param_type": "ToolFloatRangeParam",
-                "default": 0.0
-            }
+                "default": 0,
+                "min": 0
+            },
+            "group": "Statistics"
         },
         {
             "key": "statistical_window_post_end",
-            "name": "statistical_window_post_end",
-            "required": false,
-            "description": "statistical_window_post_end",
+            "name": "Statistical window (post, end)",
+            "required": true,
+            "description": "End of time window in seconds after each event to use for statistical tests",
             "type": {
                 "param_type": "ToolFloatRangeParam",
-                "default": 1.0
-            }
+                "default": 1,
+                "min": 0
+            },
+            "group": "Statistics"
         },
         {
             "key": "num_shuffles",
-            "name": "num_shuffles",
-            "required": false,
-            "description": "num_shuffles",
+            "name": "Number of random shuffles",
+            "required": true,
+            "description": "Number of random shuffles of event times to perform for constructing null distribution",
             "type": {
                 "param_type": "ToolIntRangeParam",
-                "default": 1000
-            }
+                "default": 1000,
+                "min": 1
+            },
+            "group": "Statistics"
         },
         {
             "key": "significance_threshold",
-            "name": "significance_threshold",
-            "required": false,
-            "description": "significance_threshold",
+            "name": "Significance threshold",
+            "required": true,
+            "description": "p-value threshold for classifying neurons as up- or down-modulated",
             "type": {
                 "param_type": "ToolFloatRangeParam",
-                "default": 0.05
-            }
+                "default": 0.05,
+                "min": 0,
+                "max": 1
+            },
+            "group": "Statistics"
         },
         {
             "key": "seed",
-            "name": "seed",
-            "required": false,
-            "description": "seed",
+            "name": "Seed",
+            "required": true,
+            "description": "Seed for the random generator used to shuffle event indices",
             "type": {
                 "param_type": "ToolIntRangeParam",
-                "default": 0
-            }
+                "default": 0,
+                "min": 0,
+                "max": 4294967295
+            },
+            "group": "Statistics"
         },
         {
             "key": "comparison_type",
-            "name": "comparison_type",
-            "required": false,
-            "description": "comparison_type",
+            "name": "Comparison Type",
+            "required": true,
+            "description": "Type of statistical test to perform",
             "type": {
-                "param_type": "ToolStringParam",
-                "default": "two_tailed"
-            }
-        },
-        {
-            "key": "modulation_colors",
-            "name": "modulation_colors",
-            "required": false,
-            "description": "modulation_colors",
-            "type": {
-                "param_type": "ToolStringParam",
-                "default": "green, blue, black"
-            }
-        },
-        {
-            "key": "cmap",
-            "name": "cmap",
-            "required": false,
-            "description": "cmap",
-            "type": {
-                "param_type": "ToolStringParam",
-                "default": "coolwarm"
-            }
+                "param_type": "ToolChoiceParam",
+                "default": "two_tailed",
+                "choices": [
+                    "two_tailed",
+                    "one_tailed_less",
+                    "one_tailed_greater"
+                ],
+                "display_options": [
+                    "Two-Tailed (Unequal)",
+                    "One-Tailed (Less)",
+                    "One-Tailed (Greater)"
+                ]
+            },
+            "group": "Statistics"
         },
         {
             "key": "temporal_downsampling_factor",
-            "name": "temporal_downsampling_factor",
-            "required": false,
-            "description": "temporal_downsampling_factor",
+            "name": "Temporal downsampling factor",
+            "required": true,
+            "description": "Temporal downsampling factor to apply to the activity traces before running the peri-event analysis",
             "type": {
                 "param_type": "ToolIntRangeParam",
-                "default": 1
-            }
+                "default": 1,
+                "min": 1
+            },
+            "group": "Downsampling"
+        },
+        {
+            "key": "visual_window_pre",
+            "name": "Visual window (pre)",
+            "required": true,
+            "description": "Time in seconds to visualize before each event in output figures (not used for statistics)",
+            "type": {
+                "param_type": "ToolFloatRangeParam",
+                "default": -2,
+                "max": 0
+            },
+            "group": "Visualization Parameters"
+        },
+        {
+            "key": "visual_window_post",
+            "name": "Visual window (post)",
+            "required": true,
+            "description": "Time in seconds to visualize after each event in output graphs (not used for statistics)",
+            "type": {
+                "param_type": "ToolFloatRangeParam",
+                "default": 2,
+                "min": 0
+            },
+            "group": "Visualization Parameters"
         },
         {
             "key": "population_activity_plot_limits",
-            "name": "population_activity_plot_limits",
+            "name": "Population activity (y-axis range)",
             "required": false,
-            "description": "population_activity_plot_limits",
+            "description": "y-axis range (z-score) applied to the event-aligned population activity plots specified as 'min,max' (e.g. -1,1) or 'auto'",
             "type": {
                 "param_type": "ToolStringParam",
                 "default": "auto"
-            }
+            },
+            "group": "Visualization Parameters"
         },
         {
             "key": "activity_heatmap_color_limits",
-            "name": "activity_heatmap_color_limits",
+            "name": "Activity heatmap (colormap range)",
             "required": false,
-            "description": "activity_heatmap_color_limits",
+            "description": "Colormap range (z-score) applied to the activity heatmaps specified as 'min,max' (e.g. -1,1) or 'auto'",
             "type": {
                 "param_type": "ToolStringParam",
                 "default": "auto"
-            }
+            },
+            "group": "Visualization Parameters"
         },
         {
             "key": "activity_by_modulation_plot_limits",
-            "name": "activity_by_modulation_plot_limits",
+            "name": "Activity by modulation group (y-axis range)",
             "required": false,
-            "description": "activity_by_modulation_plot_limits",
+            "description": "y-axis range (z-score) applied to the event-aligned activity by modulation plots specified as 'min,max' (e.g. -1,1) or 'auto'",
             "type": {
                 "param_type": "ToolStringParam",
                 "default": "auto"
-            }
+            },
+            "group": "Visualization Parameters"
+        },
+        {
+            "key": "modulation_colors",
+            "name": "Modulation colors",
+            "required": false,
+            "description": "Comma-separated list of matplotlib compatible colors representing the up-, down- and non-modulated neurons, respectively",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "green,blue,black"
+            },
+            "group": "Visualization Parameters"
+        },
+        {
+            "key": "cmap",
+            "name": "Activity heatmap colormap",
+            "required": false,
+            "description": "Colormap applied to the activity heatmaps (must be matplotlib compatible)",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "coolwarm"
+            },
+            "group": "Visualization Parameters"
         }
     ],
     "results": [
         {
-            "key": "tool_output_group",
-            "name": "Tool Outputs",
-            "description": "Tool outputs",
+            "key": "event_aligned_traces",
+            "name": "Event-aligned activity",
+            "description": "Event-aligned activity traces",
             "file_patterns": [
-                "**/*"
+                "event_aligned_traces/**/*"
+            ]
+        },
+        {
+            "key": "event_aligned_statistics",
+            "name": "Statistics of event-aligned data",
+            "description": "Statistics derived from the event-aligned data",
+            "file_patterns": [
+                "event_aligned_statistics/**/*"
+            ]
+        },
+        {
+            "key": "event_aligned_epoch_comparison_data",
+            "name": "Pairwise comparisons between epochs",
+            "description": "Pairwise comparisons of event-aligned data between the epochs",
+            "file_patterns": [
+                "event_aligned_epoch_comparison_data/**/*"
             ]
         }
     ],
     "resources": {
-        "cpu": 1,
+        "cpu": 2,
         "gpu": 0,
-        "memory": 1000
-    }
+        "memory": 16000
+    },
+    "description": "Analyze and compare neural activity around (peri) the time of each event across a number of epochs.",
+    "visibility": "public",
+    "version": "2.0.0"
 }
