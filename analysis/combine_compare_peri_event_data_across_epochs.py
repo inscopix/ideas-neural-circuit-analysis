@@ -42,6 +42,7 @@ from utils.plots import (
 )
 from utils.utils import (
     remove_unsupported_characters,
+    compute_sampling_rate
 )
 # from toolbox.utils.data_model import IdeasFile, IdeasPreviewFile
 # from ideas_commons.constants import (
@@ -1341,6 +1342,36 @@ def combine_peri_event_data(
     #         },
     #     }
     # }
+    event_aligned_metadata = [
+        {
+            "key": "ideas.metrics.num_up_modulated_cells",
+            "name": "Number of up-modulated cells",
+            "value": num_up_modulated_cells_str
+        },
+        {
+            "key": "ideas.metrics.num_down_modulated_cells",
+            "name": "Number of down-modulated cells",
+            "value": num_down_modulated_cells_str
+        },
+        {
+            "key": "ideas.metrics.num_non_modulated_cells",
+            "name": "Number of non-modulated cells",
+            "value": num_non_modulated_cells_str
+        },
+        {
+            "key": "ideas.timingInfo.numTimes",
+            "name": "Number of timepoints",
+            "value": len(traces_timeline)
+        },
+        {
+            "key": "ideas.timingInfo.sampling_rate",
+            "name": "Sampling Rate (Hz)",
+            "value": compute_sampling_rate(
+                period_num=abs(traces_timeline[0] - traces_timeline[1]),
+                period_den=1,
+            ),
+        }
+    ]
 
     # event-aligned traces FILE
     # event_aligned_traces_file = IdeasFile(
@@ -1396,7 +1427,7 @@ def combine_peri_event_data(
     # else:
     #     epoch_comparison_file = None
 
-    return df_stats
+    return df_stats, event_aligned_metadata
         # event_aligned_traces_file,
         # statistics_file,
         # epoch_comparison_file,
@@ -1641,6 +1672,7 @@ def combine_compare_peri_event_data_across_epochs(
 
     # define list of files to include in the output manifest
     output_files = []
+    output_metadata = {}
 
     # combine data from group 1
     if len(group1_traces_files) > 1:
@@ -1652,7 +1684,7 @@ def combine_compare_peri_event_data_across_epochs(
         #     group1_statistics_manifest_file,
         #     group1_epoch_comparison_file,
         # ) = 
-        group1_data = combine_peri_event_data(
+        group1_data, group1_md = combine_peri_event_data(
             traces_files=group1_traces_files,
             stats_files=group1_stats_files,
             epoch_names=group1_epoch_names,
@@ -1670,6 +1702,10 @@ def combine_compare_peri_event_data_across_epochs(
             activity_heatmap_color_limits=activity_heatmap_color_limits,
             activity_by_modulation_plot_limits=activity_by_modulation_plot_limits,
         )
+
+        output_metadata["group1_event_aligned_traces"] = group1_md
+        output_metadata["group1_event_aligned_statistics"] = group1_md
+        output_metadata["group1_epoch_comparison_data"] = group1_md
         # output_files.extend(
         #     [group1_traces_manifest_file, group1_statistics_manifest_file]
         # )
@@ -1707,7 +1743,7 @@ def combine_compare_peri_event_data_across_epochs(
         #     group2_statistics_manifest_file,
         #     group2_epoch_comparison_file,
         # ) = 
-        group2_data = combine_peri_event_data(
+        group2_data, group2_md = combine_peri_event_data(
             traces_files=group2_traces_files,
             stats_files=group2_stats_files,
             epoch_names=group2_epoch_names,
@@ -1725,6 +1761,9 @@ def combine_compare_peri_event_data_across_epochs(
             activity_heatmap_color_limits=activity_heatmap_color_limits,
             activity_by_modulation_plot_limits=activity_by_modulation_plot_limits,
         )
+        output_metadata["group2_event_aligned_traces"] = group2_md
+        output_metadata["group2_event_aligned_statistics"] = group2_md
+        output_metadata["group2_epoch_comparison_data"] = group2_md
         # output_files.extend(
         #     [group2_traces_manifest_file, group2_statistics_manifest_file]
         # )
@@ -1838,7 +1877,14 @@ def combine_compare_peri_event_data_across_epochs(
             # generate output manifest file entries
 
             # ANOVA FILE
-            # if mixed_aov is not None:
+            if mixed_aov is not None:
+                output_metadata["anova_group_comparisons"] = [
+                    group1_md[3], group1_md[4]
+                ]
+
+            output_metadata["pairwise_group_comparisons"] = [
+                group1_md[3], group1_md[4]
+            ]
             #     anova_preview_file = IdeasPreviewFile(
             #         name="Comparisons of post-pre activity between the two groups",
             #         help="Comparisons of post-pre activity between the two groups",
@@ -1910,7 +1956,6 @@ def combine_compare_peri_event_data_across_epochs(
     #     output_dir=output_dir,
     #     output_group_key="combine_compare_peri_event_data_across_epochs_output",
     # )
-    output_metadata = {}
     with open(os.path.join(output_dir, "output_metadata.json"), "w") as f:
         json.dump(output_metadata, f)
 
@@ -1991,3 +2036,90 @@ def combine_compare_peri_event_data_across_epochs_ideas_wrapper(
         activity_heatmap_color_limits=activity_heatmap_color_limits,
         activity_by_modulation_plot_limits=activity_by_modulation_plot_limits,
     )
+
+    try:
+        logger.info("Registering output data")
+        metadata = outputs._load_and_remove_output_metadata()
+        epoch_names = [e.strip().replace(" ", "") for e in epoch_names.split(",")]
+        with outputs.register(raise_missing_file=False) as output_data:
+            for group_name in [group1_name, group2_name]:
+                group_name = group_name.replace(" ", "")
+                subdir_base = "group1" if group_name == group1_name else "group2"
+                
+                output_file = output_data.register_file(
+                    f"event_aligned_activity_{group_name}.csv",
+                    subdir=f"{subdir_base}_event_aligned_traces",
+                )
+                for epoch_name in epoch_names:
+                    output_file.register_preview(
+                        f"event_aligned_population_activity_{group_name}.svg",
+                        caption=f"Event-aligned single-cell activity heatmap (epoch: {epoch_name})"
+                    ).register_preview(
+                        f"event_aligned_population_activity_{group_name}_{epoch_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                        caption="Comparison of event-aligned average population activity across the epochs."
+                    ).register_preview(
+                        f"event_aligned_activity_heatmap_{group_name}_{epoch_name}.svg",
+                        caption=f"Event-aligned single-cell activity heatmap (epoch: {epoch_name})"
+                    )
+                for md in metadata.get(f"{subdir_base}_event_aligned_traces", {}):
+                    output_file.register_metadata(**md) 
+                
+                output_file = output_data.register_file(
+                    f"event_aligned_statistics_{group_name}.csv",
+                    subdir=f"{subdir_base}_event_aligned_statistics",
+                ).register_preview(
+                    f"num_modulated_cells_per_epoch_{group_name}.svg",
+                    caption="Number of up-, down-, and non-modulated neurons per epoch."
+                ).register_preview(
+                    f"mean_post_minus_pre_activity_per_epoch_{group_name}.svg",
+                    caption="Comparison of mean post-pre activity across the epochs. The error bars represent the standard error of the mean.",
+                )
+                for epoch_name in epoch_names:
+                    output_file.register_preview(
+                        f"event_aligned_activity_by_modulation_{group_name}_{epoch_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                        caption=f"Event-aligned average sub-population activity line plot (up-, down-, and non-modulated neurons) (epoch: {epoch_name})."
+                    ).register_preview(
+                        f"fraction_of_modulated_neurons_{group_name}_{epoch_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                        caption=f"Pie chart depicting the fraction of neurons in each sub-population (up-, down-, and non-modulated neurons) (epoch: {epoch_name}).",
+                    )
+                mod_groups = ["up_modulated", "down_modulated", "non_modulated"]
+                for mod_group in mod_groups:
+                    output_file.register_preview(
+                        f"event_aligned_activity_{mod_group}_{group_name}.svg",
+                        caption=f"Comparison of event-aligned activity of {mod_group.replace("_", " ")} cells across epochs.",
+                    )
+                for md in metadata.get(f"{subdir_base}_event_aligned_statistics", {}):
+                    output_file.register_metadata(**md) 
+        
+                output_file = output_data.register_file(
+                    f"pairwise_epoch_comparisons_{group_name}.csv",
+                    subdir=f"{subdir_base}_epoch_comparison_data",
+                ).register_preview(
+                    f"post_minus_pre_boxplot_{group_name}.svg",
+                    caption="Distribution of post-pre activity across epochs displayed using a box plot. Lines connect the same cells together."
+                )
+                for md in metadata.get(f"{subdir_base}_epoch_comparison_data", {}):
+                    output_file.register_metadata(**md) 
+            
+            output_file = output_data.register_file(
+                "anova_group_comparisons.csv"
+            ).register_preview(
+                "population_post_minus_pre_comparison.svg",
+                caption="Comparisons of post-pre activity between the two groups",
+            )
+            for md in metadata.get("anova_group_comparisons", {}):
+                output_file.register_metadata(**md) 
+
+            output_file = output_data.register_file(
+                "pairwise_group_comparisons.csv"
+            ).register_preview(
+                "population_post_minus_pre_comparison.svg",
+                caption="Comparisons of post-pre activity between the two groups",
+            )
+            for md in metadata.get("pairwise_group_comparisons", {}):
+                output_file.register_metadata(**md) 
+
+        logger.info("Registered output data")
+    except Exception:
+        logger.exception("Failed to generate output data!")
+    
