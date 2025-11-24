@@ -280,7 +280,6 @@ def run_cc_epochs_ideas_wrapper(
         effect_size=effect_size,
     )
 
-
     try:
         logger.info("Registering output data")
         metadata = outputs._load_and_remove_output_metadata()
