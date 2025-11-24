@@ -10,7 +10,9 @@
     "tags": [
 		"python",
 		"neural",
-		"stats"
+		"stats",
+    "plotting",
+    "io"
     ]
   }
 ]

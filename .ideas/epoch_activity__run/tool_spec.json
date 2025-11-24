@@ -236,5 +236,7 @@
     },
     "description": "Calculate change in activity during user defined continuous epochs",
     "visibility": "public",
-    "version": "5.0.0"
+    "version": "5.0.0",
+    "docs": "https://inscopix.github.io/ideas-docs/tools/epochs/epoch_activity__run/epoch_activity__run.html",
+    "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis"
 }
