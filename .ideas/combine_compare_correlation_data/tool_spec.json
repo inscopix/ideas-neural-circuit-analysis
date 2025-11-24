@@ -4,7 +4,7 @@
     "schema_version": "3.0.0",
     "container_image": {
         "repository": "platform/neural-analysis",
-        "label": "0.0.6"
+        "label": "1.0.0"
     },
     "command": {
         "file_path": "analysis/combine_compare_correlation_data.py",

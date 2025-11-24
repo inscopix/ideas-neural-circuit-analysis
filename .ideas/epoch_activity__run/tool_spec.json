@@ -4,7 +4,7 @@
     "schema_version": "3.0.0",
     "container_image": {
         "repository": "platform/neural-analysis",
-        "label": "0.0.8"
+        "label": "1.0.0"
     },
     "command": {
         "file_path": "analysis/epoch_activity.py",
@@ -236,5 +236,5 @@
     },
     "description": "Calculate change in activity during user defined continuous epochs",
     "visibility": "public",
-    "version": "5.0.1"
+    "version": "5.0.0"
 }

@@ -1,12 +1,12 @@
 {
     "key": "correlations",
     "name": "Compare Neural Circuit Correlations Across States",
-    "version": "8.0.5",
+    "version": "8.0.6",
     "schema_version": "3.0.0",
     "description": "Calculate pairwise correlations between cell traces, and estimates how correlations change between two states of interest",
     "container_image": {
         "repository": "platform/neural-analysis",
-        "label": "0.0.6"
+        "label": "1.0.0"
     },
     "command": {
         "file_path": "analysis/correlations.py",

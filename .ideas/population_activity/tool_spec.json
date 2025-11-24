@@ -1,12 +1,12 @@
 {
     "key": "population_activity",
     "name": "Compare Neural Activity Across States",
-    "version": "6.0.4",
+    "version": "6.0.5",
     "description": "Measure population activity during two states",
     "schema_version": "3.0.0",
     "container_image": {
         "repository": "platform/neural-analysis",
-        "label": "0.0.6"
+        "label": "1.0.0"
     },
     "command": {
         "file_path": "analysis/population_activity.py",
