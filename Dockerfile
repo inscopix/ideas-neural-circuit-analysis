@@ -31,10 +31,6 @@ RUN apt-get -y update \
     && ${PYTHON_VENV} -m pip install --upgrade pip \
     && ${PYTHON_VENV} -m pip install .
 
-ENV IDEAS_PYTHON_WHL_FILE="ideas_python-0.1.dev39+gd34af9b54.d20251119-py3-none-any.whl"
-COPY resources/${IDEAS_PYTHON_WHL_FILE} ./
-RUN ${PYTHON_VENV} -m pip install "${IDEAS_PYTHON_WHL_FILE}[analysis]"
-
 # Add venv bin to path
 ENV PATH="/ideas/${VENV}/bin:${PATH}"
 

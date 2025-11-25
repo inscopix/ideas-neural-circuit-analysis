@@ -3,8 +3,8 @@
     "name": "Combine and Compare Correlation Data",
     "schema_version": "3.0.0",
     "container_image": {
-        "repository": "platform/neuro-stats",
-        "label": "0.0.3"
+        "repository": "platform/neural-analysis",
+        "label": "1.0.1"
     },
     "command": {
         "file_path": "analysis/combine_compare_correlation_data.py",
@@ -295,7 +295,7 @@
     },
     "description": "Combine correlation data from multiple recordings and perform a statistical comparison between two groups across multiple states to determine if there is a difference in the average positive or negative correlation, maximum, minimum, or average cell-to-cell correlation",
     "visibility": "public",
-    "version": "6.0.5",
+    "version": "6.0.7",
     "docs": "https://inscopix.github.io/ideas-docs/tools/standard-python/combine_compare_correlation_data/combine_compare_correlation_data.html",
     "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis"
 }

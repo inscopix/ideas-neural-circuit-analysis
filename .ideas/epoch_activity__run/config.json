@@ -1,0 +1,7 @@
+{
+    "container": "platform/neural-analysis:latest",
+    "executor_type": "PYTHON",
+    "file": "analysis/epoch_activity.py",
+    "function": "epoch_activity_ideas_wrapper",
+    "schema_version": "1.0.0"
+}

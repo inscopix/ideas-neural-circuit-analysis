@@ -2666,14 +2666,14 @@ def combine_compare_correlation_data_ideas_wrapper(
                     f"{group_name}_avg_positive_correlation_boxplot.svg",
                     caption=(
                         f"Box and whisker plot displaying the distribution of average positive "
-                        f"correlations across experimental states for {group1_name}. "
+                        f"correlations across experimental states for {group_name}. "
                         f"The plot shows median values, quartiles, and outliers."
                     )
                 ).register_preview(
                     f"{group_name}_avg_negative_correlation_boxplot.svg",
                     caption=(
                         f"Box and whisker plot displaying the distribution of average negative "
-                        f"correlations across experimental states for {group1_name}. "
+                        f"correlations across experimental states for {group_name}. "
                         f"The plot shows median values, quartiles, and outliers."
                     ),
                 )

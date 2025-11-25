@@ -2466,7 +2466,7 @@ def plot_post_minus_pre_activity_differences_with_cell_map(
     post_minus_pre_boxplot_preview_filename = os.path.join(
         output_dir, boxplot_file_basename.replace(" ", "")
     )
-    _plot_box_and_strip(
+    _plot_box_and_strip2(
         epoch_names=epoch_names,
         epoch_colors=epoch_colors,
         df=df,
@@ -2679,7 +2679,7 @@ def _plot_mixed_comparisons2(
     )
 
 
-def _plot_box_and_strip(
+def _plot_box_and_strip2(
     epoch_names,
     epoch_colors,
     df,

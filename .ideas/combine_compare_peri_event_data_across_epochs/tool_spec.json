@@ -1,0 +1,359 @@
+{
+    "key": "combine_compare_peri_event_data_across_epochs",
+    "name": "Combine and Compare Peri-Event Data Across Epochs",
+    "schema_version": "3.0.0",
+    "container_image": {
+        "repository": "platform/neural-analysis",
+        "label": "1.0.1"
+    },
+    "command": {
+        "file_path": "analysis/combine_compare_peri_event_data_across_epochs.py",
+        "entry_point": "combine_compare_peri_event_data_across_epochs_ideas_wrapper",
+        "program_type": "PYTHON"
+    },
+    "params": [
+        {
+            "key": "group1_traces_files",
+            "name": "Peri-Event Traces Files",
+            "required": true,
+            "description": "Select peri-event traces from the first group to use for analysis",
+            "type": {
+                "param_type": "ToolPathParam",
+                "file_formats": [
+                    "csv"
+                ],
+                "multiple": true
+            },
+            "group": "Group 1"
+        },
+        {
+            "key": "group1_stats_files",
+            "name": "Peri-Event Statistics Files",
+            "required": true,
+            "description": "Select peri-event statistics from the first group to use for analysis",
+            "type": {
+                "param_type": "ToolPathParam",
+                "file_formats": [
+                    "csv"
+                ],
+                "multiple": true
+            },
+            "group": "Group 1"
+        },
+        {
+            "key": "group1_name",
+            "name": "Name",
+            "required": true,
+            "description": "Name of the first group",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": "Group 1"
+        },
+        {
+            "key": "group2_traces_files",
+            "name": "Peri-Event Traces Files",
+            "required": false,
+            "description": "Select peri-event traces from the second group to use for analysis",
+            "type": {
+                "param_type": "ToolPathParam",
+                "file_formats": [
+                    "csv"
+                ],
+                "multiple": true
+            },
+            "group": "Group 2"
+        },
+        {
+            "key": "group2_stats_files",
+            "name": "Peri-Event Statistics Files",
+            "required": false,
+            "description": "Select peri-event statistics from the second group to use for analysis",
+            "type": {
+                "param_type": "ToolPathParam",
+                "file_formats": [
+                    "csv"
+                ],
+                "multiple": true
+            },
+            "group": "Group 2"
+        },
+        {
+            "key": "group2_name",
+            "name": "Name",
+            "required": false,
+            "description": "Name of the second group",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": "Group 2"
+        },
+        {
+            "key": "epoch_names",
+            "name": "Epoch Names",
+            "required": true,
+            "description": "Comma-separated list of epoch names (e.g. Epoch 1, Epoch 2, Epoch 3)",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": "Epochs"
+        },
+        {
+            "key": "epoch_colors",
+            "name": "Epoch Colors",
+            "required": true,
+            "description": "Comma-separated list of matplotlib compatible colors to represent each epoch (e.g. grey, blue, cyan)",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": "Epochs"
+        },
+        {
+            "key": "comparison_type",
+            "name": "Comparison Type",
+            "required": true,
+            "description": "Type of statistical test to perform",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "choices": [
+                    "two_tailed",
+                    "one_tailed_less",
+                    "one_tailed_greater"
+                ],
+                "display_options": [
+                    "Two-Tailed (Unequal)",
+                    "One-Tailed (Less)",
+                    "One-Tailed (Greater)"
+                ],
+                "default": "two_tailed"
+            },
+            "group": "Statistics"
+        },
+        {
+            "key": "data_pairing",
+            "name": "Data Pairing",
+            "required": false,
+            "description": "Indicates whether observations should be paired for statistical comparison",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "choices": [
+                    "unpaired",
+                    "paired"
+                ],
+                "display_options": [
+                    "Unpaired",
+                    "Paired"
+                ]
+            },
+            "group": "Statistics"
+        },
+        {
+            "key": "parametric",
+            "name": "Parametric",
+            "required": false,
+            "description": "Indicates whether to perform a parametric test. If set to 'auto', a parametric test will be used if the data follows a normal distribution and there are at least 8 observations. Otherwise, a non-parametric test will be used.",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "choices": [
+                    "auto",
+                    "true",
+                    "false"
+                ],
+                "display_options": [
+                    "auto",
+                    "true",
+                    "false"
+                ]
+            },
+            "group": "Statistics"
+        },
+        {
+            "key": "significance_threshold",
+            "name": "Significance Threshold",
+            "required": true,
+            "description": "p-value threshold for classifying neurons as up- or down-modulated",
+            "type": {
+                "param_type": "ToolFloatRangeParam",
+                "min": 0,
+                "max": 1,
+                "default": 0.05
+            },
+            "group": "Statistics"
+        },
+        {
+            "key": "average_method",
+            "name": "Average Method",
+            "required": true,
+            "description": "Specifies how to average the data in each input group. If 'By Neurons' is selected, the neurons from all recordings in the group will be pooled together and averaged to obtain the group average. If 'By Recordings' is selected, the data contained in each recording will be averaged independently, then the recordings will be averaged together to obtain the group average.",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "choices": [
+                    "neurons",
+                    "recordings"
+                ],
+                "display_options": [
+                    "By Neurons",
+                    "By Recordings"
+                ],
+                "default": "neurons"
+            },
+            "group": "Statistics"
+        },
+        {
+            "key": "tolerance",
+            "name": "Tolerance",
+            "required": true,
+            "description": "Maximum time shift in seconds between the time windows of the input traces files",
+            "type": {
+                "param_type": "ToolFloatRangeParam",
+                "min": 0,
+                "default": 0.01
+            },
+            "group": "Time Window"
+        },
+        {
+            "key": "population_activity_plot_limits",
+            "name": "Population activity (y-axis range)",
+            "required": false,
+            "description": "y-axis range (z-score) applied to the event-aligned population activity plots specified as 'min,max' (e.g. -1,1) or 'auto'",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "auto"
+            },
+            "group": "Visualization Parameters"
+        },
+        {
+            "key": "activity_heatmap_color_limits",
+            "name": "Activity heatmap (colormap range)",
+            "required": false,
+            "description": "colormap range (z-score) applied to the activity heatmaps specified as 'min,max' (e.g. -1,1) or 'auto'",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "auto"
+            },
+            "group": "Visualization Parameters"
+        },
+        {
+            "key": "activity_by_modulation_plot_limits",
+            "name": "Activity by modulation group (y-axis range)",
+            "required": false,
+            "description": "y-axis range (z-score) applied to the event-aligned activity by modulation plots specified as 'min,max' (e.g. -1,1) or 'auto'",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "auto"
+            },
+            "group": "Visualization Parameters"
+        },
+        {
+            "key": "group_colors",
+            "name": "Group colors",
+            "required": false,
+            "description": "Colors that represent group 1 and 2, respectively. (must be matplotlib compatible)",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "#1f77b4, #ff7f0e"
+            },
+            "group": "Visualization Parameters"
+        },
+        {
+            "key": "modulation_colors",
+            "name": "Modulation colors",
+            "required": false,
+            "description": "Comma-separated list of matplotlib compatible colors representing the up-, down- and non-modulated neurons, respectively",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "green,blue,black"
+            },
+            "group": "Visualization Parameters"
+        },
+        {
+            "key": "cmap",
+            "name": "Activity heatmap colormap",
+            "required": false,
+            "description": "Colormap applied to the activity heatmaps (must be matplotlib compatible)",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "coolwarm"
+            },
+            "group": "Visualization Parameters"
+        }
+    ],
+    "results": [
+        {
+            "key": "group1_event_aligned_traces",
+            "name": "Event-Aligned Data (Group 1)",
+            "description": "Event-aligned activity traces",
+            "file_patterns": [
+                "group1_event_aligned_traces/**/*"
+            ]
+        },
+        {
+            "key": "group1_event_aligned_statistics",
+            "name": "Event-Aligned Statistics (Group 1)",
+            "description": "Statistics associated with the event-aligned data",
+            "file_patterns": [
+                "group1_event_aligned_statistics/**/*"
+            ]
+        },
+        {
+            "key": "group1_epoch_comparison_data",
+            "name": "Epoch Pairwise Comparisons (Group 1)",
+            "description": "Pairwise comparisons of event-aligned data between the epochs",
+            "file_patterns": [
+                "group1_epoch_comparison_data/**/*"
+            ]
+        },
+        {
+            "key": "group2_event_aligned_traces",
+            "name": "Event-Aligned Data (Group 2)",
+            "description": "Event-aligned activity traces",
+            "file_patterns": [
+                "group2_event_aligned_traces/**/*"
+            ]
+        },
+        {
+            "key": "group2_event_aligned_statistics",
+            "name": "Event-Aligned Statistics (Group 2)",
+            "description": "Statistics associated with the event-aligned data",
+            "file_patterns": [
+                "group2_event_aligned_statistics/**/*"
+            ]
+        },
+        {
+            "key": "group2_epoch_comparison_data",
+            "name": "Epoch Pairwise Comparisons (Group 2)",
+            "description": "Pairwise comparisons of event-aligned data between the epochs",
+            "file_patterns": [
+                "group2_epoch_comparison_data/**/*"
+            ]
+        },
+        {
+            "key": "group_anova_comparisons",
+            "name": "Group ANOVA Comparisons",
+            "description": "ANOVA comparisons between the two groups",
+            "file_patterns": [
+                "anova_group_comparisons.csv",
+                "population_post_minus_pre_comparison.svg"
+            ]
+        },
+        {
+            "key": "group_pairwise_comparisons",
+            "name": "Group Pairwise Comparisons",
+            "description": "Pairwise comparisons between the two groups",
+            "file_patterns": [
+                "pairwise_group_comparisons.csv",
+                "population_post_minus_pre_comparison.svg"
+            ]
+        }
+    ],
+    "resources": {
+        "cpu": 2,
+        "gpu": 0,
+        "memory": 10000
+    },
+    "description": "Statistically compare peri-event data across epochs between two different groups.",
+    "visibility": "public",
+    "version": "2.0.1",
+    "docs": "https://inscopix.github.io/ideas-docs/tools/standard-python/combine_compare_peri_event_data_across_epochs/combine_compare_peri_event_data_across_epochs.html",
+    "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis"
+}

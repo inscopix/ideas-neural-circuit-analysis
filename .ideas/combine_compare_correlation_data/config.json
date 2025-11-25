@@ -1,5 +1,5 @@
 {
-    "container": "platform/neuro-stats:latest",
+    "container": "platform/neural-analysis:latest",
     "executor_type": "PYTHON",
     "file": "analysis/combine_compare_correlation_data.py",
     "function": "combine_compare_correlation_data_ideas_wrapper",

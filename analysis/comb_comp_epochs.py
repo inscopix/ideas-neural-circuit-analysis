@@ -15,10 +15,12 @@ from utils.plots import _plot_combined_data
 from utils.utils import _combine_data
 from utils.validation import _validate_files
 from ideas.exceptions import IdeasError
-from ideas.tools.log import get_logger
 
+from ideas.tools import log
+from ideas.tools.types import IdeasFile
+from ideas.tools import outputs
 
-logger = get_logger()
+logger = log.get_logger()
 
 
 def run_cc_epochs(
@@ -56,10 +58,10 @@ def run_cc_epochs(
         effect_size (Optional[str], optional):
         Method for effect size calculation. Defaults to "cohen".
     :Raises
-        ValueError: If the number of trace, event, and correlation
+        IdeasError: If the number of trace, event, and correlation
         files are not the same for each group.
-        ValueError: If there are fewer than two files for any group.
-        ValueError: If the number of epoch names and colors are not the same.
+        IdeasError: If there are fewer than two files for any group.
+        IdeasError: If the number of epoch names and colors are not the same.
         IdeasError: If group names contain special characters.
     :Returns
         None
@@ -99,7 +101,7 @@ def run_cc_epochs(
 
     epoch_colors = epoch_colors.replace(" ", "").split(",")
     if len(epoch_names) != len(epoch_colors):
-        raise ValueError(
+        raise IdeasError(
             "The number of epoch names and colors must be the same."
         )
 
@@ -217,3 +219,149 @@ def run_cc_epochs(
     # Create metadata
     with open("output_metadata.json", "w") as file:
         json.dump(metadata, file, indent=2)
+
+def run_cc_epochs_ideas_wrapper(
+    group1_traces: List[IdeasFile],
+    epoch_names: str,
+    epoch_colors: str,
+    group1_name: Optional[str] = None,
+    group2_traces: Optional[List[IdeasFile]] = None,
+    group2_name: Optional[str] = None,
+    group1_events: Optional[List[IdeasFile]] = None,
+    group2_events: Optional[List[IdeasFile]] = None,
+    group1_corr: Optional[List[IdeasFile]] = None,
+    group2_corr: Optional[List[IdeasFile]] = None,
+    group1_color: Optional[str] = "blue",
+    group2_color: Optional[str] = "orange",
+    multiple_correction: Optional[str] = "bonf",
+    effect_size: Optional[str] = "cohen",
+) -> None:
+    """Combine and compares epoch data between two groups.
+
+    group1_traces (List[str]): List of file paths to trace CSV files for group 1.
+        group2_traces (List[str]): List of file paths to trace CSV files for group 2.
+        group1_events (List[str]): List of file paths to event CSV files for group 1.
+        group2_events (List[str]): List of file paths to event CSV files for group 2.
+        group1_corr (List[str]): List of file paths to correlation CSV files for group 1.
+        group2_corr (List[str]): List of file paths to correlation CSV files for group 2.
+        epoch_names (str): Comma-separated string of epoch names.
+        group1_name (str): Name of group 1.
+        group2_name (str): Name of group 2.
+        epoch_colors (str): Comma-separated string of colors for each epoch.
+        group1_color (Optional[str], optional): Color for group 1. Defaults to "blue".
+        group2_color (Optional[str], optional): Color for group 2. Defaults to "orange".
+        multiple_correction (Optional[str], optional):
+        Method for multiple correction. Defaults to "bonf".
+        effect_size (Optional[str], optional):
+        Method for effect size calculation. Defaults to "cohen".
+    :Raises
+        IdeasError: If the number of trace, event, and correlation
+        files are not the same for each group.
+        IdeasError: If there are fewer than two files for any group.
+        IdeasError: If the number of epoch names and colors are not the same.
+        IdeasError: If group names contain special characters.
+    :Returns
+        None
+    """
+    run_cc_epochs(
+        group1_traces=group1_traces,
+        epoch_names=epoch_names,
+        epoch_colors=epoch_colors,
+        group1_name=group1_name,
+        group2_traces=group2_traces,
+        group2_name=group2_name,
+        group1_events=group1_events,
+        group2_events=group2_events,
+        group1_corr=group1_corr,
+        group2_corr=group2_corr,
+        group1_color=group1_color,
+        group2_color=group2_color,
+        multiple_correction=multiple_correction,
+        effect_size=effect_size,
+    )
+
+    try:
+        logger.info("Registering output data")
+        metadata = outputs._load_and_remove_output_metadata()
+        with outputs.register(raise_missing_file=False) as output_data:
+            group_names = [("group_1", group1_name), ("group_2", group2_name)]
+            metrics = ["Trace", "Eventrate"]
+
+            for group_id, group_name in group_names:
+                output_file = output_data.register_file(
+                    f"{group_id}_combined_data.csv",
+                    subdir=f"{group_id}_combined_data",
+                    prefix=f"{group_name}_",
+                    name="combined_trace_event_data.csv"
+                ).register_metadata_dict(
+                    **metadata[f"{group_id}_combined_data"]
+                )
+
+                for metric in metrics:
+                    output_file.register_preview(
+                        f"{group_id}_{metric}_preview.svg",
+                        caption=f"Box plots comparing {metric.lower()} activity across epochs in group {group_name}, and histograms comparing pairwise differences in {metric.lower()} activity between each epoch combination"
+                    )
+            
+                output_file = output_data.register_file(
+                    f"{group_id}_correlation_data.csv",
+                    subdir=f"{group_id}_correlation_data",
+                    prefix=f"{group_name}_",
+                    name="combined_correlation_data.csv"
+                ).register_preview(
+                    f"{group_id}_correlation_preview.svg",
+                    caption=f"Box plots comparing average positive (top) and negative (bottom) correlations between epochs in group {group_name}",
+                ).register_metadata_dict(
+                    **metadata[f"{group_id}_correlation_data"]
+                )
+
+            anova_file = output_data.register_file(
+                "ANOVA_results.csv",
+                prefix=f"{group1_name}_{group2_name}_",
+                name="anova_results.csv"
+            ).register_preview(
+                "mixed_correlation_ANOVA_comparison.svg",
+                caption="Box plots comparing average positive (top) and negative (bottom) correlations between each group and epoch",
+            ).register_metadata_dict(
+                **metadata["ANOVA_results"]
+            )
+
+            pairwise_file = output_data.register_file(
+                "pairwise_results.csv",
+                prefix=f"{group1_name}_{group2_name}_",
+            ).register_preview(
+                "mixed_correlation_pairwise_comparison.svg",
+                caption="Box plots comparing average positive (top) and negative (bottom) correlations between each group and epoch"
+            ).register_metadata_dict(
+                **metadata["pairwise_results"]
+            )
+
+            for output_file in [anova_file, pairwise_file]:
+                for group_id, group_name in group_names:
+                    for metric in metrics:
+                        output_file.register_preview(
+                            f"{group_id}_{metric}_Activity_comparison.svg",
+                            prefix="",
+                            caption=f"Box plots comparing {metric.lower()} activity between epochs in group {group_name}"
+                        )
+                    output_file.register_preview(
+                        f"{group_id}_correlation_data_comparison.svg",
+                        prefix="",
+                        caption=f"Box plots comparing average positive (top) and negative (bottom) correlations between epochs in group {group_name}",
+                    )
+
+            for metric in metrics:
+                anova_file.register_preview(
+                    f"mixed_ANOVA_{metric}_comparison.svg",
+                    caption=f"Box plots comparing {metric} activity between each epoch and group",
+                )
+
+            for metric in metrics:
+                pairwise_file.register_preview(
+                    f"mixed_pairwise_{metric}_comparison.svg",
+                    caption=f"Box plots comparing {metric} activity between each epoch and group",
+                )
+
+        logger.info("Registered output data")
+    except Exception:
+        logger.exception("Failed to generate output data!")

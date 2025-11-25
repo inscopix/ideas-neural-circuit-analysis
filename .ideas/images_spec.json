@@ -1,28 +1,18 @@
 [
   {
     "schema_version": "0.0.1",
-    "repository": "platform/neuro-stats",
-    "label": "0.0.3",
+    "repository": "platform/neural-analysis",
+    "label": "1.0.1",
     "make_arguments": "build LABEL={label}",
     "visibility": "public",
     "readme_path": "container.md",
-    "description": "neural circuit analysis conatainer image",
+    "description": "Inscopix container image for neural analysis tools",
     "tags": [
-	"numpy",
-	"pandas",
-	"scipy",
-	"scikit-learn",
-	"scikit-image",
-	"pingouin",
-	"opencv-python", 
-	"statsmodels",
-	"matplotlib",
-	"plotly",
-	"seaborn",
-	"bokeh",
-	"isx",
-	"pynwb",
-	"pynapple"
+		"python",
+		"neural",
+		"stats",
+    "plotting",
+    "io"
     ]
   }
 ]

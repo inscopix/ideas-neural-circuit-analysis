@@ -1184,6 +1184,8 @@ def population_activity_ideas_wrapper(
                 prefix=output_prefix,
             ).register_preview(
                 "time_in_state_preview.svg",
+                subdir="",
+                prefix="",
                 caption="Time spent in the different behavioral states. Left panel shows the total time (in seconds) spent in each of the behavioral states. Right panel displays the fraction of the total recording time occupied by each state."
             ).register_preview(
                 "trace_preview.svg",
@@ -1207,6 +1209,8 @@ def population_activity_ideas_wrapper(
                 prefix=output_prefix,
             ).register_preview(
                 "time_in_state_preview.svg",
+                subdir="",
+                prefix="",
                 caption="Time spent in the different behavioral states. Left panel shows the total time (in seconds) spent in each of the behavioral states. Right panel displays the fraction of the total recording time occupied by each state."
             ).register_preview(
                 "event_preview.svg",
