@@ -1202,11 +1202,6 @@ def peri_event_analysis_for_single_event_type(
             "key": "ideas.metrics.num_down_modulated_cells",
             "name": "Number of down-modulated cells",
             "value": num_down_modulated_cells_str
-        },        
-        {
-            "key": "ideas.metrics.num_non_modulated_cells",
-            "name": "Number of non-modulated cells",
-            "value": num_non_modulated_cells_str
         },
         {
             "key": "ideas.metrics.num_non_modulated_cells",
