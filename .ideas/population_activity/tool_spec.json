@@ -1,7 +1,7 @@
 {
     "key": "population_activity",
     "name": "Compare Neural Activity Across States",
-    "version": "6.0.6",
+    "version": "6.0.7",
     "description": "Measure population activity during two states",
     "schema_version": "3.0.0",
     "container_image": {
@@ -245,5 +245,11 @@
     },
     "visibility": "public",
     "docs": "https://inscopix.github.io/ideas-docs/tools/epochs/population_activity__population_activity/population_activity__population_activity.html",
-    "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis"
+    "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis",
+    "tags": [
+        "Neural Circuit Analysis",
+        "Single Study",
+        "Population Activity",
+        "Annotations"
+    ]
 }

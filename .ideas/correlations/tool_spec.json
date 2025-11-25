@@ -1,7 +1,7 @@
 {
     "key": "correlations",
     "name": "Compare Neural Circuit Correlations Across States",
-    "version": "8.0.7",
+    "version": "8.0.8",
     "schema_version": "3.0.0",
     "description": "Calculate pairwise correlations between cell traces, and estimates how correlations change between two states of interest",
     "container_image": {
@@ -173,5 +173,11 @@
     },
     "visibility": "public",
     "docs": "https://inscopix.github.io/ideas-docs/tools/epochs/correlations__correlation_tool/correlations__correlation_tool.html",
-    "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis"
+    "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis",
+    "tags": [
+        "Neural Circuit Analysis",
+        "Single Study",
+        "Correlations",
+        "Annotations"
+    ]
 }
