@@ -2497,7 +2497,9 @@ def compare_peri_event_activity_across_epochs_ideas_wrapper(
                 output_file.register_preview(
                     f"event_aligned_population_activity_{epoch_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
                     caption=f"Event-aligned average population activity line plot (epoch: {epoch_name}).",
-                ).register_preview(
+                )
+            for epoch_name in epoch_names:
+                output_file.register_preview(
                     f"event_aligned_single_cell_activity_heatmap_{epoch_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
                     caption=f"Event-aligned single-cell activity heatmap (epoch: {epoch_name})",
                 )
@@ -2513,7 +2515,9 @@ def compare_peri_event_activity_across_epochs_ideas_wrapper(
                 output_file.register_preview(
                     f"event_aligned_activity_by_modulation_{epoch_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
                     caption=f"Event-aligned average sub-population activity line plot (up-, down-, and non-modulated neurons) (epoch: {epoch_name})."
-                ).register_preview(
+                )
+            for epoch_name in epoch_names:
+                output_file.register_preview(
                     f"cell_map_{epoch_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
                     caption=f"Cell map visualizing spatial organization of modulation (epoch: {epoch_name}).",
                 )
@@ -2542,12 +2546,6 @@ def compare_peri_event_activity_across_epochs_ideas_wrapper(
             output_file = output_data.register_file(
                 "pairwise_epoch_comparisons.csv",
                 subdir="event_aligned_epoch_comparison_data"
-            ).register_preview(
-                "post_minus_pre_boxplot.svg",
-                caption=(
-                    "Distribution of post-pre activity across epochs displayed using a "
-                    "box plot. Lines connect the same cells together."
-                ),
             )
             
             for i in range(len(epoch_names)):
@@ -2565,7 +2563,14 @@ def compare_peri_event_activity_across_epochs_ideas_wrapper(
                             f"post-pre activity between the epochs."
                         )
                     ) 
-
+            
+            output_file.register_preview(
+                "post_minus_pre_boxplot.svg",
+                caption=(
+                    "Distribution of post-pre activity across epochs displayed using a "
+                    "box plot. Lines connect the same cells together."
+                ),
+            )
             for md in metadata.get("event_aligned_epoch_comparison_data", {}):
                 output_file.register_metadata(**md)
             

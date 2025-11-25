@@ -4,7 +4,7 @@
     "schema_version": "3.0.0",
     "container_image": {
         "repository": "platform/neural-analysis",
-        "label": "1.0.0"
+        "label": "1.0.1"
     },
     "command": {
         "file_path": "analysis/epoch_activity.py",
@@ -236,7 +236,7 @@
     },
     "description": "Calculate change in activity during user defined continuous epochs",
     "visibility": "public",
-    "version": "5.0.0",
+    "version": "5.0.1",
     "docs": "https://inscopix.github.io/ideas-docs/tools/epochs/epoch_activity__run/epoch_activity__run.html",
     "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis"
 }

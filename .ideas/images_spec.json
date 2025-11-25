@@ -2,7 +2,7 @@
   {
     "schema_version": "0.0.1",
     "repository": "platform/neural-analysis",
-    "label": "1.0.0",
+    "label": "1.0.1",
     "make_arguments": "build LABEL={label}",
     "visibility": "public",
     "readme_path": "container.md",

@@ -1,12 +1,12 @@
 {
     "key": "population_activity",
     "name": "Compare Neural Activity Across States",
-    "version": "6.0.5",
+    "version": "6.0.6",
     "description": "Measure population activity during two states",
     "schema_version": "3.0.0",
     "container_image": {
         "repository": "platform/neural-analysis",
-        "label": "1.0.0"
+        "label": "1.0.1"
     },
     "command": {
         "file_path": "analysis/population_activity.py",
@@ -233,7 +233,8 @@
             "name": "Event-based Analysis",
             "description": "A CSV file containing event rate and associated modulation score data for each cell in each comparison of states",
             "file_patterns": [
-                "event_population_data/**/*"
+                "event_population_data/**/*",
+                "time_in_state_preview.svg"
             ]
         }
     ],

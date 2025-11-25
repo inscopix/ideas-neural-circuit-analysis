@@ -2049,15 +2049,17 @@ def combine_compare_peri_event_data_across_epochs_ideas_wrapper(
                 output_file = output_data.register_file(
                     f"event_aligned_activity_{group_name}.csv",
                     subdir=f"{subdir_base}_event_aligned_traces",
+                ).register_preview(
+                    f"event_aligned_population_activity_{group_name}.svg",
+                    caption="Comparison of event-aligned average population activity across the epochs."
                 )
                 for epoch_name in epoch_names:
                     output_file.register_preview(
-                        f"event_aligned_population_activity_{group_name}.svg",
-                        caption=f"Event-aligned single-cell activity heatmap (epoch: {epoch_name})"
-                    ).register_preview(
                         f"event_aligned_population_activity_{group_name}_{epoch_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                        caption="Comparison of event-aligned average population activity across the epochs."
-                    ).register_preview(
+                        caption=f"Event-aligned average population activity line plot (epoch: {epoch_name})"
+                    )
+                for epoch_name in epoch_names:
+                    output_file.register_preview(
                         f"event_aligned_activity_heatmap_{group_name}_{epoch_name}.svg",
                         caption=f"Event-aligned single-cell activity heatmap (epoch: {epoch_name})"
                     )
@@ -2067,27 +2069,36 @@ def combine_compare_peri_event_data_across_epochs_ideas_wrapper(
                 output_file = output_data.register_file(
                     f"event_aligned_statistics_{group_name}.csv",
                     subdir=f"{subdir_base}_event_aligned_statistics",
-                ).register_preview(
-                    f"num_modulated_cells_per_epoch_{group_name}.svg",
-                    caption="Number of up-, down-, and non-modulated neurons per epoch."
-                ).register_preview(
-                    f"mean_post_minus_pre_activity_per_epoch_{group_name}.svg",
-                    caption="Comparison of mean post-pre activity across the epochs. The error bars represent the standard error of the mean.",
                 )
                 for epoch_name in epoch_names:
                     output_file.register_preview(
                         f"event_aligned_activity_by_modulation_{group_name}_{epoch_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
                         caption=f"Event-aligned average sub-population activity line plot (up-, down-, and non-modulated neurons) (epoch: {epoch_name})."
-                    ).register_preview(
-                        f"fraction_of_modulated_neurons_{group_name}_{epoch_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                        caption=f"Pie chart depicting the fraction of neurons in each sub-population (up-, down-, and non-modulated neurons) (epoch: {epoch_name}).",
                     )
+                
                 mod_groups = ["up_modulated", "down_modulated", "non_modulated"]
                 for mod_group in mod_groups:
                     output_file.register_preview(
                         f"event_aligned_activity_{mod_group}_{group_name}.svg",
                         caption=f"Comparison of event-aligned activity of {mod_group.replace('_', ' ')} cells across epochs.",
                     )
+
+                for epoch_name in epoch_names:
+                    output_file.register_preview(
+                        f"fraction_of_modulated_neurons_{group_name}_{epoch_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                        caption=f"Pie chart depicting the fraction of neurons in each sub-population (up-, down-, and non-modulated neurons) (epoch: {epoch_name}).",
+                    )
+                
+                output_file.register_preview(
+                    f"num_modulated_cells_per_epoch_{group_name}.svg",
+                    caption="Number of up-, down-, and non-modulated neurons per epoch."
+                )
+                
+                output_file.register_preview(
+                    f"mean_post_minus_pre_activity_per_epoch_{group_name}.svg",
+                    caption="Comparison of mean post-pre activity across the epochs. The error bars represent the standard error of the mean.",
+                )
+                
                 for md in metadata.get(f"{subdir_base}_event_aligned_statistics", {}):
                     output_file.register_metadata(**md) 
         

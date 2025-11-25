@@ -12,45 +12,46 @@ In order to facilitate neural processing, this container image consists of many 
 
 For statistical analysis, the following packages are installed:
 
-* `numpy`
-* `pandas`
-* `scipy`
-* `scikit-learn`
-* `scikit-image`
-* `pingouin`
-* `opencv-python`
-* `statsmodels`
+* `numpy==2.2.6`
+* `pandas==2.3.3`
+* `scipy==1.16.3`
+* `scikit-learn==1.7.2`
+* `scikit-image==0.25.2`
+* `pingouin==0.5.5`
+* `opencv-python==4.12.0.88`
+* `statsmodels==0.14.5`
 
 ### Plotting
 
 For plotting, the following packages are installed, which can be used to generate figures for result files: 
-* `matplotlib`
-* `plotly`
-* `seaborn`
-* `bokeh`
+* `matplotlib==3.10.7`
+* `plotly==6.5.0`
+* `seaborn==0.13.2`
+* `bokeh==3.8.1`
 
 ### I/O
 
 For i/o and data processing operations, the following packages are installed:
 
-* `pyarrow`
-* `h5py`
-* `tifffile`
-* `imageio`
-* `imageio-ffmpeg`
-* `Pillow`
+* `pyarrow==22.0.0`
+* `h5py==3.15.1`
+* `tifffile==2025.10.16`
+* `ImageIO==2.37.2`
+* `imageio-ffmpeg==0.6.0`
+* `pillow==12.0.0`
 
 ### Neuro
 
 Additionally, the following packages are installed for neural processing specifically: 
 
-* `ideas-python`
-* `isx`
-* `pynwb`
-* `pynapple`
+* `ideas-python==1.0.0`
+* `isx==2.1.0`
+* `pynwb==3.1.2`
+* `pynapple==0.10.1`
 
-### Test
+### Development
 
-For unit testing, the following packages are installed:
+For development, the following packages are installed:
 
-* `pytest`
+* `beartype==0.22.6`
+* `pytest==9.0.1`

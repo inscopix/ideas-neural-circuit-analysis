@@ -1,12 +1,12 @@
 {
     "key": "peri_event_workflow",
     "name": "Peri-Event Analysis Workflow",
-    "version": "7.0.5",
+    "version": "7.0.6",
     "description": "Analyze neural activity around (peri) the time of each event, specifically testing for up- or down-modulation of both average population and single cells by comparing activity before (pre) and after (post) each event.",
     "schema_version": "3.0.0",
     "container_image": {
         "repository": "platform/neural-analysis",
-        "label": "1.0.0"
+        "label": "1.0.1"
     },
     "command": {
         "file_path": "analysis/peri_event_workflow.py",
@@ -242,7 +242,9 @@
             "name": "Event-aligned activity",
             "description": "Event-aligned activity traces",
             "file_patterns": [
-                "event_aligned_activity_traces_event_aligned_activity_traces_csv_file**"
+                "**/event_aligned_activity.TRACES.csv",
+                "**/event_aligned_single_cell_activity_heatmap.preview.svg",
+                "**/event_aligned_population_activity.preview.svg"
             ]
         },
         {
@@ -250,7 +252,9 @@
             "name": "Statistics of event-aligned data",
             "description": "Statistics derived from the event-aligned data",
             "file_patterns": [
-                "event_aligned_statistics_event_aligned_activity_statistics_csv_file**"
+                "**/event_aligned_activity.STATISTICS.csv",
+                "**/cell_map.preview.svg",
+                "**/event_aligned_activity_by_modulation.preview.svg"
             ]
         }
     ],

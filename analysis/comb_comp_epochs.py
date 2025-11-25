@@ -300,7 +300,7 @@ def run_cc_epochs_ideas_wrapper(
                 for metric in metrics:
                     output_file.register_preview(
                         f"{group_id}_{metric}_preview.svg",
-                        caption=f"Box plots comparing {metric.lower()} activity across epochs in {group_name}, and histograms comparing pairwise differences in {metric.lower()} activity between each epoch combination"
+                        caption=f"Box plots comparing {metric.lower()} activity across epochs in group {group_name}, and histograms comparing pairwise differences in {metric.lower()} activity between each epoch combination"
                     )
             
                 output_file = output_data.register_file(
@@ -310,7 +310,7 @@ def run_cc_epochs_ideas_wrapper(
                     name="combined_correlation_data.csv"
                 ).register_preview(
                     f"{group_id}_correlation_preview.svg",
-                    caption=f"Box plots comparing average positive (top) and negative (bottom) correlations between epochs in {group_name}",
+                    caption=f"Box plots comparing average positive (top) and negative (bottom) correlations between epochs in group {group_name}",
                 ).register_metadata_dict(
                     **metadata[f"{group_id}_correlation_data"]
                 )
@@ -326,12 +326,6 @@ def run_cc_epochs_ideas_wrapper(
                 **metadata["ANOVA_results"]
             )
 
-            for metric in metrics:
-                anova_file.register_preview(
-                    f"mixed_ANOVA_{metric}_comparison.svg",
-                    caption=f"Box plots comparing {metric} activity between each epoch and group",
-                )
-
             pairwise_file = output_data.register_file(
                 "pairwise_results.csv",
                 prefix=f"{group1_name}_{group2_name}_",
@@ -342,23 +336,31 @@ def run_cc_epochs_ideas_wrapper(
                 **metadata["pairwise_results"]
             )
 
-            for metric in metrics:
-                pairwise_file.register_preview(
-                    f"mixed_pairwise_{metric}_comparison.svg",
-                    caption=f"Box plots comparing {metric} activity between each epoch and group",
-                )
-            
             for output_file in [anova_file, pairwise_file]:
                 for group_id, group_name in group_names:
                     for metric in metrics:
                         output_file.register_preview(
                             f"{group_id}_{metric}_Activity_comparison.svg",
-                            caption=f"Box plots comparing {metric.lower()} activity between epochs in group 1"
+                            prefix="",
+                            caption=f"Box plots comparing {metric.lower()} activity between epochs in group {group_name}"
                         )
                     output_file.register_preview(
                         f"{group_id}_correlation_data_comparison.svg",
-                        caption=f"Box plots comparing average positive (top) and negative (bottom) correlations between epochs in {group_name}",
+                        prefix="",
+                        caption=f"Box plots comparing average positive (top) and negative (bottom) correlations between epochs in group {group_name}",
                     )
+
+            for metric in metrics:
+                anova_file.register_preview(
+                    f"mixed_ANOVA_{metric}_comparison.svg",
+                    caption=f"Box plots comparing {metric} activity between each epoch and group",
+                )
+
+            for metric in metrics:
+                pairwise_file.register_preview(
+                    f"mixed_pairwise_{metric}_comparison.svg",
+                    caption=f"Box plots comparing {metric} activity between each epoch and group",
+                )
 
         logger.info("Registered output data")
     except Exception:

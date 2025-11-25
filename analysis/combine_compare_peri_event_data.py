@@ -2102,15 +2102,14 @@ def combine_compare_peri_event_data_ideas_wrapper(
                     f"event_aligned_activity_{group_name}.csv",
                     subdir=f"{subdir_base}_event_aligned_activity_traces",
                 ).register_preview(
+                    f"event_aligned_population_activity_{group_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                    caption="Event-aligned average population activity line plot"
+                ).register_preview(
                     f"event_aligned_single_cell_activity_heatmap_{group_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
                     caption="Event-aligned single-cell activity heatmap"
-                ).register_preview(
-                    f"event_aligned_population_activity_{group_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                    caption="Event-aligned average sub-population activity line plot (up-, down-, and non-modulated neurons)"
                 )
                 for md in metadata.get(f"{subdir_base}_event_aligned_activity_traces", {}):
-                    output_file.register_metadata(**md) 
-
+                    output_file.register_metadata(**md)
 
                 output_file = output_data.register_file(
                     f"event_aligned_statistics_{group_name}.csv",
@@ -2129,14 +2128,14 @@ def combine_compare_peri_event_data_ideas_wrapper(
                 "comparison_data.csv",
                 subdir="comparison_data"
             ).register_preview(
-                f"modulated_fractions_comparison{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                caption="Fraction of neurons in each modulation group"
+                f"event_aligned_population_activity_comparison{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                caption="Event-aligned average population activity line plot",
             ).register_preview(
                 f"event_aligned_subpopulation_activity_comparison{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
                 caption="Event-aligned average sub-population activity line plot",
             ).register_preview(
-                f"event_aligned_population_activity_comparison{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                caption="Event-aligned average population activity line plot",
+                f"modulated_fractions_comparison{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                caption="Fraction of neurons in each modulation group"
             )
             for md in metadata.get("comparison_data", {}):
                 output_file.register_metadata(**md)

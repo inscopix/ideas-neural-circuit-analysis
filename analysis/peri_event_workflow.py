@@ -2931,11 +2931,11 @@ def run_peri_event_workflow_ideas_wrapper(
                     "event_aligned_activity.TRACES.csv",
                     subdir=event_type
                 ).register_preview(
-                    "event_aligned_single_cell_activity_heatmap.preview.svg",
-                    caption="Event-aligned single-cell activity heatmap"
-                ).register_preview(
                     "event_aligned_population_activity.preview.svg",
                     caption="Event-aligned average population activity line plot"
+                ).register_preview(
+                    "event_aligned_single_cell_activity_heatmap.preview.svg",
+                    caption="Event-aligned single-cell activity heatmap"
                 )
                 for md in metadata.get(f"{event_type}/event_aligned_activity.TRACES.csv", {}):
                     output_file.register_metadata(**md)
@@ -2944,11 +2944,11 @@ def run_peri_event_workflow_ideas_wrapper(
                     "event_aligned_activity.STATISTICS.csv",
                     subdir=event_type
                 ).register_preview(
-                    "cell_map.preview.svg",
-                    caption="Cell map visualizing spatial organization of modulation"
-                ).register_preview(
                     "event_aligned_activity_by_modulation.preview.svg",
                     caption="Event-aligned average sub-population activity line plot"
+                ).register_preview(
+                    "cell_map.preview.svg",
+                    caption="Cell map visualizing spatial organization of modulation"
                 )
                 for md in metadata.get(f"{event_type}/event_aligned_activity.STATISTICS.csv", {}):
                     output_file.register_metadata(**md)

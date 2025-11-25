@@ -4,7 +4,7 @@
     "schema_version": "3.0.0",
     "container_image": {
         "repository": "platform/neural-analysis",
-        "label": "1.0.0"
+        "label": "1.0.1"
     },
     "command": {
         "file_path": "analysis/compare_peri_event_activity_across_epochs.py",
@@ -345,7 +345,7 @@
     },
     "description": "Analyze and compare neural activity around (peri) the time of each event across a number of epochs.",
     "visibility": "public",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "docs": "https://inscopix.github.io/ideas-docs/tools/standard-python/compare_peri_event_activity_across_epochs/compare_peri_event_activity_across_epochs.html",
     "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis"
 }

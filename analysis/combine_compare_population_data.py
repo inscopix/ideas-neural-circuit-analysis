@@ -673,13 +673,11 @@ def combine_compare_population_data(
         # save aov and pairwise data to disk
         final_aov.to_csv(output_aov_filename, index=False)
         final_pairwise.to_csv(output_pairwise_filename, index=False)
-
         if group2_population_activity_files is None:
             group2_population_activity_files = []
 
         if (
             len(group2_population_activity_files) > 1
-            and group2_population_file is not None
         ):
             comparison_metadata = [
                 {
