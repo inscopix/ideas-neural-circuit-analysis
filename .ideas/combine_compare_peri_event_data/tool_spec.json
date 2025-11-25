@@ -285,7 +285,12 @@
     },
     "description": "Combine peri-event analysis data from multiple recordings and perform a statistical comparison between two groups to determine if there is a difference in the fractions of up- or down-modulated neurons.",
     "visibility": "public",
-    "version": "5.0.1",
+    "version": "5.0.2",
     "docs": "https://inscopix.github.io/ideas-docs/tools/standard-python/combine_compare_peri_event_data/combine_compare_peri_event_data.html",
-    "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis"
+    "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis",
+    "tags": [
+        "Neural Circuit Analysis",
+        "Study Statistics",
+        "Peri-Event"
+    ]
 }

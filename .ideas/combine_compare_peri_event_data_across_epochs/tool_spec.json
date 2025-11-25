@@ -353,7 +353,13 @@
     },
     "description": "Statistically compare peri-event data across epochs between two different groups.",
     "visibility": "public",
-    "version": "2.0.1",
+    "version": "2.0.2",
     "docs": "https://inscopix.github.io/ideas-docs/tools/standard-python/combine_compare_peri_event_data_across_epochs/combine_compare_peri_event_data_across_epochs.html",
-    "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis"
+    "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis",
+    "tags": [
+        "Neural Circuit Analysis",
+        "Study Statistics",
+        "Peri-Event",
+        "Epochs"
+    ]
 }
