@@ -24,6 +24,7 @@ from ideas.exceptions import IdeasError
 import analysis.state_epoch_baseline_analysis as seb_module
 from analysis.state_epoch_baseline_analysis import (
     state_epoch_baseline_analysis,
+    state_epoch_baseline_analysis_ideas_wrapper,
     analyze,
     configure_state_epoch_analysis_feature_flags,
     temporary_state_epoch_analysis_feature_flags,
@@ -3223,56 +3224,40 @@ class TestOutputGeneration:
             _fake_generate_outputs,
         )
 
-        captured_outputs = {}
-
-        class DummyOutputFile:
-            def __init__(self, path):
-                self.path = path
-                self.previews = []
-
-            def add_metadata(self, **_):
-                return None
-
-            def add_preview(self, preview_path, caption):
-                self.previews.append((preview_path, caption))
-
-        class DummyOutputData:
-            def __enter__(self):
-                return self
-
-            def __exit__(self, exc_type, exc, tb):
-                return False
-
-            def add_file(self, file_path):
-                file_obj = DummyOutputFile(file_path)
-                captured_outputs[Path(file_path).name] = file_obj
-                return file_obj
-
-        monkeypatch.setattr(seb_module, "OutputData", DummyOutputData)
-
         cell_file = tmp_path / "cells.isxd"
         cell_file.write_text("cell")
         annotations_file = tmp_path / "annotations.parquet"
         annotations_file.write_text("annotations")
 
-        state_epoch_baseline_analysis(
-            cell_set_files=[cell_file],
+        cwd = Path.cwd()
+        os.chdir(tmp_path)
+
+        state_epoch_baseline_analysis_ideas_wrapper(
+            cell_set_files=[str(cell_file)],
             event_set_files=None,
-            annotations_file=[annotations_file],
+            annotations_file=[str(annotations_file)],
             state_names="rest",
             epoch_names="baseline",
-            output_dir=str(tmp_path),
+            # output_dir=str(tmp_path),
             include_event_correlation_preview=True,
         )
+
+        with open(tmp_path / "output_data.json", "r") as f:
+            output_data = json.load(f)
+            captured_outputs = {}
+            for f in output_data["output_files"]:
+                captured_outputs[f["file"]] = {
+                    "previews" : [p["file"] for p in f["previews"]]
+                }
 
         def _preview_names_for(suffix):
             for name, file_obj in captured_outputs.items():
                 if name.endswith(suffix):
-                    return {Path(path).name for path, _ in file_obj.previews}
+                    return {Path(path).name for path in file_obj["previews"]}
             raise AssertionError(f"No output captured for suffix: {suffix}")
 
         corr_previews = _preview_names_for(
-            seo_module.CORRELATIONS_PER_STATE_EPOCH_DATA_CSV
+            "correlations_per_state_epoch_data/cells_" + seo_module.CORRELATIONS_PER_STATE_EPOCH_DATA_CSV
         )
         assert any(
             preview.endswith(

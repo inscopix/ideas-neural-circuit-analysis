@@ -11,8 +11,8 @@ from utils.utils import (
     _get_cellset_boundaries,
 )
 
-cell_sets = ["data/input_cellset.isxd"]
-event_sets = ["data/input_cellset-ED.isxd"]
+cell_sets = ["/ideas/data/input_cellset.isxd"]
+event_sets = ["/ideas/data/input_cellset-ED.isxd"]
 
 valid_inputs = [
     # valid inputs
@@ -48,11 +48,13 @@ expected_output_files = [
 
 
 @pytest.mark.parametrize("params", valid_inputs)
-def test_epoch_activity(params):
+def test_epoch_activity(params, tmp_path):
     """Check that code runs without error with valid inputs."""
+    cwd = os.getcwd()
+    os.chdir(tmp_path)
     run(**params)
     try:  # When running locally
-        actual_output_files = os.listdir("outputs/epoch_activity__run")
+        actual_output_files = os.listdir(tmp_path)
     except FileNotFoundError:  # when running on IDEAS
         actual_output_files = os.listdir()
 
@@ -65,6 +67,7 @@ def test_epoch_activity(params):
         df = pd.read_csv(f)
         assert len(df) == 76 * 3  # 76 accepted cells, 3 epochs
 
+    os.chdir(cwd)
 
 def test_plot_traces(cleanup_plots):
     """Test the _plot_traces function with various state transition scenarios."""
