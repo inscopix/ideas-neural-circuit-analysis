@@ -1,16 +1,16 @@
 {
     "key": "correlations",
     "name": "Compare Neural Circuit Correlations Across States",
-    "version": "8.0.0-rc2",
+    "version": "8.0.8",
     "schema_version": "3.0.0",
     "description": "Calculate pairwise correlations between cell traces, and estimates how correlations change between two states of interest",
     "container_image": {
-        "repository": "platform/neuro-stats",
-        "label": "0.0.2"
+        "repository": "platform/neural-analysis",
+        "label": "1.0.1"
     },
     "command": {
         "file_path": "analysis/correlations.py",
-        "entry_point": "correlation_tool",
+        "entry_point": "correlation_tool_ideas_wrapper",
         "program_type": "PYTHON"
     },
     "params": [
@@ -109,13 +109,14 @@
         },
         {
             "key": "include_positions",
-            "name": "include_positions",
+            "name": "Include Positions",
             "required": false,
-            "description": "include_positions",
+            "description": "Whether to include cell position information in output files",
             "type": {
                 "param_type": "ToolBooleanParam",
                 "default": true
-            }
+            },
+            "group": "Parameters"
         },
         {
             "key": "correlation_threshold",
@@ -137,7 +138,7 @@
             "name": "Average Correlations",
             "description": "The average positive correlation and average negative correlation in each state",
             "file_patterns": [
-                "average_correlations**"
+                "average_correlations/**/*"
             ]
         },
         {
@@ -145,7 +146,7 @@
             "name": "Pairwise Correlation Heatmaps",
             "description": "Raw correlation matrices",
             "file_patterns": [
-                "pairwise_correlation_heatmaps**"
+                "pairwise_correlation_heatmaps/**/*"
             ]
         },
         {
@@ -153,7 +154,7 @@
             "name": "Spatial Analysis of Pairwise Correlations",
             "description": "Raw correlation matrices and cell pair correlations, with spatial position information for each cell pair",
             "file_patterns": [
-                "spatial_analysis_pairwise_correlations**"
+                "spatial_analysis_pairwise_correlations/**/*"
             ]
         },
         {
@@ -161,7 +162,7 @@
             "name": "Correlation Statistic Comparison",
             "description": "Max/mean/min correlations by neuron",
             "file_patterns": [
-                "correlation_statistic_comparison**"
+                "correlation_statistic_comparison/**/*"
             ]
         }
     ],
@@ -170,5 +171,13 @@
         "gpu": 0,
         "memory": 10000
     },
-    "visibility": "public"
+    "visibility": "public",
+    "docs": "https://inscopix.github.io/ideas-docs/tools/epochs/correlations__correlation_tool/correlations__correlation_tool.html",
+    "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis",
+    "tags": [
+        "Neural Circuit Analysis",
+        "Single Study",
+        "Correlations",
+        "Annotations"
+    ]
 }

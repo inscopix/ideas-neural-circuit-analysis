@@ -1,0 +1,19 @@
+{
+    "group1_traces_files" : ["data/combine_compare_peri_event_data/group1/group1_subject1.TRACES.csv","data/combine_compare_peri_event_data/group1/group1_subject2.TRACES.csv"],
+    "group1_stats_files" : ["data/combine_compare_peri_event_data/group1/group1_subject1.STATISTICS.csv","data/combine_compare_peri_event_data/group1/group1_subject2.STATISTICS.csv"],
+    "group1_name" : "group1",
+    "group2_traces_files" : ["data/combine_compare_peri_event_data/group2/group2_subject1.TRACES.csv","data/combine_compare_peri_event_data/group2/group2_subject2.TRACES.csv"],
+    "group2_stats_files" : ["data/combine_compare_peri_event_data/group2/group2_subject1.STATISTICS.csv","data/combine_compare_peri_event_data/group2/group2_subject2.STATISTICS.csv"],
+    "group2_name" : "group2",
+    "comparison_type" : "two_tailed",
+    "data_pairing" : "paired",
+    "significance_threshold" : 0.05,
+    "average_method" : "neurons",
+    "tolerance" : 0.01,
+    "group_colors" : "#1f77b4, #ff7f0e",
+    "modulation_colors" : "tab:brown, tab:pink, tab:gray",
+    "cmap" : "coolwarm",
+    "population_activity_plot_limits" : "-0.2,0.2",
+    "activity_heatmap_color_limits" : "-0.4,0.4",
+    "activity_by_modulation_plot_limits" : "-0.30,0.30"
+}

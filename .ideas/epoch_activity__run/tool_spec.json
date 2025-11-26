@@ -1,0 +1,247 @@
+{
+    "key": "epoch_activity__run",
+    "name": "Compare Neural Activity Across Epochs",
+    "schema_version": "3.0.0",
+    "container_image": {
+        "repository": "platform/neural-analysis",
+        "label": "1.0.1"
+    },
+    "command": {
+        "file_path": "analysis/epoch_activity.py",
+        "entry_point": "epoch_activity_ideas_wrapper",
+        "program_type": "PYTHON"
+    },
+    "params": [
+        {
+            "key": "cell_set_files",
+            "name": "Cell Set Files",
+            "required": true,
+            "description": "Cell set files",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "isxd"
+                ]
+            },
+            "group": ""
+        },
+        {
+            "key": "event_set_files",
+            "name": "Event Set Files",
+            "required": false,
+            "description": "Event set files",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "isxd"
+                ]
+            },
+            "group": ""
+        },
+        {
+            "key": "define_epochs_by",
+            "name": "Define Epochs by",
+            "required": true,
+            "description": "Method to define epochs. If 'files', one epoch per input cell set will be automatically defined, for the whole duration of each cell set. If 'global file time', you can define as many epochs as you want, with 0 corresponding to start time of the first cell set. If 'local file time', you can define as many epochs as you want per input cell set, with 0 corresponding to start time of each cell set.",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "choices": [
+                    "files",
+                    "global file time",
+                    "local file time"
+                ],
+                "display_options": [
+                    "files",
+                    "global file time",
+                    "local file time"
+                ],
+                "default": "global file time"
+            },
+            "group": ""
+        },
+        {
+            "key": "epochs",
+            "name": "Epochs",
+            "required": false,
+            "description": "Tuples of the start and end times (in seconds) for each epoch (e.g., if 'Define Epochs by' is set to 'Global file time', `(0, 600), (650, 950), (950, 1250)`). If 'Define Epochs by' is set to 'Local file time', provide one list of tuple per input cell set file (e.g., `[(0, 600)], [(0, 300), (300, 600)]`). If 'Define Epochs by' is set to 'Files', you can leave this parameter empty.",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": ""
+        },
+        {
+            "key": "epoch_names",
+            "name": "Epoch Names",
+            "required": true,
+            "description": "List of names of the epochs to analyze (e.g., `baseline, early treatment, late treatment`)",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": ""
+        },
+        {
+            "key": "epoch_colors",
+            "name": "Epoch Colors",
+            "required": true,
+            "description": "List of matplotlib compatible colors to represent each epoch",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "tab:grey, tab:blue, tab:cyan"
+            },
+            "group": ""
+        },
+        {
+            "key": "bin_size",
+            "name": "Time Bin Size",
+            "required": false,
+            "description": "If specified, the data will be averaged into bins of this size (in seconds), effectively downsampling the data",
+            "type": {
+                "param_type": "ToolFloatRangeParam",
+                "min": 0
+            },
+            "group": ""
+        },
+        {
+            "key": "trace_scale_method",
+            "name": "Traces Rescaling Method",
+            "required": false,
+            "description": "The trace activity data will be rescaled using the specified method. If 'none' is selected, the original raw calcium trace values will be used without any transformation, preserving the original scale of the measurements.",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "none",
+                "choices": [
+                    "none",
+                    "standardize",
+                    "normalize",
+                    "standardize_epoch",
+                    "fractional_change"
+                ],
+                "display_options": [
+                    "None",
+                    "Standardize",
+                    "Normalize",
+                    "Standardize to first epoch",
+                    "Fractional change from first epoch"
+                ]
+            },
+            "group": ""
+        },
+        {
+            "key": "event_scale_method",
+            "name": "Event Rates Rescaling Method",
+            "required": false,
+            "description": "If specified, the event rate data will be rescaled using the specified method",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "none",
+                "choices": [
+                    "none",
+                    "standardize",
+                    "normalize",
+                    "standardize_epoch",
+                    "fractional_change"
+                ],
+                "display_options": [
+                    "None",
+                    "Standardize",
+                    "Normalize",
+                    "Standardize to first epoch",
+                    "Fractional change from first epoch"
+                ]
+            },
+            "group": ""
+        },
+        {
+            "key": "sort_by_time",
+            "name": "Sort Files by Time",
+            "required": false,
+            "description": "Whether to sort the cell set files by start time. If False, order of input cell sets is maintainted.",
+            "type": {
+                "param_type": "ToolBooleanParam",
+                "default": true
+            },
+            "group": ""
+        },
+        {
+            "key": "tolerance",
+            "name": "Sampling Rate Tolerance",
+            "required": false,
+            "description": "Tolerance for potential discrepancies in the sampling rate of input cell sets. If not specified, defaults to 1e-4.",
+            "type": {
+                "param_type": "ToolFloatRangeParam",
+                "default": 0.0001,
+                "min": 0
+            },
+            "group": ""
+        },
+        {
+            "key": "heatmap",
+            "name": "Activity heatmap (colormap range)",
+            "required": false,
+            "description": "Input min and max value separated by a comma to define the range of the colormap for the trace activity heatmap",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "Auto"
+            }
+        }
+    ],
+    "results": [
+        {
+            "key": "Traces_timecourse_data",
+            "name": "Traces Timecourse Data",
+            "description": "Time course data of calcium traces",
+            "file_patterns": [
+                "Traces_timecourse_data/**/*"
+            ]
+        },
+        {
+            "key": "Traces_activity_data",
+            "name": "Traces Activity Data",
+            "description": "Calcium activity in each epoch averaged by cell",
+            "file_patterns": [
+                "Traces_activity_data/**/*"
+            ]
+        },
+        {
+            "key": "Population_Traces_Correlation",
+            "name": "Population Traces Correlation",
+            "description": "Raw Correlation data before clustering for each cell-cell pair in each epoch",
+            "file_patterns": [
+                "Population_Traces_Correlation/**/*"
+            ]
+        },
+        {
+            "key": "Eventrate_timecourse_data",
+            "name": "Eventrate Timecourse Data",
+            "description": "Time course data of event rate",
+            "file_patterns": [
+                "Eventrate_timecourse_data/**/*"
+            ]
+        },
+        {
+            "key": "Eventrate_activity_data",
+            "name": "Eventrate Activity Data",
+            "description": "Event rate in each epoch averaged by cell",
+            "file_patterns": [
+                "Eventrate_activity_data/**/*"
+            ]
+        }
+    ],
+    "resources": {
+        "cpu": 1,
+        "gpu": 0,
+        "memory": 32000
+    },
+    "description": "Calculate change in activity during user defined continuous epochs",
+    "visibility": "public",
+    "version": "5.0.2",
+    "docs": "https://inscopix.github.io/ideas-docs/tools/epochs/epoch_activity__run/epoch_activity__run.html",
+    "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis",
+    "tags": [
+        "Neural Circuit Analysis",
+        "Single Study",
+        "Epochs"
+    ]
+}

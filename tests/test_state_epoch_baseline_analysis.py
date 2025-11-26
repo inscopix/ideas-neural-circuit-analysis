@@ -203,6 +203,7 @@ class TestEpochOnlyModeFeatureFlag:
                         output_dir=tmpdir,
                     )
                     assert mock_dm_instance.extract_state_epoch_data.call_count == 2
+    
     def test_none_annotations_entry_raises_error(self, standard_input_params):
         """None entries in annotations_file should be rejected."""
         params = standard_input_params.copy()
@@ -213,7 +214,7 @@ class TestEpochOnlyModeFeatureFlag:
         ) as mock_validate:
             mock_validate.return_value = None
             with pytest.raises(
-                IdeasError, match="annotations_file cannot contain"
+                BeartypeCallHintParamViolation, match="annotations_file"
             ):
                 state_epoch_baseline_analysis(**params)
 
@@ -243,6 +244,7 @@ from ideas.exceptions import IdeasError
 import analysis.state_epoch_baseline_analysis as seb_module
 from analysis.state_epoch_baseline_analysis import (
     state_epoch_baseline_analysis,
+    state_epoch_baseline_analysis_ideas_wrapper,
     analyze,
     configure_state_epoch_analysis_feature_flags,
     temporary_state_epoch_analysis_feature_flags,
@@ -253,6 +255,8 @@ from analysis.state_epoch_baseline_analysis import (
     StateEpochOutputGenerator,
 )
 import utils.state_epoch_output as seo_module
+
+from beartype.roar import BeartypeCallHintParamViolation
 
 try:
     from analysis.epoch_activity import run as epoch_activity_run
@@ -1659,7 +1663,7 @@ class TestCriticalBugFixes:
     @patch(
         "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
-    @patch("ideas.io.cell_set_to_traces")
+    @patch("ideas.analysis.io.cell_set_to_traces")
     def test_all_rejected_cells_error(
         self, mock_cell_set_to_traces, mock_validate_files, mock_cellset_read
     ):
@@ -1722,7 +1726,7 @@ class TestCriticalBugFixes:
     @patch(
         "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
-    @patch("ideas.io.cell_set_to_traces")
+    @patch("ideas.analysis.io.cell_set_to_traces")
     def test_invalid_epoch_times_negative(
         self, mock_cell_set_to_traces, mock_validate_files, mock_cellset_read
     ):
@@ -1758,7 +1762,7 @@ class TestCriticalBugFixes:
     @patch(
         "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
-    @patch("ideas.io.cell_set_to_traces")
+    @patch("ideas.analysis.io.cell_set_to_traces")
     def test_invalid_epoch_times_exceeds_data(
         self, mock_cell_set_to_traces, mock_validate_files, mock_cellset_read
     ):
@@ -1794,7 +1798,7 @@ class TestCriticalBugFixes:
     @patch(
         "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
-    @patch("ideas.io.cell_set_to_traces")
+    @patch("ideas.analysis.io.cell_set_to_traces")
     def test_invalid_epoch_start_after_end(
         self, mock_cell_set_to_traces, mock_validate_files, mock_cellset_read
     ):
@@ -1832,7 +1836,7 @@ class TestCriticalBugFixes:
     @patch(
         "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
     )
-    @patch("ideas.io.cell_set_to_traces")
+    @patch("ideas.analysis.io.cell_set_to_traces")
     def test_malformed_epoch_string(
         self, mock_cell_set_to_traces, mock_validate_files, mock_cellset_read
     ):
@@ -2926,6 +2930,58 @@ class TestEdgeCasesAndErrorConditions:
     def test_empty_state_names(
         self, mock_validate_files, standard_input_params
     ):
+        """Legacy kwargs should be accepted, ignored, and warned."""
+        mock_validate_files.return_value = None
+
+        mock_manager_instance = MagicMock()
+        mock_manager_instance.load_data.return_value = (
+            mock_traces,
+            mock_events,
+            mock_annotations,
+            {"cell_names": [f"cell_{i}" for i in range(mock_traces.shape[1])]},
+        )
+        mock_manager_instance.extract_state_epoch_data.return_value = {
+            "traces": mock_traces[:10, :],
+            "events": mock_events[:10, :],
+            "annotations": mock_annotations.iloc[:10],
+            "num_timepoints": 10,
+            "mask": np.ones(10, dtype=bool),
+        }
+        mock_manager_instance.get_epoch_periods.return_value = [(0, 10)]
+        mock_data_manager.return_value = mock_manager_instance
+
+        mock_analyze_combination.return_value = {
+            "mean_activity": np.zeros(mock_traces.shape[1]),
+            "traces": mock_traces[:10, :],
+            "events": mock_events[:10, :],
+            "num_timepoints": 10,
+            "num_cells": mock_traces.shape[1],
+        }
+        mock_calculate_modulation.return_value = {"modulation": []}
+
+        mock_output_instance = MagicMock()
+        mock_output_generator.return_value = mock_output_instance
+
+        params = standard_input_params.copy()
+        params.update(
+            {
+                "include_correlations": False,
+                "include_population_activity": False,
+                "include_event_analysis": False,
+                "use_registered_cellsets": True,
+                "registration_method": "caiman_msr",
+            }
+        )
+
+        with pytest.raises(TypeError, match="include_correlations"):
+            state_epoch_baseline_analysis(**params)
+
+    @patch(
+        "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
+    )
+    def test_empty_state_names(
+        self, mock_validate_files, standard_input_params
+    ):
         """Empty state names should raise an error now that annotations are required."""
         mock_validate_files.return_value = None  # Skip file validation
         params = standard_input_params.copy()
@@ -3256,6 +3312,121 @@ class TestOutputGeneration:
             ("existing_preview.svg", "Existing preview caption")
         ]
 
+
+    def test_event_correlation_previews_created_when_enabled(
+        self, tmp_path, mock_results_with_known_data
+    ):
+        """Event correlation previews should be generated when requested."""
+        from utils.state_epoch_output import StateEpochOutputGenerator
+
+        generator = StateEpochOutputGenerator(
+            output_dir=str(tmp_path),
+            states=["rest", "active"],
+            epochs=["baseline", "test"],
+            state_colors=["gray", "blue"],
+            epoch_colors=["lightgray", "lightblue"],
+            baseline_state="rest",
+            baseline_epoch="baseline",
+            include_event_correlation_preview=True,
+        )
+
+        cell_info = {
+            "cell_names": [f"Cell_{i:03d}" for i in range(10)],
+            "cell_set_files": [],
+        }
+        modulation_results = {
+            "activity_modulation": {},
+            "event_modulation": {},
+            "significant_cells": {},
+            "modulation_summary": {},
+            "baseline_state": "rest",
+            "baseline_epoch": "baseline",
+        }
+
+        generator.generate_all_outputs(
+            results=mock_results_with_known_data,
+            modulation_results=modulation_results,
+            cell_info=cell_info,
+        )
+
+        expected_files = [
+            "event_correlation_statistic_distribution_preview.svg",
+            "event_average_correlations_preview.svg",
+            "event_correlation_matrices_preview.svg",
+            "event_spatial_correlation_preview.svg",
+            "event_spatial_correlation_map_preview.svg",
+        ]
+
+        for filename in expected_files:
+            assert (tmp_path / filename).exists(), f"Missing event output: {filename}"
+
+    def test_correlation_summary_csv_includes_event_values(self, tmp_path):
+        """Event correlation statistics should be persisted in the CSV output."""
+        from utils.state_epoch_results import StateEpochResults
+
+        generator = StateEpochOutputGenerator(
+            output_dir=str(tmp_path),
+            states=["rest"],
+            epochs=["baseline"],
+            state_colors=["gray"],
+            epoch_colors=["lightgray"],
+            baseline_state="rest",
+            baseline_epoch="baseline",
+            include_event_correlation_preview=True,
+        )
+
+        results = StateEpochResults()
+        trace_corr = np.array([[0.0, 0.5], [0.5, 0.0]])
+        event_corr = np.array([[0.0, 0.25], [0.25, 0.0]])
+        combination_results = {
+            "correlation_matrix": trace_corr,
+            "event_correlation_matrix": event_corr,
+            "mean_activity": np.array([0.1, 0.2]),
+            "event_rates": np.array([0.05, 0.07]),
+            "traces": np.zeros((10, 2)),
+            "events": np.zeros((10, 2)),
+        }
+        results.add_combination_results("rest", "baseline", combination_results)
+
+        cell_info = {"cell_names": ["Cell_000", "Cell_001"]}
+
+        generator._save_correlation_summary_csv(results, cell_info)
+
+        csv_path = tmp_path / seo_module.CORRELATIONS_PER_STATE_EPOCH_DATA_CSV
+        assert csv_path.exists(), "Correlation CSV should be written"
+
+        df = pd.read_csv(csv_path)
+
+        # Event-specific columns should contain the underlying correlation value
+        assert np.allclose(df["max_event_correlation"], 0.25)
+        assert np.allclose(df["min_event_correlation"], 0.25)
+        assert np.allclose(df["mean_event_correlation"], 0.25)
+        assert np.allclose(df["positive_event_correlation"].dropna(), 0.25)
+        # Negative event correlation is undefined for strictly positive matrices
+        assert df["negative_event_correlation"].isna().all()
+
+    def test_collect_available_previews_filters_missing_files(self, tmp_path):
+        """Helper should only include previews that exist on disk."""
+        from analysis.state_epoch_baseline_analysis import (
+            _collect_available_previews,
+        )
+
+        existing_file = tmp_path / "existing_preview.svg"
+        existing_file.touch()
+
+        preview_defs = [
+            ("existing_preview.svg", "Existing preview caption"),
+            ("missing_preview.svg", "Missing preview caption"),
+        ]
+
+        available_previews = _collect_available_previews(
+            str(tmp_path), preview_defs
+        )
+
+        assert available_previews == [
+            ("existing_preview.svg", "Existing preview caption")
+        ]
+
     def test_event_previews_attached_to_main_outputs(
         self, tmp_path, monkeypatch
     ):
@@ -3378,52 +3549,36 @@ class TestOutputGeneration:
             _fake_generate_outputs,
         )
 
-        captured_outputs = {}
-
-        class DummyOutputFile:
-            def __init__(self, path):
-                self.path = path
-                self.previews = []
-
-            def add_metadata(self, **_):
-                return None
-
-            def add_preview(self, preview_path, caption):
-                self.previews.append((preview_path, caption))
-
-        class DummyOutputData:
-            def __enter__(self):
-                return self
-
-            def __exit__(self, exc_type, exc, tb):
-                return False
-
-            def add_file(self, file_path):
-                file_obj = DummyOutputFile(file_path)
-                captured_outputs[Path(file_path).name] = file_obj
-                return file_obj
-
-        monkeypatch.setattr(seb_module, "OutputData", DummyOutputData)
-
         cell_file = tmp_path / "cells.isxd"
         cell_file.write_text("cell")
         annotations_file = tmp_path / "annotations.parquet"
         annotations_file.write_text("annotations")
 
-        state_epoch_baseline_analysis(
-            cell_set_files=[cell_file],
+        cwd = Path.cwd()
+        os.chdir(tmp_path)
+
+        state_epoch_baseline_analysis_ideas_wrapper(
+            cell_set_files=[str(cell_file)],
             event_set_files=None,
-            annotations_file=[annotations_file],
+            annotations_file=[str(annotations_file)],
             state_names="rest",
             epoch_names="baseline",
-            output_dir=str(tmp_path),
+            # output_dir=str(tmp_path),
             include_event_correlation_preview=True,
         )
+
+        with open(tmp_path / "output_data.json", "r") as f:
+            output_data = json.load(f)
+            captured_outputs = {}
+            for f in output_data["output_files"]:
+                captured_outputs[f["file"]] = {
+                    "previews" : [p["file"] for p in f["previews"]]
+                }
 
         def _preview_names_for(suffix):
             for name, file_obj in captured_outputs.items():
                 if name.endswith(suffix):
-                    return {Path(path).name for path, _ in file_obj.previews}
+                    return {Path(path).name for path in file_obj["previews"]}
             raise AssertionError(f"No output captured for suffix: {suffix}")
 
         corr_previews = _preview_names_for(
@@ -4810,7 +4965,7 @@ class TestModulationFootprintVisualizationFix:
         }
 
     @patch("utils.utils._get_cellset_data")
-    @patch("ideas.io.cell_set_to_contours")
+    @patch("ideas.analysis.io.cell_set_to_contours")
     @patch("utils.plots.plot_modulated_neuron_footprints")
     @pytest.mark.skip(
         reason="Complex test needs full rewrite for simplified API - focus on other tests first"
@@ -4903,8 +5058,8 @@ class TestModulationFootprintVisualizationFix:
         # which is verified by the file existence check above
 
     @patch("utils.utils._get_cellset_data")
-    @patch("ideas.io.cell_set_to_contours")
-    @patch("ideas.io.cell_set_to_status")
+    @patch("ideas.analysis.io.cell_set_to_contours")
+    @patch("ideas.analysis.io.cell_set_to_status")
     @patch("utils.state_epoch_output.plot_modulated_neuron_footprints")
     def test_modulation_footprint_error_handling(
         self,
@@ -4982,7 +5137,7 @@ class TestModulationFootprintVisualizationFix:
         assert os.path.exists(expected_file), "Plot file should be created"
 
     @patch("utils.utils._get_cellset_data")
-    @patch("ideas.io.cell_set_to_contours")
+    @patch("ideas.analysis.io.cell_set_to_contours")
     def test_modulation_footprint_no_contours(
         self,
         mock_cell_contours,
@@ -5029,8 +5184,8 @@ class TestModulationFootprintVisualizationFix:
 
     @patch("utils.state_epoch_output.plot_modulated_neuron_footprints")
     @patch("utils.utils._get_cellset_data")
-    @patch("ideas.io.cell_set_to_contours")
-    @patch("ideas.io.cell_set_to_status")
+    @patch("ideas.analysis.io.cell_set_to_contours")
+    @patch("ideas.analysis.io.cell_set_to_status")
     def test_no_modulated_neurons_warning_message(
         self,
         mock_cell_status,
@@ -5159,8 +5314,8 @@ class TestModulationFootprintVisualizationFix:
         # Verify the function completes successfully without exceptions
         # (The fact that we reach this point proves no exceptions were raised)
 
-    @patch("ideas.io.cell_set_to_contours")
-    @patch("ideas.io.cell_set_to_status")
+    @patch("ideas.analysis.io.cell_set_to_contours")
+    @patch("ideas.analysis.io.cell_set_to_status")
     @patch("utils.state_epoch_output.plot_modulated_neuron_footprints")
     def test_modulated_neurons_found_proceeds_with_plotting(
         self,
@@ -5490,8 +5645,8 @@ class TestModulationFootprintVisualizationFix:
         # Test completed successfully - modulation calculation works correctly
 
     @patch("utils.state_epoch_output.plot_modulated_neuron_footprints")
-    @patch("ideas.io.cell_set_to_contours")
-    @patch("ideas.io.cell_set_to_status")
+    @patch("ideas.analysis.io.cell_set_to_contours")
+    @patch("ideas.analysis.io.cell_set_to_status")
     def test_modulation_footprint_plotting_with_detected_modulation(
         self,
         mock_cell_status,
@@ -5600,6 +5755,62 @@ class TestModulationFootprintVisualizationFix:
             expected_file
         ), "Modulation footprint plot should be created with detected modulation"
 
+
+class TestCrossToolConsistency:
+    """Test consistency between state_epoch, correlations, and epoch_activity tools."""
+
+    def test_annotations_file_optional_like_correlations(self):
+        """Test that annotations_file is optional like in correlations.py."""
+        from analysis.state_epoch_baseline_analysis import (
+            state_epoch_baseline_analysis,
+        )
+        from analysis.correlations import correlation_tool
+        import inspect
+
+        # Check function signatures
+        state_epoch_sig = inspect.signature(state_epoch_baseline_analysis)
+        corr_sig = inspect.signature(correlation_tool)
+
+        # Both should have optional annotations_file
+        state_epoch_annotations = state_epoch_sig.parameters[
+            "annotations_file"
+        ]
+        corr_annotations = corr_sig.parameters["annotations_file"]
+
+        # Both should be Optional with default None
+        assert state_epoch_annotations.default is None
+        assert corr_annotations.default is None
+
+        # Check type annotations (both should be Optional)
+        state_epoch_type = str(state_epoch_annotations.annotation)
+        corr_type = str(corr_annotations.annotation)
+
+        assert "Optional" in state_epoch_type or "Union" in state_epoch_type
+        assert "Optional" in corr_type or "Union" in corr_type
+
+    def test_epoch_only_analysis_matches_epoch_activity_pattern(self):
+        """Test that epoch-only mode follows epoch_activity.py patterns."""
+        if epoch_activity_run is None:
+            pytest.skip("epoch_activity tool is not available in this environment.")
+        import inspect
+
+        # epoch_activity.py doesn't take annotations_file at all
+        epoch_sig = inspect.signature(epoch_activity_run)
+        assert "annotations_file" not in epoch_sig.parameters
+
+        # Both tools should support epoch-based analysis
+        epoch_params = list(epoch_sig.parameters.keys())
+        expected_epoch_params = [
+            "cell_set_files",
+            "event_set_files",
+            "define_epochs_by",
+            "epoch_names",
+            "epochs",
+            "epoch_colors",
+        ]
+
+        for param in expected_epoch_params:
+            assert param in epoch_params, f"epoch_activity.py missing {param}"
 
 
 class TestEpochToolCompatibility:
@@ -6447,8 +6658,8 @@ class TestModulationPreviewFunctionality:
 
     @patch("utils.state_epoch_data._get_cellset_data")
     @patch("utils.state_epoch_data.event_set_to_events")
-    @patch("ideas.io.cell_set_to_contours")
-    @patch("ideas.io.cell_set_to_status")
+    @patch("ideas.analysis.io.cell_set_to_contours")
+    @patch("ideas.analysis.io.cell_set_to_status")
     def test_modulation_preview_data_alignment(
         self,
         mock_cell_status,
@@ -7207,7 +7418,7 @@ class TestCrossToolAnalysisLogic:
         traces = np.random.randn(n_timepoints, n_cells)
 
         # Test correlation computation using ideas.measures (same as correlations.py)
-        from ideas import measures
+        from ideas.analysis import measures
 
         correlation_matrix_reference = measures.correlation_matrix(
             traces, fill_diagonal=0.0

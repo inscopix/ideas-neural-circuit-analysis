@@ -1,0 +1,34 @@
+{
+    "group1_traces": [
+        "data/Traces1.csv",
+        "data/Traces2.csv"
+    ],
+    "group2_traces": [
+        "data/Traces3.csv",
+        "data/Traces4.csv"
+    ],
+    "group1_events": [
+        "data/Eventrate1.csv",
+        "data/Eventrate2.csv"
+    ],
+    "group2_events": [
+        "data/Eventrate3.csv",
+        "data/Eventrate4.csv"
+    ],
+    "group1_corr": [
+        "data/corr1.npy",
+        "data/corr2.npy"
+    ],
+    "group2_corr": [
+        "data/corr3.npy",
+        "data/corr4.npy"
+    ],
+    "epoch_names": "early drug, BASELINE, late-Drug",
+    "group1_name": "Vehicle",
+    "group2_name": "Drug",
+    "epoch_colors": "tab:grey, tab:blue, tab:cyan",
+    "group1_color": "tab:red",
+    "group2_color": "tab:orange",
+    "multiple_correction": "bonf",
+    "effect_size": "cohen"
+}

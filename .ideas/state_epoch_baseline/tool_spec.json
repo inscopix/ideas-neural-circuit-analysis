@@ -3,12 +3,12 @@
     "name": "Compare Neural State Data Across Epochs",
     "schema_version": "3.0.0",
     "container_image": {
-        "repository": "platform/neuro-stats",
-        "label": "0.0.2"
+        "repository": "platform/neural-analysis",
+        "label": "1.0.1"
     },
     "command": {
         "file_path": "analysis/state_epoch_baseline_analysis.py",
-        "entry_point": "state_epoch_baseline_analysis",
+        "entry_point": "state_epoch_baseline_analysis_ideas_wrapper",
         "program_type": "PYTHON"
     },
     "params": [
@@ -61,19 +61,19 @@
             "description": "Method to define epochs. If 'files', one epoch per input cell set will be automatically defined, for the whole duration of each cell set. If 'global file time', you can define as many epochs as you want, with 0 corresponding to start time of the first cell set. If 'local file time', you can define as many epochs as you want per input cell set, with 0 corresponding to start time of each cell set.",
             "type": {
                 "param_type": "ToolChoiceParam",
-                "default": "global file time",
+                "default": "max",
                 "choices": [
-                    "files",
-                    "global file time",
-                    "local file time"
+                    "max",
+                    "mean",
+                    "min"
                 ],
                 "display_options": [
-                    "Files",
-                    "Global File Time",
-                    "Local File Time"
+                    "Maximum",
+                    "Mean",
+                    "Minimum"
                 ]
             },
-            "group": "Epoch Definition"
+            "group": "Analysis Parameters"
         },
         {
             "key": "epochs",
@@ -81,10 +81,16 @@
             "required": false,
             "description": "Tuples of the start and end times (in seconds) for each epoch (e.g., if 'Define Epochs by' is set to 'Global file time', (0, 600), (650, 950), (950, 1250)). If 'Define Epochs by' is set to 'Local file time', provide one list of tuples per input cell set file (e.g., [(0, 600)], [(0, 300), (300, 600)]). If 'Define Epochs by' is set to 'Files', you can leave this parameter empty.",
             "type": {
-                "param_type": "ToolStringParam",
-                "default": "(0, 600), (650, 950), (950, 1250)"
+                "param_type": "ToolChoiceParam",
+                "choices": [
+                    "state vs baseline"
+                ],
+                "display_options": [
+                    "State vs Baseline"
+                ],
+                "default": "state vs baseline"
             },
-            "group": "Epoch Definition"
+            "group": "Analysis Parameters"
         },
         {
             "key": "epoch_names",
@@ -176,6 +182,38 @@
                 ]
             },
             "group": "Analysis Parameters"
+        },
+        {
+            "key": "define_epochs_by",
+            "name": "Define Epochs By",
+            "required": true,
+            "description": "Method to define epochs. If 'files', one epoch per input cell set will be automatically defined, for the whole duration of each cell set. If 'global file time', you can define as many epochs as you want, with 0 corresponding to start time of the first cell set. If 'local file time', you can define as many epochs as you want per input cell set, with 0 corresponding to start time of each cell set.",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "global file time",
+                "choices": [
+                    "files",
+                    "global file time",
+                    "local file time"
+                ],
+                "display_options": [
+                    "Files",
+                    "Global File Time",
+                    "Local File Time"
+                ]
+            },
+            "group": "Epoch Definition"
+        },
+        {
+            "key": "epochs",
+            "name": "Epochs",
+            "required": false,
+            "description": "Tuples of the start and end times (in seconds) for each epoch (e.g., if 'Define Epochs by' is set to 'Global file time', (0, 600), (650, 950), (950, 1250)). If 'Define Epochs by' is set to 'Local file time', provide one list of tuple per input cell set file (e.g., [(0, 600)], [(0, 300), (300, 600)]). If 'Define Epochs by' is set to 'Files', you can leave this parameter empty.",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "(0, 600), (650, 950), (950, 1250)"
+            },
+            "group": "Epoch Definition"
         },
         {
             "key": "baseline_state",
@@ -350,7 +388,7 @@
             "name": "Average Correlations",
             "description": "Average positive and negative correlations for each state-epoch combination",
             "file_patterns": [
-                "*average_correlations.csv"
+                "average_correlations/**/*"
             ]
         },
         {
@@ -358,7 +396,7 @@
             "name": "Pairwise Correlation Heatmaps",
             "description": "Raw correlation matrices for each state-epoch combination stored in HDF5 format",
             "file_patterns": [
-                "*pairwise_correlation_heatmaps.h5"
+                "pairwise_correlation_heatmaps/**/*"
             ]
         },
         {
@@ -366,7 +404,7 @@
             "name": "Spatial Analysis of Pairwise Correlations",
             "description": "Raw correlation matrices and cell pair correlations with spatial position information for each cell pair across state-epoch combinations",
             "file_patterns": [
-                "*spatial_analysis_pairwise_correlations.zip"
+                "spatial_analysis_pairwise_correlations/**/*"
             ]
         }
     ],
@@ -377,5 +415,13 @@
     },
     "description": "Combined analysis of neural activity and correlations across behavioral states and time epochs with baseline comparison",
     "visibility": "public",
-    "version": "1.0.0-rc1"
+    "version": "1.0.2",
+    "docs": "https://inscopix.github.io/ideas-docs/tools/epochs/state_epoch_baseline/state_epoch_baseline.html",
+    "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis",
+    "tags": [
+        "Neural Circuit Analysis",
+        "Single Study",
+        "Epochs",
+        "Annotations"
+    ]
 }

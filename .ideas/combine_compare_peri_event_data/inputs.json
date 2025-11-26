@@ -1,0 +1,19 @@
+{
+    "group1_traces_files": null,
+    "group1_stats_files": null,
+    "group1_name": null,
+    "group2_traces_files": null,
+    "group2_stats_files": null,
+    "group2_name": null,
+    "comparison_type": null,
+    "data_pairing": null,
+    "significance_threshold": null,
+    "average_method": null,
+    "tolerance": null,
+    "group_colors": "#1f77b4, #ff7f0e",
+    "modulation_colors": "green, blue, black",
+    "cmap": "coolwarm",
+    "population_activity_plot_limits": "auto",
+    "activity_heatmap_color_limits": "auto",
+    "activity_by_modulation_plot_limits": "auto"
+}

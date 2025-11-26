@@ -1,0 +1,16 @@
+{    
+    "group1_correlation_files": ["data/combine_compare_correlation_data/new_outputs/vehicle_1_correlations.h5","data/combine_compare_correlation_data/new_outputs/vehicle_2_correlations.h5"],
+    "group1_name": "group1",
+    "group1_color": "tab:red",
+    "group2_correlation_files": ["data/combine_compare_correlation_data/new_outputs/TH_1_correlations.h5","data/combine_compare_correlation_data/new_outputs/TH_2_correlations.h5"],
+    "group2_name": "group2",
+    "group2_color": "tab:orange",
+    "state_names": "immobile, other",
+    "state_colors": "tab:blue, tab:green",
+    "statistic": "max",
+    "data_pairing": "paired",
+    "subject_matching": "number",
+    "multiple_correction": "bonf",
+    "effect_size": "cohen",
+    "significance_threshold": 0.05
+}

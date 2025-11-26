@@ -20,7 +20,7 @@ from utils.statistical_validation import (
 from utils.statistical_formatting import (
     _get_mixed_pairwise_sig,
 )
-from ideas import plots
+from ideas.analysis import plots
 
 logger = logging.getLogger(__name__)
 

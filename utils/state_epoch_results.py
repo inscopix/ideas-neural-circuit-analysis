@@ -9,7 +9,7 @@ import numpy as np
 from beartype import beartype
 from beartype.typing import List, Optional, Dict, Any, Tuple
 from ideas.exceptions import IdeasError
-from ideas import measures
+from ideas.analysis import measures
 
 # Import modulation functions from population_activity.py to avoid duplication
 from analysis.population_activity import (

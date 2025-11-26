@@ -1,0 +1,332 @@
+{
+    "key": "combine_compare_population_data",
+    "name": "Combine and Compare Population Activity Data",
+    "schema_version": "3.0.0",
+    "container_image": {
+        "repository": "platform/neural-analysis",
+        "label": "1.0.1"
+    },
+    "command": {
+        "file_path": "analysis/combine_compare_population_data.py",
+        "entry_point": "combine_compare_population_data_ideas_wrapper",
+        "program_type": "PYTHON"
+    },
+    "params": [
+        {
+            "key": "group1_population_activity_files",
+            "name": "Group 1 Population Activity Files",
+            "required": true,
+            "description": "Select population activity data from the first group to use for analysis",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "csv"
+                ]
+            },
+            "group": "Input Group 1"
+        },
+        {
+            "key": "group1_population_events_files",
+            "name": "Group 1 Population Event Rate Files",
+            "required": false,
+            "description": "Select population event rate data from the first group to use for analysis",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "csv"
+                ]
+            },
+            "group": "Input Group 1"
+        },
+        {
+            "key": "group1_name",
+            "name": "Group 1 Name",
+            "required": false,
+            "description": "Name of the first group",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "group1"
+            },
+            "group": "Input Group 1"
+        },
+        {
+            "key": "group1_color",
+            "name": "Group 1 Color",
+            "required": false,
+            "description": "Color for the first group",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "tab:red"
+            },
+            "group": "Input Group 1"
+        },
+        {
+            "key": "group2_population_activity_files",
+            "name": "Group 2 Population Activity Files",
+            "required": false,
+            "description": "Select population activity data from the second group to use for analysis",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "csv"
+                ]
+            },
+            "group": "Input Group 2"
+        },
+        {
+            "key": "group2_population_events_files",
+            "name": "Group 2 Population Event Rate Files",
+            "required": false,
+            "description": "Select population event rate data from the second group to use for analysis",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "csv"
+                ]
+            },
+            "group": "Input Group 2"
+        },
+        {
+            "key": "group2_name",
+            "name": "Group 2 Name",
+            "required": false,
+            "description": "Name of the second group",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": "Input Group 2"
+        },
+        {
+            "key": "group2_color",
+            "name": "Group 2 Color",
+            "required": false,
+            "description": "Color for the second group",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": "Input Group 2"
+        },
+        {
+            "key": "state_names",
+            "name": "State Names",
+            "required": true,
+            "description": "Names of the state comparisons in the columns of the input files",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": "Comparison Information"
+        },
+        {
+            "key": "state_colors",
+            "name": "State Colors",
+            "required": false,
+            "description": "Colors for the state comparisons",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": "Comparison Information"
+        },
+        {
+            "key": "modulation_colors",
+            "name": "Modulation Colors",
+            "required": false,
+            "description": "Colors that represent up- and down-modulation respectively",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "red, blue"
+            },
+            "group": "Comparison Information"
+        },
+        {
+            "key": "significance_threshold",
+            "name": "Significance Threshold",
+            "required": true,
+            "description": "p-value threshold",
+            "type": {
+                "param_type": "ToolFloatRangeParam",
+                "default": 0.05,
+                "min": 0,
+                "max": 1
+            },
+            "group": "Statistical Test"
+        },
+        {
+            "key": "multiple_correction",
+            "name": "Multiple Comparison Correction",
+            "required": true,
+            "description": "Method for correcting for multiple comparisons",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "bonf",
+                "choices": [
+                    "none",
+                    "bonf",
+                    "sidak",
+                    "holm",
+                    "fdr_bh",
+                    "fdr_by"
+                ],
+                "display_options": [
+                    "None",
+                    "Bonferroni",
+                    "Sidak",
+                    "Holm",
+                    "Benjamini-Hochberg",
+                    "Benjamini-Yekutieli"
+                ]
+            },
+            "group": "Statistical Test"
+        },
+        {
+            "key": "effect_size",
+            "name": "Effect Size Method",
+            "required": true,
+            "description": "Method for calculating the effect size",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "cohen",
+                "choices": [
+                    "none",
+                    "cohen",
+                    "hedges",
+                    "r",
+                    "eta_square",
+                    "odds-ratio",
+                    "AUC",
+                    "CLES"
+                ],
+                "display_options": [
+                    "None",
+                    "Cohen's d",
+                    "Hedges' g",
+                    "Pearson's r",
+                    "Eta squared",
+                    "Odds ratio",
+                    "Area under the curve",
+                    "Common language effect size"
+                ]
+            },
+            "group": "Statistical Test"
+        },
+        {
+            "key": "data_pairing",
+            "name": "Data Pairing",
+            "required": false,
+            "description": "Indicates whether observations should be paired for statistical comparison.",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "unpaired",
+                "choices": [
+                    "unpaired",
+                    "paired"
+                ],
+                "display_options": [
+                    "Unpaired",
+                    "Paired"
+                ]
+            },
+            "group": "Statistical Test"
+        },
+        {
+            "key": "subject_matching",
+            "name": "Subject Matching Method",
+            "required": false,
+            "description": "Method for matching subjects between groups in paired analysis",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "order",
+                "choices": [
+                    "number",
+                    "filename",
+                    "order"
+                ],
+                "display_options": [
+                    "Number Matching",
+                    "Filename Matching",
+                    "Order Matching"
+                ]
+            },
+            "group": "Statistical Test"
+        },
+        {
+            "key": "state_comparison_method",
+            "name": "Method to Compare States",
+            "required": false,
+            "description": "Method for comparing states. 'Auto-detect' will automatically determine the method from the data. 'State vs Not State' and 'State vs Not Defined' both work with standard state comparison analysis. 'State vs Baseline' compares each state to a baseline state. 'Pairwise' compares states directly to each other.",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "auto",
+                "choices": [
+                    "auto",
+                    "state_vs_not_state",
+                    "state_vs_not_defined",
+                    "state_vs_baseline",
+                    "pairwise"
+                ],
+                "display_options": [
+                    "Auto-detect",
+                    "State vs Not State",
+                    "State vs Not Defined",
+                    "State vs Baseline",
+                    "Pairwise"
+                ]
+            },
+            "group": "Statistical Test"
+        }
+    ],
+    "results": [
+        {
+            "key": "group1_population_activity_csv_file",
+            "name": "Population Activity (Group 1)",
+            "description": "Population activity data",
+            "file_patterns": [
+                "group1_population_activity_data/**/*"
+            ]
+        },
+        {
+            "key": "group2_population_activity_csv_file",
+            "name": "Population Activity (Group 2)",
+            "description": "Population activity data",
+            "file_patterns": [
+                "group2_population_activity_data/**/*"
+            ]
+        },
+        {
+            "key": "aov_comparison_data",
+            "name": "ANOVA Comparison Data",
+            "description": "ANOVA statistical results",
+            "file_patterns": [
+                "aov_comparisons.csv",
+                "*.svg"
+            ]
+        },
+        {
+            "key": "pairwise_comparison_data",
+            "name": "Pairwise Comparison Data",
+            "description": "Pairwise statistical results",
+            "file_patterns": [
+                "pairwise_comparisons.csv",
+                "*.svg"
+            ]
+        }
+    ],
+    "resources": {
+        "cpu": 2,
+        "gpu": 0,
+        "memory": 10000
+    },
+    "description": "Combine population activity data from multiple recordings and perform a statistical comparison between two groups across two states to determine if there is a difference either in the fractions of up- or down-modulated neurons or the mean neural activity.",
+    "visibility": "public",
+    "version": "5.0.9",
+    "docs": "https://inscopix.github.io/ideas-docs/tools/standard-python/combine_compare_population_data/combine_compare_population_data.html",
+    "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis",
+    "tags": [
+        "Neural Circuit Analysis",
+        "Study Statistics",
+        "Population Activity"
+    ]
+}
