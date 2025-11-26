@@ -3,7 +3,7 @@
     "name": "Compare State-Epoch Data Between Groups",
     "schema_version": "3.0.0",
     "container_image": {
-        "repository": "platform/neuro-stats",
+        "repository": "platform/neural-analysis",
         "label": "1.0.1"
     },
     "command": {
@@ -410,17 +410,6 @@
                 "default": false
             },
             "group": "Linear Mixed Model Options"
-        },
-        {
-            "key": "output_dir",
-            "name": "Output Directory",
-            "required": false,
-            "description": "Directory for output files (empty for current directory)",
-            "type": {
-                "param_type": "ToolStringParam",
-                "default": ""
-            },
-            "group": "Output Parameters"
         }
     ],
     "results": [
@@ -429,7 +418,7 @@
             "name": "Activity Group Comparison",
             "description": "Combined neural activity tables per group.",
             "file_patterns": [
-                "group*_combined_activity_data/**/*.csv"
+                "group*_combined_activity_data/**/*"
             ]
         },
         {
@@ -437,7 +426,7 @@
             "name": "Correlation Group Comparison",
             "description": "Combined per-cell correlation tables per group.",
             "file_patterns": [
-                "group*_combined_trace_correlation_data/**/*.csv"
+                "group*_combined_trace_correlation_data/**/*"
             ]
         },
         {
@@ -445,7 +434,7 @@
             "name": "Modulation Group Comparison",
             "description": "Combined modulation vs baseline tables per group.",
             "file_patterns": [
-                "group*_combined_modulation_data/**/*.csv"
+                "group*_combined_modulation_data/**/*"
             ]
         },
         {
@@ -453,10 +442,10 @@
             "name": "Summary Statistics",
             "description": "ANOVA-style statistics and pairwise comparisons for trace and event measures.",
             "file_patterns": [
-                "trace_aov_comparisons/**/*.csv",
-                "trace_pairwise_comparisons/**/*.csv",
-                "event_aov_comparisons/**/*.csv",
-                "event_pairwise_comparisons/**/*.csv"
+                "trace_aov_comparisons/**/*",
+                "trace_pairwise_comparisons/**/*",
+                "event_aov_comparisons/**/*",
+                "event_pairwise_comparisons/**/*"
             ]
         },
         {
@@ -464,18 +453,10 @@
             "name": "Linear Mixed Model Results",
             "description": "Linear mixed model summaries and pairwise comparisons (generated when save_lmm_outputs=true).",
             "file_patterns": [
-                "trace_lmm_comparisons/**/*.csv",
-                "trace_lmm_pairwise_comparisons/**/*.csv",
-                "event_lmm_comparisons/**/*.csv",
-                "event_lmm_pairwise_comparisons/**/*.csv"
-            ]
-        },
-        {
-            "key": "output_metadata",
-            "name": "Output Metadata",
-            "description": "Metadata summary describing generated outputs and analysis parameters.",
-            "file_patterns": [
-                "output_metadata.json"
+                "trace_lmm_comparisons/**/*",
+                "trace_lmm_pairwise_comparisons/**/*",
+                "event_lmm_comparisons/**/*",
+                "event_lmm_pairwise_comparisons/**/*"
             ]
         }
     ],

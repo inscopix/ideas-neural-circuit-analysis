@@ -1,5 +1,5 @@
 {
-    "container": "platform/neuro-stats:0.0.2",
+    "container": "platform/neural-analysis:latest",
     "executor_type": "PYTHON",
     "file": "analysis/combine_compare_state_epoch_data.py",
     "function": "combine_compare_state_epoch_data",

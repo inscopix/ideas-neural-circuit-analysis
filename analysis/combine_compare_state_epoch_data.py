@@ -46,7 +46,6 @@ Files with previews are organized in subdirectories for better organization:
 """
 
 import json
-import logging
 import os
 import pathlib
 import re
@@ -70,12 +69,9 @@ import numpy as np
 import pandas as pd
 from ideas.exceptions import IdeasError  # type: ignore[import-not-found]
 
-from ideas.outputs import OutputData  # type: ignore[import-not-found]
-from analysis.output_registration import (
-    collect_available_previews,
-    register_output_file,
-    PreviewPrefixRules,
-)
+from ideas.tools import log
+from ideas.tools.types import IdeasFile
+from ideas.tools import outputs
 
 from utils.state_epoch_comparison_utils import (
     calculate_state_epoch_comparison_stats,
@@ -101,7 +97,7 @@ from utils.visualization_helpers import (
 )
 
 
-logger = logging.getLogger(__name__)
+logger = log.get_logger()
 
 
 # Metadata filtering for output registration
@@ -355,8 +351,8 @@ def combine_compare_state_epoch_data(
     # Unified trace/event selection
     measure_source: str = "trace",
     # Dimension colors (optional user-defined colors)
-    state_colors: Optional[List[str]] = None,
-    epoch_colors: Optional[List[str]] = None,
+    state_colors: Optional[Union[str, Sequence[str]]] = None,
+    epoch_colors: Optional[Union[str, Sequence[str]]] = None,
     modulation_colors: Optional[str] = "green,blue,black",
     # Comparison parameters
     data_pairing: str = "unpaired",
@@ -6494,130 +6490,62 @@ def _register_combined_tool_outputs(
     if not normalized_stats:
         normalized_stats = {"max", "min", "mean"}
 
-    # Move all preview SVG files to .previews/ subdirectory BEFORE OutputData discovers them
-    _prerelocate_previews_to_subdir()
+    try:
+        with outputs.register(raise_missing_file=False) as output_data:
+            for i, group_label in enumerate(resolved_group_names):
+                group_index = i + 1
+                group_id = f"group{group_index}"
+                group_outputs = [
+                    (GROUP_COMBINED_ACTIVITY_SUFFIX, _build_group_activity_previews),
+                    (GROUP_COMBINED_TRACE_CORRELATION_SUFFIX, _build_group_correlation_previews),
+                    (GROUP_COMBINED_MODULATION_SUFFIX, _build_group_modulation_previews)
+                ]
+                for group_suffix, preview_func in group_outputs:
+                    path = Path(f"{group_id}_{group_suffix}")
+                    if not path.exists():
+                        continue
+                    group_key = path.stem
+                    output_file = output_data.register_file(
+                        _group_file(i, group_suffix),
+                        subdir=group_key,
+                    ).register_metadata_dict(
+                        **output_metadata.get(group_key, {})
+                    )
+                    for preview_file, preview_caption in preview_func(group_index, group_label, group_preview_prefixes, normalized_dimension_suffix):
+                        output_file.register_preview(
+                            preview_file,
+                            preview_caption
+                        )
+            
+            stat_outputs = [
+                (TRACE_ANOVA_COMPARISONS_CSV, trace_comparison_previews),
+                (TRACE_PAIRWISE_COMPARISONS_CSV, []),
+                (EVENT_ANOVA_COMPARISONS_CSV, event_comparison_previews),
+                (EVENT_PAIRWISE_COMPARISONS_CSV, []),
+                (TRACE_LMM_COMPARISONS_CSV, []),
+                (TRACE_LMM_PAIRWISE_COMPARISONS_CSV, []),
+                (EVENT_LMM_COMPARISONS_CSV, []),
+                (EVENT_LMM_PAIRWISE_COMPARISONS_CSV, []),
+            ]
+            for stat_suffix, previews in stat_outputs:
+                path = Path(stat_suffix)
+                if not path.exists():
+                    continue
 
-    with OutputData() as output_data:
-        # Group 1 outputs
-        group1_label = resolved_group_names[0]
-        _register_file(
-            _group_file(0, GROUP_COMBINED_ACTIVITY_SUFFIX),
-            _build_group_activity_previews(
-                1,
-                group1_label,
-                group_preview_prefixes,  # Use real group names for previews
-                dimension_suffix=normalized_dimension_suffix,
-            ),
-            skip_preview_prefixes=[group_preview_prefixes[0]],
-            attach_output_basename=False,  # Clean filenames - subdirectory provides context
-        )
-        _register_file(
-            _group_file(0, GROUP_COMBINED_TRACE_CORRELATION_SUFFIX),
-            _build_group_correlation_previews(
-                1,
-                group1_label,
-                group_preview_prefixes,  # Use real group names for previews
-                dimension_suffix=normalized_dimension_suffix,
-                allowed_stats=normalized_stats,
-            ),
-            skip_preview_prefixes=[group_preview_prefixes[0]],
-            attach_output_basename=False,
-        )
-        _register_file(
-            _group_file(0, GROUP_COMBINED_MODULATION_SUFFIX),
-            _build_group_modulation_previews(
-                1,
-                group1_label,
-                group_preview_prefixes,  # Use real group names for previews
-                dimension_suffix=normalized_dimension_suffix,
-            ),
-            skip_preview_prefixes=[group_preview_prefixes[0]],
-            attach_output_basename=False,
-        )
+                group_key = path.stem
+                output_file = output_data.register_file(
+                    stat_suffix,
+                    subdir=group_key,
+                ).register_metadata_dict(
+                    **output_metadata.get(group_key, {})
+                )
+                for preview_file, preview_caption in previews:
+                    output_file.register_preview(
+                        preview_file,
+                        preview_caption
+                    )
 
-        # Group 2 outputs (if provided)
-        if len(resolved_group_names) > 1:
-            group2_label = resolved_group_names[1]
-            _register_file(
-                _group_file(1, GROUP_COMBINED_ACTIVITY_SUFFIX),
-                _build_group_activity_previews(
-                    2,
-                    group2_label,
-                    group_preview_prefixes,  # Use real group names for previews
-                    dimension_suffix=normalized_dimension_suffix,
-                ),
-                skip_preview_prefixes=[group_preview_prefixes[1]],
-                attach_output_basename=False,
-            )
-            _register_file(
-                _group_file(1, GROUP_COMBINED_TRACE_CORRELATION_SUFFIX),
-                _build_group_correlation_previews(
-                    2,
-                    group2_label,
-                    group_preview_prefixes,  # Use real group names for previews
-                    dimension_suffix=normalized_dimension_suffix,
-                    allowed_stats=normalized_stats,
-                ),
-                skip_preview_prefixes=[group_preview_prefixes[1]],
-                attach_output_basename=False,
-            )
-            _register_file(
-                _group_file(1, GROUP_COMBINED_MODULATION_SUFFIX),
-                _build_group_modulation_previews(
-                    2,
-                    group2_label,
-                    group_preview_prefixes,  # Use real group names for previews
-                    dimension_suffix=normalized_dimension_suffix,
-                ),
-                skip_preview_prefixes=[group_preview_prefixes[1]],
-                attach_output_basename=False,
-            )
-
-        # Statistical outputs
-        _register_file(
-            TRACE_ANOVA_COMPARISONS_CSV,
-            trace_comparison_previews,
-            skip_preview_prefixes=comparison_preview_skip_prefixes,
-            attach_output_basename=False,
-        )
-        _register_file(
-            TRACE_PAIRWISE_COMPARISONS_CSV,
-            [],
-            attach_output_basename=False,
-        )
-        _register_file(
-            EVENT_ANOVA_COMPARISONS_CSV,
-            event_comparison_previews,
-            skip_preview_prefixes=comparison_preview_skip_prefixes,
-            attach_output_basename=False,
-        )
-        _register_file(
-            EVENT_PAIRWISE_COMPARISONS_CSV,
-            [],
-            attach_output_basename=False,
-        )
-
-        # LMM outputs (only saved when requested)
-        _register_file(
-            TRACE_LMM_COMPARISONS_CSV,
-            [],
-            attach_output_basename=False,
-        )
-        _register_file(
-            TRACE_LMM_PAIRWISE_COMPARISONS_CSV,
-            [],
-            attach_output_basename=False,
-        )
-        _register_file(
-            EVENT_LMM_COMPARISONS_CSV,
-            [],
-            attach_output_basename=False,
-        )
-        _register_file(
-            EVENT_LMM_PAIRWISE_COMPARISONS_CSV,
-            [],
-            attach_output_basename=False,
-        )
-
+    except Exception:
+        logger.exception("Failed to generate output data!")
 # function alias
 compare = combine_compare_state_epoch_data
