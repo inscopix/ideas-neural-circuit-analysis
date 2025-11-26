@@ -48,15 +48,36 @@ def _compute_correlation_statistics(
     triu_indices = np.triu_indices(correlation_matrix.shape[0], k=1)
     triu_values = correlation_matrix[triu_indices]
 
-    pos_corr = triu_values[triu_values > 0]
-    neg_corr = triu_values[triu_values < 0]
+    # Filter out NaN values for valid statistics
+    valid_values = triu_values[~np.isnan(triu_values)]
+
+    # Check if we have valid data
+    if len(valid_values) == 0:
+        # Return all NaN statistics when no valid data
+        return {
+            "mean_correlation": np.nan,
+            "std_correlation": np.nan,
+            "median_correlation": np.nan,
+            "max_correlation": np.nan,
+            "min_correlation": np.nan,
+            "mean_positive_correlation": np.nan,
+            "mean_negative_correlation": np.nan,
+            "positive_corr_fraction": 0.0,
+            "negative_corr_fraction": 0.0,
+            "strong_positive_corr_count": 0,
+            "strong_negative_corr_count": 0,
+            "correlation_range": np.nan,
+        }
+
+    pos_corr = valid_values[valid_values > 0]
+    neg_corr = valid_values[valid_values < 0]
 
     return {
-        "mean_correlation": np.nanmean(triu_values),
-        "std_correlation": np.nanstd(triu_values),
-        "median_correlation": np.nanmedian(triu_values),
-        "max_correlation": np.nanmax(triu_values),
-        "min_correlation": np.nanmin(triu_values),
+        "mean_correlation": np.mean(valid_values),
+        "std_correlation": np.std(valid_values),
+        "median_correlation": np.median(valid_values),
+        "max_correlation": np.max(valid_values),
+        "min_correlation": np.min(valid_values),
         "mean_positive_correlation": (
             np.mean(pos_corr) if len(pos_corr) > 0 else np.nan
         ),
@@ -64,14 +85,14 @@ def _compute_correlation_statistics(
             np.mean(neg_corr) if len(neg_corr) > 0 else np.nan
         ),
         "positive_corr_fraction": (
-            len(pos_corr) / len(triu_values) if len(triu_values) > 0 else 0
+            len(pos_corr) / len(valid_values) if len(valid_values) > 0 else 0
         ),
         "negative_corr_fraction": (
-            len(neg_corr) / len(triu_values) if len(triu_values) > 0 else 0
+            len(neg_corr) / len(valid_values) if len(valid_values) > 0 else 0
         ),
-        "strong_positive_corr_count": np.sum(triu_values > strong_threshold),
-        "strong_negative_corr_count": np.sum(triu_values < -strong_threshold),
-        "correlation_range": np.max(triu_values) - np.min(triu_values),
+        "strong_positive_corr_count": np.sum(valid_values > strong_threshold),
+        "strong_negative_corr_count": np.sum(valid_values < -strong_threshold),
+        "correlation_range": np.max(valid_values) - np.min(valid_values),
     }
 
 

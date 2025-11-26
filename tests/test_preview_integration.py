@@ -13,6 +13,7 @@ from pathlib import Path
 
 from analysis.state_epoch_baseline_analysis import (
     state_epoch_baseline_analysis,
+    temporary_state_epoch_analysis_feature_flags,
 )
 from utils.state_epoch_output import StateEpochOutputGenerator
 
@@ -163,25 +164,26 @@ class TestPreviewIntegrationWorkflow:
         mock_output_generator.return_value = mock_output_instance
 
         # Run complete analysis
-        state_epoch_baseline_analysis(
-            cell_set_files=test_data["cellset_files"],
-            event_set_files=test_data["eventset_files"],
-            annotations_file=test_data["annotations_file"],
-            # State and epoch definitions
-            state_names="rest, active",
-            state_colors="gray, blue",
-            epoch_names="baseline, test",
-            epoch_colors="lightgray, lightblue",
-            epochs="(0, 5), (5, 10)",  # Short epochs for test
-            baseline_state="rest",
-            baseline_epoch="baseline",
-            # Analysis options
+        with temporary_state_epoch_analysis_feature_flags(
             include_correlations=True,
             include_population_activity=True,
             include_event_analysis=True,
-            # Output
-            output_dir=test_data["output_dir"],
-        )
+        ):
+            state_epoch_baseline_analysis(
+                cell_set_files=test_data["cellset_files"],
+                event_set_files=test_data["eventset_files"],
+                annotations_file=test_data["annotations_file"],
+                # State and epoch definitions
+                state_names="rest, active",
+                state_colors="gray, blue",
+                epoch_names="baseline, test",
+                epoch_colors="lightgray, lightblue",
+                epochs="(0, 5), (5, 10)",  # Short epochs for test
+                baseline_state="rest",
+                baseline_epoch="baseline",
+                # Output
+                output_dir=test_data["output_dir"],
+            )
 
         # With the new architecture, when annotations are present, custom overlay
         # functions are used instead of the original plotting functions.
@@ -265,21 +267,23 @@ class TestPreviewIntegrationWorkflow:
         error_message = ""
 
         try:
-            state_epoch_baseline_analysis(
-                cell_set_files=test_data["cellset_files"],
-                annotations_file=test_data["annotations_file"],
-                state_names="rest, active",
-                state_colors="gray, blue",
-                epoch_names="baseline",
-                epoch_colors="lightgray",
-                epochs="(0, 10)",
-                baseline_state="rest",
-                baseline_epoch="baseline",
-                include_correlations=False,  # Faster test
+            with temporary_state_epoch_analysis_feature_flags(
+                include_correlations=False,
                 include_population_activity=False,
                 include_event_analysis=False,
-                output_dir=test_data["output_dir"],
-            )
+            ):
+                state_epoch_baseline_analysis(
+                    cell_set_files=test_data["cellset_files"],
+                    annotations_file=test_data["annotations_file"],
+                    state_names="rest, active",
+                    state_colors="gray, blue",
+                    epoch_names="baseline",
+                    epoch_colors="lightgray",
+                    epochs="(0, 10)",
+                    baseline_state="rest",
+                    baseline_epoch="baseline",
+                    output_dir=test_data["output_dir"],
+                )
 
             # Test passes if analysis completes without errors
             analysis_passed = True
@@ -382,22 +386,24 @@ class TestPreviewIntegrationWorkflow:
         mock_output_generator.return_value = mock_output_instance
 
         # Run analysis with focus on event preview
-        state_epoch_baseline_analysis(
-            cell_set_files=test_data["cellset_files"],
-            event_set_files=test_data["eventset_files"],
-            annotations_file=test_data["annotations_file"],
-            state_names="rest, active",
-            state_colors="gray, blue",
-            epoch_names="baseline",
-            epoch_colors="lightgray",
-            epochs="(0, 10)",
-            baseline_state="rest",
-            baseline_epoch="baseline",
-            include_correlations=False,  # Faster test
+        with temporary_state_epoch_analysis_feature_flags(
+            include_correlations=False,
             include_population_activity=False,
             include_event_analysis=True,
-            output_dir=test_data["output_dir"],
-        )
+        ):
+            state_epoch_baseline_analysis(
+                cell_set_files=test_data["cellset_files"],
+                event_set_files=test_data["eventset_files"],
+                annotations_file=test_data["annotations_file"],
+                state_names="rest, active",
+                state_colors="gray, blue",
+                epoch_names="baseline",
+                epoch_colors="lightgray",
+                epochs="(0, 10)",
+                baseline_state="rest",
+                baseline_epoch="baseline",
+                output_dir=test_data["output_dir"],
+            )
 
         # With the new architecture, when annotations are present, custom overlay
         # functions are used instead of the original _plot_timecourse.
@@ -491,22 +497,24 @@ class TestPreviewIntegrationWorkflow:
         ) as mock_raster:
 
             # Run analysis with multiple combinations
-            state_epoch_baseline_analysis(
-                cell_set_files=test_data["cellset_files"],
-                event_set_files=test_data["eventset_files"],
-                annotations_file=test_data["annotations_file"],
-                state_names="rest, active",
-                state_colors="gray, blue",
-                epoch_names="baseline, training, test",
-                epoch_colors="lightgray, lightblue, lightgreen",
-                epochs="(0, 3), (3, 6), (6, 10)",  # Three epochs
-                baseline_state="rest",
-                baseline_epoch="baseline",
+            with temporary_state_epoch_analysis_feature_flags(
                 include_correlations=False,
                 include_population_activity=False,
                 include_event_analysis=True,
-                output_dir=test_data["output_dir"],
-            )
+            ):
+                state_epoch_baseline_analysis(
+                    cell_set_files=test_data["cellset_files"],
+                    event_set_files=test_data["eventset_files"],
+                    annotations_file=test_data["annotations_file"],
+                    state_names="rest, active",
+                    state_colors="gray, blue",
+                    epoch_names="baseline, training, test",
+                    epoch_colors="lightgray, lightblue, lightgreen",
+                    epochs="(0, 3), (3, 6), (6, 10)",  # Three epochs
+                    baseline_state="rest",
+                    baseline_epoch="baseline",
+                    output_dir=test_data["output_dir"],
+                )
 
             # Check trace preview colors
             if mock_traces.called:
