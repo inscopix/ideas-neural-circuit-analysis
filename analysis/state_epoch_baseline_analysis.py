@@ -12,10 +12,6 @@ from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from beartype.typing import List, Optional, Iterable, Tuple, Union
 from ideas.exceptions import IdeasError
-from analysis.output_registration import (
-    collect_available_previews,
-    register_output_file,
-)
 from utils.state_epoch_data import (
     StateEpochDataManager,
     validate_input_files_exist,
@@ -86,7 +82,6 @@ USEFUL_OUTPUT_METADATA_KEYS = {
     # "format",
 }
 
-
 def _extract_useful_metadata(metadata: dict) -> dict:
     """Return only the metadata fields we want to register with IDEAS."""
     if not metadata:
@@ -98,20 +93,6 @@ def _extract_useful_metadata(metadata: dict) -> dict:
         if key in USEFUL_OUTPUT_METADATA_KEYS
         and value not in (None, "", [], {})
     }
-
-
-def _collect_available_previews(
-    output_dir: str,
-    preview_definitions: Iterable[Tuple[str, str]],
-) -> List[Tuple[str, str]]:
-    """Return preview tuples that exist on disk."""
-    available_previews: List[Tuple[str, str]] = []
-    for preview_name, caption in preview_definitions:
-        preview_path = os.path.join(output_dir, preview_name)
-        if os.path.exists(preview_path):
-            available_previews.append((preview_name, caption))
-    return available_previews
-
 
 # Analysis feature flags (not exposed via the main function)
 @dataclass(frozen=True)
@@ -610,7 +591,7 @@ def state_epoch_baseline_analysis_ideas_wrapper(
                 EVENT_STATE_OVERLAY,
                 caption="Event raster plot with state-colored events showing event patterns colored by behavioral state."
             ).register_metadata_dict(
-                **output_metadata.get(Path(ACTIVITY_PER_STATE_EPOCH_DATA_CSV).stem, {})
+                **_extract_useful_metadata(output_metadata.get(Path(ACTIVITY_PER_STATE_EPOCH_DATA_CSV).stem, {}))
             )
 
             output_data.register_file(
@@ -624,7 +605,7 @@ def state_epoch_baseline_analysis_ideas_wrapper(
                 EVENT_CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
                 "Distribution of the selected per-cell event correlation statistic across neurons and state-epoch combinations."
             ).register_metadata_dict(
-                **output_metadata.get(Path(CORRELATIONS_PER_STATE_EPOCH_DATA_CSV).stem, {})
+                **_extract_useful_metadata(output_metadata.get(Path(CORRELATIONS_PER_STATE_EPOCH_DATA_CSV).stem, {}))
             )
 
             output_data.register_file(
@@ -644,7 +625,7 @@ def state_epoch_baseline_analysis_ideas_wrapper(
                 EVENT_MODULATION_PREVIEW,
                 "Spatial footprints of event-modulated neurons relative to baseline. Cell maps colored by event modulation significance when event data is available."
             ).register_metadata_dict(
-                **output_metadata.get(Path(MODULATION_VS_BASELINE_DATA_CSV).stem, {})
+                **_extract_useful_metadata(output_metadata.get(Path(MODULATION_VS_BASELINE_DATA_CSV).stem, {}))
             )
 
             output_data.register_file(
@@ -658,7 +639,7 @@ def state_epoch_baseline_analysis_ideas_wrapper(
                 EVENT_AVERAGE_CORRELATIONS_PREVIEW,
                 "Bar plots showing average positive and negative event correlations for each state-epoch combination.",
             ).register_metadata_dict(
-                **output_metadata.get(Path(AVERAGE_CORRELATIONS_CSV).stem, {})
+                **_extract_useful_metadata(output_metadata.get(Path(AVERAGE_CORRELATIONS_CSV).stem, {}))
             )
 
             output_data.register_file(
@@ -672,7 +653,7 @@ def state_epoch_baseline_analysis_ideas_wrapper(
                 EVENT_CORRELATION_MATRICES_PREVIEW,
                 "Pairwise event correlation matrices between neurons for each state-epoch combination when event data is available.",
             ).register_metadata_dict(
-                **output_metadata.get(Path(RAW_CORRELATIONS_H5_NAME).stem, {})
+                **_extract_useful_metadata(output_metadata.get(Path(RAW_CORRELATIONS_H5_NAME).stem, {}))
             )
 
             output_data.register_file(
@@ -692,7 +673,7 @@ def state_epoch_baseline_analysis_ideas_wrapper(
                 EVENT_SPATIAL_CORRELATION_MAP_PREVIEW,
                 "Spatial map of event-based neural correlations when event data is available.",
             ).register_metadata_dict(
-                **output_metadata.get(Path(RAW_CORRELATIONS_ZIP_NAME).stem, {})
+                **_extract_useful_metadata(output_metadata.get(Path(RAW_CORRELATIONS_ZIP_NAME).stem, {}))
             )
 
     except Exception:

@@ -335,15 +335,15 @@ def _normalize_parametric_value(value: Union[str, bool, None]) -> str:
 def combine_compare_state_epoch_data(
     *,
     # Group 1 inputs (from state_epoch_baseline_analysis outputs)
-    group1_activity_csv_files: List[pathlib.Path],
-    group1_correlation_csv_files: Optional[List[pathlib.Path]] = None,
-    group1_modulation_csv_files: Optional[List[pathlib.Path]] = None,
+    group1_activity_csv_files: List[IdeasFile],
+    group1_correlation_csv_files: Optional[List[IdeasFile]] = None,
+    group1_modulation_csv_files: Optional[List[IdeasFile]] = None,
     group1_name: Optional[str] = None,
     group1_color: Optional[str] = None,
     # Group 2 inputs (from state_epoch_baseline_analysis outputs)
-    group2_activity_csv_files: Optional[List[pathlib.Path]] = None,
-    group2_correlation_csv_files: Optional[List[pathlib.Path]] = None,
-    group2_modulation_csv_files: Optional[List[pathlib.Path]] = None,
+    group2_activity_csv_files: Optional[List[IdeasFile]] = None,
+    group2_correlation_csv_files: Optional[List[IdeasFile]] = None,
+    group2_modulation_csv_files: Optional[List[IdeasFile]] = None,
     group2_name: Optional[str] = None,
     group2_color: Optional[str] = None,
     # Comparison mode
@@ -6340,13 +6340,7 @@ def _register_combined_tool_outputs(
     """Register output files and previews using the shared state-epoch utilities."""
 
     # Normalize empty output_dir to current directory for file operations
-    registration_dir = output_dir if output_dir else "."
     output_metadata = _load_output_metadata_dict(output_dir)
-    output_file_basename = _derive_output_file_basename(
-        group_names,
-        comparison_dimension,
-    )
-
     resolved_group_names = group_names or ["Group 1"]
     group_file_prefixes = _resolve_group_file_prefixes(resolved_group_names)  # ["group1", "group2"] for files/dirs
     
@@ -6375,109 +6369,6 @@ def _register_combined_tool_outputs(
     event_comparison_previews = _build_event_comparison_previews(
         comparison_dimension
     )
-    comparison_preview_skip_prefixes = ("states", "epochs")
-
-    def _prerelocate_previews_to_subdir() -> None:
-        """Move all SVG preview files to .previews/ subdirectory before OutputData discovers them."""
-        if not registration_dir or not os.path.exists(registration_dir):
-            logger.warning("Registration dir is empty or doesn't exist, skipping preview relocation")
-            return
-        
-        preview_subdir = os.path.join(registration_dir, ".previews")
-        os.makedirs(preview_subdir, exist_ok=True)
-        
-        # Move all .svg files to .previews/ subdirectory
-        svg_files_moved = 0
-        for filename in os.listdir(registration_dir):
-            if filename.lower().endswith('.svg'):
-                src_path = os.path.join(registration_dir, filename)
-                dst_path = os.path.join(preview_subdir, filename)
-                if os.path.isfile(src_path):
-                    os.replace(src_path, dst_path)
-                    svg_files_moved += 1
-                    logger.debug(f"Pre-relocated preview {filename} to .previews/")
-        
-        logger.info(f"Pre-relocated {svg_files_moved} SVG preview files to .previews/ subdirectory")
-
-    def _resolve_manual_previews(filename: str) -> List[Tuple[str, str]]:
-        """Return statically configured preview definitions for the given file."""
-        if not MANUAL_PREVIEW_MAP:
-            return []
-
-        basename = Path(filename).name
-        stem = Path(filename).stem
-
-        collected: List[Tuple[str, str]] = []
-        for key in (filename, basename, stem):
-            manual_entries = MANUAL_PREVIEW_MAP.get(key)
-            if not manual_entries:
-                continue
-            for entry in manual_entries:
-                if not entry:
-                    continue
-                if isinstance(entry, (list, tuple)) and len(entry) >= 2:
-                    preview_name = str(entry[0]).strip()
-                    caption = (
-                        str(entry[1]).strip()
-                        if entry[1] is not None
-                        else ""
-                    )
-                    if preview_name:
-                        collected.append((preview_name, caption))
-                else:
-                    logger.debug(
-                        "Skipping manual preview entry for '%s': %s",
-                        filename,
-                        entry,
-                    )
-        return collected
-
-    def _register_file(
-        filename: str,
-        preview_defs: List[Tuple[str, str]],
-        skip_preview_prefixes: Optional[Sequence[str]] = None,
-        attach_output_basename: bool = True,
-    ):
-        """Register an output file with previews, following state_epoch_baseline pattern.
-        
-        This function:
-        1. Checks if the CSV file exists
-        2. Filters preview_defs to only existing files using collect_available_previews
-        3. Adds any manually configured previews
-        4. Registers the file with filtered previews attached
-        """
-        file_path = os.path.join(registration_dir, filename)
-        if not os.path.exists(file_path):
-            logger.debug("Skipping registration for %s (not found)", file_path)
-            return
-
-        # Filter to only previews that actually exist on disk
-        previews = (
-            collect_available_previews(registration_dir, preview_defs)
-            if preview_defs
-            else []
-        )
-        
-        # Add any manual preview entries from MANUAL_PREVIEW_MAP
-        manual_preview_entries = _resolve_manual_previews(filename)
-        previews.extend(manual_preview_entries)
-        
-        prefix_rules = PreviewPrefixRules(
-            output_basename=output_file_basename,
-            skip_preview_prefixes=tuple(skip_preview_prefixes or ()),
-        )
-        register_output_file(
-            output_data=output_data,
-            output_dir=registration_dir,
-            output_metadata=output_metadata,
-            file=filename,
-            output_file_basename=output_file_basename,
-            preview_files=previews,
-            attach_output_basename=attach_output_basename,
-            preview_prefix_rules=prefix_rules,
-            metadata_filter=_extract_useful_metadata,
-            logger_instance=logger,
-        )
 
     normalized_stats: Set[str]
     if correlation_statistic:
@@ -6505,11 +6396,12 @@ def _register_combined_tool_outputs(
                     if not path.exists():
                         continue
                     group_key = path.stem
+                    group_metadata = _extract_useful_metadata(output_metadata.get(group_key, {}))
                     output_file = output_data.register_file(
                         _group_file(i, group_suffix),
                         subdir=group_key,
                     ).register_metadata_dict(
-                        **output_metadata.get(group_key, {})
+                        **group_metadata
                     )
                     for preview_file, preview_caption in preview_func(group_index, group_label, group_preview_prefixes, normalized_dimension_suffix):
                         output_file.register_preview(
@@ -6533,11 +6425,12 @@ def _register_combined_tool_outputs(
                     continue
 
                 group_key = path.stem
+                group_metadata = _extract_useful_metadata(output_metadata.get(group_key, {}))
                 output_file = output_data.register_file(
                     stat_suffix,
                     subdir=group_key,
                 ).register_metadata_dict(
-                    **output_metadata.get(group_key, {})
+                    **group_metadata
                 )
                 for preview_file, preview_caption in previews:
                     output_file.register_preview(
@@ -6547,5 +6440,6 @@ def _register_combined_tool_outputs(
 
     except Exception:
         logger.exception("Failed to generate output data!")
+
 # function alias
 compare = combine_compare_state_epoch_data
