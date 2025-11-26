@@ -8,7 +8,7 @@
     },
     "command": {
         "file_path": "analysis/state_epoch_baseline_analysis.py",
-        "entry_point": "state_epoch_baseline_analysis",
+        "entry_point": "state_epoch_baseline_analysis_ideas_wrapper",
         "program_type": "PYTHON"
     },
     "params": [
@@ -261,6 +261,17 @@
             "group": "Data Processing"
         },
         {
+            "key": "include_event_correlation_preview",
+            "name": "Include Event Correlation Preview",
+            "required": false,
+            "description": "Whether to generate additional event-based correlation previews alongside the standard trace outputs when event correlations are available.",
+            "type": {
+                "param_type": "ToolBooleanParam",
+                "default": false
+            },
+            "group": "Analysis Parameters"
+        },
+        {
             "key": "alpha",
             "name": "Significance Level",
             "required": false,
@@ -307,17 +318,6 @@
                 "default": true
             },
             "group": "Data Processing Parameters"
-        },
-        {
-            "key": "output_dir",
-            "name": "Output Directory",
-            "required": false,
-            "description": "Directory where output files should be saved",
-            "type": {
-                "param_type": "ToolStringParam",
-                "default": ""
-            },
-            "group": "Output"
         }
     ],
     "results": [
@@ -326,7 +326,7 @@
             "name": "Activity Per State-Epoch Data",
             "description": "CSV file with activity metrics for each cell in each state-epoch combination",
             "file_patterns": [
-                "activity_per_state_epoch_data**"
+                "activity_per_state_epoch_data/**/*"
             ]
         },
         {
@@ -334,7 +334,7 @@
             "name": "Correlations Per State-Epoch Data",
             "description": "CSV file with correlation statistics for each state-epoch combination",
             "file_patterns": [
-                "correlations_per_state_epoch_data**"
+                "correlations_per_state_epoch_data/**/*"
             ]
         },
         {
@@ -342,7 +342,7 @@
             "name": "Modulation vs Baseline Data",
             "description": "CSV file with modulation indices relative to baseline",
             "file_patterns": [
-                "modulation_vs_baseline_data**"
+                "modulation_vs_baseline_data/**/*"
             ]
         },
         {
@@ -350,7 +350,7 @@
             "name": "Average Correlations",
             "description": "Average positive and negative correlations for each state-epoch combination",
             "file_patterns": [
-                "average_correlations**"
+                "average_correlations/**/*"
             ]
         },
         {
@@ -358,7 +358,7 @@
             "name": "Pairwise Correlation Heatmaps",
             "description": "Raw correlation matrices for each state-epoch combination stored in HDF5 format",
             "file_patterns": [
-                "pairwise_correlation_heatmaps**"
+                "pairwise_correlation_heatmaps/**/*"
             ]
         },
         {
@@ -366,7 +366,7 @@
             "name": "Spatial Analysis of Pairwise Correlations",
             "description": "Raw correlation matrices and cell pair correlations with spatial position information for each cell pair across state-epoch combinations",
             "file_patterns": [
-                "spatial_analysis_pairwise_correlations**"
+                "spatial_analysis_pairwise_correlations/**/*"
             ]
         }
     ],
