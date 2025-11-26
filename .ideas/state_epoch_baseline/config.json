@@ -1,5 +1,5 @@
 {
-    "container": "platform/neuro-stats:latest",
+    "container": "platform/neural-analysis:latest",
     "executor_type": "PYTHON",
     "file": "analysis/state_epoch_baseline_analysis.py",
     "function": "state_epoch_baseline_analysis",

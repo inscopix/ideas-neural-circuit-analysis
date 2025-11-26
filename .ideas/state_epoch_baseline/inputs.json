@@ -5,6 +5,8 @@
     "column_name": "state",
     "state_names": null,
     "state_colors": "gray, blue, orange",
+    "correlation_statistic": "max",
+    "method": null,
     "define_epochs_by": "global file time",
     "epochs": "(0, 600), (650, 950), (950, 1250)",
     "epoch_names": null,
@@ -14,10 +16,10 @@
     "concatenate": true,
     "trace_scale_method": "none",
     "event_scale_method": "none",
+    "include_event_correlation_preview": false,
     "alpha": 0.05,
     "n_shuffle": 1000,
     "tolerance": 0.0001,
     "sort_by_time": true,
-    "correlation_statistic": "max",
-    "method": "state vs baseline"
+    "output_dir": ""
 }

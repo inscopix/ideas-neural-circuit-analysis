@@ -1,10 +1,10 @@
 {
     "key": "state_epoch_baseline",
-    "name": "Compare Neural State Data Across Epochs",
+    "name": "State-Epoch Baseline Analysis",
     "schema_version": "3.0.0",
     "container_image": {
-        "repository": "platform/neuro-stats",
-        "label": "0.0.2"
+        "repository": "platform/neural-analysis",
+        "label": "1.0.1"
     },
     "command": {
         "file_path": "analysis/state_epoch_baseline_analysis.py",
@@ -55,59 +55,6 @@
             "group": "Input Files"
         },
         {
-            "key": "define_epochs_by",
-            "name": "Define Epochs By",
-            "required": true,
-            "description": "Method to define epochs. If 'files', one epoch per input cell set will be automatically defined, for the whole duration of each cell set. If 'global file time', you can define as many epochs as you want, with 0 corresponding to start time of the first cell set. If 'local file time', you can define as many epochs as you want per input cell set, with 0 corresponding to start time of each cell set.",
-            "type": {
-                "param_type": "ToolChoiceParam",
-                "default": "global file time",
-                "choices": [
-                    "files",
-                    "global file time",
-                    "local file time"
-                ],
-                "display_options": [
-                    "Files",
-                    "Global File Time",
-                    "Local File Time"
-                ]
-            },
-            "group": "Epoch Definition"
-        },
-        {
-            "key": "epochs",
-            "name": "Epochs",
-            "required": false,
-            "description": "Tuples of the start and end times (in seconds) for each epoch (e.g., if 'Define Epochs by' is set to 'Global file time', (0, 600), (650, 950), (950, 1250)). If 'Define Epochs by' is set to 'Local file time', provide one list of tuples per input cell set file (e.g., [(0, 600)], [(0, 300), (300, 600)]). If 'Define Epochs by' is set to 'Files', you can leave this parameter empty.",
-            "type": {
-                "param_type": "ToolStringParam",
-                "default": "(0, 600), (650, 950), (950, 1250)"
-            },
-            "group": "Epoch Definition"
-        },
-        {
-            "key": "epoch_names",
-            "name": "Epoch Names",
-            "required": true,
-            "description": "Comma-separated list of time epoch names (e.g., 'baseline, training, test')",
-            "type": {
-                "param_type": "ToolStringParam"
-            },
-            "group": "Epoch Definition"
-        },
-        {
-            "key": "epoch_colors",
-            "name": "Epoch Colors",
-            "required": false,
-            "description": "Comma-separated list of colors for epochs (e.g., 'lightgray, lightblue, lightgreen')",
-            "type": {
-                "param_type": "ToolStringParam",
-                "default": "lightgray, lightblue, lightgreen"
-            },
-            "group": "Epoch Definition"
-        },
-        {
             "key": "column_name",
             "name": "State Column Name",
             "required": false,
@@ -140,23 +87,6 @@
             "group": "Analysis Parameters"
         },
         {
-            "key": "method",
-            "name": "Method to Compare States",
-            "required": true,
-            "description": "Specifies how states are compared; this tool currently supports only state vs baseline comparisons.",
-            "type": {
-                "param_type": "ToolChoiceParam",
-                "default": "state vs baseline",
-                "choices": [
-                    "state vs baseline"
-                ],
-                "display_options": [
-                    "State vs Baseline"
-                ]
-            },
-            "group": "Analysis Parameters"
-        },
-        {
             "key": "correlation_statistic",
             "name": "Correlation Statistic",
             "required": false,
@@ -176,6 +106,76 @@
                 ]
             },
             "group": "Analysis Parameters"
+        },
+        {
+            "key": "method",
+            "name": "Method to Compare States",
+            "required": true,
+            "description": "Specifies how states are compared; this tool currently supports only state vs baseline comparisons.",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "choices": [
+                    "state vs baseline"
+                ],
+                "display_options": [
+                    "State vs Baseline"
+                ],
+                "default": "state vs baseline"
+            },
+            "group": "Analysis Parameters"
+        },
+        {
+            "key": "epoch_names",
+            "name": "Epoch Names",
+            "required": true,
+            "description": "Comma-separated list of time epoch names (e.g., 'baseline, training, test')",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": "Analysis Parameters"
+        },
+        {
+            "key": "epoch_colors",
+            "name": "Epoch Colors",
+            "required": false,
+            "description": "Comma-separated list of colors for epochs (e.g., 'lightgray, lightblue, lightgreen')",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "lightgray, lightblue, lightgreen"
+            },
+            "group": "Analysis Parameters"
+        },
+        {
+            "key": "define_epochs_by",
+            "name": "Define Epochs By",
+            "required": true,
+            "description": "Method to define epochs. If 'files', one epoch per input cell set will be automatically defined, for the whole duration of each cell set. If 'global file time', you can define as many epochs as you want, with 0 corresponding to start time of the first cell set. If 'local file time', you can define as many epochs as you want per input cell set, with 0 corresponding to start time of each cell set.",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "global file time",
+                "choices": [
+                    "files",
+                    "global file time",
+                    "local file time"
+                ],
+                "display_options": [
+                    "Files",
+                    "Global File Time",
+                    "Local File Time"
+                ]
+            },
+            "group": "Epoch Definition"
+        },
+        {
+            "key": "epochs",
+            "name": "Epochs",
+            "required": false,
+            "description": "Tuples of the start and end times (in seconds) for each epoch (e.g., if 'Define Epochs by' is set to 'Global file time', (0, 600), (650, 950), (950, 1250)). If 'Define Epochs by' is set to 'Local file time', provide one list of tuple per input cell set file (e.g., [(0, 600)], [(0, 300), (300, 600)]). If 'Define Epochs by' is set to 'Files', you can leave this parameter empty.",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "(0, 600), (650, 950), (950, 1250)"
+            },
+            "group": "Epoch Definition"
         },
         {
             "key": "baseline_state",
@@ -261,39 +261,6 @@
             "group": "Data Processing"
         },
         {
-            "key": "include_event_correlation_preview",
-            "name": "Event Correlation Previews",
-            "required": false,
-            "description": "Attach event-based correlation previews to the outputs when event data and correlations are available.",
-            "type": {
-                "param_type": "ToolBooleanParam",
-                "default": false
-            },
-            "group": "Data Processing"
-        },
-        {
-            "key": "tolerance",
-            "name": "Tolerance",
-            "required": false,
-            "description": "Tolerance for temporal alignment and file concatenation",
-            "type": {
-                "param_type": "ToolFloatRangeParam",
-                "default": 0.0001
-            },
-            "group": "Data Processing"
-        },
-        {
-            "key": "sort_by_time",
-            "name": "Sort by Time",
-            "required": false,
-            "description": "Whether to sort cell sets by time when concatenating",
-            "type": {
-                "param_type": "ToolBooleanParam",
-                "default": true
-            },
-            "group": "Data Processing"
-        },
-        {
             "key": "alpha",
             "name": "Significance Level",
             "required": false,
@@ -318,6 +285,39 @@
                 "max": 10000
             },
             "group": "Statistical Parameters"
+        },
+        {
+            "key": "tolerance",
+            "name": "Tolerance",
+            "required": false,
+            "description": "Tolerance for temporal alignment and file concatenation",
+            "type": {
+                "param_type": "ToolFloatRangeParam",
+                "default": 0.0001
+            },
+            "group": "Data Processing Parameters"
+        },
+        {
+            "key": "sort_by_time",
+            "name": "Sort by Time",
+            "required": false,
+            "description": "Whether to sort cellsets by time when concatenating",
+            "type": {
+                "param_type": "ToolBooleanParam",
+                "default": true
+            },
+            "group": "Data Processing Parameters"
+        },
+        {
+            "key": "output_dir",
+            "name": "Output Directory",
+            "required": false,
+            "description": "Directory where output files should be saved",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": ""
+            },
+            "group": "Output"
         }
     ],
     "results": [
@@ -326,7 +326,7 @@
             "name": "Activity Per State-Epoch Data",
             "description": "CSV file with activity metrics for each cell in each state-epoch combination",
             "file_patterns": [
-                "activity_per_state_epoch_data/**/*"
+                "activity_per_state_epoch_data**"
             ]
         },
         {
@@ -334,7 +334,7 @@
             "name": "Correlations Per State-Epoch Data",
             "description": "CSV file with correlation statistics for each state-epoch combination",
             "file_patterns": [
-                "correlations_per_state_epoch_data/**/*"
+                "correlations_per_state_epoch_data**"
             ]
         },
         {
@@ -342,7 +342,7 @@
             "name": "Modulation vs Baseline Data",
             "description": "CSV file with modulation indices relative to baseline",
             "file_patterns": [
-                "modulation_vs_baseline_data/**/*"
+                "modulation_vs_baseline_data**"
             ]
         },
         {
@@ -350,7 +350,7 @@
             "name": "Average Correlations",
             "description": "Average positive and negative correlations for each state-epoch combination",
             "file_patterns": [
-                "*average_correlations.csv"
+                "average_correlations**"
             ]
         },
         {
@@ -358,7 +358,7 @@
             "name": "Pairwise Correlation Heatmaps",
             "description": "Raw correlation matrices for each state-epoch combination stored in HDF5 format",
             "file_patterns": [
-                "*pairwise_correlation_heatmaps.h5"
+                "pairwise_correlation_heatmaps**"
             ]
         },
         {
@@ -366,7 +366,7 @@
             "name": "Spatial Analysis of Pairwise Correlations",
             "description": "Raw correlation matrices and cell pair correlations with spatial position information for each cell pair across state-epoch combinations",
             "file_patterns": [
-                "*spatial_analysis_pairwise_correlations.zip"
+                "spatial_analysis_pairwise_correlations**"
             ]
         }
     ],
@@ -377,5 +377,5 @@
     },
     "description": "Combined analysis of neural activity and correlations across behavioral states and time epochs with baseline comparison",
     "visibility": "public",
-    "version": "1.0.0-rc1"
+    "version": "2.0.0"
 }

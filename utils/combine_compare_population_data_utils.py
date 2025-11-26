@@ -35,6 +35,11 @@ warnings.filterwarnings(
 DEFAULT_SIGNIFICANCE_THRESHOLD = 0.05
 logger = logging.getLogger(__name__)
 
+# Global variables for deduplicating log messages across function calls
+_global_lmm_structure_logged = set()
+_global_config_logged = set()
+_global_status_results_logged = set()
+
 
 def _compute_effect_sizes(
     lmm_result, data, dv_column, subject_column="normalized_subject_id"
@@ -155,9 +160,6 @@ def _choose_model_type(data, dv_column, measure_name):
         is_proportional = (values >= 0).all() and (values <= 1).all()
         has_boundaries = (values == 0).any() or (values == 1).any()
         if is_proportional and has_boundaries:
-            logger.info(
-                f"Detected proportional data for {measure_name}, will use logit transform"
-            )
             return "logit_transform"
 
     except Exception as e:
@@ -340,10 +342,6 @@ def calculate_state_lmm_stats(
             logger.error(f"No states provided for {measure_name} LMM analysis")
             return pd.DataFrame(), pd.DataFrame()
 
-        logger.info(
-            f"=== Starting LMM Analysis for {measure_name.upper()} Data ==="
-        )
-
         # Enhanced input validation
         required_columns = ["state", "normalized_subject_id"]
         missing_columns = [
@@ -358,33 +356,34 @@ def calculate_state_lmm_stats(
         # Check minimum data requirements
         n_subjects = df["normalized_subject_id"].nunique()
         n_states = df["state"].nunique()
-        n_observations = len(df)
-
-        logger.info(f"LMM input data summary for {measure_name}:")
-        logger.info(f"  • {n_observations} total observations")
-        logger.info(f"  • {n_subjects} unique subjects")
-        logger.info(
-            f"  • {n_states} unique states: {sorted(df['state'].unique())}"
-        )
 
         # Initialize warnings list
         statistical_warnings = []
 
+        # Check for fundamental limitations that prevent analysis
+        if n_subjects < 2 and n_states < 2:
+            logger.error(
+                f"Could not run {measure_name} analysis: insufficient data for comparison. "
+                f"Found {n_subjects} subjects and {n_states} states. "
+                f"Need either multiple subjects OR multiple states."
+            )
+            return pd.DataFrame(), pd.DataFrame()
+
         if n_subjects < 2:
-            warning_msg = f"Insufficient subjects ({n_subjects}) for {measure_name} analysis"
+            warning_msg = (
+                f"Low subject count ({n_subjects}) for {measure_name} analysis - "
+                f"interpret with caution"
+            )
             logger.warning(warning_msg)
             statistical_warnings.append(warning_msg)
 
         if n_states < 2:
             warning_msg = (
-                f"Insufficient states ({n_states}) for {measure_name} LMM analysis. "
-                f"Need at least 2 states for comparison."
+                f"Single state ({n_states}) for {measure_name} analysis - "
+                f"limited comparison possible"
             )
             logger.warning(warning_msg)
             statistical_warnings.append(warning_msg)
-            # Only return empty if truly no comparison possible
-            if n_states < 1:
-                return pd.DataFrame(), pd.DataFrame()
 
         # Determine the dependent variable column
         dv_column = "activity"
@@ -422,18 +421,7 @@ def calculate_state_lmm_stats(
             statistical_warnings.append(power_warning)
             # Continue with analysis but include warnings in output
 
-        logger.info(
-            f"Running LMM analysis on {len(df)} {measure_name} observations "
-            f"with DV: {dv_column}"
-        )
-
         between_factor = None if has_single_group else "group"
-        analysis_design = (
-            "Single-group within-subjects"
-            if has_single_group
-            else "Multi-group mixed-design"
-        )
-        logger.info(f"LMM analysis design: {analysis_design}")
 
         (
             lmm_result,
@@ -456,14 +444,6 @@ def calculate_state_lmm_stats(
 
         pairwise_result = pd.DataFrame()
         try:
-            logger.info(
-                f"=== Starting Pairwise Comparisons for {measure_name.upper()} ==="
-            )
-
-            logger.info(
-                f"Aggregating {measure_name} data to subject-level for pairwise "
-                f"tests to prevent pseudoreplication"
-            )
             pairwise_data = _calculate_subject_averages(
                 df=df.copy(),
                 subject_id_col="normalized_subject_id",
@@ -477,11 +457,6 @@ def calculate_state_lmm_stats(
                 )
 
             if has_single_group:
-                logger.info(
-                    f"Performing within-subject state comparisons for single "
-                    f"group {measure_name} data"
-                )
-                logger.info(f"Will compare states: {states}")
 
                 (
                     is_valid,
@@ -509,14 +484,6 @@ def calculate_state_lmm_stats(
                 pairwise_result = _safe_pairwise_ttests(**pairwise_args)
 
             else:
-                logger.info(
-                    f"Performing comprehensive pairwise comparisons for "
-                    f"multi-group {measure_name} data"
-                )
-                logger.info(
-                    "Will test: state effects, group effects, and "
-                    "state×group interactions"
-                )
 
                 (
                     is_valid,
@@ -584,9 +551,6 @@ def calculate_state_lmm_stats(
                 pairwise_result = _finalize_statistical_output(
                     pairwise_result, "pairwise"
                 )
-                logger.info(
-                    f"Generated {len(pairwise_result)} pairwise comparisons for {measure_name}"
-                )
             else:
                 logger.warning(
                     f"{measure_name} pairwise analysis returned empty results"
@@ -623,15 +587,6 @@ def calculate_state_lmm_stats(
                 else:
                     combined_notes = "Results generated with statistical concerns - see warnings"
                 lmm_result["analysis_notes"] = combined_notes
-
-        if not lmm_result.empty:
-            logger.info(
-                f"LMM analysis for {measure_name}: {len(lmm_result)} results"
-            )
-        if not pairwise_result.empty:
-            logger.info(
-                f"LMM pairwise for {measure_name}: {len(pairwise_result)} comparisons"
-            )
 
         return lmm_result, pairwise_result
 
@@ -745,14 +700,21 @@ def calculate_group_anova_stats(
             state_name = (
                 group_df["state"].iloc[0] if not group_df.empty else "unknown"
             )
-            logger.error(
-                f"Cannot perform statistical comparison with single state "
-                f"('{state_name}') and fewer than 2 groups. "
-                f"Found {group_df['group'].nunique() if 'group' in group_df.columns else 0} "
-                f"groups. Statistical comparisons require either multiple states "
-                f"OR multiple groups."
+            n_groups = (
+                group_df["group"].nunique()
+                if "group" in group_df.columns
+                else 0
             )
-            # Return empty results instead of raising exception for consistency with modulation path
+            n_subjects = (
+                group_df["normalized_subject_id"].nunique()
+                if "normalized_subject_id" in group_df.columns
+                else len(group_df)
+            )
+            logger.error(
+                f"Could not run group ANOVA: {n_subjects} subjects, "
+                f"{n_groups} groups, and only 1 state ('{state_name}'). "
+                f"Need either multiple states OR multiple groups for comparison."
+            )
             return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
         else:
             logger.debug("Insufficient groups for group comparison")
@@ -904,10 +866,6 @@ def calculate_group_anova_stats(
 
             # Don't add warnings to pairwise results anymore - they go to ANOVA CSV via aov_df
 
-            logger.warning(
-                f"Statistical warnings added to group ANOVA results: {warning_text}"
-            )
-
         return aov_df, pairwise_df, group_df
 
     except Exception as e:
@@ -1024,11 +982,6 @@ def _calculate_subject_averages(
             )
 
         n_averaged_obs = len(averaged_df)
-        context_msg = f" ({context})" if context else ""
-        logger.info(
-            f"Subject averaging completed{context_msg}: {len(df)} cells -> "
-            f"{n_averaged_obs} subject averages"
-        )
         logger.debug(
             f"Data reduction: {n_averaged_obs/n_total_obs:.1%} - "
             f"prevents pseudoreplication"
@@ -1176,6 +1129,169 @@ def validate_states_by_state_comparison_type(
     return validated_states, state_comparison_type, baseline_state
 
 
+def validate_user_specified_comparison_method(
+    df: pd.DataFrame,
+    requested_states: List[str],
+    user_comparison_method: str = "auto",
+) -> Tuple[List[str], str, Optional[str]]:
+    """Validate user-specified state comparison method against data structure.
+
+    This function allows users to specify their preferred comparison method while
+    still leveraging the existing detection logic to catch mismatches and validate
+    the data structure.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Input dataframe containing population activity data
+    requested_states : List[str]
+        List of states requested by the user
+    user_comparison_method : str, optional
+        User-specified comparison method, by default "auto"
+
+    Returns
+    -------
+    Tuple[List[str], str, Optional[str]]
+        Tuple containing (validated_states, comparison_type, baseline_state)
+
+    Raises
+    ------
+    ToolException
+        If user-specified method is incompatible with detected data structure
+
+    """
+    if df is None or df.empty:
+        raise IdeasError(
+            "Cannot validate comparison method: Empty dataframe provided",
+        )
+
+    # First, detect what the data actually contains
+    detected_comparison_type = detect_state_comparison_type(df)
+    detected_baseline_state, mod_states, mean_states = detect_baseline_state(
+        df
+    )
+
+    # Handle "state_vs_not_defined" as an alias for "state_vs_not_state"
+    # These represent different conceptual analyses, but the input data
+    # formats are indistinguishable:
+    # - "state_vs_not_state": modulation calculated as state A vs not in state A
+    # - "state_vs_not_defined": modulation calculated as state A vs not defined state
+    # Since we cannot distinguish between these data structures, they are processed identically
+    if user_comparison_method == "state_vs_not_defined":
+        user_comparison_method = "state_vs_not_state"
+
+    # If auto-detect, use the detected method
+    if user_comparison_method == "auto":
+        logger.info(
+            f"Auto-detected comparison method: '{detected_comparison_type}'"
+            + (
+                f" (baseline state: '{detected_baseline_state}')"
+                if detected_baseline_state
+                else ""
+            )
+        )
+        return validate_states_by_state_comparison_type(df, requested_states)
+
+    # Validate user-specified method against detected data structure
+    if user_comparison_method == "pairwise":
+        if detected_comparison_type != "pairwise":
+            raise IdeasError(
+                f"User specified 'pairwise' comparison method, but data structure "
+                f"indicates '{detected_comparison_type}'. Available modulation columns: "
+                f"{mod_states}. "
+                f"For pairwise analysis, column names should contain ' vs ' "
+                f"(e.g., 'modulation scores in state1 vs state2').",
+            )
+        validated_states, _, _ = validate_states_by_state_comparison_type(
+            df, requested_states
+        )
+        logger.info(
+            f"Using user-specified comparison method: '{user_comparison_method}'"
+        )
+        return validated_states, user_comparison_method, None
+
+    elif user_comparison_method == "state_vs_baseline":
+        if detected_comparison_type != "state_vs_baseline":
+            if detected_baseline_state is None:
+                raise IdeasError(
+                    f"User specified 'state_vs_baseline' comparison method, but no baseline state "
+                    f"was detected in the data. Available states: modulation={mod_states}, "
+                    f"mean={mean_states}. "
+                    f"For baseline analysis, there should be mean activity columns "
+                    f"for a baseline state "
+                    f"that doesn't have corresponding modulation columns.",
+                )
+            else:
+                # Data has baseline but was detected as different type -
+                # this is unusual but allow it
+                logger.warning(
+                    f"Data was detected as '{detected_comparison_type}' but user specified "
+                    f"'state_vs_baseline'. Proceeding with user preference."
+                )
+        validated_states, _, _ = validate_states_by_state_comparison_type(
+            df, requested_states
+        )
+        logger.info(
+            f"Using user-specified comparison method: '{user_comparison_method}'"
+            + (
+                f" (baseline state: '{detected_baseline_state}')"
+                if detected_baseline_state
+                else ""
+            )
+        )
+        return (
+            validated_states,
+            user_comparison_method,
+            detected_baseline_state,
+        )
+
+    elif user_comparison_method == "state_vs_not_state":
+        # This method requires individual state modulation data, not pairwise comparisons
+        if detected_comparison_type == "pairwise":
+            raise IdeasError(
+                f"User specified 'state_vs_not_state' comparison method, but the data "
+                f"contains only pairwise comparisons. The 'state_vs_not_state' method requires "
+                f"individual state modulation data (e.g., 'modulation scores in state1', "
+                f"'modulation scores in state2'). "
+                f"Available pairwise comparisons: {mod_states}. "
+                f"Consider using 'pairwise' method instead or provide data "
+                f"with individual state modulation columns.",
+            )
+        elif detected_comparison_type == "state_vs_baseline":
+            # Strict validation: state_vs_not_state is conceptually incompatible with baseline data
+            raise IdeasError(
+                f"User specified 'state_vs_not_state' comparison method, but the data "
+                f"structure indicates 'state_vs_baseline' "
+                f"(baseline state '{detected_baseline_state}' detected). "
+                f"These methods are conceptually incompatible: 'state_vs_not_state' "
+                f"compares states "
+                f"against 'not being in that state', while your data is designed "
+                f"for baseline comparisons. "
+                f"Consider using 'state_vs_baseline' method instead, or provide data "
+                f"without baseline columns "
+                f"for 'state_vs_not_state' analysis.",
+            )
+        # Standard validation for compatible data
+        validated_states, _, _ = validate_states_by_state_comparison_type(
+            df, requested_states
+        )
+        logger.info(
+            f"Using user-specified comparison method: '{user_comparison_method}'"
+        )
+        return (
+            validated_states,
+            user_comparison_method,
+            detected_baseline_state,
+        )
+
+    else:
+        raise IdeasError(
+            f"Unknown comparison method: '{user_comparison_method}'. "
+            f"Valid options are: 'auto', 'state_vs_not_state', 'state_vs_not_defined', "
+            f"'state_vs_baseline', 'pairwise'.",
+        )
+
+
 def _perform_lmm_analysis(
     df: pd.DataFrame,
     dv: str,
@@ -1249,16 +1365,26 @@ def _perform_lmm_analysis(
         n_subjects = df[subject].nunique()
         n_observations = len(df)
 
-        logger.info(
-            f"LMM data structure: {n_subjects} subjects, {n_observations} observations"
-        )
-        if has_nested_structure:
+        # Use module-level deduplication for LMM data structure
+
+        structure_key = f"lmm_structure_{n_subjects}_{n_observations}_{has_nested_structure}"
+        if structure_key not in _global_lmm_structure_logged:
             logger.info(
-                f"  • Cell-level data (max {max_obs_per_condition} per subject-condition) "
-                f"- using proper random effects"
+                f"LMM data structure: {n_subjects} subjects, {n_observations} observations"
             )
+            if has_nested_structure:
+                logger.info(
+                    f"  • Cell-level data (max {max_obs_per_condition} per subject-condition) "
+                    f"- using proper random effects"
+                )
+            else:
+                logger.info("  • Subject-level data - using standard LMM")
+            _global_lmm_structure_logged.add(structure_key)
         else:
-            logger.info("  • Subject-level data - using standard LMM")
+            logger.debug(
+                f"LMM data structure (deduplicated): {n_subjects} subjects, "
+                f"{n_observations} observations"
+            )
 
         # Drop rows with missing values in critical columns
         critical_cols = within_factors + [subject]
@@ -1354,7 +1480,6 @@ def _perform_lmm_analysis(
 
         # Choose appropriate model type based on data characteristics
         model_type = _choose_model_type(df, dv, measure_name)
-        logger.info(f"Selected model type: {model_type} for {measure_name}")
 
         # Apply data transformations if needed
         if model_type == "logit_transform":
@@ -1364,13 +1489,9 @@ def _perform_lmm_analysis(
             df[dv] = df[dv].clip(epsilon, 1 - epsilon)
             df[f"{dv}_logit"] = np.log(df[dv] / (1 - df[dv]))
             dv = f"{dv}_logit"
-            logger.info(f"Applied logit transformation to {measure_name}")
         elif model_type == "poisson_glmm":
             # For Poisson GLMM, ensure integer values and log info
             df[dv] = np.round(df[dv]).astype(int)
-            logger.info(
-                f"Prepared count data for Poisson GLMM for {measure_name}"
-            )
 
         # **SIMPLIFIED: Only LMM Analysis on raw cell-level data**
         # Build the formula for the LMM dynamically (fixed effects part)
@@ -1395,7 +1516,7 @@ def _perform_lmm_analysis(
         if fixed_interactions:
             formula += " + " + " + ".join(fixed_interactions)
 
-        logger.info(f"LMM formula: {formula} | Random: (1|{subject})")
+        logger.debug(f"LMM formula: {formula} | Random: (1|{subject})")
 
         # =============================================================================
         # MODEL FITTING WITH DATA-TYPE-SPECIFIC APPROACH
@@ -1460,9 +1581,6 @@ def _perform_lmm_analysis(
                     # Use reml=True by default for better variance estimates
                     result = model.fit(method=method, maxiter=1000, reml=True)
                     if result.converged:
-                        logger.info(
-                            f"LMM converged successfully using {method}"
-                        )
                         break
                     else:
                         convergence_issues.append(
@@ -1795,10 +1913,6 @@ def _perform_lmm_analysis(
                 for col, data in preserved_data.items():
                     lmm_result[col] = data
 
-                logger.info(
-                    f"Enhanced LMM completed: {lmm_result.shape[0]} fixed effects "
-                    f"results for {measure_name} with effect sizes and diagnostics"
-                )
                 return (
                     lmm_result,
                     has_reliability_concerns,
@@ -1944,11 +2058,6 @@ def calculate_mod_stats_direct(
             )
             return pd.DataFrame(), pd.DataFrame()
 
-        logger.info(
-            "=== Starting Direct Statistical Analysis for %s Data ===",
-            comparison_description.upper(),
-        )
-
         # Determine experimental condition
         comp_type, data_structure = determine_experimental_condition(
             df, data_pairing, state_comparison_type
@@ -1962,7 +2071,6 @@ def calculate_mod_stats_direct(
         )
 
         # Enhanced data summary
-        n_observations = len(df)
         n_subjects = (
             df.get(
                 "normalized_subject_id", df.get("subject_id", pd.Series())
@@ -2031,14 +2139,25 @@ def calculate_mod_stats_direct(
             logger.info(f"Updated method: {statistical_method}")
             logger.info(f"Updated condition: {comp_type} + {data_structure}")
 
-        logger.info(f"{comparison_description} analysis configuration:")
-        logger.info(f"  • Statistical method: {statistical_method}")
-        logger.info(f"  • Design: {data_structure}")
-        logger.info(f"  • Comparison type: {comp_type}")
-        logger.info(
-            f"  • Data summary: {n_observations} observations, {n_subjects} subjects, "
-            f"{n_states} states, {n_groups} groups"
-        )
+        config_key = f"{statistical_method}_{data_structure}_{comp_type}"
+        if config_key not in _global_config_logged:
+            logger.info("Analysis configuration:")
+            logger.info(f"  • Statistical method: {statistical_method}")
+            logger.info(f"  • Design: {data_structure}")
+            logger.info(
+                f"  • Dependent variable: {measure_column} (modulation counts)"
+            )
+            logger.info(
+                f"  • Data: {n_subjects} subjects, {n_states} states, {n_groups} groups"
+            )
+            _global_config_logged.add(config_key)
+        else:
+            logger.debug(
+                f"{comparison_description} analysis config (deduplicated)"
+            )
+            logger.debug(
+                f"  • Data: {n_subjects} subjects, {n_states} states, {n_groups} groups"
+            )
 
         # Add explanation for descriptive statistics only
         if "Descriptive statistics only" in statistical_method:
@@ -2065,14 +2184,7 @@ def calculate_mod_stats_direct(
         mod_statuses = status_values or ["up_modulated", "down_modulated"]
         valid_statuses = [s for s in mod_statuses if s in df["status"].values]
 
-        logger.info(
-            f"Processing {len(valid_statuses)} modulation statuses: {valid_statuses}"
-        )
-
         for status in valid_statuses:
-            logger.info(
-                f"--- Processing {status} {comparison_description.lower()} data ---"
-            )
             status_df = df[df["status"] == status].copy()
 
             # **Apply weighted proportions if explicitly enabled**
@@ -2138,18 +2250,23 @@ def calculate_mod_stats_direct(
                 data_pairing,
             )
 
-            logger.info(
-                f"Completed {status} analysis: {len(anova_results)} ANOVA, "
-                f"{len(pairwise_results)} pairwise results"
-            )
-
-            # Add context about data completeness
-            if hasattr(status_df, "state") and "state" in status_df.columns:
-                available_states = status_df["state"].nunique()
-                total_combinations = len(status_df)
-                logger.info(
-                    f"    Data completeness: {available_states} states, "
-                    f"{total_combinations} observations for {status}"
+            status_result_key = f"status_results_{status}_{len(anova_results)}_{len(pairwise_results)}"
+            if len(anova_results) > 0 or len(pairwise_results) > 0:
+                if status_result_key not in _global_status_results_logged:
+                    logger.info(
+                        f"  • {status}: {len(anova_results)} ANOVA, "
+                        f"{len(pairwise_results)} pairwise results"
+                    )
+                    _global_status_results_logged.add(status_result_key)
+                else:
+                    logger.debug(
+                        f"  • {status}: {len(anova_results)} ANOVA, "
+                        f"{len(pairwise_results)} pairwise (deduplicated)"
+                    )
+            elif len(status_df) > 0:
+                logger.warning(
+                    f"  • {status}: No statistical results "
+                    f"(insufficient data or failed validation)"
                 )
             all_anova_results.extend(anova_results)
             all_pairwise_results.extend(pairwise_results)
@@ -2187,18 +2304,26 @@ def calculate_mod_stats_direct(
         # Ensure p-corr column exists (handled at individual result level)
         # No need for global correction since pingouin handles this via padjust parameter
         if not pairwise_df.empty:
-            if correction == "none":
-                logger.info(
-                    "No correction applied for %d %s pairwise results (p-corr = p-unc)",
-                    len(pairwise_df),
-                    comparison_description.lower(),
-                )
+            # Use module-level deduplication for correction messages
+            correction_key = f"correction_{correction}_{len(pairwise_df)}"
+            if correction_key not in _global_status_results_logged:
+                if correction == "none":
+                    logger.info(
+                        "No correction applied for %d %s pairwise results (p-corr = p-unc)",
+                        len(pairwise_df),
+                        comparison_description.lower(),
+                    )
+                else:
+                    logger.info(
+                        "Using pingouin built-in %s correction for %d %s pairwise results",
+                        correction,
+                        len(pairwise_df),
+                        comparison_description.lower(),
+                    )
+                _global_status_results_logged.add(correction_key)
             else:
-                logger.info(
-                    "Using pingouin built-in %s correction for %d %s pairwise results",
-                    correction,
-                    len(pairwise_df),
-                    comparison_description.lower(),
+                logger.debug(
+                    f"Pingouin {correction} correction message (deduplicated)"
                 )
 
         # Apply final output standardization
@@ -2237,13 +2362,27 @@ def calculate_mod_stats_direct(
                     "analysis_notes"
                 ] = "Results generated with statistical concerns - see warnings"
 
-        logger.info(
-            f"=== {comparison_description.upper()} Analysis Results Summary ==="
-        )
-        logger.info(
-            f"✓ Direct analysis completed: {len(all_anova_results)} ANOVA, "
-            f"{len(all_pairwise_results)} pairwise results"
-        )
+        # Final summary
+        total_anova = len(all_anova_results)
+        total_pairwise = len(all_pairwise_results)
+
+        # Use module-level deduplication for completion messages
+        completion_key = f"completion_{comparison_description}_{total_anova}_{total_pairwise}"
+        if completion_key not in _global_status_results_logged:
+            if total_anova > 0 or total_pairwise > 0:
+                logger.info(
+                    f"{comparison_description} analysis completed: {total_anova} ANOVA, "
+                    f"{total_pairwise} pairwise results"
+                )
+            else:
+                logger.warning(
+                    f"{comparison_description} analysis: No statistical results generated"
+                )
+            _global_status_results_logged.add(completion_key)
+        else:
+            logger.debug(
+                f"{comparison_description} completion message (deduplicated)"
+            )
         return anova_df, pairwise_df
 
     except Exception as e:
@@ -2307,24 +2446,16 @@ def _dispatch_direct_analysis(
                     else "unknown"
                 )
             )
-            logger.info(f"No statistical tests performed for {status}:")
-            logger.info(
-                "  • Single group with pairwise states ('%s') detected",
-                state_name,
-            )
-            logger.info(
-                "  • Statistical comparisons require multiple groups OR multiple states per group"
-            )
-            logger.info(
-                "  • Consider using descriptive statistics or different grouping"
+            logger.error(
+                f"Could not run statistical comparison for {status}: single group "
+                f"with only 1 state ('{state_name}'). "
+                f"Statistical comparisons require either multiple groups OR multiple states."
             )
         else:
-            logger.info(f"No statistical tests performed for {status}:")
-            logger.info(
-                "  • Single group design with pairwise comparison not supported"
-            )
-            logger.info(
-                "  • Use state comparison within group or between-group analysis"
+            logger.error(
+                f"Could not run statistical comparison for {status}: single group design "
+                f"with pairwise states not supported. "
+                f"Use state comparison within group or between-group analysis."
             )
         return [], []
 
@@ -2558,8 +2689,15 @@ def _direct_single_group_anova(
             return [], []
 
         if len(states) < 2 or validated_df["state"].nunique() < 2:
-            logger.debug(
-                f"Insufficient states for ANOVA: {validated_df['state'].nunique()}"
+            n_subjects = (
+                validated_df["normalized_subject_id"].nunique()
+                if "normalized_subject_id" in validated_df.columns
+                else len(validated_df)
+            )
+            logger.error(
+                f"Could not run one-way ANOVA for {status}: {n_subjects} subjects "
+                f"and only {validated_df['state'].nunique()} state. "
+                f"Need at least 2 states for comparison."
             )
             return [], []
 
@@ -2801,8 +2939,8 @@ def _direct_multiple_groups_rm_anova(
         )
 
         if not is_valid:
-            logger.debug(
-                f"RM ANOVA validation failed for {status}: {error_msg}"
+            logger.error(
+                f"Could not run repeated measures ANOVA for {status}: {error_msg}"
             )
             return [], []
 
@@ -2937,8 +3075,8 @@ def _direct_multiple_groups_mixed_anova(
         )
 
         if not is_valid:
-            logger.debug(
-                f"Mixed ANOVA validation failed for {status}: {error_msg}"
+            logger.error(
+                f"Could not run mixed ANOVA for {status}: {error_msg}"
             )
             return [], []
 
@@ -3232,10 +3370,6 @@ def _handle_single_state_group_comparison(
         if not pairwise_df.empty:
             pairwise_df = _finalize_statistical_output(pairwise_df, "pairwise")
 
-        logger.info(
-            f"Single state group comparison completed: {len(aov_df)} ANOVA, "
-            f"{len(pairwise_df)} pairwise results"
-        )
         return aov_df, pairwise_df, group_df
 
     except Exception as e:

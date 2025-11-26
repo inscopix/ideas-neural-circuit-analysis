@@ -9,8 +9,9 @@ import os
 import zipfile
 import tempfile
 import shutil
-from ideas.io import cell_set_to_positions
-from ideas.outputs import OutputData
+from ideas.analysis.io import cell_set_to_positions
+from ideas.tools import outputs
+from ideas.tools.types import IdeasFile
 
 # Add isx import
 import isx
@@ -20,8 +21,8 @@ import pandas as pd
 import seaborn as sns
 from beartype import beartype
 from beartype.typing import List, Dict, Tuple, Any
-from ideas import measures, plots
-from ideas.utils import _set_up_logger
+from ideas.analysis import measures, plots
+from ideas.tools.log import get_logger
 from ideas.exceptions import IdeasError
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.gridspec import GridSpec
@@ -39,7 +40,7 @@ from utils.plots import (
     LABEL_FONT,
 )
 
-logger = logging.getLogger()
+logger = get_logger()
 MINIMUM_STATE_LENGTH = 10
 statistic_types = Literal["max", "mean", "min"]
 
@@ -58,9 +59,8 @@ RAW_CORRELATIONS_ZIP_NAME = "spatial_analysis_pairwise_correlations.zip"
 SPATIAL_CORRELATION_SVG_NAME = "spatial_correlation.svg"
 SPATIAL_MAP_SVG_NAME = "spatial_correlation_map.svg"
 
-_set_up_logger()
 
-# @beartype
+@beartype
 def _average_correlations(
     correlation_matrix: Dict[str, np.ndarray], colors: List[str]
 ) -> None:
@@ -78,8 +78,14 @@ def _average_correlations(
     for state in correlation_matrix.keys():
         corr_matrix = correlation_matrix[state]
         corr_data = corr_matrix[np.triu_indices(corr_matrix.shape[0], k=1)]
-        pos_corr = np.nanmean(corr_data[corr_data > 0])
-        neg_corr = np.nanmean(corr_data[corr_data < 0])
+
+        # Handle empty arrays to avoid "Mean of empty slice" warnings
+        pos_data = corr_data[corr_data > 0]
+        pos_corr = np.nanmean(pos_data) if len(pos_data) > 0 else np.nan
+
+        neg_data = corr_data[corr_data < 0]
+        neg_corr = np.nanmean(neg_data) if len(neg_data) > 0 else np.nan
+
         data.append([state, pos_corr, neg_corr])
 
     # Create DataFrame all at once
@@ -144,7 +150,7 @@ def cell_set_to_positions_mapping(
     *,
     threshold: float = 4.0,
     cell_names: Optional[List[str]] = None,
-) -> Dict[str, Tuple[float, float]]:
+) -> Dict[str, Tuple[Union[int, float], Union[int, float]]]:
     """Return cell positions as a mapping from cell names to positions
 
     :Args
@@ -202,8 +208,8 @@ def cell_set_to_positions_mapping(
 # @beartype
 def correlation_tool(
     *,
-    cell_set_files: List[pathlib.Path],
-    annotations_file: Optional[List[pathlib.Path]] = None,
+    cell_set_files: List[IdeasFile],
+    annotations_file: Optional[List[IdeasFile]] = None,
     column_name: str = "state",
     state_names: Optional[str] = "",
     state_colors: str = "blue, orange, grey",
@@ -488,13 +494,6 @@ Will compute correlation matrix for entire recording"""
                 "Could not create spatial correlation analysis: missing position data"
             )
 
-    # stat_key = Path(STAT_CORRELATIONS_CSV_NAME).stem
-    # avg_key = Path(AVG_CORRELATIONS_CSV_NAME).stem
-    # raw_h5_key = Path(RAW_CORRELATIONS_H5_NAME).stem
-    # raw_zip_key = Path(RAW_CORRELATIONS_ZIP_NAME).stem
-    # spatial_corr_key = Path(SPATIAL_CORRELATION_SVG_NAME).stem
-    # spatial_map_key = Path(SPATIAL_MAP_SVG_NAME).stem
-
     # Update metadata with actual states found
     values = {
         "num_cells": len(df),
@@ -511,109 +510,26 @@ Will compute correlation matrix for entire recording"""
         "statistic": statistic,
     }
 
-    spatial_values = {
-        "num_cells": len(df),
-        "num_states": len(actual_states),
-        "states": actual_states,
+    stat_key = Path(STAT_CORRELATIONS_CSV_NAME).stem
+    avg_key = Path(AVG_CORRELATIONS_CSV_NAME).stem
+    raw_h5_key = Path(RAW_CORRELATIONS_H5_NAME).stem
+    raw_zip_key = Path(RAW_CORRELATIONS_ZIP_NAME).stem
+
+    metadata = {
+        stat_key: stat_values,
+        avg_key: values,
+        raw_h5_key: values,
+        raw_zip_key: values
     }
 
-    display_names_map = {
-        "num_cells": "Number of cells",
-        "num_states": "Number of states",
-        "states": "States",
-        "colors": "Colors",
-        "statistic": "Statistic",
-    }
-
-    values = [
-        {"key": k, "name": display_names_map[k], "value": v} for k, v in values.items()
-    ]
-    stat_values = [
-        {"key": k, "name": display_names_map[k], "value": v} for k, v in stat_values.items()
-    ]
-    spatial_values = [
-        {"key": k, "name": display_names_map[k], "value": v} for k, v in spatial_values.items()
-    ]
-
-    output_data = [
-        {
-            "file": AVG_CORRELATIONS_CSV_NAME,
-            "previews": [
-                {
-                    "file": "average_correlations_preview.svg",
-                    "caption": "Mean positive (top) and negative (bottom) correlations across behavioral states. These barplots show how average correlation values differ between states, providing insight into overall network connectivity patterns."
-                }
-            ],
-            "metadata": values
-        },
-        {
-            "file": RAW_CORRELATIONS_H5_NAME,
-            "previews": [
-                {
-                    "file": "correlation_matrices.svg",
-                    "caption": "Pairwise Pearson correlation matrices between neural activity across behavioral states. Neurons are hierarchically clustered to reveal functional organization, with color intensity representing correlation strength from -1 (negative) to +1 (positive)."
-                }
-            ],
-            "metadata": values
-        },
-        {
-            "file": RAW_CORRELATIONS_ZIP_NAME,
-            "previews": [
-                {
-                    "file": "spatial_correlation.svg",
-                    "caption": "Relationship between spatial distance and neural correlation across different behavioral states. Left panels show scatter plots of pairwise neural correlation versus physical distance between cell centroids, with linear regression line (gray). Right panels show density plots displaying the distribution of correlation values as a function of distance. This visualization reveals how functional relationships between neurons relate to their spatial arrangement."
-                },
-                {
-                    "file": "spatial_correlation_map.svg",
-                    "caption": "Spatial map of neural correlations across behavioral states. Gray dots show all neurons with known positions. Colored lines connect neuron pairs above the correlation threshold, with line color indicating correlation strength and direction. Bold black dots highlight neurons with very strong correlations (|r| > 0.7)."
-                }
-            ],
-            "metadata": spatial_values
-        },
-        {
-            "file": STAT_CORRELATIONS_CSV_NAME,
-            "previews": [
-                {
-                    "file": "correlation_plot.svg",
-                    "caption": "Distribution of correlation values across behavioral states. Shows cumulative distribution functions of correlation values and boxplot comparisons between states, illustrating the proportion of neurons with correlations below each threshold."
-                }
-            ],
-            "metadata": stat_values
-        }
-    ]
-
-    with open("output_data.json", "w") as f:
-        json.dump(
-            {
-                "schema_version": "1.0.0",
-                "output_files": output_data,
-            },
-            f,
-            indent=4,
-        )
-
-    logger.info("State Analysis: correlation tool completed")
-
-    # with OutputData() as output_data:
-    #     files = [
-    #         AVG_CORRELATIONS_CSV_NAME,
-    #         "average_correlations_preview.svg",
-    #         RAW_CORRELATIONS_H5_NAME,
-    #         "correlation_matrices.svg",
-    #         RAW_CORRELATIONS_ZIP_NAME,
-    #         "spatial_correlation.svg",
-    #         "spatial_correlation_map.svg",
-    #         STAT_CORRELATIONS_CSV_NAME,
-    #         "correlation_plot.svg"
-    #     ]
-    #     for file in files:
-    #         output_data.add_file(file)
+    with open("output_metadata.json", "w") as file:
+        json.dump(metadata, file, indent=2)
 
     # Return an empty dictionary to satisfy the return type
-    return {}
+    return {"values": values, "stat_values": stat_values}
 
 
-# @beartype
+@beartype
 def plot_correlation_matrices(
     correlation_matrix: Dict[str, np.ndarray],
     correlation_colors: Union[List[str], str],
@@ -709,12 +625,12 @@ def plot_correlation_matrices(
     return sort_indices
 
 
-# @beartype
+@beartype
 def _correlations_to_csv(
     correlation_matrix: Dict[str, np.ndarray],
     cell_names: List[str] = None,
     sort_indices: Dict[str, np.ndarray] = None,
-    positions: Optional[Dict[str, Tuple[float, float]]] = None,
+    positions: Optional[Dict[str, Tuple[Union[int, float], Union[int, float]]]] = None,
 ) -> None:
     """Save raw correlation matrices and cell name pair correlations to CSV files and zip them.
 
@@ -1024,7 +940,7 @@ but the length of the annotations data is {len(annotations)}"""
     return correlation_matrix
 
 
-# @beartype
+@beartype
 def plot_measure_correlations(
     *,
     df: pd.DataFrame,
@@ -1138,7 +1054,7 @@ def plot_measure_correlations(
     )
 
 
-# @beartype
+@beartype
 def _correlations_to_stat(
     correlation_matrix: Dict[str, np.ndarray],
     statistic: statistic_types,
@@ -1168,7 +1084,7 @@ def _correlations_to_stat(
     return df
 
 
-# @beartype
+@beartype
 def _correlations_to_h5(correlation_matrix: dict) -> None:
     """Save a dict with raw correlation matrices to a h5 file"""
     filename = RAW_CORRELATIONS_H5_NAME
@@ -1259,7 +1175,7 @@ We cannot accurately estimate correlations here. """,
     return df, states
 
 
-# @beartype
+@beartype
 def plot_spatial_correlations(
     triu_data: Dict[str, pd.DataFrame],
     out_file_name: str = SPATIAL_CORRELATION_SVG_NAME,
@@ -1409,12 +1325,12 @@ def plot_spatial_correlations(
     save_optimized_svg(fig, out_file_name)
 
 
-# @beartype
+@beartype
 def _extract_triu_data_for_spatial_analysis(
     correlation_matrix: Dict[str, np.ndarray],
     cell_names: List[str] = None,
     sort_indices: Dict[str, np.ndarray] = None,
-    positions: Optional[Dict[str, Tuple[float, float]]] = None,
+    positions: Optional[Dict[str, Tuple[Union[int, float], Union[int, float]]]] = None,
 ) -> Dict[str, pd.DataFrame]:
     """Extract triangular matrix data with spatial information for visualization.
 
@@ -1490,10 +1406,10 @@ def _extract_triu_data_for_spatial_analysis(
     return triu_data
 
 
-# @beartype
+@beartype
 def plot_correlation_spatial_map(
     correlation_matrix: Dict[str, np.ndarray],
-    positions: Dict[str, Tuple[float, float]],
+    positions: Dict[str, Tuple[Union[int, float], Union[int, float]]],
     cell_names: List[str],
     correlation_threshold: float = 0.5,
     correlation_colors: Union[List[str], str] = "red, blue",
@@ -1698,3 +1614,111 @@ def plot_correlation_spatial_map(
 
     # Save figure using optimized SVG function
     save_optimized_svg(fig, out_file_name)
+
+def correlation_tool_ideas_wrapper(
+    cell_set_files: List[IdeasFile],
+    annotations_file: Optional[List[IdeasFile]] = None,
+    column_name: str = "state",
+    state_names: Optional[str] = "",
+    state_colors: str = "blue, orange, grey",
+    correlation_colors: str = "red, blue",
+    statistic: statistic_types = "max",
+    include_positions: bool = True,
+    correlation_threshold: float = 0.5,
+):
+    """IDEAS wrapper for Inscopix correlation algorithm.
+    Analyze pairwise Pearson correlations between neural traces across behavioral states.
+
+    This tool computes correlation matrices between all neurons and analyzes how these
+    correlations change across different behavioral states (e.g., exploring familiar vs.
+    novel objects). It generates visualization of correlation matrices, statistics about
+    correlation distributions, and exports raw correlation data for further analysis.
+
+    :Parameters
+        cell_set_files: List of cell set files to analyze
+        annotations_file: Optional list of annotation files
+        column_name: Column in annotation file that contains state information
+        state_names: Comma-separated string of state names to analyze
+        state_colors: Comma-separated string of colors for each state
+        correlation_colors: Comma-separated string of colors for
+        correlation matrix (negative, positive)
+        statistic: Type of statistic to compute (max, mean, or min)
+        include_positions: Whether to include cell position information in output files
+        correlation_threshold: Threshold for correlation strength in spatial map
+
+    :Note
+        Frames are labeled in the following ways:
+        1. With no annotation file, all frames are analyzed as "all times"
+        2. With valid annotations, frames belonging to specified states maintain their labels
+        3. With valid annotations, frames not in any specified state are labeled as "not_defined"
+    """
+    correlation_tool(
+        cell_set_files=cell_set_files,
+        annotations_file=annotations_file,
+        column_name=column_name,
+        state_names=state_names,
+        state_colors=state_colors,
+        correlation_colors=correlation_colors,
+        statistic=statistic,
+        include_positions=include_positions,
+        correlation_threshold=correlation_threshold
+    )
+
+    metadata = outputs._load_and_remove_output_metadata()
+
+    # generate basename for output files based on input cell sets
+    output_prefix = outputs.input_paths_to_output_prefix(cell_set_files, annotations_file)
+
+    try:
+        logger.info("Registering output data")
+        with outputs.register(raise_missing_file=False) as output_data:
+            output_data.register_file(
+                AVG_CORRELATIONS_CSV_NAME,
+                subdir="average_correlations",
+                prefix=output_prefix,
+            ).register_preview(
+                "average_correlations_preview.svg",
+                caption="Mean positive (top) and negative (bottom) correlations across behavioral states. These barplots show how average correlation values differ between states, providing insight into overall network connectivity patterns."
+            ).register_metadata_dict(
+                **metadata["average_correlations"]
+            )
+
+            output_data.register_file(
+                RAW_CORRELATIONS_H5_NAME,
+                subdir="pairwise_correlation_heatmaps",
+                prefix=output_prefix,
+            ).register_preview(
+                "correlation_matrices.svg",
+                caption="Pairwise Pearson correlation matrices between neural activity across behavioral states. Neurons are hierarchically clustered to reveal functional organization, with color intensity representing correlation strength from -1 (negative) to +1 (positive)."
+            ).register_metadata_dict(
+                **metadata["pairwise_correlation_heatmaps"]
+            )
+
+            output_data.register_file(
+                RAW_CORRELATIONS_ZIP_NAME,
+                subdir="spatial_analysis_pairwise_correlations",
+                prefix=output_prefix,
+            ).register_preview(
+                "spatial_correlation.svg",
+                caption="Relationship between spatial distance and neural correlation across different behavioral states. Left panels show scatter plots of pairwise neural correlation versus physical distance between cell centroids, with linear regression line (gray). Right panels show density plots displaying the distribution of correlation values as a function of distance. This visualization reveals how functional relationships between neurons relate to their spatial arrangement."
+            ).register_preview(
+                "spatial_correlation_map.svg",
+                caption="Spatial map of neural correlations across behavioral states. Gray dots show all neurons with known positions. Colored lines connect neuron pairs above the correlation threshold, with line color indicating correlation strength and direction. Bold black dots highlight neurons with very strong correlations (|r| > 0.7)."
+            ).register_metadata_dict(
+                **metadata["spatial_analysis_pairwise_correlations"]
+            )
+
+            output_data.register_file(
+                STAT_CORRELATIONS_CSV_NAME,
+                subdir="correlation_statistic_comparison",
+                prefix=output_prefix,
+            ).register_preview(
+                "correlation_plot.svg",
+                caption="Distribution of correlation values across behavioral states. Shows cumulative distribution functions of correlation values and boxplot comparisons between states, illustrating the proportion of neurons with correlations below each threshold."
+            ).register_metadata_dict(
+                **metadata["correlation_statistic_comparison"]
+            )
+
+        logger.info("Registered output data")
+    except Exception:
+        logger.exception("Failed to generate output data!")

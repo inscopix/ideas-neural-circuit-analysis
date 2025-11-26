@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pingouin as pg
-from ideas import measures, plots
+from ideas.analysis import measures, plots
 
 from utils.plots import (
     _plot_box_and_strip,

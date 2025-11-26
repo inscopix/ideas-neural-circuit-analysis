@@ -1,0 +1,16 @@
+{
+    "group1_correlation_files": null,
+    "state_names": null,
+    "state_colors": null,
+    "group1_name": null,
+    "group1_color": null,
+    "group2_correlation_files": null,
+    "group2_name": null,
+    "group2_color": null,
+    "statistic": "max",
+    "multiple_correction": "bonf",
+    "effect_size": "cohen",
+    "data_pairing": "unpaired",
+    "subject_matching": "number",
+    "significance_threshold": 0.05
+}

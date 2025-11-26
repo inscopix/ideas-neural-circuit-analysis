@@ -1,5 +1,5 @@
 import fnmatch
-import logging
+import json
 import os
 import re
 import time
@@ -23,7 +23,9 @@ import utils.config as config
 #     IdeasPreviewFile,
 # )
 from ideas.exceptions import IdeasError
-from ideas.utils import _set_up_logger
+from ideas.tools.log import get_logger
+from ideas.tools.types import IdeasFile
+from ideas.tools import outputs
 # from toolbox.utils.output_manifest import save_output_manifest
 
 # Import utilities for this tool
@@ -33,7 +35,7 @@ from utils.combine_compare_population_data_utils import (
     calculate_group_anova_stats,
     detect_baseline_state,
     detect_state_comparison_type,
-    validate_states_by_state_comparison_type,
+    validate_user_specified_comparison_method,
 )
 from utils.population_data_validation import (
     validate_colors,
@@ -55,8 +57,8 @@ from utils.visualization_helpers import (
 )
 from analysis.combine_compare_peri_event_data import assign_modulation
 
-_set_up_logger()
-logger = logging.getLogger(__name__)
+
+logger = get_logger()
 
 
 def _combine_group_data_frames(
@@ -102,6 +104,7 @@ def combine_compare_population_data(
     significance_threshold: float = 0.05,
     multiple_correction: str = "bonf",
     effect_size: str = "cohen",
+    state_comparison_method: str = "auto",
     output_dir: Optional[str] = None,
 ) -> None:
     """Combine and compare population activity data from two groups.
@@ -145,6 +148,8 @@ def combine_compare_population_data(
         Method for multiple comparison correction. Default is "bonf".
     effect_size : str, optional
         Method for calculating effect size. Default is "cohen".
+    state_comparison_method : str, optional
+        Method for determining state comparison type. Default is "auto".
     output_dir : str, optional
         Directory to save output files. Default is None,
         which sets it to the current working directory.
@@ -322,13 +327,13 @@ def combine_compare_population_data(
             )
             detected_baseline_state, _, _ = detect_baseline_state(first_df)
 
-            # Validate states against the detected comparison type
+            # Validate states against user-specified or detected comparison type
             (
                 validated_global_states,
                 confirmed_state_comparison_type,
                 confirmed_baseline_state,
-            ) = validate_states_by_state_comparison_type(
-                first_df, state_names_list
+            ) = validate_user_specified_comparison_method(
+                first_df, state_names_list, state_comparison_method
             )
 
             # Use confirmed values (may be refined by validation)
@@ -341,12 +346,6 @@ def combine_compare_population_data(
                 confirmed_baseline_state
                 if confirmed_baseline_state is not None
                 else detected_baseline_state
-            )
-            initial_validated_states = validated_global_states
-
-            logger.info(
-                f"Global detection complete - Type: {global_state_comparison_type}, "
-                f"Baseline: {global_baseline_state}, States: {initial_validated_states}"
             )
 
         except Exception as e:
@@ -415,7 +414,7 @@ def combine_compare_population_data(
         group1_population_file = None
         # Process group 1 data
         (
-            # group1_population_file,
+            group1_population_md,
             group1_df,
             act_mod_group1,
             ev_mod_group1,
@@ -453,7 +452,7 @@ def combine_compare_population_data(
         # Process group 2 data if provided
         if group2_population_activity_files:
             (
-                # group2_population_file,
+                group2_population_md,
                 group2_df,
                 act_mod_group2,
                 ev_mod_group2,
@@ -674,59 +673,86 @@ def combine_compare_population_data(
         # save aov and pairwise data to disk
         final_aov.to_csv(output_aov_filename, index=False)
         final_pairwise.to_csv(output_pairwise_filename, index=False)
-
         if group2_population_activity_files is None:
             group2_population_activity_files = []
 
-        # if (
-        #     len(group2_population_activity_files) > 1
-        #     and group2_population_file is not None
-        # ):
-        #     comparison_metadata = {
-        #         config.IDEAS_METADATA_KEY: {
-        #             "dataset": {"states": final_validated_states},
-        #             "metrics": {
-        #                 "total_num_cells_group1": group1_population_file.file_metadata[
-        #                     "add"
-        #                 ][
-        #                     "ideas"
-        #                 ][
-        #                     "metrics"
-        #                 ][
-        #                     "total_num_cells"
-        #                 ],
-        #                 "total_num_cells_group2": group2_population_file.file_metadata[
-        #                     "add"
-        #                 ][
-        #                     "ideas"
-        #                 ][
-        #                     "metrics"
-        #                 ][
-        #                     "total_num_cells"
-        #                 ],
-        #             },
-        #         }
-        #     }
+        if (
+            len(group2_population_activity_files) > 1
+        ):
+            comparison_metadata = [
+                {
+                    "key" : "ideas.data.states",
+                    "name": "States",
+                    "value": final_validated_states
+                },
+                {
+                    "key" : "ideas.metrics.total_num_cells_group1",
+                    "name": "Number of cells (first group)",
+                    "value": group1_population_md[1]["value"]
+                },
+                {
+                    "key" : "ideas.metrics.total_num_cells_group2",
+                    "name": "Number of cells (second group)",
+                    "value": group2_population_md[1]["value"]
+                }
+            ]
+            # comparison_metadata = {
+            #     config.IDEAS_METADATA_KEY: {
+            #         "dataset": {"states": final_validated_states},
+            #         "metrics": {
+            #             "total_num_cells_group1": group1_population_file.file_metadata[
+            #                 "add"
+            #             ][
+            #                 "ideas"
+            #             ][
+            #                 "metrics"
+            #             ][
+            #                 "total_num_cells"
+            #             ],
+            #             "total_num_cells_group2": group2_population_file.file_metadata[
+            #                 "add"
+            #             ][
+            #                 "ideas"
+            #             ][
+            #                 "metrics"
+            #             ][
+            #                 "total_num_cells"
+            #             ],
+            #         },
+            #     }
+            # }
 
             # create filepaths for aov and pairwise
-        # else:
-        #     # define comparison metadata
-        #     comparison_metadata = {
-        #         config.IDEAS_METADATA_KEY: {
-        #             "dataset": {"states": final_validated_states},
-        #             "metrics": {
-        #                 "total_num_cells_group1": group1_population_file.file_metadata[
-        #                     "add"
-        #                 ][
-        #                     "ideas"
-        #                 ][
-        #                     "metrics"
-        #                 ][
-        #                     "total_num_cells"
-        #                 ],
-        #             },
-        #         }
-        #     }
+        else:
+            # define comparison metadata
+            comparison_metadata = [
+                {
+                    "key" : "ideas.data.states",
+                    "name": "States",
+                    "value": final_validated_states
+                },
+                {
+                    "key" : "ideas.metrics.total_num_cells_group1",
+                    "name": "Number of cells (first group)",
+                    "value": group1_population_md[1]["value"]
+                },
+            ]
+            # comparison_metadata = {
+            #     config.IDEAS_METADATA_KEY: {
+            #         "dataset": {"states": final_validated_states},
+            #         "metrics": {
+            #             "total_num_cells_group1": group1_population_file.file_metadata[
+            #                 "add"
+            #             ][
+            #                 "ideas"
+            #             ][
+            #                 "metrics"
+            #             ][
+            #                 "total_num_cells"
+            #             ],
+            #         },
+            #     }
+            # }
 
         # # add comparison data and plots to output manifest
         # aov_comparison_file = IdeasFile(
@@ -760,7 +786,7 @@ def combine_compare_population_data(
         if act_group1 is not None and not act_group1.empty:
             barplot_filename = os.path.join(
                 output_dir,
-                f"{group1_name}_mean_activity_barplot.svg",
+                f"{group1_name}_mean_activity_barplot{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
             )
             # Get actual component states from the data
             component_states = sorted(act_group1["state"].unique())
@@ -792,7 +818,7 @@ def combine_compare_population_data(
         if ev_group1 is not None and not ev_group1.empty:
             barplot_filename = os.path.join(
                 output_dir,
-                f"{group1_name}_mean_event_rate_barplot.svg",
+                f"{group1_name}_mean_event_rate_barplot{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
             )
             # Get actual component states from the data
             component_states = sorted(ev_group1["state"].unique())
@@ -824,7 +850,7 @@ def combine_compare_population_data(
         if act_group2 is not None and not act_group2.empty:
             barplot_filename = os.path.join(
                 output_dir,
-                f"{group2_name}_mean_activity_barplot.svg",
+                f"{group2_name}_mean_activity_barplot{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
             )
             # Get actual component states from the data
             component_states = sorted(act_group2["state"].unique())
@@ -856,7 +882,7 @@ def combine_compare_population_data(
         if ev_group2 is not None and not ev_group2.empty:
             barplot_filename = os.path.join(
                 output_dir,
-                f"{group2_name}_mean_event_rate_barplot.svg",
+                f"{group2_name}_mean_event_rate_barplot{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
             )
             # Get actual component states from the data
             component_states = sorted(ev_group2["state"].unique())
@@ -885,12 +911,23 @@ def combine_compare_population_data(
             #     )
             #     group2_preview_files.append(barplot_preview)
 
-        generate_output_manifest(
-            group1_population_files=group1_population_activity_files,
-            group2_population_files=group2_population_activity_files,
-            output_files=output_files,
-            output_dir=output_dir,
-        )
+        # generate_output_manifest(
+        #     group1_population_files=group1_population_activity_files,
+        #     group2_population_files=group2_population_activity_files,
+        #     output_files=output_files,
+        #     output_dir=output_dir,
+        # )
+
+        output_metadata = {
+            f"population_activity_data_{group1_name}": group1_population_md,
+            "aov_comparisons.csv": comparison_metadata,
+            "pairwise_comparisons.csv": comparison_metadata,
+        }
+        if group2_name:
+            output_metadata[f"population_activity_data_{group2_name}"] = group2_population_md
+        
+        with open(os.path.join(output_dir, "output_metadata.json"), "w") as f:
+            json.dump(output_metadata, f, indent=4)
 
     except Exception as e:
         logger.error(f"Error in combine_compare_population_data: {str(e)}")
@@ -916,7 +953,6 @@ def combine_population_data(
     global_state_comparison_type: Optional[str] = None,
     global_baseline_state: Optional[str] = None,
 ) -> Tuple[
-    # IdeasFile,
     pd.DataFrame,
     pd.DataFrame,
     Optional[pd.DataFrame],
@@ -1112,10 +1148,6 @@ def combine_population_data(
         if global_state_comparison_type is not None:
             state_comparison_type = global_state_comparison_type
             baseline_state = global_baseline_state
-            logger.info(
-                f"Using global detection values - Type: {state_comparison_type}, "
-                f"Baseline: {baseline_state}"
-            )
         else:
             # Fallback detection only if global values not provided
             # (should not happen in normal flow)
@@ -1238,14 +1270,18 @@ def combine_population_data(
                 )
 
         # Re-order the activity data into a form more usable for stats
-        act_data = extract_combined_activity_data(df_activity, states)
+        act_data = extract_combined_activity_data(
+            df_activity, states, data_type="activity"
+        )
         act_data["group"] = group_name
         act_data["group_id"] = group_id
 
         ev_data = None
         if event_dataframes:
             try:
-                ev_data = extract_combined_activity_data(df_events, states)
+                ev_data = extract_combined_activity_data(
+                    df_events, states, data_type="events"
+                )
                 ev_data["group"] = group_name
                 ev_data["group_id"] = group_id
             except Exception as e:
@@ -1256,33 +1292,46 @@ def combine_population_data(
         # Detect comparison type and baseline state for metadata
         # (Already detected earlier, just use the values)
 
-        population_data_metadata = {
-            config.IDEAS_METADATA_KEY: {
-                "dataset": {
-                    "states": states,
-                    "state_comparison_type": state_comparison_type,
-                    "baseline_state": baseline_state,
-                },
-                "metrics": {
-                    "total_num_cells": total_cells,
-                    "total_subjects": len(population_activity_files),
-                },
-                "analysis_parameters": {
-                    "significance_threshold": significance_threshold,
-                    "multiple_correction": multiple_correction,
-                    "effect_size": effect_size,
-                    "data_pairing": data_pairing,
-                },
-                "processing_info": {
-                    "file_count": len(population_activity_files),
-                    "group_name": group_name,
-                    "group_id": group_id,
-                },
+        population_data_metadata = [
+            {
+                "key": "ideas.dataset.states",
+                "name": "States",
+                "value": states
+            },
+            {
+                "key": "ideas.metrics.total_num_cells",
+                "name": "Number of cells",
+                "value": total_cells
             }
-        }
+        ]
 
-        # Create population activity file
-        file_key = f"group{group_id}_population_activity_csv_file"
+        # population_data_metadata = {
+        #     config.IDEAS_METADATA_KEY: {
+        #         "dataset": {
+        #             "states": states,
+        #             "state_comparison_type": state_comparison_type,
+        #             "baseline_state": baseline_state,
+        #         },
+        #         "metrics": {
+        #             "total_num_cells": total_cells,
+        #             "total_subjects": len(population_activity_files),
+        #         },
+        #         "analysis_parameters": {
+        #             "significance_threshold": significance_threshold,
+        #             "multiple_correction": multiple_correction,
+        #             "effect_size": effect_size,
+        #             "data_pairing": data_pairing,
+        #         },
+        #         "processing_info": {
+        #             "file_count": len(population_activity_files),
+        #             "group_name": group_name,
+        #             "group_id": group_id,
+        #         },
+        #     }
+        # }
+
+        # # Create population activity file
+        # file_key = f"group{group_id}_population_activity_csv_file"
         # population_activity_file = IdeasFile(
         #     file_key=file_key,
         #     file_path=os.path.abspath(output_population_filename),
@@ -1300,7 +1349,7 @@ def combine_population_data(
         )
 
         return (
-            # population_activity_file,
+            population_data_metadata,
             df_population,
             act_mod_data,
             ev_mod_data,
@@ -1356,7 +1405,7 @@ def process_and_visualize_mod_his(
         filename = os.path.join(
             output_dir,
             f"{data_type}_modulation_distribution_{group_name.replace(' ', '_')}"
-            + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION,
+            f"{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
         )
 
         # preview_file = IdeasPreviewFile(
@@ -1491,12 +1540,6 @@ def calculate_and_plot_stats(
         detected_baseline_state = global_baseline_state
         validated_states_for_plotting = states
 
-        logger.info(
-            f"Using global detection values for {data_type} - "
-            f"Type: {detected_state_comparison_type}, Baseline: {detected_baseline_state}, "
-            f"States: {validated_states_for_plotting}"
-        )
-
         # For calculate_mod_stats, we pass the `states` it should analyze.
         # These are the `states` originally passed to combine_compare_population_data,
         # which extract_and_validate_states refined based on raw data.
@@ -1525,8 +1568,7 @@ def calculate_and_plot_stats(
         # Generate modulation plot
         mod_preview_filename = os.path.join(
             output_dir,
-            f"{data_type}_modulation_distribution"
-            + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION,
+            f"{data_type}_modulation_distribution{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
         )
 
         # Create IDEASPreviewFile for modulation plot
@@ -1633,10 +1675,6 @@ def calculate_and_plot_stats(
 
                 # For activity analysis, use global state-to-color mapping directly
                 activity_colors = state_colors
-                logger.info(f"Activity color mapping: {state_colors}")
-                logger.info(
-                    f"Using all states for activity analysis: {activity_states}"
-                )
 
             act_aov, act_pairwise = calculate_state_lmm_stats(
                 df=act_data,
@@ -1652,8 +1690,7 @@ def calculate_and_plot_stats(
         # Create state LMM visualization
         state_lmm_filename = os.path.join(
             output_dir,
-            f"{data_type.lower()}_state_lmm"
-            + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION,
+            f"{data_type.lower()}_state_lmm{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
         )
 
         # Create IDEASPreviewFile for state LMM plot
@@ -1693,9 +1730,6 @@ def calculate_and_plot_stats(
                 )
         else:
             # For multiple groups, calculate group comparison statistics
-            logger.info(
-                f"Using validated states for group analysis: {activity_states}"
-            )
 
             (
                 group_aov,
@@ -1714,10 +1748,6 @@ def calculate_and_plot_stats(
             # Add ANOVA main effects to complement LMM fixed effects
             if not group_aov.empty:
                 aov = pd.concat([aov, group_aov], ignore_index=True)
-                logger.info(
-                    f"Added {len(group_aov)} ANOVA main effects for "
-                    f"complementary global variance detection"
-                )
 
             # Skip ANOVA pairwise tests - they're redundant with LMM pairwise tests
             logger.info(
@@ -1727,11 +1757,13 @@ def calculate_and_plot_stats(
 
             # Create group comparison visualization using LMM pairwise for plotting
             if group_df is not None and not group_df.empty:
+                anova_type = (
+                    "rm_anova" if data_pairing == "paired" else "mixed_anova"
+                )
                 group_anova_filename = os.path.join(
                     output_dir,
-                    f"{data_type.lower()}_group_"
-                    f"{'rm_anova' if data_pairing == 'paired' else 'mixed_anova'}"
-                    + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION,
+                    f"{data_type.lower()}_group_{anova_type}"
+                    f"{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
                 )
 
                 # Create IDEASPreviewFile for group ANOVA plot
@@ -2223,7 +2255,7 @@ def reclassify_neurons(
 
 
 def extract_combined_activity_data(
-    df: pd.DataFrame, states: List[str]
+    df: pd.DataFrame, states: List[str], data_type: str = "activity"
 ) -> pd.DataFrame:
     """Extract and reorganize activity data from combined population data.
 
@@ -2233,6 +2265,8 @@ def extract_combined_activity_data(
         Dataframe containing the combined population data
     states : List[str]
         List of state names to extract data from combined population data
+    data_type : str, optional
+        Type of data being processed ("activity" or "events"), by default "activity"
 
     Returns
     -------
@@ -2378,12 +2412,10 @@ def extract_combined_activity_data(
             )
 
         # Log summary of what was processed
-        processed_states = output_df["state"].unique().tolist()
         if found_additional_states:
             logger.info(
                 f"Found additional states in activity columns: {found_additional_states}"
             )
-        logger.info(f"Processed activity data for states: {processed_states}")
         if baseline_state:
             logger.info(
                 f"Included baseline state '{baseline_state}' in activity analysis"
@@ -2394,7 +2426,7 @@ def extract_combined_activity_data(
     except Exception as e:
         logger.error(f"Error in extract_combined_activity_data: {str(e)}")
         raise IdeasError(
-            f"Error extracting combined activity data: {str(e)}",
+            f"Error extracting combined {data_type} data: {str(e)}",
         )
 
 
@@ -2464,30 +2496,13 @@ def extract_combined_modulation_data(
             )
 
         # Use provided comparison type and baseline state - validated by caller
-        logger.info(
-            f"Using provided comparison type:"
-            f" {state_comparison_type} and baseline: {baseline_state}"
-        )
         validated_states = states
-
-        logger.info(
-            f"Final values - Type: {state_comparison_type}, Baseline: {baseline_state}, "
-            f"States: {validated_states}"
-        )
 
         if not validated_states:
             logger.warning("No valid states found for modulation extraction")
             raise IdeasError(
                 "No valid states found for modulation extraction. Check that the requested "
                 "states exist in the data files.",
-            )
-
-        # Determine if this is a baseline comparison
-        is_baseline_comparison = baseline_state is not None
-
-        if is_baseline_comparison:
-            logger.info(
-                f"Using baseline state '{baseline_state}' for extracting modulation data"
             )
 
         # Process each comparison type (trace_activity, event_rate, etc.)
@@ -2588,78 +2603,168 @@ def extract_combined_modulation_data(
             f"Error extracting combined modulation data: {str(e)}",
         )
 
-
-def generate_output_manifest(
-    group1_population_files: List[str],
-    group2_population_files: List[str],
-    output_files: List,
-    output_dir: str,
+def combine_compare_population_data_ideas_wrapper(
+    group1_population_activity_files: List[IdeasFile],
+    state_names: str,
+    state_colors: str,
+    group1_population_events_files: Optional[List[IdeasFile]] = None,
+    group1_name: Optional[str] = None,
+    group1_color: Optional[str] = None,
+    group2_population_activity_files: Optional[List[IdeasFile]] = None,
+    group2_population_events_files: Optional[List[IdeasFile]] = None,
+    group2_name: Optional[str] = None,
+    group2_color: Optional[str] = None,
+    modulation_colors: Optional[str] = "red, blue",
+    data_pairing: str = "unpaired",
+    subject_matching: str = "number",
+    significance_threshold: float = 0.05,
+    multiple_correction: str = "bonf",
+    effect_size: str = "cohen",
+    state_comparison_method: str = "auto",
 ) -> None:
-    """Construct and save output manifest and metadata to disk.
+    """Combine and compare population activity data from two groups.
 
-    :param group1_population_files: population data files from the first group
-    :param group2_population_files: population data files from the second group
-    :param output_files: list of IdeasFile to include in the output manifest
-    :param output_dir: path to the output directory
+    This function processes population activity data (and optionally event data) from one or two
+    groups, performs statistical analyses to identify differences between states within each group,
+    and between the two groups. It generates visualizations of the results and saves all output
+    files to the specified directory.
+
+    Parameters
+    ----------
+    group1_population_activity_files : List[str]
+        List of file paths for group 1 population activity data.
+    state_names : str
+        Comma-separated string of state names to include in the analysis.
+    state_colors : str
+        Comma-separated string of colors to use for visualizing different states.
+    group1_population_events_files : List[str], optional
+        List of file paths for group 1 population events data.
+    group1_name : str, optional
+        Name of group 1, used for labeling outputs.
+    group1_color : str, optional
+        Color associated with group 1 for visualizations.
+    group2_population_activity_files : List[str], optional
+        List of file paths for group 2 population activity data.
+    group2_population_events_files : List[str], optional
+        List of file paths for group 2 population events data.
+    group2_name : str, optional
+        Name of group 2, used for labeling outputs.
+    group2_color : str, optional
+        Color associated with group 2 for visualizations.
+    modulation_colors : str, optional
+        Comma-separated string of colors for up and down modulation. Default is "red, blue".
+    data_pairing : str, optional
+        Type of data pairing for comparison ("paired" or "unpaired").
+    subject_matching : str, optional
+        Method for matching subjects between groups for paired analysis.
+    significance_threshold : float, optional
+        Significance threshold for statistical tests. Default is 0.05.
+    multiple_correction : str, optional
+        Method for multiple comparison correction. Default is "bonf".
+    effect_size : str, optional
+        Method for calculating effect size. Default is "cohen".
+    state_comparison_method : str, optional
+        Method for determining state comparison type. Default is "auto".
+
+    Returns
+    -------
+    None
+        All output files are saved to the specified output directory.
+
+    Raises
+    ------
+    IdeasError
+        If input parameters are invalid or if there are issues processing the data.
+
     """
-    pass
-    # GROUP 1
-    # source population FILES (group 1)
-    # source_population_files_group1 = [
-    #     IdeasFile(
-    #         file_key="group1_population_activity_files",
-    #         file_path=os.path.abspath(f),
-    #         file_type=FileType.MODULATION_DATA.value[1],
-    #         file_format=FileFormat.CSV_FILE.value[1],
-    #         file_structure=FileStructure.TABLE.value[1],
-    #         file_category=FileCategory.SOURCE.value[1],
-    #     )
-    #     for f in group1_population_files
-    # ]
+    combine_compare_population_data(
+        group1_population_activity_files=group1_population_activity_files,
+        state_names=state_names,
+        state_colors=state_colors,
+        group1_population_events_files=group1_population_events_files,
+        group1_name=group1_name,
+        group1_color=group1_color,
+        group2_population_activity_files=group2_population_activity_files,
+        group2_population_events_files=group2_population_events_files,
+        group2_name=group2_name,
+        group2_color=group2_color,
+        modulation_colors=modulation_colors,
+        data_pairing=data_pairing,
+        subject_matching=subject_matching,
+        significance_threshold=significance_threshold,
+        multiple_correction=multiple_correction,
+        effect_size=effect_size,
+        state_comparison_method=state_comparison_method
+    )
 
-    # # initialize list of files to files in group 1
-    # files = source_population_files_group1
+    try:
+        logger.info("Registering output data")
+        metadata = outputs._load_and_remove_output_metadata()
+        with outputs.register(raise_missing_file=False) as output_data:
+            anova_type = (
+                "rm_anova" if data_pairing == "paired" else "mixed_anova"
+            )
+            for group_name in [group1_name, group2_name]:
+                subdir_base = "group1" if group_name == group1_name else "group2"
+                data_types = ["activity", "events"]
+                
+                output_file = output_data.register_file(
+                    f"population_activity_data_{group_name}.csv",
+                    subdir=f"{subdir_base}_population_activity_data",
+                )
+                for md in metadata.get(f"population_activity_data_{group_name}", {}):
+                    output_file.register_metadata(**md) 
 
-    # # GROUP 2
-    # if group2_population_files and len(group2_population_files) > 0:
-    #     # source population FILES (group 2)
-    #     source_population_files_group2 = [
-    #         IdeasFile(
-    #             file_key="group2_population_activity_files",
-    #             file_path=os.path.abspath(f),
-    #             file_type=FileType.MODULATION_DATA.value[1],
-    #             file_format=FileFormat.CSV_FILE.value[1],
-    #             file_structure=FileStructure.TABLE.value[1],
-    #             file_category=FileCategory.SOURCE.value[1],
-    #         )
-    #         for f in group2_population_files
-    #     ]
+                for data_type in data_types:
+                    output_file.register_preview(
+                        f"{data_type}_modulation_distribution_{group_name}.preview.svg",
+                        caption=(
+                            f"Stacked bar chart displaying the proportion of neurons with "
+                            f"increased, decreased, and unchanged {data_type} for each "
+                            f"experimental state in the {group_name} group."
+                        ),
+                    ).register_preview(
+                        f"{group_name}_mean_{data_type}_barplot{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                        caption=(
+                            f"Box and whisker plot displaying the distribution of mean neural {data_type} "
+                            f"across experimental states for {group1_name}. The plot shows "
+                            f"median values, quartiles, and outliers for each state."
+                        ),
+                    )
 
-    #     # add group 2 files to list of output files
-    #     files.extend(source_population_files_group2)
+            output_names = ["aov_comparisons.csv", "pairwise_comparisons.csv"]
+            for output_name in output_names:
+                output_file = output_data.register_file(
+                    output_name,
+                )
+                for md in metadata.get(output_name, {}):
+                    output_file.register_metadata(**md)
+                
+                for data_type in data_types:
+                    output_file.register_preview(
+                        f"{data_type}_modulation_distribution{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                        caption=(
+                            f"Stacked bar chart displaying the proportion of neurons with "
+                            f"increased, decreased, and unchanged {data_type} for each "
+                            f"experimental state across {group1_name}, {group2_name}  groups."
+                        ),
+                    ).register_preview(
+                        f"{data_type}_state_lmm{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                        caption=(
+                            f"Statistical comparison of {data_type} data across experimental "
+                            f"states using Linear Mixed Models (LMM). The plot displays mean "
+                            f"values with error bars and individual data points."
+                        ),
+                    ).register_preview(
+                        f"{data_type}_group_{anova_type}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                        caption=(
+                            f"Statistical comparison of {data_type} data between "
+                            f"experimental groups across different states using Analysis "
+                            f"of Variance (ANOVA). The plot shows group differences with "
+                            f"mean values, error bars, and individual data points."
+                        ),
+                    )  
 
-    # # add output files to the list of files in the group
-    # if isinstance(output_files, list):
-    #     if all(isinstance(f, IdeasFile) for f in output_files):
-    #         files.extend(output_files)
-    #     else:
-    #         # If output_files contains nested lists, flatten them
-    #         flattened_output_files = []
-    #         for item in output_files:
-    #             if isinstance(item, list):
-    #                 flattened_output_files.extend(item)
-    #             else:
-    #                 flattened_output_files.append(item)
-    #         files.extend(flattened_output_files)
-    # else:
-    #     files.append(output_files)
-
-    # # combine-and-compare population data GROUP
-    # combine_compare_population_data_group = IdeasGroup(
-    #     group_key="combine_compare_population_activity_output",
-    #     group_type=GroupType.TOOL_OUTPUT.value[1],
-    #     files=files,
-    # )
-
-    # # save output manifest & metadata to disk
-    # save_output_manifest(combine_compare_population_data_group, output_dir)
+        logger.info("Registered output data")
+    except Exception:
+        logger.exception("Failed to generate output data!")

@@ -1,0 +1,4 @@
+Comparison,Contrast,A,B,Paired,Parametric,T,dof,alternative,p-unc,BF10
+population,epoch,Baseline,Early Drug,False,True,1.0484122827674283,38.0,two-sided,0.30107135129328894,0.477
+population,epoch,Baseline,Late Drug,False,True,1.2556311075791693,38.0,two-sided,0.21691587170269858,0.575
+population,epoch,Early Drug,Late Drug,False,True,0.6846621195727538,38.0,two-sided,0.49771212403409226,0.372

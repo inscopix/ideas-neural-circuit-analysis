@@ -1,0 +1,20 @@
+{
+    "cell_set_files": [
+        "data/input_cellset.isxd",
+        "data/input_cellset.isxd"
+    ],
+    "event_set_files": [
+        "data/input_cellset-ED.isxd",
+        "data/input_cellset-ED.isxd"
+    ],
+    "define_epochs_by": "files",
+    "epoch_names": "early baseline, late baseline",
+    "epochs": "(0, 10), (11, 20), (21, 30)",
+    "epoch_colors": "tab:grey, tab:blue",
+    "bin_size": 0,
+    "trace_scale_method": "none",
+    "event_scale_method": "none",
+    "sort_by_time": true,
+    "tolerance": 1e-4,
+    "heatmap": "Auto"
+}
