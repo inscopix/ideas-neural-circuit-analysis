@@ -61,36 +61,30 @@
             "description": "Method to define epochs. If 'files', one epoch per input cell set will be automatically defined, for the whole duration of each cell set. If 'global file time', you can define as many epochs as you want, with 0 corresponding to start time of the first cell set. If 'local file time', you can define as many epochs as you want per input cell set, with 0 corresponding to start time of each cell set.",
             "type": {
                 "param_type": "ToolChoiceParam",
-                "default": "max",
+                "default": "global file time",
                 "choices": [
-                    "max",
-                    "mean",
-                    "min"
+                    "files",
+                    "global file time",
+                    "local file time"
                 ],
                 "display_options": [
-                    "Maximum",
-                    "Mean",
-                    "Minimum"
+                    "Files",
+                    "Global File Time",
+                    "Local File Time"
                 ]
             },
-            "group": "Analysis Parameters"
+            "group": "Epoch Definition"
         },
         {
             "key": "epochs",
             "name": "Epochs",
             "required": false,
-            "description": "Tuples of the start and end times (in seconds) for each epoch (e.g., if 'Define Epochs by' is set to 'Global file time', (0, 600), (650, 950), (950, 1250)). If 'Define Epochs by' is set to 'Local file time', provide one list of tuples per input cell set file (e.g., [(0, 600)], [(0, 300), (300, 600)]). If 'Define Epochs by' is set to 'Files', you can leave this parameter empty.",
+            "description": "Tuples of the start and end times (in seconds) for each epoch (e.g., if 'Define Epochs by' is set to 'Global file time', (0, 600), (650, 950), (950, 1250)). If 'Define Epochs by' is set to 'Local file time', provide one list of tuple per input cell set file (e.g., [(0, 600)], [(0, 300), (300, 600)]). If 'Define Epochs by' is set to 'Files', you can leave this parameter empty.",
             "type": {
-                "param_type": "ToolChoiceParam",
-                "choices": [
-                    "state vs baseline"
-                ],
-                "display_options": [
-                    "State vs Baseline"
-                ],
-                "default": "state vs baseline"
+                "param_type": "ToolStringParam",
+                "default": "(0, 600), (650, 950), (950, 1250)"
             },
-            "group": "Analysis Parameters"
+            "group": "Epoch Definition"
         },
         {
             "key": "epoch_names",
@@ -122,7 +116,7 @@
                 "param_type": "ToolStringParam",
                 "default": "state"
             },
-            "group": "Analysis Parameters"
+            "group": "State Definition"
         },
         {
             "key": "state_names",
@@ -132,7 +126,7 @@
             "type": {
                 "param_type": "ToolStringParam"
             },
-            "group": "Analysis Parameters"
+            "group": "State Definition"
         },
         {
             "key": "state_colors",
@@ -143,24 +137,29 @@
                 "param_type": "ToolStringParam",
                 "default": "gray, blue, orange"
             },
-            "group": "Analysis Parameters"
+            "group": "State Definition"
         },
         {
-            "key": "method",
-            "name": "Method to Compare States",
+            "key": "baseline_state",
+            "name": "Baseline State",
             "required": true,
-            "description": "Specifies how states are compared; this tool currently supports only state vs baseline comparisons.",
+            "description": "State to use as baseline for modulation calculations",
             "type": {
-                "param_type": "ToolChoiceParam",
-                "default": "state vs baseline",
-                "choices": [
-                    "state vs baseline"
-                ],
-                "display_options": [
-                    "State vs Baseline"
-                ]
+                "param_type": "ToolStringParam",
+                "default": "rest"
             },
-            "group": "Analysis Parameters"
+            "group": "Baseline Parameters"
+        },
+        {
+            "key": "baseline_epoch",
+            "name": "Baseline Epoch",
+            "required": true,
+            "description": "Epoch to use as baseline for modulation calculations",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "baseline"
+            },
+            "group": "Baseline Parameters"
         },
         {
             "key": "correlation_statistic",
@@ -184,58 +183,21 @@
             "group": "Analysis Parameters"
         },
         {
-            "key": "define_epochs_by",
-            "name": "Define Epochs By",
+            "key": "method",
+            "name": "Method to Compare States",
             "required": true,
-            "description": "Method to define epochs. If 'files', one epoch per input cell set will be automatically defined, for the whole duration of each cell set. If 'global file time', you can define as many epochs as you want, with 0 corresponding to start time of the first cell set. If 'local file time', you can define as many epochs as you want per input cell set, with 0 corresponding to start time of each cell set.",
+            "description": "Specifies how states are compared; this tool currently supports only state vs baseline comparisons.",
             "type": {
                 "param_type": "ToolChoiceParam",
-                "default": "global file time",
+                "default": "state vs baseline",
                 "choices": [
-                    "files",
-                    "global file time",
-                    "local file time"
+                    "state vs baseline"
                 ],
                 "display_options": [
-                    "Files",
-                    "Global File Time",
-                    "Local File Time"
+                    "State vs Baseline"
                 ]
             },
-            "group": "Epoch Definition"
-        },
-        {
-            "key": "epochs",
-            "name": "Epochs",
-            "required": false,
-            "description": "Tuples of the start and end times (in seconds) for each epoch (e.g., if 'Define Epochs by' is set to 'Global file time', (0, 600), (650, 950), (950, 1250)). If 'Define Epochs by' is set to 'Local file time', provide one list of tuple per input cell set file (e.g., [(0, 600)], [(0, 300), (300, 600)]). If 'Define Epochs by' is set to 'Files', you can leave this parameter empty.",
-            "type": {
-                "param_type": "ToolStringParam",
-                "default": "(0, 600), (650, 950), (950, 1250)"
-            },
-            "group": "Epoch Definition"
-        },
-        {
-            "key": "baseline_state",
-            "name": "Baseline State",
-            "required": true,
-            "description": "State to use as baseline for modulation calculations",
-            "type": {
-                "param_type": "ToolStringParam",
-                "default": "rest"
-            },
-            "group": "Baseline Parameters"
-        },
-        {
-            "key": "baseline_epoch",
-            "name": "Baseline Epoch",
-            "required": true,
-            "description": "Epoch to use as baseline for modulation calculations",
-            "type": {
-                "param_type": "ToolStringParam",
-                "default": "baseline"
-            },
-            "group": "Baseline Parameters"
+            "group": "Analysis Parameters"
         },
         {
             "key": "concatenate",
@@ -415,7 +377,7 @@
     },
     "description": "Combined analysis of neural activity and correlations across behavioral states and time epochs with baseline comparison",
     "visibility": "public",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "docs": "https://inscopix.github.io/ideas-docs/tools/epochs/state_epoch_baseline/state_epoch_baseline.html",
     "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis",
     "tags": [
