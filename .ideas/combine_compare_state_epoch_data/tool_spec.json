@@ -1,0 +1,479 @@
+{
+    "key": "combine_compare_state_epoch_data",
+    "name": "Compare State-Epoch Data Between Groups",
+    "schema_version": "3.0.0",
+    "container_image": {
+        "repository": "platform/neural-analysis",
+        "label": "1.0.1"
+    },
+    "command": {
+        "file_path": "analysis/combine_compare_state_epoch_data.py",
+        "entry_point": "combine_compare_state_epoch_data",
+        "program_type": "PYTHON"
+    },
+    "params": [
+        {
+            "key": "group1_activity_csv_files",
+            "name": "Group 1 Activity Files",
+            "required": true,
+            "description": "CSV files containing activity_per_state_epoch_data outputs for Group 1 (produced by state_epoch_baseline_analysis). At least two files are required.",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "csv"
+                ]
+            },
+            "group": "Group 1 Input Files"
+        },
+        {
+            "key": "group1_correlation_csv_files",
+            "name": "Group 1 Correlation Files",
+            "required": false,
+            "description": "Correlation outputs for Group 1 subjects. Accepts either CSV files (correlations_per_state_epoch_data.csv) or H5 files (pairwise_correlation_heatmaps.h5) from state_epoch_baseline_analysis. Both formats produce identical analysis results.",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "csv",
+                    "h5"
+                ]
+            },
+            "group": "Group 1 Input Files"
+        },
+        {
+            "key": "group1_modulation_csv_files",
+            "name": "Group 1 Modulation Files",
+            "required": false,
+            "description": "CSV files containing modulation vs baseline data for Group 1 subjects (output from state_epoch_baseline tool)",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "csv"
+                ]
+            },
+            "group": "Group 1 Input Files"
+        },
+        {
+            "key": "group1_name",
+            "name": "Group 1 Name",
+            "required": false,
+            "description": "Display name for the first experimental group (e.g., 'Control', 'Wild-type'). Must be unique if Group 2 is also provided.",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "Group 1"
+            },
+            "group": "Group Configuration"
+        },
+        {
+            "key": "group1_color",
+            "name": "Group 1 Color",
+            "required": false,
+            "description": "Color for Group 1 in visualizations. Accepts color names (e.g., 'blue') or hex codes (e.g., '#1f77b4').",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "blue"
+            },
+            "group": "Group Configuration"
+        },
+        {
+            "key": "group2_activity_csv_files",
+            "name": "Group 2 Activity Files",
+            "required": false,
+            "description": "CSV files containing activity per state-epoch data for Group 2 subjects (output from state_epoch_baseline tool)",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "csv"
+                ]
+            },
+            "group": "Group 2 Input Files"
+        },
+        {
+            "key": "group2_correlation_csv_files",
+            "name": "Group 2 Correlation Files",
+            "required": false,
+            "description": "Correlation outputs for Group 2 subjects. Accepts either CSV files (correlations_per_state_epoch_data.csv) or H5 files (pairwise_correlation_heatmaps.h5) from state_epoch_baseline_analysis. Both formats produce identical analysis results.",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "csv",
+                    "h5"
+                ]
+            },
+            "group": "Group 2 Input Files"
+        },
+        {
+            "key": "group2_modulation_csv_files",
+            "name": "Group 2 Modulation Files",
+            "required": false,
+            "description": "CSV files containing modulation vs baseline data for Group 2 subjects (output from state_epoch_baseline tool)",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "csv"
+                ]
+            },
+            "group": "Group 2 Input Files"
+        },
+        {
+            "key": "group2_name",
+            "name": "Group 2 Name",
+            "required": false,
+            "description": "Display name for the second experimental group (e.g., 'Treatment', 'Knockout'). Must be unique and different from Group 1 name.",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "Group 2"
+            },
+            "group": "Group Configuration"
+        },
+        {
+            "key": "group2_color",
+            "name": "Group 2 Color",
+            "required": false,
+            "description": "Color for Group 2 in visualizations. Accepts color names (e.g., 'red') or hex codes (e.g., '#d62728').",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "red"
+            },
+            "group": "Group Configuration"
+        },
+        {
+            "key": "comparison_dimension",
+            "name": "Comparison Dimension",
+            "required": false,
+            "description": "Which dimension to compare across groups. Choose 'states' to compare neural responses across different behavioral states, or 'epochs' to compare across different time periods.",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "states",
+                "choices": [
+                    "states",
+                    "epochs"
+                ],
+                "display_options": [
+                    "States",
+                    "Epochs"
+                ]
+            },
+            "group": "Comparison Parameters"
+        },
+        {
+            "key": "measure_source",
+            "name": "Measure Source",
+            "required": false,
+            "description": "Data source for statistical comparisons. 'trace' uses calcium imaging traces, 'event' uses detected calcium events if available, 'both' analyzes each source separately.",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "trace",
+                "choices": [
+                    "trace",
+                    "event",
+                    "both"
+                ],
+                "display_options": [
+                    "Trace Data",
+                    "Event Data",
+                    "Both (Trace + Event)"
+                ]
+            },
+            "group": "Comparison Parameters"
+        },
+        {
+            "key": "state_colors",
+            "name": "State Colors",
+            "required": false,
+            "description": "Comma-separated list of colors for behavioral states in visualizations. Accepts color names or hex codes (e.g., 'blue, orange, green' or '#1f77b4, #ff7f0e, #2ca02c').",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": "Visualization Parameters"
+        },
+        {
+            "key": "epoch_colors",
+            "name": "Epoch Colors",
+            "required": false,
+            "description": "Comma-separated list of colors for time epochs in visualizations. Accepts color names or hex codes (e.g., 'gray, purple, cyan' or '#8c564b, #e377c2, #7f7f7f').",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": "Visualization Parameters"
+        },
+        {
+            "key": "modulation_colors",
+            "name": "Modulation Colors",
+            "required": false,
+            "description": "Comma-separated colors for modulation visualization: upregulated, downregulated, not significant (e.g., 'green,blue,black')",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "green,blue,black"
+            },
+            "group": "Visualization Parameters"
+        },
+        {
+            "key": "data_pairing",
+            "name": "Data Pairing",
+            "required": false,
+            "description": "Whether data is paired or unpaired. Use 'paired' for within-subject designs (e.g., before/after treatment in same animals), 'unpaired' for between-subject designs (e.g., different control vs treatment animals).",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "unpaired",
+                "choices": [
+                    "paired",
+                    "unpaired"
+                ],
+                "display_options": [
+                    "Paired",
+                    "Unpaired"
+                ]
+            },
+            "group": "Statistical Parameters"
+        },
+        {
+            "key": "subject_matching",
+            "name": "Subject Matching",
+            "required": false,
+            "description": "How to match subjects between groups for paired comparisons. 'order' matches by file order, 'filename' matches by filename similarity, 'number' matches by numeric identifiers inside filenames.",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "order",
+                "choices": [
+                    "order",
+                    "filename",
+                    "number"
+                ],
+                "display_options": [
+                    "By Order",
+                    "By Filename",
+                    "By Number"
+                ]
+            },
+            "group": "Statistical Parameters"
+        },
+        {
+            "key": "correlation_statistic",
+            "name": "Correlation Statistic",
+            "required": false,
+            "description": "Per-cell correlation statistic to use for group comparisons (max, min, or mean correlation across cell pairs).",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "max",
+                "choices": [
+                    "max",
+                    "mean",
+                    "min"
+                ],
+                "display_options": [
+                    "Maximum",
+                    "Mean",
+                    "Minimum"
+                ]
+            },
+            "group": "Statistical Parameters"
+        },
+        {
+            "key": "significance_threshold",
+            "name": "Significance Threshold",
+            "required": false,
+            "description": "P-value threshold for statistical comparisons. When not specified, uses pre-computed modulation classifications from state_epoch_baseline_analysis. If a value is provided, neurons will be reclassified using this threshold.",
+            "type": {
+                "param_type": "ToolFloatRangeParam",
+                "min": 0.001,
+                "max": 0.1
+            },
+            "group": "Statistical Parameters"
+        },
+        {
+            "key": "multiple_correction",
+            "name": "Multiple Comparison Correction",
+            "required": false,
+            "description": "Method for correcting multiple comparisons. 'bonf' (Bonferroni) is most conservative, 'fdr_bh' (Benjamini-Hochberg) controls false discovery rate, 'none' performs no correction.",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "bonf",
+                "choices": [
+                    "bonf",
+                    "fdr_bh",
+                    "none"
+                ],
+                "display_options": [
+                    "Bonferroni",
+                    "FDR (Benjamini-Hochberg)",
+                    "None"
+                ]
+            },
+            "group": "Statistical Parameters"
+        },
+        {
+            "key": "multiple_correction_scope",
+            "name": "Multiple Correction Scope",
+            "required": false,
+            "description": "Scope for multiple comparison correction. 'global' corrects across all comparisons, 'within_stratum' corrects within each state/epoch separately.",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "global",
+                "choices": [
+                    "global",
+                    "within_stratum"
+                ],
+                "display_options": [
+                    "Global",
+                    "Per Condition"
+                ]
+            },
+            "group": "Statistical Parameters"
+        },
+        {
+            "key": "effect_size",
+            "name": "Effect Size Metric",
+            "required": false,
+            "description": "Method for calculating effect size. 'cohen' uses Cohen's d, 'hedges' uses Hedges' g (better for small samples), 'glass' uses Glass's delta.",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "cohen",
+                "choices": [
+                    "cohen",
+                    "hedges",
+                    "glass"
+                ],
+                "display_options": [
+                    "Cohen's d",
+                    "Hedges' g",
+                    "Glass's delta"
+                ]
+            },
+            "group": "Statistical Parameters"
+        },
+        {
+            "key": "group_comparison_type",
+            "name": "Group Comparison Type",
+            "required": false,
+            "description": "Tail for post-hoc tests. 'two_tailed' checks for any difference, 'one_tailed_greater' tests if Group 1 > Group 2, 'one_tailed_less' tests if Group 1 < Group 2.",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "two_tailed",
+                "choices": [
+                    "two_tailed",
+                    "one_tailed_greater",
+                    "one_tailed_less"
+                ],
+                "display_options": [
+                    "Two-tailed",
+                    "One-tailed (Group1 > Group2)",
+                    "One-tailed (Group1 < Group2)"
+                ]
+            },
+            "group": "Statistical Parameters"
+        },
+        {
+            "key": "parametric",
+            "name": "Parametric Tests",
+            "required": false,
+            "description": "Whether to use parametric statistical tests. 'auto' automatically selects based on data distribution, 'true' forces parametric tests (t-test/ANOVA), 'false' forces non-parametric tests (Mann-Whitney/Kruskal-Wallis).",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "auto",
+                "choices": [
+                    "auto",
+                    "true",
+                    "false"
+                ],
+                "display_options": [
+                    "Auto",
+                    "Yes (Parametric)",
+                    "No (Non-parametric)"
+                ]
+            },
+            "group": "Statistical Parameters"
+        },
+        {
+            "key": "enable_lmm_analysis",
+            "name": "Enable Linear Mixed Model Analysis",
+            "required": false,
+            "description": "Perform linear mixed model (LMM) analysis to account for within-subject correlations and repeated measures. Recommended for complex experimental designs with multiple observations per subject.",
+            "type": {
+                "param_type": "ToolBooleanParam",
+                "default": true
+            },
+            "group": "Linear Mixed Model Options"
+        },
+        {
+            "key": "save_lmm_outputs",
+            "name": "Save LMM Detailed Outputs",
+            "required": false,
+            "description": "Save detailed linear mixed model outputs including model summaries, diagnostics, and residual plots. Useful for validating model assumptions.",
+            "type": {
+                "param_type": "ToolBooleanParam",
+                "default": false
+            },
+            "group": "Linear Mixed Model Options"
+        }
+    ],
+    "results": [
+        {
+            "key": "activity_group_comparison",
+            "name": "Activity Group Comparison",
+            "description": "Combined neural activity tables per group.",
+            "file_patterns": [
+                "group*_combined_activity_data/**/*"
+            ]
+        },
+        {
+            "key": "correlation_group_comparison",
+            "name": "Correlation Group Comparison",
+            "description": "Combined per-cell correlation tables per group.",
+            "file_patterns": [
+                "group*_combined_trace_correlation_data/**/*"
+            ]
+        },
+        {
+            "key": "modulation_group_comparison",
+            "name": "Modulation Group Comparison",
+            "description": "Combined modulation vs baseline tables per group.",
+            "file_patterns": [
+                "group*_combined_modulation_data/**/*"
+            ]
+        },
+        {
+            "key": "summary_statistics",
+            "name": "Summary Statistics",
+            "description": "ANOVA-style statistics and pairwise comparisons for trace and event measures.",
+            "file_patterns": [
+                "trace_aov_comparisons/**/*",
+                "trace_pairwise_comparisons/**/*",
+                "event_aov_comparisons/**/*",
+                "event_pairwise_comparisons/**/*"
+            ]
+        },
+        {
+            "key": "lmm_analysis_results",
+            "name": "Linear Mixed Model Results",
+            "description": "Linear mixed model summaries and pairwise comparisons (generated when save_lmm_outputs=true).",
+            "file_patterns": [
+                "trace_lmm_comparisons/**/*",
+                "trace_lmm_pairwise_comparisons/**/*",
+                "event_lmm_comparisons/**/*",
+                "event_lmm_pairwise_comparisons/**/*"
+            ]
+        }
+    ],
+    "resources": {
+        "cpu": 1,
+        "gpu": 0,
+        "memory": 15000
+    },
+    "description": "Compare neural state-epoch data between experimental groups with advanced statistical analysis including linear mixed models",
+    "visibility": "public",
+    "version": "1.0.1",
+    "docs": "https://inscopix.github.io/ideas-docs/tools/epochs/combine_compare_state_epoch_data/combine_compare_state_epoch_data.html",
+    "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis",
+    "tags": [
+        "Neural Circuit Analysis",
+        "Study Statistics",
+        "Epochs",
+        "Annotations"
+    ]
+}

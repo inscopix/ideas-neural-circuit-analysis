@@ -1,6 +1,6 @@
 {
     "key": "state_epoch_baseline",
-    "name": "State-Epoch Baseline Analysis",
+    "name": "Compare Neural State Data Across Epochs",
     "schema_version": "3.0.0",
     "container_image": {
         "repository": "platform/neural-analysis",
@@ -43,8 +43,8 @@
         {
             "key": "annotations_file",
             "name": "Annotations File",
-            "required": false,
-            "description": "Optional experiment annotations file with state and epoch information. If not provided, uses epoch-only analysis mode.",
+            "required": true,
+            "description": "Experiment annotations file with state and epoch information",
             "type": {
                 "param_type": "ToolPathParam",
                 "multiple": true,
@@ -53,97 +53,6 @@
                 ]
             },
             "group": "Input Files"
-        },
-        {
-            "key": "column_name",
-            "name": "State Column Name",
-            "required": false,
-            "description": "Name of the column in annotations file containing state information",
-            "type": {
-                "param_type": "ToolStringParam",
-                "default": "state"
-            },
-            "group": "Analysis Parameters"
-        },
-        {
-            "key": "state_names",
-            "name": "State Names",
-            "required": true,
-            "description": "Comma-separated list of behavioral state names (e.g., 'rest, active, exploration')",
-            "type": {
-                "param_type": "ToolStringParam"
-            },
-            "group": "Analysis Parameters"
-        },
-        {
-            "key": "state_colors",
-            "name": "State Colors",
-            "required": false,
-            "description": "Comma-separated list of colors for states (e.g., 'gray, blue, green')",
-            "type": {
-                "param_type": "ToolStringParam",
-                "default": "gray, blue, orange"
-            },
-            "group": "Analysis Parameters"
-        },
-        {
-            "key": "correlation_statistic",
-            "name": "Correlation Statistic",
-            "required": false,
-            "description": "Per-cell correlation statistic to summarize in distribution previews (max, min, or mean).",
-            "type": {
-                "param_type": "ToolChoiceParam",
-                "default": "max",
-                "choices": [
-                    "max",
-                    "mean",
-                    "min"
-                ],
-                "display_options": [
-                    "Maximum",
-                    "Mean",
-                    "Minimum"
-                ]
-            },
-            "group": "Analysis Parameters"
-        },
-        {
-            "key": "method",
-            "name": "Method to Compare States",
-            "required": true,
-            "description": "Specifies how states are compared; this tool currently supports only state vs baseline comparisons.",
-            "type": {
-                "param_type": "ToolChoiceParam",
-                "choices": [
-                    "state vs baseline"
-                ],
-                "display_options": [
-                    "State vs Baseline"
-                ],
-                "default": "state vs baseline"
-            },
-            "group": "Analysis Parameters"
-        },
-        {
-            "key": "epoch_names",
-            "name": "Epoch Names",
-            "required": true,
-            "description": "Comma-separated list of time epoch names (e.g., 'baseline, training, test')",
-            "type": {
-                "param_type": "ToolStringParam"
-            },
-            "group": "Analysis Parameters"
-        },
-        {
-            "key": "epoch_colors",
-            "name": "Epoch Colors",
-            "required": false,
-            "description": "Comma-separated list of colors for epochs (e.g., 'lightgray, lightblue, lightgreen')",
-            "type": {
-                "param_type": "ToolStringParam",
-                "default": "lightgray, lightblue, lightgreen"
-            },
-            "group": "Analysis Parameters"
         },
         {
             "key": "define_epochs_by",
@@ -178,6 +87,59 @@
             "group": "Epoch Definition"
         },
         {
+            "key": "epoch_names",
+            "name": "Epoch Names",
+            "required": true,
+            "description": "Comma-separated list of time epoch names (e.g., 'baseline, training, test')",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": "Epoch Definition"
+        },
+        {
+            "key": "epoch_colors",
+            "name": "Epoch Colors",
+            "required": false,
+            "description": "Comma-separated list of colors for epochs (e.g., 'lightgray, lightblue, lightgreen')",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "lightgray, lightblue, lightgreen"
+            },
+            "group": "Epoch Definition"
+        },
+        {
+            "key": "column_name",
+            "name": "State Column Name",
+            "required": false,
+            "description": "Name of the column in annotations file containing state information",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "state"
+            },
+            "group": "State Definition"
+        },
+        {
+            "key": "state_names",
+            "name": "State Names",
+            "required": true,
+            "description": "Comma-separated list of behavioral state names (e.g., 'rest, active, exploration')",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": "State Definition"
+        },
+        {
+            "key": "state_colors",
+            "name": "State Colors",
+            "required": false,
+            "description": "Comma-separated list of colors for states (e.g., 'gray, blue, green')",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "gray, blue, orange"
+            },
+            "group": "State Definition"
+        },
+        {
             "key": "baseline_state",
             "name": "Baseline State",
             "required": true,
@@ -198,6 +160,44 @@
                 "default": "baseline"
             },
             "group": "Baseline Parameters"
+        },
+        {
+            "key": "correlation_statistic",
+            "name": "Correlation Statistic",
+            "required": false,
+            "description": "Per-cell correlation statistic to summarize in distribution previews (max, min, or mean).",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "max",
+                "choices": [
+                    "max",
+                    "mean",
+                    "min"
+                ],
+                "display_options": [
+                    "Maximum",
+                    "Mean",
+                    "Minimum"
+                ]
+            },
+            "group": "Analysis Parameters"
+        },
+        {
+            "key": "method",
+            "name": "Method to Compare States",
+            "required": true,
+            "description": "Specifies how states are compared; this tool currently supports only state vs baseline comparisons.",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "state vs baseline",
+                "choices": [
+                    "state vs baseline"
+                ],
+                "display_options": [
+                    "State vs Baseline"
+                ]
+            },
+            "group": "Analysis Parameters"
         },
         {
             "key": "concatenate",
@@ -262,14 +262,36 @@
         },
         {
             "key": "include_event_correlation_preview",
-            "name": "Include Event Correlation Preview",
+            "name": "Event Correlation Previews",
             "required": false,
-            "description": "Whether to generate additional event-based correlation previews alongside the standard trace outputs when event correlations are available.",
+            "description": "Attach event-based correlation previews to the outputs when event data and correlations are available.",
             "type": {
                 "param_type": "ToolBooleanParam",
                 "default": false
             },
-            "group": "Analysis Parameters"
+            "group": "Data Processing"
+        },
+        {
+            "key": "tolerance",
+            "name": "Tolerance",
+            "required": false,
+            "description": "Tolerance for temporal alignment and file concatenation",
+            "type": {
+                "param_type": "ToolFloatRangeParam",
+                "default": 0.0001
+            },
+            "group": "Data Processing"
+        },
+        {
+            "key": "sort_by_time",
+            "name": "Sort by Time",
+            "required": false,
+            "description": "Whether to sort cell sets by time when concatenating",
+            "type": {
+                "param_type": "ToolBooleanParam",
+                "default": true
+            },
+            "group": "Data Processing"
         },
         {
             "key": "alpha",
@@ -296,28 +318,6 @@
                 "max": 10000
             },
             "group": "Statistical Parameters"
-        },
-        {
-            "key": "tolerance",
-            "name": "Tolerance",
-            "required": false,
-            "description": "Tolerance for temporal alignment and file concatenation",
-            "type": {
-                "param_type": "ToolFloatRangeParam",
-                "default": 0.0001
-            },
-            "group": "Data Processing Parameters"
-        },
-        {
-            "key": "sort_by_time",
-            "name": "Sort by Time",
-            "required": false,
-            "description": "Whether to sort cellsets by time when concatenating",
-            "type": {
-                "param_type": "ToolBooleanParam",
-                "default": true
-            },
-            "group": "Data Processing Parameters"
         }
     ],
     "results": [
@@ -377,7 +377,7 @@
     },
     "description": "Combined analysis of neural activity and correlations across behavioral states and time epochs with baseline comparison",
     "visibility": "public",
-    "version": "1.0.2",
+    "version": "1.0.4",
     "docs": "https://inscopix.github.io/ideas-docs/tools/epochs/state_epoch_baseline/state_epoch_baseline.html",
     "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis",
     "tags": [

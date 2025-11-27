@@ -82,7 +82,6 @@ USEFUL_OUTPUT_METADATA_KEYS = {
     # "format",
 }
 
-
 def _extract_useful_metadata(metadata: dict) -> dict:
     """Return only the metadata fields we want to register with IDEAS."""
     if not metadata:
@@ -95,78 +94,6 @@ def _extract_useful_metadata(metadata: dict) -> dict:
         and value not in (None, "", [], {})
     }
 
-
-def _collect_available_previews(
-    output_dir: str,
-    preview_definitions: Iterable[Tuple[str, str]],
-) -> List[Tuple[str, str]]:
-    """Return preview tuples that exist on disk."""
-    available_previews: List[Tuple[str, str]] = []
-    for preview_name, caption in preview_definitions:
-        preview_path = os.path.join(output_dir, preview_name)
-        if os.path.exists(preview_path):
-            available_previews.append((preview_name, caption))
-    return available_previews
-
-# def _process_output_file(
-#     *,
-#     output_data: OutputData,
-#     output_dir: str,
-#     output_metadata: dict,
-#     file: str,
-#     output_file_basename: str,
-#     preview_files: Optional[List[tuple]] = None,
-# ) -> None:
-#     """Attach an output file and its previews to the OutputData object."""
-
-#     try:
-#         file_path = os.path.join(output_dir, file)
-#         filename = pathlib.Path(file_path).name
-#         basename = pathlib.Path(file_path).stem
-
-#         final_file_path = file_path
-#         target_dir = os.path.join(output_dir, basename)
-
-#         if preview_files:
-#             os.makedirs(target_dir, exist_ok=True)
-#             final_file_path = os.path.join(
-#                 target_dir,
-#                 f"{output_file_basename}_{filename}",
-#             )
-#             os.rename(file_path, final_file_path)
-
-#         output_file = output_data.add_file(final_file_path)
-
-#         metadata = _extract_useful_metadata(output_metadata.get(basename, {}))
-#         for key, value in metadata.items():
-#             output_file.add_metadata(
-#                 key=key,
-#                 value=str(value),
-#                 name=key.title(),
-#             )
-
-#         if preview_files:
-#             for preview_name, caption in preview_files:
-#                 preview_path = os.path.join(output_dir, preview_name)
-#                 if not os.path.exists(preview_path):
-#                     logger.warning(
-#                         "Preview '%s' not found for output '%s'; skipping attachment.",
-#                         preview_name,
-#                         filename,
-#                     )
-#                     continue
-
-#                 new_preview_path = os.path.join(
-#                     target_dir,
-#                     f"{output_file_basename}_{preview_name}",
-#                 )
-#                 os.rename(preview_path, new_preview_path)
-#                 output_file.add_preview(new_preview_path, caption)
-
-#     except Exception:  # noqa: BLE001
-#         logger.exception("failed to process file")
-
-#     return basename
 # Analysis feature flags (not exposed via the main function)
 @dataclass(frozen=True)
 class StateEpochAnalysisFeatureFlags:
@@ -178,6 +105,8 @@ class StateEpochAnalysisFeatureFlags:
     # Registration support (for CaImAn MSR outputs)
     use_registered_cellsets: bool = False
     registration_method: str = "auto_detect"  # "auto_detect", "caiman_msr"
+    # Controls whether annotations_file can be omitted (epoch-only mode)
+    allow_epoch_only_mode: bool = False
 
 
 _FEATURE_FLAGS = StateEpochAnalysisFeatureFlags()
@@ -264,8 +193,9 @@ def state_epoch_baseline_analysis(
     ----
         cell_set_files: List of cellset files (.isxd, .h5)
         event_set_files: Optional list of eventset files (.isxd)
-        annotations_file: Optional list of annotation files (.parquet) - only first file is used.
-            If None, will use epoch-only analysis mode with dummy state
+        annotations_file: List of annotation files (.parquet or .csv). Only the first file
+            is used. When allow_epoch_only_mode feature flag is enabled, this parameter
+            may be omitted to run in epoch-only mode.
         column_name: Column name for state annotations
         state_names: Comma-separated state names
         state_colors: Comma-separated color names for states
@@ -315,13 +245,34 @@ def state_epoch_baseline_analysis(
     if include_event_correlation_preview:
         logger.info("Event correlation outputs enabled when event data is available.")
 
+    annotations_file_list = annotations_file or []
+    
+    # Check for None entries first before other validation
+    if any(path is None for path in annotations_file_list):
+        raise IdeasError(
+            "annotations_file cannot contain empty or null entries."
+        )
+    
+    has_annotations = (
+        bool(annotations_file_list)
+        and annotations_file_list[0] is not None
+        and str(annotations_file_list[0]).strip() != ""
+    )
+
+    if not has_annotations and not feature_flags.allow_epoch_only_mode:
+        raise IdeasError(
+            "annotations_file is required unless allow_epoch_only_mode is enabled."
+        )
+
     # Validate inputs
     try:
         validate_input_files_exist(cell_set_files)
         if event_set_files:
             validate_input_files_exist(event_set_files)
-        if annotations_file:
-            validate_input_files_exist(annotations_file)
+        if has_annotations:
+            validate_input_files_exist(
+                [str(p) for p in annotations_file_list if p is not None]
+            )
     except FileNotFoundError as e:
         raise IdeasError(f"Input validation failed: {e}") from e
 
@@ -331,30 +282,30 @@ def state_epoch_baseline_analysis(
     state_color_list = [c.strip() for c in state_colors.split(",")]
     epoch_color_list = [c.strip() for c in epoch_colors.split(",")]
 
-    # Handle epoch-only mode (consistent with correlations.py)
-    epoch_only_mode = (
-        annotations_file is None
-        or len(annotations_file) == 0
-        or annotations_file[0] is None
+    epoch_only_mode = feature_flags.allow_epoch_only_mode and (
+        not has_annotations
         or len(states) == 0
-        or (len(states) == 1 and states[0].strip() == "")
+        or all(state == "" for state in states)
     )
 
     if epoch_only_mode:
         logger.info(
-            "No annotations provided or no states specified. "
-            "Using epoch-only analysis mode with dummy state 'epoch_activity'."
+            "Allowing epoch-only mode with dummy state 'epoch_activity' because "
+            "allow_epoch_only_mode feature flag is enabled."
         )
-        # Use dummy state for epoch-only analysis (consistent with epoch_activity.py)
         states = ["epoch_activity"]
-        state_color_list = ["gray"]  # Default color for dummy state
-        baseline_state = "epoch_activity"  # Update baseline to match
-        column_name = "dummy_state"  # Use dummy column name
+        state_color_list = ["gray"]
+        baseline_state = "epoch_activity"
+        column_name = "dummy_state"
+    elif len(states) == 0 or all(state == "" for state in states):
+        raise IdeasError(
+            "state_names must include at least one valid state when annotations are provided."
+        )
 
     data_manager = StateEpochDataManager(
         cell_set_files=cell_set_files,
         event_set_files=event_set_files,
-        annotations_file=annotations_file,
+        annotations_file=annotations_file_list if has_annotations else None,
         concatenate=concatenate,
         use_registered_cellsets=feature_flags.use_registered_cellsets,
         registration_method=feature_flags.registration_method,
@@ -369,6 +320,7 @@ def state_epoch_baseline_analysis(
         define_epochs_by=define_epochs_by,
         tolerance=tolerance,
         sort_by_time=sort_by_time,
+        allow_epoch_only_mode=feature_flags.allow_epoch_only_mode,
     )
 
     # Load all data with automatic validation
@@ -639,7 +591,7 @@ def state_epoch_baseline_analysis_ideas_wrapper(
                 EVENT_STATE_OVERLAY,
                 caption="Event raster plot with state-colored events showing event patterns colored by behavioral state."
             ).register_metadata_dict(
-                **output_metadata.get(Path(ACTIVITY_PER_STATE_EPOCH_DATA_CSV).stem, {})
+                **_extract_useful_metadata(output_metadata.get(Path(ACTIVITY_PER_STATE_EPOCH_DATA_CSV).stem, {}))
             )
 
             output_data.register_file(
@@ -653,7 +605,7 @@ def state_epoch_baseline_analysis_ideas_wrapper(
                 EVENT_CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
                 "Distribution of the selected per-cell event correlation statistic across neurons and state-epoch combinations."
             ).register_metadata_dict(
-                **output_metadata.get(Path(CORRELATIONS_PER_STATE_EPOCH_DATA_CSV).stem, {})
+                **_extract_useful_metadata(output_metadata.get(Path(CORRELATIONS_PER_STATE_EPOCH_DATA_CSV).stem, {}))
             )
 
             output_data.register_file(
@@ -673,7 +625,7 @@ def state_epoch_baseline_analysis_ideas_wrapper(
                 EVENT_MODULATION_PREVIEW,
                 "Spatial footprints of event-modulated neurons relative to baseline. Cell maps colored by event modulation significance when event data is available."
             ).register_metadata_dict(
-                **output_metadata.get(Path(MODULATION_VS_BASELINE_DATA_CSV).stem, {})
+                **_extract_useful_metadata(output_metadata.get(Path(MODULATION_VS_BASELINE_DATA_CSV).stem, {}))
             )
 
             output_data.register_file(
@@ -687,7 +639,7 @@ def state_epoch_baseline_analysis_ideas_wrapper(
                 EVENT_AVERAGE_CORRELATIONS_PREVIEW,
                 "Bar plots showing average positive and negative event correlations for each state-epoch combination.",
             ).register_metadata_dict(
-                **output_metadata.get(Path(AVERAGE_CORRELATIONS_CSV).stem, {})
+                **_extract_useful_metadata(output_metadata.get(Path(AVERAGE_CORRELATIONS_CSV).stem, {}))
             )
 
             output_data.register_file(
@@ -701,7 +653,7 @@ def state_epoch_baseline_analysis_ideas_wrapper(
                 EVENT_CORRELATION_MATRICES_PREVIEW,
                 "Pairwise event correlation matrices between neurons for each state-epoch combination when event data is available.",
             ).register_metadata_dict(
-                **output_metadata.get(Path(RAW_CORRELATIONS_H5_NAME).stem, {})
+                **_extract_useful_metadata(output_metadata.get(Path(RAW_CORRELATIONS_H5_NAME).stem, {}))
             )
 
             output_data.register_file(
@@ -721,7 +673,7 @@ def state_epoch_baseline_analysis_ideas_wrapper(
                 EVENT_SPATIAL_CORRELATION_MAP_PREVIEW,
                 "Spatial map of event-based neural correlations when event data is available.",
             ).register_metadata_dict(
-                **output_metadata.get(Path(RAW_CORRELATIONS_ZIP_NAME).stem, {})
+                **_extract_useful_metadata(output_metadata.get(Path(RAW_CORRELATIONS_ZIP_NAME).stem, {}))
             )
 
     except Exception:
