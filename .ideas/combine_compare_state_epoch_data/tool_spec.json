@@ -467,5 +467,13 @@
     },
     "description": "Compare neural state-epoch data between experimental groups with advanced statistical analysis including linear mixed models",
     "visibility": "public",
-    "version": "1.0.0"
+    "version": "1.0.1",
+    "docs": "https://inscopix.github.io/ideas-docs/tools/epochs/combine_compare_state_epoch_data/combine_compare_state_epoch_data.html",
+    "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis",
+    "tags": [
+        "Neural Circuit Analysis",
+        "Study Statistics",
+        "Epochs",
+        "Annotations"
+    ]
 }
