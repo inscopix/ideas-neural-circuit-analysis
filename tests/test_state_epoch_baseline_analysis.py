@@ -238,30 +238,6 @@ def local_time_epoch_params(standard_input_params):
     )
     return params
 
-
-def collect_available_previews(
-    output_dir: str,
-    preview_definitions: Iterable[Tuple[str, str]],
-) -> List[Tuple[str, str]]:
-    """Return preview tuples that actually exist on disk.
-    
-    Checks both the root output_dir and .previews/ subdirectory.
-    """
-    available_previews: List[Tuple[str, str]] = []
-    for preview_name, caption in preview_definitions:
-        # Check root directory first
-        preview_path = os.path.join(output_dir, preview_name)
-        if os.path.exists(preview_path):
-            available_previews.append((preview_name, caption))
-            continue
-        
-        # Also check .previews/ subdirectory
-        preview_subdir_path = os.path.join(output_dir, ".previews", preview_name)
-        if os.path.exists(preview_subdir_path):
-            available_previews.append((preview_name, caption))
-    return available_previews
-
-
 class TestEpochDefinitionMethods:
     """Test different epoch definition methods with comprehensive examples."""
 
@@ -3093,29 +3069,6 @@ class TestOutputGeneration:
         assert np.allclose(df["positive_event_correlation"].dropna(), 0.25)
         # Negative event correlation is undefined for strictly positive matrices
         assert df["negative_event_correlation"].isna().all()
-
-    def test_collect_available_previews_filters_missing_files(self, tmp_path):
-        """Helper should only include previews that exist on disk."""
-        from analysis.output_registration import (
-            collect_available_previews,
-        )
-
-        existing_file = tmp_path / "existing_preview.svg"
-        existing_file.touch()
-
-        preview_defs = [
-            ("existing_preview.svg", "Existing preview caption"),
-            ("missing_preview.svg", "Missing preview caption"),
-        ]
-
-        available_previews = collect_available_previews(
-            str(tmp_path), preview_defs
-        )
-
-        assert available_previews == [
-            ("existing_preview.svg", "Existing preview caption")
-        ]
-
 
     def test_event_correlation_previews_created_when_enabled(
         self, tmp_path, mock_results_with_known_data
