@@ -2069,6 +2069,8 @@ class StateEpochOutputGenerator:
             data=correlation_df,
             x="state_epoch",
             y="correlation_value",
+            hue="state_epoch",
+            legend=False,
             ax=axes[1],
             order=labels,
             palette=box_palette,
