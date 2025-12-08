@@ -1,4 +1,3 @@
-import json
 import os
 import shutil
 import h5py
@@ -13,8 +12,6 @@ from analysis.peri_event_workflow import (
 from ideas.exceptions import IdeasError
 from utils.testing_utils import (
     compare_float_dataframes,
-    # validate_json_schema,
-    # validate_output_manifest,
 )
 
 
@@ -30,22 +27,14 @@ class TestPeriEventWorkflow(unittest.TestCase):
     output_dir = os.path.join(temporary_dir, "tmp_peri_event_workflow_outputs")
 
     # output manifest
-    output_manifest_json_schema = (
-        "toolbox/tests/schemas/output_manifest_schema.json"
-    )
+    output_manifest_json_schema = "toolbox/tests/schemas/output_manifest_schema.json"
     output_manifest_file_basename = "output_manifest.json"
-    output_manifest_file = os.path.join(
-        output_dir, output_manifest_file_basename
-    )
+    output_manifest_file = os.path.join(output_dir, output_manifest_file_basename)
 
     # output metadata
-    output_metadata_json_schema = (
-        "toolbox/tests/schemas/output_metadata_schema.json"
-    )
+    output_metadata_json_schema = "toolbox/tests/schemas/output_metadata_schema.json"
     output_metadata_file_basename = "output_metadata.json"
-    output_metadata_file = os.path.join(
-        output_dir, output_metadata_file_basename
-    )
+    output_metadata_file = os.path.join(output_dir, output_metadata_file_basename)
 
     # input files
     input_cellset_isxd_files = [
@@ -83,18 +72,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -123,7 +110,9 @@ class TestPeriEventWorkflow(unittest.TestCase):
         )
 
         expected_traces_df = pd.read_csv(
-            os.path.join(self.input_dir, "peri_event_workflow/expected_event_aligned_traces.csv")
+            os.path.join(
+                self.input_dir, "peri_event_workflow/expected_event_aligned_traces.csv"
+            )
         )
         compare_float_dataframes(actual_traces_df, expected_traces_df)
 
@@ -135,7 +124,8 @@ class TestPeriEventWorkflow(unittest.TestCase):
 
         expected_stats_df = pd.read_csv(
             os.path.join(
-                self.input_dir, "peri_event_workflow/expected_event_aligned_statistics.csv"
+                self.input_dir,
+                "peri_event_workflow/expected_event_aligned_statistics.csv",
             )
         )
         compare_float_dataframes(actual_stats_df, expected_stats_df)
@@ -168,7 +158,7 @@ class TestPeriEventWorkflow(unittest.TestCase):
             self.assertTrue(os.path.exists(f))
 
         # define expected output manifest
-        expected_output_manifest = {
+        _ = {
             "schema_version": "2.0.0",
             "groups": [
                 {
@@ -212,9 +202,7 @@ class TestPeriEventWorkflow(unittest.TestCase):
                             "file_format": "csv",
                             "file_structure": "time_series",
                             "file_category": "result",
-                            "parent_ids": [
-                                "8da1b69a-c537-4bfc-af3d-536740d93491"
-                            ],
+                            "parent_ids": ["8da1b69a-c537-4bfc-af3d-536740d93491"],
                             "preview": [
                                 {
                                     "name": "Event-aligned population activity figure",
@@ -327,9 +315,7 @@ class TestPeriEventWorkflow(unittest.TestCase):
         event_type = "event_type_1"
         significance_threshold = 0.05
 
-        input_traces_parquet_file = os.path.join(
-            self.input_dir, "traces.parquet"
-        )
+        input_traces_parquet_file = os.path.join(self.input_dir, "traces.parquet")
 
         df = pd.read_parquet(input_traces_parquet_file)
 
@@ -342,9 +328,7 @@ class TestPeriEventWorkflow(unittest.TestCase):
         event_indices_shuffles = [list(event_indices) for _ in range(10)]
 
         # footprints
-        input_footprints_h5_file = os.path.join(
-            self.input_dir, "footprints.h5"
-        )
+        input_footprints_h5_file = os.path.join(self.input_dir, "footprints.h5")
 
         f = h5py.File(input_footprints_h5_file, "r")
         footprints = f["footprints"]
@@ -387,18 +371,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -481,7 +463,7 @@ class TestPeriEventWorkflow(unittest.TestCase):
             self.assertTrue(os.path.exists(f))
 
         # define expected output manifest
-        expected_output_manifest = {
+        _ = {
             "schema_version": "2.0.0",
             "groups": [
                 {
@@ -664,18 +646,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -702,18 +682,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -740,18 +718,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -780,22 +756,20 @@ class TestPeriEventWorkflow(unittest.TestCase):
                 event_type=input_parameters["event_types"][0],
                 visual_window_pre=input_parameters["visual_window"]["pre"],
                 visual_window_post=input_parameters["visual_window"]["post"],
-                statistical_window_pre_start=input_parameters[
-                    "statistical_window"
-                ]["pre"][0],
-                statistical_window_pre_end=input_parameters[
-                    "statistical_window"
-                ]["pre"][1],
-                statistical_window_post_start=input_parameters[
-                    "statistical_window"
-                ]["post"][0],
-                statistical_window_post_end=input_parameters[
-                    "statistical_window"
-                ]["post"][1],
+                statistical_window_pre_start=input_parameters["statistical_window"][
+                    "pre"
+                ][0],
+                statistical_window_pre_end=input_parameters["statistical_window"][
+                    "pre"
+                ][1],
+                statistical_window_post_start=input_parameters["statistical_window"][
+                    "post"
+                ][0],
+                statistical_window_post_end=input_parameters["statistical_window"][
+                    "post"
+                ][1],
                 num_shuffles=input_parameters["num_shuffles"],
-                significance_threshold=input_parameters[
-                    "significance_threshold"
-                ],
+                significance_threshold=input_parameters["significance_threshold"],
                 seed=input_parameters["seed"],
                 output_dir=self.output_dir,
             )
@@ -822,22 +796,20 @@ class TestPeriEventWorkflow(unittest.TestCase):
                 event_type=input_parameters["event_types"][0],
                 visual_window_pre=input_parameters["visual_window"]["pre"],
                 visual_window_post=input_parameters["visual_window"]["post"],
-                statistical_window_pre_start=input_parameters[
-                    "statistical_window"
-                ]["pre"][0],
-                statistical_window_pre_end=input_parameters[
-                    "statistical_window"
-                ]["pre"][1],
-                statistical_window_post_start=input_parameters[
-                    "statistical_window"
-                ]["post"][0],
-                statistical_window_post_end=input_parameters[
-                    "statistical_window"
-                ]["post"][1],
+                statistical_window_pre_start=input_parameters["statistical_window"][
+                    "pre"
+                ][0],
+                statistical_window_pre_end=input_parameters["statistical_window"][
+                    "pre"
+                ][1],
+                statistical_window_post_start=input_parameters["statistical_window"][
+                    "post"
+                ][0],
+                statistical_window_post_end=input_parameters["statistical_window"][
+                    "post"
+                ][1],
                 num_shuffles=input_parameters["num_shuffles"],
-                significance_threshold=input_parameters[
-                    "significance_threshold"
-                ],
+                significance_threshold=input_parameters["significance_threshold"],
                 seed=input_parameters["seed"],
                 output_dir=self.output_dir,
             )
@@ -862,18 +834,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -906,22 +876,20 @@ class TestPeriEventWorkflow(unittest.TestCase):
                 event_type=input_parameters["event_types"][0],
                 visual_window_pre=input_parameters["visual_window"]["pre"],
                 visual_window_post=input_parameters["visual_window"]["post"],
-                statistical_window_pre_start=input_parameters[
-                    "statistical_window"
-                ]["pre"][0],
-                statistical_window_pre_end=input_parameters[
-                    "statistical_window"
-                ]["pre"][1],
-                statistical_window_post_start=input_parameters[
-                    "statistical_window"
-                ]["post"][0],
-                statistical_window_post_end=input_parameters[
-                    "statistical_window"
-                ]["post"][1],
+                statistical_window_pre_start=input_parameters["statistical_window"][
+                    "pre"
+                ][0],
+                statistical_window_pre_end=input_parameters["statistical_window"][
+                    "pre"
+                ][1],
+                statistical_window_post_start=input_parameters["statistical_window"][
+                    "post"
+                ][0],
+                statistical_window_post_end=input_parameters["statistical_window"][
+                    "post"
+                ][1],
                 num_shuffles=input_parameters["num_shuffles"],
-                significance_threshold=input_parameters[
-                    "significance_threshold"
-                ],
+                significance_threshold=input_parameters["significance_threshold"],
                 seed=input_parameters["seed"],
                 output_dir=self.output_dir,
             )
@@ -953,22 +921,20 @@ class TestPeriEventWorkflow(unittest.TestCase):
                 event_type=input_parameters["event_types"][0],
                 visual_window_pre=input_parameters["visual_window"]["pre"],
                 visual_window_post=input_parameters["visual_window"]["post"],
-                statistical_window_pre_start=input_parameters[
-                    "statistical_window"
-                ]["pre"][0],
-                statistical_window_pre_end=input_parameters[
-                    "statistical_window"
-                ]["pre"][1],
-                statistical_window_post_start=input_parameters[
-                    "statistical_window"
-                ]["post"][0],
-                statistical_window_post_end=input_parameters[
-                    "statistical_window"
-                ]["post"][1],
+                statistical_window_pre_start=input_parameters["statistical_window"][
+                    "pre"
+                ][0],
+                statistical_window_pre_end=input_parameters["statistical_window"][
+                    "pre"
+                ][1],
+                statistical_window_post_start=input_parameters["statistical_window"][
+                    "post"
+                ][0],
+                statistical_window_post_end=input_parameters["statistical_window"][
+                    "post"
+                ][1],
                 num_shuffles=input_parameters["num_shuffles"],
-                significance_threshold=input_parameters[
-                    "significance_threshold"
-                ],
+                significance_threshold=input_parameters["significance_threshold"],
                 seed=input_parameters["seed"],
                 output_dir=self.output_dir,
             )
@@ -1006,22 +972,20 @@ class TestPeriEventWorkflow(unittest.TestCase):
                 event_type=input_parameters["event_types"][0],
                 visual_window_pre=input_parameters["visual_window"]["pre"],
                 visual_window_post=input_parameters["visual_window"]["post"],
-                statistical_window_pre_start=input_parameters[
-                    "statistical_window"
-                ]["pre"][0],
-                statistical_window_pre_end=input_parameters[
-                    "statistical_window"
-                ]["pre"][1],
-                statistical_window_post_start=input_parameters[
-                    "statistical_window"
-                ]["post"][0],
-                statistical_window_post_end=input_parameters[
-                    "statistical_window"
-                ]["post"][1],
+                statistical_window_pre_start=input_parameters["statistical_window"][
+                    "pre"
+                ][0],
+                statistical_window_pre_end=input_parameters["statistical_window"][
+                    "pre"
+                ][1],
+                statistical_window_post_start=input_parameters["statistical_window"][
+                    "post"
+                ][0],
+                statistical_window_post_end=input_parameters["statistical_window"][
+                    "post"
+                ][1],
                 num_shuffles=input_parameters["num_shuffles"],
-                significance_threshold=input_parameters[
-                    "significance_threshold"
-                ],
+                significance_threshold=input_parameters["significance_threshold"],
                 seed=input_parameters["seed"],
                 output_dir=self.output_dir,
             )
@@ -1048,22 +1012,20 @@ class TestPeriEventWorkflow(unittest.TestCase):
                 event_type=input_parameters["event_types"][0],
                 visual_window_pre=input_parameters["visual_window"]["pre"],
                 visual_window_post=input_parameters["visual_window"]["post"],
-                statistical_window_pre_start=input_parameters[
-                    "statistical_window"
-                ]["pre"][0],
-                statistical_window_pre_end=input_parameters[
-                    "statistical_window"
-                ]["pre"][1],
-                statistical_window_post_start=input_parameters[
-                    "statistical_window"
-                ]["post"][0],
-                statistical_window_post_end=input_parameters[
-                    "statistical_window"
-                ]["post"][1],
+                statistical_window_pre_start=input_parameters["statistical_window"][
+                    "pre"
+                ][0],
+                statistical_window_pre_end=input_parameters["statistical_window"][
+                    "pre"
+                ][1],
+                statistical_window_post_start=input_parameters["statistical_window"][
+                    "post"
+                ][0],
+                statistical_window_post_end=input_parameters["statistical_window"][
+                    "post"
+                ][1],
                 num_shuffles=input_parameters["num_shuffles"],
-                significance_threshold=input_parameters[
-                    "significance_threshold"
-                ],
+                significance_threshold=input_parameters["significance_threshold"],
                 seed=input_parameters["seed"],
                 output_dir=self.output_dir,
             )
@@ -1089,8 +1051,8 @@ class TestPeriEventWorkflow(unittest.TestCase):
             # execute workflow and expect a IdeasError error to be raised
             self.assertRaisesRegex(
                 IdeasError,
-                "Visualization parameter 'Population activity \(y-axis range\)' must be specified "
-                "as 'auto' or 'min,max' \(e.g. -1,1\) where the minimum and "
+                r"Visualization parameter 'Population activity \(y-axis range\)' must be specified "
+                r"as 'auto' or 'min,max' \(e.g. -1,1\) where the minimum and "
                 "maximum are not equal.",
                 run_peri_event_workflow,
                 input_cellset_files=self.input_cellset_isxd_files,
@@ -1098,22 +1060,20 @@ class TestPeriEventWorkflow(unittest.TestCase):
                 event_type=input_parameters["event_types"][0],
                 visual_window_pre=input_parameters["visual_window"]["pre"],
                 visual_window_post=input_parameters["visual_window"]["post"],
-                statistical_window_pre_start=input_parameters[
-                    "statistical_window"
-                ]["pre"][0],
-                statistical_window_pre_end=input_parameters[
-                    "statistical_window"
-                ]["pre"][1],
-                statistical_window_post_start=input_parameters[
-                    "statistical_window"
-                ]["post"][0],
-                statistical_window_post_end=input_parameters[
-                    "statistical_window"
-                ]["post"][1],
+                statistical_window_pre_start=input_parameters["statistical_window"][
+                    "pre"
+                ][0],
+                statistical_window_pre_end=input_parameters["statistical_window"][
+                    "pre"
+                ][1],
+                statistical_window_post_start=input_parameters["statistical_window"][
+                    "post"
+                ][0],
+                statistical_window_post_end=input_parameters["statistical_window"][
+                    "post"
+                ][1],
                 num_shuffles=input_parameters["num_shuffles"],
-                significance_threshold=input_parameters[
-                    "significance_threshold"
-                ],
+                significance_threshold=input_parameters["significance_threshold"],
                 seed=input_parameters["seed"],
                 population_activity_plot_limits=population_activity_plot_limits,
                 output_dir=self.output_dir,
@@ -1140,8 +1100,8 @@ class TestPeriEventWorkflow(unittest.TestCase):
             # execute workflow and expect a IdeasError error to be raised
             self.assertRaisesRegex(
                 IdeasError,
-                "Visualization parameter 'Activity heatmap \(colormap range\)' must be specified "
-                "as 'auto' or 'min,max' \(e.g. -1,1\) where the minimum and "
+                r"Visualization parameter 'Activity heatmap \(colormap range\)' must be specified "
+                r"as 'auto' or 'min,max' \(e.g. -1,1\) where the minimum and "
                 "maximum are not equal.",
                 run_peri_event_workflow,
                 input_cellset_files=self.input_cellset_isxd_files,
@@ -1149,22 +1109,20 @@ class TestPeriEventWorkflow(unittest.TestCase):
                 event_type=input_parameters["event_types"][0],
                 visual_window_pre=input_parameters["visual_window"]["pre"],
                 visual_window_post=input_parameters["visual_window"]["post"],
-                statistical_window_pre_start=input_parameters[
-                    "statistical_window"
-                ]["pre"][0],
-                statistical_window_pre_end=input_parameters[
-                    "statistical_window"
-                ]["pre"][1],
-                statistical_window_post_start=input_parameters[
-                    "statistical_window"
-                ]["post"][0],
-                statistical_window_post_end=input_parameters[
-                    "statistical_window"
-                ]["post"][1],
+                statistical_window_pre_start=input_parameters["statistical_window"][
+                    "pre"
+                ][0],
+                statistical_window_pre_end=input_parameters["statistical_window"][
+                    "pre"
+                ][1],
+                statistical_window_post_start=input_parameters["statistical_window"][
+                    "post"
+                ][0],
+                statistical_window_post_end=input_parameters["statistical_window"][
+                    "post"
+                ][1],
                 num_shuffles=input_parameters["num_shuffles"],
-                significance_threshold=input_parameters[
-                    "significance_threshold"
-                ],
+                significance_threshold=input_parameters["significance_threshold"],
                 seed=input_parameters["seed"],
                 activity_heatmap_color_limits=activity_heatmap_color_limits,
                 output_dir=self.output_dir,
@@ -1193,8 +1151,8 @@ class TestPeriEventWorkflow(unittest.TestCase):
             # execute workflow and expect a IdeasError error to be raised
             self.assertRaisesRegex(
                 IdeasError,
-                "Visualization parameter 'Activity by modulation group \(y-axis range\)' must be "
-                "specified as 'auto' or 'min,max' \(e.g. -1,1\) where the "
+                r"Visualization parameter 'Activity by modulation group \(y-axis range\)' must be "
+                r"specified as 'auto' or 'min,max' \(e.g. -1,1\) where the "
                 "minimum and maximum are not equal.",
                 run_peri_event_workflow,
                 input_cellset_files=self.input_cellset_isxd_files,
@@ -1202,22 +1160,20 @@ class TestPeriEventWorkflow(unittest.TestCase):
                 event_type=input_parameters["event_types"][0],
                 visual_window_pre=input_parameters["visual_window"]["pre"],
                 visual_window_post=input_parameters["visual_window"]["post"],
-                statistical_window_pre_start=input_parameters[
-                    "statistical_window"
-                ]["pre"][0],
-                statistical_window_pre_end=input_parameters[
-                    "statistical_window"
-                ]["pre"][1],
-                statistical_window_post_start=input_parameters[
-                    "statistical_window"
-                ]["post"][0],
-                statistical_window_post_end=input_parameters[
-                    "statistical_window"
-                ]["post"][1],
+                statistical_window_pre_start=input_parameters["statistical_window"][
+                    "pre"
+                ][0],
+                statistical_window_pre_end=input_parameters["statistical_window"][
+                    "pre"
+                ][1],
+                statistical_window_post_start=input_parameters["statistical_window"][
+                    "post"
+                ][0],
+                statistical_window_post_end=input_parameters["statistical_window"][
+                    "post"
+                ][1],
                 num_shuffles=input_parameters["num_shuffles"],
-                significance_threshold=input_parameters[
-                    "significance_threshold"
-                ],
+                significance_threshold=input_parameters["significance_threshold"],
                 seed=input_parameters["seed"],
                 activity_by_modulation_plot_limits=activity_by_modulation_plot_limits,
                 output_dir=self.output_dir,
@@ -1257,18 +1213,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -1293,8 +1247,7 @@ class TestPeriEventWorkflow(unittest.TestCase):
         # verify event-aligned TRACES data
         actual_traces_df = pd.read_csv(traces_csv_filename)
         self.assertTrue(
-            len(actual_traces_df) == 401
-            and len(actual_traces_df.columns) == 52
+            len(actual_traces_df) == 401 and len(actual_traces_df.columns) == 52
         )
 
         # verify STATISTICS data
@@ -1331,7 +1284,7 @@ class TestPeriEventWorkflow(unittest.TestCase):
             self.assertTrue(os.path.exists(f))
 
         # define expected output manifest
-        expected_output_manifest = {
+        _ = {
             "schema_version": "2.0.0",
             "groups": [
                 {
@@ -1375,9 +1328,7 @@ class TestPeriEventWorkflow(unittest.TestCase):
                             "file_format": "csv",
                             "file_structure": "time_series",
                             "file_category": "result",
-                            "parent_ids": [
-                                "8da1b69a-c537-4bfc-af3d-536740d93491"
-                            ],
+                            "parent_ids": ["8da1b69a-c537-4bfc-af3d-536740d93491"],
                             "preview": [
                                 {
                                     "name": "Event-aligned population activity figure",
@@ -1507,22 +1458,20 @@ class TestPeriEventWorkflow(unittest.TestCase):
                 event_type=input_parameters["event_types"][0],
                 visual_window_pre=input_parameters["visual_window"]["pre"],
                 visual_window_post=input_parameters["visual_window"]["post"],
-                statistical_window_pre_start=input_parameters[
-                    "statistical_window"
-                ]["pre"][0],
-                statistical_window_pre_end=input_parameters[
-                    "statistical_window"
-                ]["pre"][1],
-                statistical_window_post_start=input_parameters[
-                    "statistical_window"
-                ]["post"][0],
-                statistical_window_post_end=input_parameters[
-                    "statistical_window"
-                ]["post"][1],
+                statistical_window_pre_start=input_parameters["statistical_window"][
+                    "pre"
+                ][0],
+                statistical_window_pre_end=input_parameters["statistical_window"][
+                    "pre"
+                ][1],
+                statistical_window_post_start=input_parameters["statistical_window"][
+                    "post"
+                ][0],
+                statistical_window_post_end=input_parameters["statistical_window"][
+                    "post"
+                ][1],
                 num_shuffles=input_parameters["num_shuffles"],
-                significance_threshold=input_parameters[
-                    "significance_threshold"
-                ],
+                significance_threshold=input_parameters["significance_threshold"],
                 seed=input_parameters["seed"],
                 population_activity_plot_limits=input_parameters[
                     "population_activity_plot_limits"
@@ -1538,9 +1487,7 @@ class TestPeriEventWorkflow(unittest.TestCase):
 
             # validate existence of output preview files
             event_type = input_parameters["event_types"][0]
-            output_dir = os.path.join(
-                self.output_dir, "event_type_" + event_type
-            )
+            output_dir = os.path.join(self.output_dir, "event_type_" + event_type)
 
             # define basename for output files
             population_activity_basename = os.path.join(
@@ -1649,18 +1596,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=event_type,
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -1716,18 +1661,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=event_type,
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -1786,18 +1729,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=event_type,
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -1855,18 +1796,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=event_type,
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -1896,18 +1835,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=event_type,
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],

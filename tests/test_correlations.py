@@ -88,9 +88,7 @@ def test_correlation_tool(
     )
 
     # Mock correlation computation functions to return consistent test data
-    def mock_compute_correlation_matrices(
-        traces, annotations, states, column_name
-    ):
+    def mock_compute_correlation_matrices(traces, annotations, states, column_name):
         # Create mock correlation matrices for each state
         n_cells = traces.shape[1]
         correlation_matrices = {}
@@ -140,9 +138,7 @@ def test_correlation_tool(
     df_avg = pd.read_csv(correlations.AVG_CORRELATIONS_CSV_NAME)
 
     # check that the columns are as expected
-    _check_columns_in_df(
-        df=df_max, columns=("familiar object", "novel object")
-    )
+    _check_columns_in_df(df=df_max, columns=("familiar object", "novel object"))
     _check_columns_in_df(df=df_avg, columns=("state", "positive", "negative"))
 
     # File cleanup and plot cleanup handled automatically by output_file_cleanup fixture
@@ -183,9 +179,7 @@ def test_correlations_invalid_inputs(params, output_file_cleanup, monkeypatch):
     )
 
     # Mock correlation computation functions
-    def mock_compute_correlation_matrices(
-        traces, annotations, states, column_name
-    ):
+    def mock_compute_correlation_matrices(traces, annotations, states, column_name):
         n_cells = traces.shape[1]
         correlation_matrices = {}
         for state in ["familiar object", "novel object"]:
@@ -351,9 +345,7 @@ def test_plot_correlation_matrices(temp_work_dir, cleanup_plots):
     ), "Output SVG file was not created"
 
     # Verify that sort_indices is a dictionary with the expected keys
-    assert isinstance(
-        sort_indices, dict
-    ), "sort_indices should be a dictionary"
+    assert isinstance(sort_indices, dict), "sort_indices should be a dictionary"
     assert set(sort_indices.keys()) == set(
         correlation_matrix.keys()
     ), "sort_indices keys should match correlation_matrix keys"
@@ -465,16 +457,13 @@ class TestCorrelations:
 
                 # Find a specific cell pair (cell_0, cell_1)
                 row = df[
-                    (df["cell_name_1"] == "cell_0")
-                    & (df["cell_name_2"] == "cell_1")
+                    (df["cell_name_1"] == "cell_0") & (df["cell_name_2"] == "cell_1")
                 ]
                 assert len(row) == 1
 
                 # Check that the correlation value is correct
                 expected_value = self.correlation_matrix["state1"][0, 1]
-                assert (
-                    abs(row["correlation"].values[0] - expected_value) < 1e-7
-                )
+                assert abs(row["correlation"].values[0] - expected_value) < 1e-7
 
     @patch("analysis.correlations.logger.warning")
     def test_verification_catches_discrepancies(self, mock_warning):
@@ -541,9 +530,7 @@ class TestCorrelations:
                     )
                 ]
 
-                assert (
-                    len(row) == 1
-                ), "Should find exactly one matching cell pair"
+                assert len(row) == 1, "Should find exactly one matching cell pair"
                 assert (
                     abs(
                         row["correlation"].values[0]
@@ -568,9 +555,7 @@ class TestCorrelations:
                     )
                 ]
 
-                assert (
-                    len(row) == 1
-                ), "Should find exactly one matching cell pair"
+                assert len(row) == 1, "Should find exactly one matching cell pair"
                 assert (
                     abs(
                         row["correlation"].values[0]
@@ -639,9 +624,7 @@ class TestCorrelations:
         ) as mock_positions:
             mock_positions.return_value = positions
 
-            with patch(
-                "analysis.correlations._get_cellset_data"
-            ) as mock_traces:
+            with patch("analysis.correlations._get_cellset_data") as mock_traces:
                 mock_traces.return_value = (
                     np.random.randn(100, size),
                     ["accepted"] * size,
@@ -661,9 +644,7 @@ class TestCorrelations:
                     with patch(
                         "analysis.correlations.plot_correlation_matrices"
                     ) as mock_plot_corr:
-                        mock_plot_corr.return_value = {
-                            "state1": np.arange(size)
-                        }
+                        mock_plot_corr.return_value = {"state1": np.arange(size)}
 
                         # Test with custom correlation_threshold
                         correlations.correlation_tool(
@@ -673,9 +654,7 @@ class TestCorrelations:
                         )
 
                         # Verify that a spatial map file was created
-                        assert os.path.exists(
-                            correlations.SPATIAL_MAP_SVG_NAME
-                        )
+                        assert os.path.exists(correlations.SPATIAL_MAP_SVG_NAME)
 
 
 def test_positions_included_in_output(temp_work_dir, cleanup_plots):
@@ -801,12 +780,8 @@ def test_position_mapping_preserved_with_sorting(temp_work_dir, cleanup_plots):
                 actual_pos2 = (row["centroid_x2"], row["centroid_y2"])
 
                 # Verify positions match
-                assert (
-                    expected_pos1 == actual_pos1
-                ), f"Position mismatch for {cell1}"
-                assert (
-                    expected_pos2 == actual_pos2
-                ), f"Position mismatch for {cell2}"
+                assert expected_pos1 == actual_pos1, f"Position mismatch for {cell1}"
+                assert expected_pos2 == actual_pos2, f"Position mismatch for {cell2}"
 
                 # Verify distance
                 expected_distance = np.sqrt(
@@ -879,9 +854,7 @@ def test_plot_measure_correlations(temp_work_dir, cleanup_plots):
             colors=colors,
         )
         # Assert boxplot was called for multi-state case
-        assert (
-            mock_boxplot.called
-        ), "Boxplot should be created for multiple states"
+        assert mock_boxplot.called, "Boxplot should be created for multiple states"
 
     # Reset for single state test
     with patch("seaborn.boxplot") as mock_boxplot:
@@ -893,9 +866,7 @@ def test_plot_measure_correlations(temp_work_dir, cleanup_plots):
             colors=["purple"],
         )
         # Assert boxplot was NOT called for single-state case
-        assert (
-            not mock_boxplot.called
-        ), "Boxplot should NOT be created for single state"
+        assert not mock_boxplot.called, "Boxplot should NOT be created for single state"
 
     # Verify plot structure for multiple states
     with patch("matplotlib.pyplot.savefig"):
@@ -921,9 +892,7 @@ def test_plot_measure_correlations(temp_work_dir, cleanup_plots):
 
         # Verify boxplot (second subplot)
         ax1 = fig.axes[1]
-        assert (
-            ax1.get_ylabel() == "min correlations"
-        ), "Boxplot y-label incorrect"
+        assert ax1.get_ylabel() == "min correlations", "Boxplot y-label incorrect"
 
     # Verify plot structure for single state
     with patch("matplotlib.pyplot.savefig"):

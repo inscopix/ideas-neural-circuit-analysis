@@ -33,10 +33,7 @@ def create_sparse_event_scenarios():
 
     # Copy activity CSV as-is (has both trace and event data)
     activity_df = pd.read_csv(source / "activity_per_state_epoch_data.csv")
-    activity_df.to_csv(
-        target / "activity_per_state_epoch_data.csv",
-        index=False
-    )
+    activity_df.to_csv(target / "activity_per_state_epoch_data.csv", index=False)
     print(f"  Copied activity data: {len(activity_df)} rows")
 
     # Copy correlation CSV but REMOVE all event correlation columns
@@ -44,18 +41,15 @@ def create_sparse_event_scenarios():
 
     # Keep only trace correlation columns
     event_corr_columns = [
-        'max_event_correlation',
-        'min_event_correlation',
-        'mean_event_correlation',
-        'positive_event_correlation',
-        'negative_event_correlation'
+        "max_event_correlation",
+        "min_event_correlation",
+        "mean_event_correlation",
+        "positive_event_correlation",
+        "negative_event_correlation",
     ]
 
-    trace_only_df = correlation_df.drop(columns=event_corr_columns, errors='ignore')
-    trace_only_df.to_csv(
-        target / "correlations_per_state_epoch_data.csv",
-        index=False
-    )
+    trace_only_df = correlation_df.drop(columns=event_corr_columns, errors="ignore")
+    trace_only_df.to_csv(target / "correlations_per_state_epoch_data.csv", index=False)
     print(f"  Created trace-only correlation data: {len(trace_only_df)} rows")
     print(f"  Removed columns: {event_corr_columns}")
 
@@ -63,13 +57,11 @@ def create_sparse_event_scenarios():
     modulation_df = pd.read_csv(source / "modulation_vs_baseline_data.csv")
 
     # Find and remove event modulation columns
-    event_mod_columns = [col for col in modulation_df.columns
-                         if col.startswith('event_')]
-    trace_only_mod_df = modulation_df.drop(columns=event_mod_columns, errors='ignore')
-    trace_only_mod_df.to_csv(
-        target / "modulation_vs_baseline_data.csv",
-        index=False
-    )
+    event_mod_columns = [
+        col for col in modulation_df.columns if col.startswith("event_")
+    ]
+    trace_only_mod_df = modulation_df.drop(columns=event_mod_columns, errors="ignore")
+    trace_only_mod_df.to_csv(target / "modulation_vs_baseline_data.csv", index=False)
     print(f"  Created trace-only modulation data: {len(trace_only_mod_df)} rows")
     print(f"  Removed {len(event_mod_columns)} event modulation columns")
 
@@ -83,10 +75,7 @@ def create_sparse_event_scenarios():
     target2.mkdir()
 
     # Copy activity CSV as-is
-    activity_df.to_csv(
-        target2 / "activity_per_state_epoch_data.csv",
-        index=False
-    )
+    activity_df.to_csv(target2 / "activity_per_state_epoch_data.csv", index=False)
 
     # Copy correlation CSV but set some event correlations to NaN
     # Simulate missing event detection for some state-epoch combinations
@@ -94,13 +83,11 @@ def create_sparse_event_scenarios():
 
     # Set event correlations to NaN for specific combinations
     # (e.g., rest-baseline and exploration-test)
-    mask_rest_baseline = (
-        (partial_correlation_df['state'] == 'rest')
-        & (partial_correlation_df['epoch'] == 'baseline')
+    mask_rest_baseline = (partial_correlation_df["state"] == "rest") & (
+        partial_correlation_df["epoch"] == "baseline"
     )
-    mask_exploration_test = (
-        (partial_correlation_df['state'] == 'exploration')
-        & (partial_correlation_df['epoch'] == 'test')
+    mask_exploration_test = (partial_correlation_df["state"] == "exploration") & (
+        partial_correlation_df["epoch"] == "test"
     )
 
     combined_mask = mask_rest_baseline | mask_exploration_test
@@ -108,12 +95,13 @@ def create_sparse_event_scenarios():
         partial_correlation_df.loc[combined_mask, col] = np.nan
 
     partial_correlation_df.to_csv(
-        target2 / "correlations_per_state_epoch_data.csv",
-        index=False
+        target2 / "correlations_per_state_epoch_data.csv", index=False
     )
 
     n_nulls = partial_correlation_df[event_corr_columns[0]].isna().sum()
-    print(f"  Created partial event correlation data: {len(partial_correlation_df)} rows")
+    print(
+        f"  Created partial event correlation data: {len(partial_correlation_df)} rows"
+    )
     print(f"  Set {n_nulls} rows to NaN for event correlations")
     print("  Affected combinations: rest-baseline, exploration-test")
 
@@ -121,24 +109,21 @@ def create_sparse_event_scenarios():
     partial_modulation_df = modulation_df.copy()
 
     # Set event modulation to NaN for the same combinations
-    mod_mask_rest_training = (
-        (partial_modulation_df['state'] == 'rest')
-        & (partial_modulation_df['epoch'] == 'training')
+    mod_mask_rest_training = (partial_modulation_df["state"] == "rest") & (
+        partial_modulation_df["epoch"] == "training"
     )
-    mod_mask_exploration_test = (
-        (partial_modulation_df['state'] == 'exploration')
-        & (partial_modulation_df['epoch'] == 'test')
+    mod_mask_exploration_test = (partial_modulation_df["state"] == "exploration") & (
+        partial_modulation_df["epoch"] == "test"
     )
     # Set specific event modulation columns to NaN
     for col in modulation_df.columns:
-        if 'event_modulation' in col.lower() and 'rest-training' in col:
+        if "event_modulation" in col.lower() and "rest-training" in col:
             partial_modulation_df.loc[mod_mask_rest_training, col] = np.nan
-        if 'event_modulation' in col.lower() and 'exploration-test' in col:
+        if "event_modulation" in col.lower() and "exploration-test" in col:
             partial_modulation_df.loc[mod_mask_exploration_test, col] = np.nan
 
     partial_modulation_df.to_csv(
-        target2 / "modulation_vs_baseline_data.csv",
-        index=False
+        target2 / "modulation_vs_baseline_data.csv", index=False
     )
     print(f"  Created partial event modulation data: {len(partial_modulation_df)} rows")
 
@@ -266,7 +251,7 @@ These sparse data scenarios reflect real-world use cases:
 The tool must handle all these scenarios robustly to be production-ready.
 """
     readme_path = test_data_dir / "SPARSE_DATA_README.md"
-    with open(readme_path, 'w') as f:
+    with open(readme_path, "w") as f:
         f.write(readme_content)
     print(f"  Created: {readme_path}")
 

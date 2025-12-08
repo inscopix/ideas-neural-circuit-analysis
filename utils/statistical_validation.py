@@ -20,9 +20,7 @@ DEFAULT_SIGNIFICANCE_THRESHOLD = 0.05
 
 _PAIRWISE_TESTS_PARAMS: Tuple[str, ...]
 try:
-    _PAIRWISE_TESTS_PARAMS = tuple(
-        inspect.signature(pg.pairwise_tests).parameters
-    )
+    _PAIRWISE_TESTS_PARAMS = tuple(inspect.signature(pg.pairwise_tests).parameters)
 except (ValueError, TypeError):
     logger.warning(
         "Unable to inspect pingouin.pairwise_tests signature. "
@@ -251,9 +249,7 @@ def _safe_ttest(
             return None
         clean_data1 = clean_data1.iloc[:min_length]
         clean_data2 = clean_data2.iloc[:min_length]
-        logger.info(
-            f"_safe_ttest: Truncated paired data to {min_length} samples"
-        )
+        logger.info(f"_safe_ttest: Truncated paired data to {min_length} samples")
 
     try:
         result = pg.ttest(clean_data1, clean_data2, paired=paired, **kwargs)
@@ -261,10 +257,7 @@ def _safe_ttest(
         # Validate and clean results
         if result is not None and not result.empty:
             for col in ["T", "p-val", "dof"]:
-                if (
-                    col in result.columns
-                    and not np.isfinite(result[col]).all()
-                ):
+                if col in result.columns and not np.isfinite(result[col]).all():
                     logger.debug(
                         f"_safe_ttest: Invalid values detected in {col} column "
                         f"(automatically corrected)"
@@ -355,19 +348,14 @@ def _validate_pairwise_test_data(
         grouping_factors.append(between)
 
     for factor in grouping_factors:
-        if (
-            factor in cleaned_data.columns
-            and cleaned_data[factor].nunique() < 2
-        ):
+        if factor in cleaned_data.columns and cleaned_data[factor].nunique() < 2:
             return False, f"Insufficient groups in {factor}", cleaned_data
 
     return True, "", cleaned_data
 
 
 @_suppress_pingouin_warnings
-def _safe_pairwise_ttests(
-    data: pd.DataFrame, **kwargs
-) -> Optional[pd.DataFrame]:
+def _safe_pairwise_ttests(data: pd.DataFrame, **kwargs) -> Optional[pd.DataFrame]:
     """Safely perform pairwise t-tests with enhanced validation.
 
     Parameters
@@ -399,9 +387,7 @@ def _safe_pairwise_ttests(
 
         pairwise_kwargs = kwargs.copy()
 
-        grouping_column = _infer_normality_group_column(
-            cleaned_data, within, between
-        )
+        grouping_column = _infer_normality_group_column(cleaned_data, within, between)
 
         if "parametric" in pairwise_kwargs:
             pairwise_kwargs["parametric"] = _resolve_pairwise_parametric(
@@ -411,9 +397,7 @@ def _safe_pairwise_ttests(
                 grouping_column,
             )
 
-        normalized_tail = _normalize_tail_argument(
-            pairwise_kwargs.pop("tail", None)
-        )
+        normalized_tail = _normalize_tail_argument(pairwise_kwargs.pop("tail", None))
 
         if normalized_tail:
             if "alternative" in _PAIRWISE_TESTS_PARAMS:
@@ -445,9 +429,7 @@ def _safe_pairwise_ttests(
         return result
 
     except Exception as e:
-        logger.debug(
-            f"_safe_pairwise_ttests: Error in pairwise t-tests: {str(e)}"
-        )
+        logger.debug(f"_safe_pairwise_ttests: Error in pairwise t-tests: {str(e)}")
         return None
 
 
@@ -581,9 +563,7 @@ def _resolve_pairwise_parametric(
     if isinstance(parametric_value, str):
         normalized = parametric_value.strip().lower()
         if normalized == "auto" or not normalized:
-            return _auto_select_pairwise_parametric(
-                data, dv, grouping_column
-            )
+            return _auto_select_pairwise_parametric(data, dv, grouping_column)
         if normalized in {"true", "yes", "1"}:
             return True
         if normalized in {"false", "no", "0"}:
@@ -874,9 +854,7 @@ def _validate_modulation_data(
 
     if len(cleaned_df) < original_len:
         removed_count = original_len - len(cleaned_df)
-        logger.debug(
-            f"Removed {removed_count} non-finite values from {measure_column}"
-        )
+        logger.debug(f"Removed {removed_count} non-finite values from {measure_column}")
 
     # Check for sufficient data
     if len(cleaned_df) < 2:
@@ -891,20 +869,14 @@ def _validate_modulation_data(
         return False, f"Zero variance in {measure_column}", cleaned_df
 
     # Validate grouping factors
-    if (
-        status_column in cleaned_df.columns
-        and cleaned_df[status_column].nunique() < 1
-    ):
+    if status_column in cleaned_df.columns and cleaned_df[status_column].nunique() < 1:
         return (
             False,
             f"No valid modulation statuses in {status_column}",
             cleaned_df,
         )
 
-    if (
-        state_column in cleaned_df.columns
-        and cleaned_df[state_column].nunique() < 1
-    ):
+    if state_column in cleaned_df.columns and cleaned_df[state_column].nunique() < 1:
         return False, f"No valid states in {state_column}", cleaned_df
 
     if group_column and cleaned_df[group_column].nunique() < 2:
@@ -977,10 +949,7 @@ def _validate_modulation_group_data(
         )
 
     # For paired data, check subject consistency
-    if (
-        data_pairing == "paired"
-        and "normalized_subject_id" in cleaned_df.columns
-    ):
+    if data_pairing == "paired" and "normalized_subject_id" in cleaned_df.columns:
         subject_group_counts = cleaned_df.groupby("normalized_subject_id")[
             group_column
         ].nunique()
@@ -1076,15 +1045,10 @@ def _safe_anova(
         if result is not None and not result.empty:
             # Check for invalid values in key columns
             numeric_cols = (
-                ["F", "p-unc", "np2"]
-                if "np2" in result.columns
-                else ["F", "p-unc"]
+                ["F", "p-unc", "np2"] if "np2" in result.columns else ["F", "p-unc"]
             )
             for col in numeric_cols:
-                if (
-                    col in result.columns
-                    and not np.isfinite(result[col]).all()
-                ):
+                if col in result.columns and not np.isfinite(result[col]).all():
                     logger.debug(
                         f"_safe_anova: Invalid values detected in {col} "
                         f"column (automatically corrected)"
@@ -1141,20 +1105,14 @@ def _safe_ttest_modulation(
 
     try:
         # Extract data for each group
-        group1_data = data[data[group_column] == groups[0]][
-            measure_column
-        ].dropna()
-        group2_data = data[data[group_column] == groups[1]][
-            measure_column
-        ].dropna()
+        group1_data = data[data[group_column] == groups[0]][measure_column].dropna()
+        group2_data = data[data[group_column] == groups[1]][measure_column].dropna()
 
         # Use existing safe t-test function
         return _safe_ttest(group1_data, group2_data, paired=paired)
 
     except Exception as e:
-        logger.debug(
-            f"_safe_ttest_modulation: Error in modulation t-test: {str(e)}"
-        )
+        logger.debug(f"_safe_ttest_modulation: Error in modulation t-test: {str(e)}")
         return None
 
 
@@ -1211,9 +1169,7 @@ def _validate_measure_column_flexible(
 
     if len(cleaned_df) < original_len:
         removed_count = original_len - len(cleaned_df)
-        logger.debug(
-            f"Removed {removed_count} non-finite values from {measure_column}"
-        )
+        logger.debug(f"Removed {removed_count} non-finite values from {measure_column}")
 
     # Check for variation
     if cleaned_df[measure_column].var() == 0:

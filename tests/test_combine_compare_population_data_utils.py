@@ -187,17 +187,13 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
         self.assertTrue(result["is_averaged"].all())
 
         # Check that we have the right number of rows (2 subjects × 2 states each)
-        expected_rows = cell_data.groupby(
-            ["normalized_subject_id", "state"]
-        ).ngroups
+        expected_rows = cell_data.groupby(["normalized_subject_id", "state"]).ngroups
         self.assertEqual(len(result), expected_rows)
 
     def test_calculate_subject_averages_empty_input(self):
         """Test subject averaging with empty input."""
         empty_df = pd.DataFrame()
-        result = _calculate_subject_averages(
-            empty_df, "subject_id", "activity"
-        )
+        result = _calculate_subject_averages(empty_df, "subject_id", "activity")
         self.assertTrue(result.empty)
 
     def test_calculate_subject_averages_missing_columns(self):
@@ -271,16 +267,12 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
             {"modulation scores in baseline vs active": [0.5, 0.3]}
         )
 
-        baseline_state, mod_states, mean_states = detect_baseline_state(
-            pairwise_data
-        )
+        baseline_state, mod_states, mean_states = detect_baseline_state(pairwise_data)
         self.assertIsNone(baseline_state)
 
     def test_detect_baseline_state_empty_data(self):
         """Test baseline detection with empty data."""
-        baseline_state, mod_states, mean_states = detect_baseline_state(
-            pd.DataFrame()
-        )
+        baseline_state, mod_states, mean_states = detect_baseline_state(pd.DataFrame())
 
         self.assertIsNone(baseline_state)
         self.assertEqual(mod_states, [])
@@ -379,9 +371,7 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
     # Test _calculate_weighted_modulation_proportions
     def test_calculate_weighted_modulation_proportions_basic(self):
         """Test basic weighted proportion calculation."""
-        result = _calculate_weighted_modulation_proportions(
-            self.sample_modulation_data
-        )
+        result = _calculate_weighted_modulation_proportions(self.sample_modulation_data)
 
         self.assertFalse(result.empty)
         self.assertIn("proportion", result.columns)
@@ -434,23 +424,13 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
 
         # Check that proportions are clipped and handle edge cases
         self.assertEqual(result["proportion"].iloc[0], 1.0)  # 10/10 = 1.0
-        self.assertEqual(
-            result["proportion"].iloc[1], 0.0
-        )  # 0/0 -> 0 (handled)
-        self.assertEqual(
-            result["proportion"].iloc[2], 0.0
-        )  # 5/inf -> 0 (handled)
+        self.assertEqual(result["proportion"].iloc[1], 0.0)  # 0/0 -> 0 (handled)
+        self.assertEqual(result["proportion"].iloc[2], 0.0)  # 5/inf -> 0 (handled)
 
     # Test calculate_state_lmm_stats
-    @patch(
-        "utils.combine_compare_population_data_utils._perform_lmm_analysis"
-    )
-    @patch(
-        "utils.combine_compare_population_data_utils._calculate_subject_averages"
-    )
-    @patch(
-        "utils.combine_compare_population_data_utils._safe_pairwise_ttests"
-    )
+    @patch("utils.combine_compare_population_data_utils._perform_lmm_analysis")
+    @patch("utils.combine_compare_population_data_utils._calculate_subject_averages")
+    @patch("utils.combine_compare_population_data_utils._safe_pairwise_ttests")
     def test_calculate_state_lmm_stats_single_group(
         self, mock_pairwise, mock_averages, mock_lmm
     ):
@@ -509,12 +489,8 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
 
     # Test calculate_group_anova_stats
     @patch("utils.combine_compare_population_data_utils._safe_anova")
-    @patch(
-        "utils.combine_compare_population_data_utils._safe_pairwise_ttests"
-    )
-    def test_calculate_group_anova_stats_basic(
-        self, mock_pairwise, mock_anova
-    ):
+    @patch("utils.combine_compare_population_data_utils._safe_pairwise_ttests")
+    def test_calculate_group_anova_stats_basic(self, mock_pairwise, mock_anova):
         """Test basic group ANOVA calculation."""
         # Set up mocks
         mock_anova.return_value = pd.DataFrame(
@@ -559,9 +535,7 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
         self.assertTrue(pairwise_result.empty)
 
     # Test calculate_mod_stats_direct
-    @patch(
-        "utils.combine_compare_population_data_utils._dispatch_direct_analysis"
-    )
+    @patch("utils.combine_compare_population_data_utils._dispatch_direct_analysis")
     def test_calculate_mod_stats_direct_basic(self, mock_dispatch):
         """Test direct modulation stats calculation."""
         # Set up mock
@@ -751,9 +725,7 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
 
         # Check a specific calculation
         expected_prop_0 = 45 / 150  # First row
-        self.assertAlmostEqual(
-            result["proportion"].iloc[0], expected_prop_0, places=6
-        )
+        self.assertAlmostEqual(result["proportion"].iloc[0], expected_prop_0, places=6)
 
     # Test _perform_lmm_analysis
     @patch("utils.combine_compare_population_data_utils.MixedLM")
@@ -762,16 +734,10 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
         # Set up mock
         mock_result = MagicMock()
         mock_result.converged = True
-        mock_result.params = pd.Series(
-            [1.0, 0.5], index=["Intercept", "state"]
-        )
+        mock_result.params = pd.Series([1.0, 0.5], index=["Intercept", "state"])
         mock_result.bse = pd.Series([0.1, 0.05], index=["Intercept", "state"])
-        mock_result.tvalues = pd.Series(
-            [10.0, 10.0], index=["Intercept", "state"]
-        )
-        mock_result.pvalues = pd.Series(
-            [0.001, 0.001], index=["Intercept", "state"]
-        )
+        mock_result.tvalues = pd.Series([10.0, 10.0], index=["Intercept", "state"])
+        mock_result.pvalues = pd.Series([0.001, 0.001], index=["Intercept", "state"])
         mock_result.conf_int.return_value = pd.DataFrame(
             [[0.8, 1.2], [0.4, 0.6]], index=["Intercept", "state"]
         )
@@ -820,9 +786,7 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
     @patch(
         "utils.combine_compare_population_data_utils._validate_modulation_group_data"
     )
-    @patch(
-        "utils.combine_compare_population_data_utils._safe_ttest_modulation"
-    )
+    @patch("utils.combine_compare_population_data_utils._safe_ttest_modulation")
     def test_direct_pairwise_multiple_groups(self, mock_ttest, mock_validate):
         """Test direct pairwise analysis for multiple groups."""
         # Set up mocks
@@ -845,16 +809,10 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
         self.assertGreater(len(pairwise_results), 0)
 
     # Test _direct_single_group_anova
-    @patch(
-        "utils.combine_compare_population_data_utils._validate_modulation_data"
-    )
+    @patch("utils.combine_compare_population_data_utils._validate_modulation_data")
     @patch("utils.combine_compare_population_data_utils._safe_anova")
-    @patch(
-        "utils.combine_compare_population_data_utils._safe_pairwise_ttests"
-    )
-    def test_direct_single_group_anova(
-        self, mock_pairwise, mock_anova, mock_validate
-    ):
+    @patch("utils.combine_compare_population_data_utils._safe_pairwise_ttests")
+    def test_direct_single_group_anova(self, mock_pairwise, mock_anova, mock_validate):
         """Test direct single group ANOVA analysis."""
         # Create test data with proper state column (not pairwise format)
         test_data = pd.DataFrame(
@@ -893,9 +851,7 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
         "utils.combine_compare_population_data_utils._validate_modulation_group_data"
     )
     @patch("utils.combine_compare_population_data_utils._safe_anova")
-    @patch(
-        "utils.combine_compare_population_data_utils._safe_pairwise_ttests"
-    )
+    @patch("utils.combine_compare_population_data_utils._safe_pairwise_ttests")
     def test_direct_multiple_groups_rm_anova(
         self, mock_pairwise, mock_anova, mock_validate
     ):
@@ -930,9 +886,7 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
         "utils.combine_compare_population_data_utils._validate_modulation_group_data"
     )
     @patch("utils.combine_compare_population_data_utils._safe_anova")
-    @patch(
-        "utils.combine_compare_population_data_utils._safe_pairwise_ttests"
-    )
+    @patch("utils.combine_compare_population_data_utils._safe_pairwise_ttests")
     def test_direct_multiple_groups_mixed_anova(
         self, mock_pairwise, mock_anova, mock_validate
     ):
@@ -963,9 +917,7 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
         self.assertGreater(len(pairwise_results), 0)
 
     # Test _handle_single_state_group_comparison
-    @patch(
-        "utils.combine_compare_population_data_utils._safe_ttest_modulation"
-    )
+    @patch("utils.combine_compare_population_data_utils._safe_ttest_modulation")
     def test_handle_single_state_group_comparison_two_groups(self, mock_ttest):
         """Test single state group comparison with two groups."""
         # Set up mock
@@ -995,9 +947,7 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
         self.assertFalse(pairwise_df.empty)  # Should have pairwise results
 
     @patch("utils.combine_compare_population_data_utils._safe_anova")
-    @patch(
-        "utils.combine_compare_population_data_utils._safe_pairwise_ttests"
-    )
+    @patch("utils.combine_compare_population_data_utils._safe_pairwise_ttests")
     def test_handle_single_state_group_comparison_multiple_groups(
         self, mock_pairwise, mock_anova
     ):
@@ -1035,9 +985,7 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
     @patch(
         "utils.combine_compare_population_data_utils._validate_modulation_group_data"
     )
-    @patch(
-        "utils.combine_compare_population_data_utils._safe_ttest_modulation"
-    )
+    @patch("utils.combine_compare_population_data_utils._safe_ttest_modulation")
     def test_direct_pairwise_state_comparison(self, mock_ttest, mock_validate):
         """Test direct pairwise state comparison."""
         # Set up mocks
@@ -1209,9 +1157,7 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
         self.assertFalse(result.empty)
         # Should have fewer rows than input due to NaN removal
         expected_valid_combinations = (
-            nan_data.dropna()
-            .groupby(["normalized_subject_id", "state"])
-            .ngroups
+            nan_data.dropna().groupby(["normalized_subject_id", "state"]).ngroups
         )
         self.assertEqual(len(result), expected_valid_combinations)
 
@@ -1252,9 +1198,7 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
 
             except Exception as e:
                 # If there's an exception, it should be handled gracefully
-                self.fail(
-                    f"Dispatch failed for condition {condition_key}: {str(e)}"
-                )
+                self.fail(f"Dispatch failed for condition {condition_key}: {str(e)}")
 
     # =============================================================================
     # COMPREHENSIVE STATISTICAL ACCURACY TESTS FOR LMM FUNCTIONS
@@ -1267,9 +1211,7 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
 
         subjects = ["subject_1", "subject_2", "subject_3", "subject_4"]
         states = ["baseline", "stimulus"]
-        cells_per_subject_state = (
-            5  # Multiple cells per subject-state combination
-        )
+        cells_per_subject_state = 5  # Multiple cells per subject-state combination
 
         # Generate known effects for validation
         baseline_mean = 1.0
@@ -1288,9 +1230,7 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
                 subject_mean = state_mean + subject_effects[i]
 
                 for cell_idx in range(cells_per_subject_state):
-                    cell_activity = subject_mean + np.random.normal(
-                        0, cell_noise
-                    )
+                    cell_activity = subject_mean + np.random.normal(0, cell_noise)
                     test_data.append(
                         {
                             "normalized_subject_id": subject,
@@ -1361,9 +1301,7 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
         for group_idx, group in enumerate(["control", "treatment"]):
             for subj_idx in range(subjects_per_group):
                 subject_id = f"subject_{group_idx}_{subj_idx}"
-                subject_effect = np.random.normal(
-                    0, 0.15
-                )  # Random subject effect
+                subject_effect = np.random.normal(0, 0.15)  # Random subject effect
 
                 for state in states:
                     # Calculate expected mean with all effects
@@ -1378,9 +1316,7 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
                     subject_state_mean = expected_mean + subject_effect
 
                     for cell_idx in range(cells_per_subject_state):
-                        cell_activity = subject_state_mean + np.random.normal(
-                            0, 0.1
-                        )
+                        cell_activity = subject_state_mean + np.random.normal(0, 0.1)
                         test_data.append(
                             {
                                 "normalized_subject_id": subject_id,
@@ -1431,9 +1367,7 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
         # Create data with clear pseudoreplication risk
         subjects = ["subj1", "subj2"]
         states = ["baseline", "treatment"]
-        cells_per_subject = (
-            20  # Many cells per subject - risk of pseudoreplication
-        )
+        cells_per_subject = 20  # Many cells per subject - risk of pseudoreplication
 
         test_data = []
         for subject in subjects:
@@ -1460,9 +1394,7 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
         ) as mock_avg:
             # Mock subject averaging to return aggregated data
             mock_avg.return_value = (
-                pseudo_df.groupby(["normalized_subject_id", "state"])[
-                    "activity"
-                ]
+                pseudo_df.groupby(["normalized_subject_id", "state"])["activity"]
                 .mean()
                 .reset_index()
             )
@@ -1549,9 +1481,7 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
             }
         )
 
-        with patch(
-            "utils.combine_compare_population_data_utils.MixedLM"
-        ) as mock_lmm:
+        with patch("utils.combine_compare_population_data_utils.MixedLM") as mock_lmm:
             mock_model = MagicMock()
             mock_result = MagicMock()
             mock_result.converged = True
@@ -1589,12 +1519,8 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
             formula = call_args[1]["formula"]
 
             # Formula should include DV, fixed effects, and be syntactically correct
-            self.assertIn(
-                "activity ~", formula, "Formula should start with DV"
-            )
-            self.assertIn(
-                "state", formula, "Formula should include state factor"
-            )
+            self.assertIn("activity ~", formula, "Formula should start with DV")
+            self.assertIn("state", formula, "Formula should include state factor")
 
             # Check that groups parameter is correctly set for random effects
             self.assertIn(
@@ -1615,9 +1541,7 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
             }
         )
 
-        with patch(
-            "utils.combine_compare_population_data_utils.MixedLM"
-        ) as mock_lmm:
+        with patch("utils.combine_compare_population_data_utils.MixedLM") as mock_lmm:
             mock_model = MagicMock()
             mock_result = MagicMock()
             mock_result.converged = True
@@ -1708,12 +1632,8 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
             # Check that p-values are valid probabilities
             p_values = lmm_result["p_value"].dropna()
             if len(p_values) > 0:
-                self.assertTrue(
-                    (p_values >= 0).all(), "P-values should be >= 0"
-                )
-                self.assertTrue(
-                    (p_values <= 1).all(), "P-values should be <= 1"
-                )
+                self.assertTrue((p_values >= 0).all(), "P-values should be >= 0")
+                self.assertTrue((p_values <= 1).all(), "P-values should be <= 1")
 
             # Check that confidence intervals are properly ordered
             ci_lower = lmm_result["conf_int_lower"].dropna()
@@ -1821,9 +1741,7 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
             measure_name="activity",
         )
 
-        self.assertTrue(
-            lmm_result.empty, "Should reject data with insufficient states"
-        )
+        self.assertTrue(lmm_result.empty, "Should reject data with insufficient states")
 
     def test_lmm_data_cleaning_and_validation(self):
         """Test LMM data cleaning and validation procedures."""
@@ -1883,9 +1801,7 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
             }
         )
 
-        with patch(
-            "utils.combine_compare_population_data_utils.MixedLM"
-        ) as mock_lmm:
+        with patch("utils.combine_compare_population_data_utils.MixedLM") as mock_lmm:
             mock_model = MagicMock()
             mock_result = MagicMock()
             mock_result.converged = True

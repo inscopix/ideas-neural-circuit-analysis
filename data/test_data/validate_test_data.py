@@ -35,28 +35,44 @@ class TestDataValidator:
 
     # Required columns
     REQUIRED_ACTIVITY_COLS = [
-        'name', 'cell_index', 'state', 'epoch',
-        'mean_trace_activity', 'std_trace_activity',
-        'median_trace_activity', 'trace_activity_cv',
-        'mean_event_rate'
+        "name",
+        "cell_index",
+        "state",
+        "epoch",
+        "mean_trace_activity",
+        "std_trace_activity",
+        "median_trace_activity",
+        "trace_activity_cv",
+        "mean_event_rate",
     ]
 
     REQUIRED_CORRELATION_COLS = [
-        'name', 'cell_index', 'state', 'epoch',
-        'max_trace_correlation', 'min_trace_correlation',
-        'mean_trace_correlation',
-        'positive_trace_correlation', 'negative_trace_correlation'
+        "name",
+        "cell_index",
+        "state",
+        "epoch",
+        "max_trace_correlation",
+        "min_trace_correlation",
+        "mean_trace_correlation",
+        "positive_trace_correlation",
+        "negative_trace_correlation",
     ]
 
     OPTIONAL_EVENT_CORRELATION_COLS = [
-        'max_event_correlation', 'min_event_correlation',
-        'mean_event_correlation',
-        'positive_event_correlation', 'negative_event_correlation'
+        "max_event_correlation",
+        "min_event_correlation",
+        "mean_event_correlation",
+        "positive_event_correlation",
+        "negative_event_correlation",
     ]
 
     REQUIRED_MODULATION_COLS = [
-        'name', 'cell_index', 'state', 'epoch',
-        'baseline_state', 'baseline_epoch'
+        "name",
+        "cell_index",
+        "state",
+        "epoch",
+        "baseline_state",
+        "baseline_epoch",
     ]
 
     def __init__(self, test_data_dir: Path):
@@ -74,8 +90,9 @@ class TestDataValidator:
 
         # Find all subject directories
         subject_dirs = [
-            d for d in self.test_data_dir.iterdir()
-            if d.is_dir() and d.name.startswith('dummy_')
+            d
+            for d in self.test_data_dir.iterdir()
+            if d.is_dir() and d.name.startswith("dummy_")
         ]
 
         if not subject_dirs:
@@ -100,8 +117,8 @@ class TestDataValidator:
         print("-" * 70)
 
         # Check if this is a sparse data scenario
-        is_sparse_no_events = 'no_events' in subject_name
-        is_sparse_partial = 'partial_events' in subject_name
+        is_sparse_no_events = "no_events" in subject_name
+        is_sparse_partial = "partial_events" in subject_name
         is_sparse = is_sparse_no_events or is_sparse_partial
 
         # Check file existence
@@ -110,21 +127,15 @@ class TestDataValidator:
         modulation_path = subject_dir / self.MODULATION_FILE
 
         if not activity_path.exists():
-            self.errors.append(
-                f"{subject_name}: Missing {self.ACTIVITY_FILE}"
-            )
+            self.errors.append(f"{subject_name}: Missing {self.ACTIVITY_FILE}")
             return
 
         if not correlation_path.exists():
-            self.errors.append(
-                f"{subject_name}: Missing {self.CORRELATION_FILE}"
-            )
+            self.errors.append(f"{subject_name}: Missing {self.CORRELATION_FILE}")
             return
 
         if not modulation_path.exists():
-            self.errors.append(
-                f"{subject_name}: Missing {self.MODULATION_FILE}"
-            )
+            self.errors.append(f"{subject_name}: Missing {self.MODULATION_FILE}")
             return
 
         # Load data files
@@ -133,15 +144,11 @@ class TestDataValidator:
             correlation_df = pd.read_csv(correlation_path)
             modulation_df = pd.read_csv(modulation_path)
         except Exception as e:
-            self.errors.append(
-                f"{subject_name}: Failed to load CSV files: {e}"
-            )
+            self.errors.append(f"{subject_name}: Failed to load CSV files: {e}")
             return
 
         # Validate activity file
-        self._validate_activity_file(
-            subject_name, activity_df, is_sparse
-        )
+        self._validate_activity_file(subject_name, activity_df, is_sparse)
 
         # Validate correlation file
         self._validate_correlation_file(
@@ -149,9 +156,7 @@ class TestDataValidator:
         )
 
         # Validate modulation file
-        self._validate_modulation_file(
-            subject_name, modulation_df, is_sparse_no_events
-        )
+        self._validate_modulation_file(subject_name, modulation_df, is_sparse_no_events)
 
         # Cross-file consistency checks
         self._validate_cross_file_consistency(
@@ -174,8 +179,7 @@ class TestDataValidator:
 
         # Check required columns
         missing_cols = [
-            col for col in self.REQUIRED_ACTIVITY_COLS
-            if col not in df.columns
+            col for col in self.REQUIRED_ACTIVITY_COLS if col not in df.columns
         ]
         if missing_cols:
             self.errors.append(
@@ -185,16 +189,12 @@ class TestDataValidator:
             print("  SUCCESS: All required activity columns present")
 
         # Check data types
-        if 'cell_index' in df.columns:
-            if not pd.api.types.is_numeric_dtype(df['cell_index']):
-                self.warnings.append(
-                    f"{subject}: cell_index should be numeric"
-                )
+        if "cell_index" in df.columns:
+            if not pd.api.types.is_numeric_dtype(df["cell_index"]):
+                self.warnings.append(f"{subject}: cell_index should be numeric")
 
         # Check for NaN in required columns
-        required_data_cols = [
-            'mean_trace_activity', 'mean_event_rate'
-        ]
+        required_data_cols = ["mean_trace_activity", "mean_event_rate"]
         for col in required_data_cols:
             if col in df.columns:
                 nan_count = df[col].isna().sum()
@@ -208,7 +208,7 @@ class TestDataValidator:
         subject: str,
         df: pd.DataFrame,
         is_sparse_no_events: bool,
-        is_sparse_partial: bool
+        is_sparse_partial: bool,
     ) -> None:
         """Validate correlation CSV file."""
         # Check row count
@@ -223,8 +223,7 @@ class TestDataValidator:
 
         # Check required trace correlation columns
         missing_cols = [
-            col for col in self.REQUIRED_CORRELATION_COLS
-            if col not in df.columns
+            col for col in self.REQUIRED_CORRELATION_COLS if col not in df.columns
         ]
         if missing_cols:
             self.errors.append(
@@ -235,8 +234,7 @@ class TestDataValidator:
 
         # Check event correlation columns
         has_event_cols = all(
-            col in df.columns
-            for col in self.OPTIONAL_EVENT_CORRELATION_COLS
+            col in df.columns for col in self.OPTIONAL_EVENT_CORRELATION_COLS
         )
 
         if is_sparse_no_events:
@@ -247,26 +245,28 @@ class TestDataValidator:
                     "event correlation columns"
                 )
             else:
-                print("  SUCCESS: Event correlation columns properly removed "
-                      "(sparse scenario)")
+                print(
+                    "  SUCCESS: Event correlation columns properly removed "
+                    "(sparse scenario)"
+                )
         elif has_event_cols:
             print("  SUCCESS: Event correlation columns present")
 
             # Check for NaN values in partial sparse scenario
             if is_sparse_partial:
-                nan_count = df['max_event_correlation'].isna().sum()
+                nan_count = df["max_event_correlation"].isna().sum()
                 if nan_count > 0:
-                    print(f"  SUCCESS: Partial event data has {nan_count} "
-                          "NaN values (sparse scenario)")
+                    print(
+                        f"  SUCCESS: Partial event data has {nan_count} "
+                        "NaN values (sparse scenario)"
+                    )
                 else:
                     self.warnings.append(
                         f"{subject}: Partial events scenario should have some "
                         "NaN values"
                     )
         else:
-            self.info.append(
-                f"{subject}: Event correlation columns missing (optional)"
-            )
+            self.info.append(f"{subject}: Event correlation columns missing (optional)")
 
     def _validate_modulation_file(
         self, subject: str, df: pd.DataFrame, is_sparse_no_events: bool
@@ -284,8 +284,7 @@ class TestDataValidator:
 
         # Check required columns
         missing_cols = [
-            col for col in self.REQUIRED_MODULATION_COLS
-            if col not in df.columns
+            col for col in self.REQUIRED_MODULATION_COLS if col not in df.columns
         ]
         if missing_cols:
             self.errors.append(
@@ -296,20 +295,16 @@ class TestDataValidator:
 
         # Check for trace modulation columns
         trace_mod_cols = [
-            col for col in df.columns
-            if col.startswith('trace_modulation')
+            col for col in df.columns if col.startswith("trace_modulation")
         ]
         if not trace_mod_cols:
-            self.errors.append(
-                f"{subject}: No trace modulation columns found"
-            )
+            self.errors.append(f"{subject}: No trace modulation columns found")
         else:
             print(f"  SUCCESS: Found {len(trace_mod_cols)} trace modulation columns")
 
         # Check for event modulation columns
         event_mod_cols = [
-            col for col in df.columns
-            if col.startswith('event_modulation')
+            col for col in df.columns if col.startswith("event_modulation")
         ]
 
         if is_sparse_no_events:
@@ -319,19 +314,19 @@ class TestDataValidator:
                     "event modulation columns"
                 )
             else:
-                print("  SUCCESS: Event modulation columns properly removed "
-                      "(sparse scenario)")
+                print(
+                    "  SUCCESS: Event modulation columns properly removed "
+                    "(sparse scenario)"
+                )
         elif event_mod_cols:
             print(f"  SUCCESS: Found {len(event_mod_cols)} event modulation columns")
         else:
-            self.info.append(
-                f"{subject}: No event modulation columns (may be sparse)"
-            )
+            self.info.append(f"{subject}: No event modulation columns (may be sparse)")
 
         # Validate baseline consistency
-        if 'baseline_state' in df.columns and 'baseline_epoch' in df.columns:
-            baseline_states = df['baseline_state'].unique()
-            baseline_epochs = df['baseline_epoch'].unique()
+        if "baseline_state" in df.columns and "baseline_epoch" in df.columns:
+            baseline_states = df["baseline_state"].unique()
+            baseline_epochs = df["baseline_epoch"].unique()
 
             if len(baseline_states) != 1:
                 self.errors.append(
@@ -348,12 +343,12 @@ class TestDataValidator:
         subject: str,
         activity_df: pd.DataFrame,
         correlation_df: pd.DataFrame,
-        modulation_df: pd.DataFrame
+        modulation_df: pd.DataFrame,
     ) -> None:
         """Validate consistency across CSV files."""
         # Check cell counts match
-        activity_cells = activity_df['name'].nunique()
-        correlation_cells = correlation_df['name'].nunique()
+        activity_cells = activity_df["name"].nunique()
+        correlation_cells = correlation_df["name"].nunique()
 
         if activity_cells != correlation_cells:
             self.errors.append(
@@ -363,17 +358,12 @@ class TestDataValidator:
 
         if activity_cells != self.N_CELLS:
             self.warnings.append(
-                f"{subject}: Expected {self.N_CELLS} cells, "
-                f"found {activity_cells}"
+                f"{subject}: Expected {self.N_CELLS} cells, " f"found {activity_cells}"
             )
 
         # Check state-epoch combinations match
-        activity_combos = set(
-            zip(activity_df['state'], activity_df['epoch'])
-        )
-        correlation_combos = set(
-            zip(correlation_df['state'], correlation_df['epoch'])
-        )
+        activity_combos = set(zip(activity_df["state"], activity_df["epoch"]))
+        correlation_combos = set(zip(correlation_df["state"], correlation_df["epoch"]))
 
         if activity_combos != correlation_combos:
             self.warnings.append(

@@ -1,6 +1,6 @@
+"""Compare peri-event activity across epochs and produce summary outputs."""
+
 import json
-import copy
-import logging
 import os
 import math
 from collections import OrderedDict
@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import utils.config as config
+
 # from ideas_commons.constants import (
 #     FileCategory,
 #     FileFormat,
@@ -19,6 +20,7 @@ import utils.config as config
 #     GroupType,
 # )
 from scipy import stats
+
 # from toolbox.utils.data_model import IdeasFile, IdeasGroup, IdeasPreviewFile
 from ideas.exceptions import IdeasError
 from ideas.tools.log import get_logger
@@ -27,15 +29,12 @@ from utils.stats_utils import perform_paired_pairwise_comparisons
 from ideas.analysis.utils import (
     get_file_size,
 )
-from utils.utils import (
-    validate_cellset_series_compatibility,
-    get_num_cells_by_status
-)
+from utils.utils import validate_cellset_series_compatibility, get_num_cells_by_status
 from utils.utils import (
     _parse_string_to_tuples,
     _redefine_epochs,
     _get_cellset_boundaries,
-    compute_sampling_rate
+    compute_sampling_rate,
 )
 from utils.metadata import read_isxd_metadata
 from analysis.peri_event_workflow import (
@@ -65,6 +64,7 @@ from utils.plots import (
 
 from ideas.tools.types import IdeasFile
 from ideas.tools import outputs
+
 logger = get_logger()
 
 
@@ -78,9 +78,7 @@ def _epoch_time_to_index(epochs, period):
     :Returns
     list: A list of indices corresponding to the converted epoch time.
     """
-    return [
-        (int((epoch[0] / period)), int(epoch[1] / period)) for epoch in epochs
-    ]
+    return [(int((epoch[0] / period)), int(epoch[1] / period)) for epoch in epochs]
 
 
 def _check_num_epochs(
@@ -132,7 +130,8 @@ def _check_epochs_valid(
         # Make sure the epoch is within the range of the traces
         if epoch[0] > num_samples or epoch[1] > num_samples:
             raise IdeasError(
-                f"The epoch is not within the range of the traces. ({epoch[0]}, {epoch[1]}) vs {num_samples}",
+                "The epoch is not within the range of the traces. "
+                f"({epoch[0]}, {epoch[1]}) vs {num_samples}",
             )
 
 
@@ -169,7 +168,8 @@ def compare_peri_event_activity_across_epochs(
     :param input_events_h5_file: path to the events file
     :param event_type: string representing an event type (currently only supports 1 event type)
     :param epoch_names: list of epoch names
-    :param epoch_periods: list of epoch periods specified as list of tuples encoded as a string (e.g. "(1,10), (11,20)")
+    :param epoch_periods: list of epoch periods specified as list of tuples encoded as a string
+        (e.g. "(1,10), (11,20)")
     :param epoch_colors: list of epoch colors
     :param epoch_min_events: minimum number of events per epoch
     :param visual_window_pre: time in seconds before each event to use for visualization
@@ -188,13 +188,14 @@ def compare_peri_event_activity_across_epochs(
     :param modulation_colors: comma separated strings with color inputs
     These colors represent [up-modulated, down-modulated, non-modulated] groups.
     :param cmap: colormap applied to the activity heatmap
-    :param temporal_downsampling_factor: downsampling factor to apply to the traces during the analysis
+    :param temporal_downsampling_factor: downsampling factor to apply to the traces during the
+        analysis
     :param population_activity_plot_limits: y-axis range (z-score) applied to the event-aligned
-     population activity plot specified as 'min,max' (e.g. -1,1) or 'auto'
+        population activity plot specified as 'min,max' (e.g. -1,1) or 'auto'
     :param activity_heatmap_color_limits: colormap range (z-score) applied to the activity heatmap
-     specified as 'min,max' (e.g. -1,1) or 'auto'
+        specified as 'min,max' (e.g. -1,1) or 'auto'
     :param activity_by_modulation_plot_limits: y-axis range (z-score) applied to the event-aligned
-     activity by modulation plot specified as 'min,max' (e.g. -1,1) or 'auto'
+        activity by modulation plot specified as 'min,max' (e.g. -1,1) or 'auto'
     :param output_dir: path to the output directory
     """
     logger.info("Starting peri-event analysis across epochs")
@@ -240,12 +241,11 @@ def compare_peri_event_activity_across_epochs(
 
     # construct epoch data structure
     epoch_data = {}
-    for epoch, epoch_name, epoch_color in zip(
-        epochs, epoch_names, epoch_colors
-    ):
+    for epoch, epoch_name, epoch_color in zip(epochs, epoch_names, epoch_colors):
         epoch_indices = _epoch_time_to_index([epoch], period)[0]
         logger.info(
-            f"Converted epoch period for epoch '{epoch_name}' to corresponding indices: {epoch} -> {epoch_indices}"
+            "Converted epoch period for epoch "
+            f"'{epoch_name}' to indices: {epoch} -> {epoch_indices}"
         )
 
         epoch_data[epoch_name] = {
@@ -329,7 +329,8 @@ def run_peri_event_workflow(
     :param modulation_colors: comma separated strings with color inputs
     These colors represent [up-modulated, down-modulated, non-modulated] groups.
     :param cmap: colormap applied to the activity heatmap
-    :param temporal_downsampling_factor: downsampling factor to apply to the traces during the analysis
+    :param temporal_downsampling_factor: downsampling factor to apply to the traces during the
+        analysis
     :param population_activity_plot_limits: y-axis range (z-score) applied to the event-aligned
      population activity plot specified as 'min,max' (e.g. -1,1) or 'auto'
     :param activity_heatmap_color_limits: colormap range (z-score) applied to the activity heatmap
@@ -472,24 +473,18 @@ def run_peri_event_workflow(
     traces_df = pd.DataFrame.from_dict(traces_dict)
 
     # standardize traces (z-scores)
-    standardized_traces_df = (traces_df - traces_df.mean()) / traces_df.std(
-        ddof=0
-    )
+    standardized_traces_df = (traces_df - traces_df.mean()) / traces_df.std(ddof=0)
 
     # construct traces timepoints
     traces_timepoints = []
     for i, cs in enumerate(cellsets):
         item_timepoints = np.array(
-            [
-                n * cs.timing.period.secs_float
-                for n in range(cs.timing.num_samples)
-            ]
+            [n * cs.timing.period.secs_float for n in range(cs.timing.num_samples)]
         )
 
         if i > 0:
             item_timepoints += (
-                traces_timepoints[-1]
-                + cellsets[i - 1].timing.period.secs_float
+                traces_timepoints[-1] + cellsets[i - 1].timing.period.secs_float
             )
 
         traces_timepoints.extend(item_timepoints)
@@ -552,9 +547,7 @@ def run_peri_event_workflow(
 
     # ensure time window does not exceed length of traces
     num_timepoints = first_cell_set_metadata["timingInfo"]["numTimes"]
-    visual_window_length = (
-        visual_window_frames[0] + 1 + visual_window_frames[1]
-    )
+    visual_window_length = visual_window_frames[0] + 1 + visual_window_frames[1]
     if visual_window_length > num_timepoints:
         raise IdeasError(
             "The visual window must be temporally shorter than the input traces.",
@@ -576,7 +569,8 @@ def run_peri_event_workflow(
         # if event types is not specified, process all event types in the h5 file
         event_types = list(events_data["events"].keys())
         logger.warning(
-            f"Event types set to {event_types} based on the event types contained in the input events file"
+            "Event types set to "
+            f"{event_types} based on the event types contained in the input events file"
         )
 
     # if empty list provided, retrieve all event types from the h5 file
@@ -634,17 +628,18 @@ def run_peri_event_workflow(
 def compare_post_minus_pre_across_epochs(
     single_cell_data, epoch_data, comparison_type, output_filename
 ):
-    """Compare the post-pre values across epochs using pairwise t-tests.
+    """Compare post-pre values across epochs using pairwise t-tests.
+
     :param single_cell_data: dictionary containing single-cell data
     :param epoch_data: dictionary containing epoch-specific data
-    :output_filename: path to the output csv file
+    :param output_filename: path to the output csv file
     """
     dfs = []
     for epoch_name in epoch_data.keys():
         # population
-        epoch_population_true_post_minus_pre_dist = single_cell_data[
-            epoch_name
-        ]["cell"]["true_mean_post-pre"]
+        epoch_population_true_post_minus_pre_dist = single_cell_data[epoch_name][
+            "cell"
+        ]["true_mean_post-pre"]
         num_cells = len(epoch_population_true_post_minus_pre_dist)
 
         # construct epoch dataframe
@@ -804,12 +799,8 @@ def peri_event_analysis_for_single_event_type(
             subset_traces_end_time = traces_timepoints[row_end_index - 1]
 
             # convert start and end times to the corresponding indices across the entire series
-            subset_traces_start_index = int(
-                round(subset_traces_start_time / period)
-            )
-            subset_traces_end_index = int(
-                round(subset_traces_end_time / period)
-            )
+            subset_traces_start_index = int(round(subset_traces_start_time / period))
+            subset_traces_end_index = int(round(subset_traces_end_time / period))
 
             series_item_endpoints.append(
                 (subset_traces_start_index, subset_traces_end_index)
@@ -929,9 +920,7 @@ def peri_event_analysis_for_single_event_type(
     epochs_to_exclude = []
     for epoch_name, epoch_data_item in epoch_data.items():
         # convert epoch period to corresponding frame indices
-        epoch_indices = _epoch_time_to_index(
-            [epoch_data_item["period"]], period
-        )[0]
+        epoch_indices = _epoch_time_to_index([epoch_data_item["period"]], period)[0]
 
         # retain only event indices within the epoch
         event_indices_within_epoch = event_indices[
@@ -949,19 +938,19 @@ def peri_event_analysis_for_single_event_type(
         # - Exclude epochs for which we do not have a sufficient number of valid events.
         # - An event is considered valid if a full visual window can be constructed around it.
         num_events_in_epoch = len(event_indices_within_epoch)
-        logger.info(
-            f"Found {num_events_in_epoch} valid events in epoch '{epoch_name}'"
-        )
+        logger.info(f"Found {num_events_in_epoch} valid events in epoch '{epoch_name}'")
         if num_events_in_epoch == 0:
             logger.warning(
-                f"No valid events found in epoch '{epoch_name}'. The epoch will be excluded from the analysis."
+                "No valid events found in epoch "
+                f"'{epoch_name}'. The epoch will be excluded from the analysis."
             )
             epochs_to_exclude.append(epoch_name)
             continue
         elif num_events_in_epoch < epoch_min_events:
             logger.warning(
-                f"{num_events_in_epoch} events found in epoch '{epoch_name}', but the minimum number of events per epoch is {epoch_min_events}. "
-                f"The epoch will be excluded from the analysis."
+                f"{num_events_in_epoch} events found in epoch '{epoch_name}', but the "
+                f"minimum number of events per epoch is {epoch_min_events}. The epoch "
+                "will be excluded from the analysis."
             )
             epochs_to_exclude.append(epoch_name)
             continue
@@ -986,9 +975,7 @@ def peri_event_analysis_for_single_event_type(
         )
 
     # log the epochs that will be processed
-    logger.info(
-        f"The following epochs will be processed: {list(epoch_data.keys())}"
-    )
+    logger.info(f"The following epochs will be processed: {list(epoch_data.keys())}")
 
     # run the peri-event analysis at the POPULATION level
     logger.info("Population activity analysis started")
@@ -1058,11 +1045,12 @@ def peri_event_analysis_for_single_event_type(
         )
         logger.info("Comparison of post-pre data across epochs completed")
 
-        # plot post-pre activity differences between a pair of epochs along with color-coded cell map
+        # plot post-pre activity differences between a pair of epochs along with a color-coded
+        # cell map
         # (
         #     post_minus_pre_activity_differences_preview_files,
         #     post_minus_pre_boxplot_preview_file,
-        # ) = 
+        # ) =
         plot_post_minus_pre_activity_differences_with_cell_map(
             cell_set_files=input_cellset_files,
             data=output_data,
@@ -1128,16 +1116,19 @@ def peri_event_analysis_for_single_event_type(
     # construct events metadata (number of valid events per epoch)
     num_events_str = ""
     for i, (epoch_name, epoch_data_item) in enumerate(epoch_data.items()):
-        num_events_str += f"{epoch_name}: {len(epoch_data_item['event_indices'])}{', ' if i < num_epochs - 1 else ''}"
+        suffix = ", " if i < num_epochs - 1 else ""
+        num_events_str += (
+            f"{epoch_name}: {len(epoch_data_item['event_indices'])}{suffix}"
+        )
 
     # construct modulated cells metadata (number of up/down/non modulated cells per epoch)
     num_up_modulated_cells_str = ""
     num_down_modulated_cells_str = ""
     num_non_modulated_cells_str = ""
     for i, epoch_name in enumerate(epoch_data.keys()):
-        num_up_modulated_cells = output_data["single_cell"][epoch_name][
-            "up_modulated"
-        ]["num_cells"]
+        num_up_modulated_cells = output_data["single_cell"][epoch_name]["up_modulated"][
+            "num_cells"
+        ]
         num_down_modulated_cells = output_data["single_cell"][epoch_name][
             "down_modulated"
         ]["num_cells"]
@@ -1145,9 +1136,14 @@ def peri_event_analysis_for_single_event_type(
             "non_modulated"
         ]["num_cells"]
 
-        num_up_modulated_cells_str += f"{epoch_name}: {num_up_modulated_cells}{', ' if i < num_epochs - 1 else ''}"
-        num_down_modulated_cells_str += f"{epoch_name}: {num_down_modulated_cells}{', ' if i < num_epochs - 1 else ''}"
-        num_non_modulated_cells_str += f"{epoch_name}: {num_non_modulated_cells}{', ' if i < num_epochs - 1 else ''}"
+        suffix = ", " if i < num_epochs - 1 else ""
+        num_up_modulated_cells_str += f"{epoch_name}: {num_up_modulated_cells}{suffix}"
+        num_down_modulated_cells_str += (
+            f"{epoch_name}: {num_down_modulated_cells}{suffix}"
+        )
+        num_non_modulated_cells_str += (
+            f"{epoch_name}: {num_non_modulated_cells}{suffix}"
+        )
 
     # # event-aligned METADATA
     # first_cs_metadata = read_isxd_metadata(input_cellset_files[0])
@@ -1191,27 +1187,27 @@ def peri_event_analysis_for_single_event_type(
         {
             "key": "ideas.metrics.num_valid_events",
             "name": "Number of events",
-            "value": num_events_str
+            "value": num_events_str,
         },
         {
             "key": "ideas.metrics.num_up_modulated_cells",
             "name": "Number of up-modulated cells",
-            "value": num_up_modulated_cells_str
+            "value": num_up_modulated_cells_str,
         },
         {
             "key": "ideas.metrics.num_down_modulated_cells",
             "name": "Number of down-modulated cells",
-            "value": num_down_modulated_cells_str
+            "value": num_down_modulated_cells_str,
         },
         {
             "key": "ideas.metrics.num_non_modulated_cells",
             "name": "Number of non-modulated cells",
-            "value": num_non_modulated_cells_str
+            "value": num_non_modulated_cells_str,
         },
         {
             "key": "ideas.timingInfo.numTimes",
             "name": "Number of timepoints",
-            "value": len(x_values)
+            "value": len(x_values),
         },
         {
             "key": "ideas.timingInfo.sampling_rate",
@@ -1314,7 +1310,7 @@ def peri_event_analysis_for_single_event_type(
     output_metadata = {
         "event_aligned_traces": metadata,
         "event_aligned_statistics": metadata,
-        "event_aligned_epoch_comparison_data": metadata
+        "event_aligned_epoch_comparison_data": metadata,
     }
 
     with open(os.path.join(output_dir, "output_metadata.json"), "w") as f:
@@ -1362,9 +1358,7 @@ def peri_event_population_analysis(
 
         # retrieve event indices within epoch
         epoch_event_indices = epoch_data_item["event_indices"]
-        epoch_event_indices_shuffles = epoch_data_item[
-            "event_indices_shuffles"
-        ]
+        epoch_event_indices_shuffles = epoch_data_item["event_indices_shuffles"]
 
         # Step 1: Compute true population mean activity across event windows
         # (i.e. windows around each event)
@@ -1393,13 +1387,12 @@ def peri_event_population_analysis(
         # - The null distribution is constructed by shuffling the events a number of times.
         # - For each shuffle, we then compute the mean event window as done above in step 1.
         # - We end up with 'num_shuffles' such mean event windows.
-        # - Finally, we average all mean event windows and compute the associated confidence interval.
+        # - Finally, we average all mean event windows and compute the associated confidence
+        #   interval.
 
         # compute mean event window for N shuffles of the event indices
-        shuffled_mean_event_windows = (
-            extract_mean_event_windows_per_event_shuffle(
-                mean_trace, epoch_event_indices_shuffles, visual_window
-            )
+        shuffled_mean_event_windows = extract_mean_event_windows_per_event_shuffle(
+            mean_trace, epoch_event_indices_shuffles, visual_window
         )
 
         # compute the mean event window across all shuffles
@@ -1428,9 +1421,7 @@ def peri_event_population_analysis(
             output_dir,
             f"event_aligned_population_activity_{epoch_name.replace(' ', '')}",
         )
-        plot_preview_filename = (
-            plot_basename + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION
-        )
+        plot_preview_filename = plot_basename + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION
 
         epoch_population_activity_preview_filenames.append(
             (epoch_name, plot_preview_filename)
@@ -1509,8 +1500,7 @@ def peri_event_population_analysis(
         output_dir, "event_aligned_population_activity"
     )
     pop_act_comparison_plot_preview_filename = (
-        pop_act_comparison_plot_basename
-        + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION
+        pop_act_comparison_plot_basename + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION
     )
     plot_population_mean_event_window_across_epochs(
         x_values=x_values,
@@ -1524,12 +1514,9 @@ def peri_event_population_analysis(
 
     # plot population activity over the entire recording
     # and overlay epoch periods and events
-    population_activity_plot_basename = os.path.join(
-        output_dir, "population_activity"
-    )
+    population_activity_plot_basename = os.path.join(output_dir, "population_activity")
     population_activity_plot_preview_filename = (
-        population_activity_plot_basename
-        + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION
+        population_activity_plot_basename + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION
     )
     plot_population_activity(
         mean_trace=mean_trace,
@@ -1545,8 +1532,7 @@ def peri_event_population_analysis(
         output_dir, "event_count_per_epoch"
     )
     num_events_per_epoch_plot_preview_filename = (
-        num_events_per_epoch_plot_basename
-        + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION
+        num_events_per_epoch_plot_basename + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION
     )
     plot_number_of_events_per_epoch(
         epoch_data=epoch_data,
@@ -1586,7 +1572,10 @@ def peri_event_population_analysis(
     #     event_aligned_population_activity_preview_files.append(
     #         IdeasPreviewFile(
     #             name="Event-aligned population activity",
-    #             help=f"Event-aligned average population activity line plot (epoch: {epoch_name}).",
+    #             help=(
+    #                 "Event-aligned average population activity line plot "
+    #                 f"(epoch: {epoch_name})."
+    #             ),
     #             file_path=os.path.abspath(preview_filename),
     #             file_format=FileFormat.SVG_FILE.value[1],
     #         )
@@ -1674,15 +1663,15 @@ def peri_event_single_cell_analysis(
         event_indices_shuffles = epoch_data_item["event_indices_shuffles"]
 
         # extract short traces around each event
-        # - this step returns an array with shape (num_events, num_timepoints_per_window, num_cells)
+        # - returns an array with shape (num_events, num_timepoints_per_window, num_cells)
         event_windows = extract_event_windows(
             traces=traces_df,
             event_indices=event_indices,
             time_window=visual_window,
         )
 
-        # compute mean & sem event window per cell, i.e. average activity across all windows for each
-        # cell - this step returns an array with shape (num_timepoints_per_window, num_cells)
+        # compute mean & sem event window per cell (avg activity across all windows)
+        # returns an array with shape (num_timepoints_per_window, num_cells)
         mean_event_windows = np.nanmean(event_windows, axis=0, dtype="float32")
 
         if event_windows.shape[0] > 1:
@@ -1711,10 +1700,8 @@ def peri_event_single_cell_analysis(
 
         # compute mean event window for N shuffles of the event indices for each cell
         # - this returns an array with shape (num_shuffles, num_timepoints_per_window, num_cells)
-        shuffled_mean_event_windows = (
-            extract_mean_event_windows_per_event_shuffle(
-                traces_df, event_indices_shuffles, visual_window
-            )
+        shuffled_mean_event_windows = extract_mean_event_windows_per_event_shuffle(
+            traces_df, event_indices_shuffles, visual_window
         )
 
         # generate post-pre null distribution
@@ -1777,9 +1764,7 @@ def peri_event_single_cell_analysis(
                 dtype="float32",
             )
         else:
-            mean_up_modulated = np.empty(
-                mean_event_windows.shape[0], dtype="float32"
-            )
+            mean_up_modulated = np.empty(mean_event_windows.shape[0], dtype="float32")
             mean_up_modulated.fill(np.nan)
         # up modulated SEM
         if num_cells_up_modulated > 1:
@@ -1789,9 +1774,7 @@ def peri_event_single_cell_analysis(
                 nan_policy="omit",
             ).astype("float32")
         else:
-            sem_up_modulated = np.empty(
-                mean_event_windows.shape[0], dtype="float32"
-            )
+            sem_up_modulated = np.empty(mean_event_windows.shape[0], dtype="float32")
             sem_up_modulated.fill(np.nan)
 
         # down modulated MEAN
@@ -1802,9 +1785,7 @@ def peri_event_single_cell_analysis(
                 dtype="float32",
             )
         else:
-            mean_down_modulated = np.empty(
-                mean_event_windows.shape[0], dtype="float32"
-            )
+            mean_down_modulated = np.empty(mean_event_windows.shape[0], dtype="float32")
             mean_down_modulated.fill(np.nan)
         # down modulated SEM
         if num_cells_down_modulated > 1:
@@ -1814,9 +1795,7 @@ def peri_event_single_cell_analysis(
                 nan_policy="omit",
             ).astype("float32")
         else:
-            sem_down_modulated = np.empty(
-                mean_event_windows.shape[0], dtype="float32"
-            )
+            sem_down_modulated = np.empty(mean_event_windows.shape[0], dtype="float32")
             sem_down_modulated.fill(np.nan)
 
         # non modulated MEAN
@@ -1837,9 +1816,7 @@ def peri_event_single_cell_analysis(
                 nan_policy="omit",
             ).astype("float32")
         else:
-            sem_non_modulated = np.empty(
-                mean_event_windows.shape[0], dtype="float32"
-            )
+            sem_non_modulated = np.empty(mean_event_windows.shape[0], dtype="float32")
             sem_non_modulated.fill(np.nan)
 
         # compute stats for each modulation group
@@ -1880,9 +1857,9 @@ def peri_event_single_cell_analysis(
                 up_modulated_post_minus_pre_null_dist_std,
             ) = compute_statistical_metrics(
                 true_dist=np.array([up_modulated_true_post_minus_pre]),
-                null_dist=np.array(
-                    up_modulated_post_minus_pre_null_dist
-                ).reshape((len(up_modulated_post_minus_pre_null_dist), 1)),
+                null_dist=np.array(up_modulated_post_minus_pre_null_dist).reshape(
+                    (len(up_modulated_post_minus_pre_null_dist), 1)
+                ),
                 significance_threshold=significance_threshold,
             )
 
@@ -1923,9 +1900,9 @@ def peri_event_single_cell_analysis(
                 down_modulated_post_minus_pre_null_dist_std,
             ) = compute_statistical_metrics(
                 true_dist=np.array([down_modulated_true_post_minus_pre]),
-                null_dist=np.array(
-                    down_modulated_post_minus_pre_null_dist
-                ).reshape((len(down_modulated_post_minus_pre_null_dist), 1)),
+                null_dist=np.array(down_modulated_post_minus_pre_null_dist).reshape(
+                    (len(down_modulated_post_minus_pre_null_dist), 1)
+                ),
                 significance_threshold=significance_threshold,
             )
 
@@ -1966,9 +1943,9 @@ def peri_event_single_cell_analysis(
                 non_modulated_post_minus_pre_null_dist_std,
             ) = compute_statistical_metrics(
                 true_dist=np.array([non_modulated_true_post_minus_pre]),
-                null_dist=np.array(
-                    non_modulated_post_minus_pre_null_dist
-                ).reshape((len(non_modulated_post_minus_pre_null_dist), 1)),
+                null_dist=np.array(non_modulated_post_minus_pre_null_dist).reshape(
+                    (len(non_modulated_post_minus_pre_null_dist), 1)
+                ),
                 significance_threshold=significance_threshold,
             )
 
@@ -2006,9 +1983,7 @@ def peri_event_single_cell_analysis(
             cell_centroid = compute_cell_centroid(footprints[i])
             if cell_centroid is None:
                 cell_centroids[i] = [-1, -1]
-                logger.warning(
-                    "centroid of cell {0} could not be located".format(i)
-                )
+                logger.warning("centroid of cell {0} could not be located".format(i))
             else:
                 cell_centroids[i] = cell_centroid
 
@@ -2036,12 +2011,8 @@ def peri_event_single_cell_analysis(
                 "sem": sem_up_modulated,
                 "num_cells": num_cells_up_modulated,
                 "true_mean_post-pre": up_modulated_true_post_minus_pre,
-                "shuffled_mean_post-pre": up_modulated_post_minus_pre_null_dist_mu[
-                    0
-                ],
-                "shuffled_std_post-pre": up_modulated_post_minus_pre_null_dist_std[
-                    0
-                ],
+                "shuffled_mean_post-pre": up_modulated_post_minus_pre_null_dist_mu[0],
+                "shuffled_std_post-pre": up_modulated_post_minus_pre_null_dist_std[0],
                 "z-score": up_modulated_zscores[0],
                 "p-value": up_modulated_pvalues[0],
                 "modulation": up_modulated_modulations[0],
@@ -2052,12 +2023,8 @@ def peri_event_single_cell_analysis(
                 "sem": sem_down_modulated,
                 "num_cells": num_cells_down_modulated,
                 "true_mean_post-pre": down_modulated_true_post_minus_pre,
-                "shuffled_mean_post-pre": down_modulated_post_minus_pre_null_dist_mu[
-                    0
-                ],
-                "shuffled_std_post-pre": down_modulated_post_minus_pre_null_dist_std[
-                    0
-                ],
+                "shuffled_mean_post-pre": down_modulated_post_minus_pre_null_dist_mu[0],
+                "shuffled_std_post-pre": down_modulated_post_minus_pre_null_dist_std[0],
                 "z-score": down_modulated_zscores[0],
                 "p-value": down_modulated_pvalues[0],
                 "modulation": down_modulated_modulations[0],
@@ -2068,20 +2035,18 @@ def peri_event_single_cell_analysis(
                 "sem": sem_non_modulated,
                 "num_cells": num_cells_non_modulated,
                 "true_mean_post-pre": non_modulated_true_post_minus_pre,
-                "shuffled_mean_post-pre": non_modulated_post_minus_pre_null_dist_mu[
-                    0
-                ],
-                "shuffled_std_post-pre": non_modulated_post_minus_pre_null_dist_std[
-                    0
-                ],
+                "shuffled_mean_post-pre": non_modulated_post_minus_pre_null_dist_mu[0],
+                "shuffled_std_post-pre": non_modulated_post_minus_pre_null_dist_std[0],
                 "z-score": non_modulated_zscores[0],
                 "p-value": non_modulated_pvalues[0],
                 "modulation": non_modulated_modulations[0],
                 "indices": non_modulated_indices,
             },
             "cell": {  # data for individual cells
-                "mean": mean_event_windows.T,  # transposed to return (num_cells, num_points_per_window)
-                "sem": sem_event_windows.T,  # transposed to return (num_cells, num_points_per_window)
+                # transposed to return (num_cells, num_points_per_window)
+                "mean": mean_event_windows.T,
+                # transposed to return (num_cells, num_points_per_window)
+                "sem": sem_event_windows.T,
                 "true_mean_post-pre": true_post_minus_pre_dist,
                 "shuffled_mean_post-pre": post_minus_pre_null_dist_mu,
                 "shuffled_std_post-pre": post_minus_pre_null_dist_std,
@@ -2108,8 +2073,10 @@ def peri_event_single_cell_analysis(
         # activity_by_modulation_preview_files.append(
         #     IdeasPreviewFile(
         #         name="Event-aligned sub-population activity figure",
-        #         help="Event-aligned average sub-population activity line plot "
-        #         f"(up-, down-, and non-modulated neurons) (epoch: {epoch_name}).",
+        #         help=(
+        #             "Event-aligned average sub-population activity line plot "
+        #             f"(up-, down-, and non-modulated neurons) (epoch: {epoch_name})."
+        #         ),
         #         file_path=os.path.abspath(modulation_plot_preview_filename),
         #         file_format=FileFormat.SVG_FILE.value[1],
         #     )
@@ -2119,23 +2086,24 @@ def peri_event_single_cell_analysis(
         # cell_map_preview_files.append(
         #     IdeasPreviewFile(
         #         name="Spatial organization of modulation",
-        #         help=f"Cell map visualizing spatial organization of modulation (epoch: {epoch_name}).",
+        #         help=(
+        #             "Cell map visualizing spatial organization of modulation "
+        #             f"(epoch: {epoch_name})."
+        #         ),
         #         file_path=os.path.abspath(cell_map_preview_filename),
         #         file_format=FileFormat.SVG_FILE.value[1],
         #     )
         # )
 
     # plot mean event-aligned activity of up/down/non modulated cells in each epoch together
-    event_aligned_modulation_groups_across_epoch_files = (
-        plot_event_aligned_activity_by_modulation_group_comparing_epochs(
-            x=x_values,
-            x_limits=x_limits,
-            data=output_data,
-            event_type=event_type,
-            epoch_data=epoch_data,
-            output_dir=output_dir,
-            plot_limits=activity_by_modulation_plot_limits,
-        )
+    plot_event_aligned_activity_by_modulation_group_comparing_epochs(
+        x=x_values,
+        x_limits=x_limits,
+        data=output_data,
+        event_type=event_type,
+        epoch_data=epoch_data,
+        output_dir=output_dir,
+        plot_limits=activity_by_modulation_plot_limits,
     )
 
     # event_aligned_by_modulation_across_epochs_preview_files = []
@@ -2146,7 +2114,10 @@ def peri_event_single_cell_analysis(
     #     event_aligned_by_modulation_across_epochs_preview_files.append(
     #         IdeasPreviewFile(
     #             name=f"Event-aligned activity of {group_title.lower()} cells",
-    #             help=f"Comparison of event-aligned activity of {group_title.lower()} cells across epochs.",
+    #             help=(
+    #                 "Comparison of event-aligned activity of "
+    #                 f"{group_title.lower()} cells across epochs."
+    #             ),
     #             file_path=os.path.abspath(output_filename),
     #             file_format=FileFormat.SVG_FILE.value[1],
     #         )
@@ -2163,7 +2134,10 @@ def peri_event_single_cell_analysis(
     )
     # post_minus_pre_per_epoch_preview_file = IdeasPreviewFile(
     #     name="Mean post-pre activity per epoch",
-    #     help="Comparison of mean post-pre activity across the epochs. The error bars represent the standard error of the mean.",
+    #     help=(
+    #         "Comparison of mean post-pre activity across the epochs. "
+    #         "The error bars represent the standard error of the mean."
+    #     ),
     #     file_path=os.path.abspath(post_minus_pre_per_epoch_preview_filename),
     #     file_format=FileFormat.SVG_FILE.value[1],
     # )
@@ -2201,6 +2175,7 @@ def save_event_aligned_traces_to_csv(
     event_aligned_data, x_values, valid_cells, output_filename
 ):
     """Save event-aligned traces to a csv file.
+
     :param event_aligned_data: dictionary containing event-aligned data
     :param x_values: values along the x-axis
     :param valid_cells: list of cell names that were processed
@@ -2229,12 +2204,8 @@ def save_event_aligned_traces_to_csv(
                 population_mean_label = "{0}_mean".format(group_name)
                 population_sem_label = "{0}_sem".format(group_name)
                 shuffled_mean_label = "{0}_shuffled_mean".format(group_name)
-                shuffled_lower_conf_label = "{0}_shuffled_lower_conf".format(
-                    group_name
-                )
-                shuffled_upper_conf_label = "{0}_shuffled_upper_conf".format(
-                    group_name
-                )
+                shuffled_lower_conf_label = "{0}_shuffled_lower_conf".format(group_name)
+                shuffled_upper_conf_label = "{0}_shuffled_upper_conf".format(group_name)
 
                 # population mean
                 columns.append((epoch_name, population_mean_label))
@@ -2246,24 +2217,18 @@ def save_event_aligned_traces_to_csv(
 
                 # shuffled mean
                 columns.append((epoch_name, shuffled_mean_label))
-                data.append(
-                    event_aligned_data[group_name][epoch_name]["shuffled_mean"]
-                )
+                data.append(event_aligned_data[group_name][epoch_name]["shuffled_mean"])
 
                 # shuffled lower conf
                 columns.append((epoch_name, shuffled_lower_conf_label))
                 data.append(
-                    event_aligned_data[group_name][epoch_name][
-                        "shuffled_lower_conf"
-                    ]
+                    event_aligned_data[group_name][epoch_name]["shuffled_lower_conf"]
                 )
 
                 # shuffled upper conf
                 columns.append((epoch_name, shuffled_upper_conf_label))
                 data.append(
-                    event_aligned_data[group_name][epoch_name][
-                        "shuffled_upper_conf"
-                    ]
+                    event_aligned_data[group_name][epoch_name]["shuffled_upper_conf"]
                 )
             else:
                 # Add group data
@@ -2274,17 +2239,13 @@ def save_event_aligned_traces_to_csv(
                 # group mean
                 columns.append((epoch_name, subgroup_mean_label))
                 data.append(
-                    event_aligned_data["single_cell"][epoch_name][group_name][
-                        "mean"
-                    ]
+                    event_aligned_data["single_cell"][epoch_name][group_name]["mean"]
                 )
 
                 # group sem
                 columns.append((epoch_name, subgroup_sem_label))
                 data.append(
-                    event_aligned_data["single_cell"][epoch_name][group_name][
-                        "sem"
-                    ]
+                    event_aligned_data["single_cell"][epoch_name][group_name]["sem"]
                 )
 
         # single-cell data
@@ -2295,16 +2256,12 @@ def save_event_aligned_traces_to_csv(
             # single cell mean
             columns.append((epoch_name, single_cell_mean_label))
             data.append(
-                event_aligned_data["single_cell"][epoch_name]["cell"]["mean"][
-                    i
-                ]
+                event_aligned_data["single_cell"][epoch_name]["cell"]["mean"][i]
             )
 
             # single cell sem
             columns.append((epoch_name, single_cell_sem_label))
-            data.append(
-                event_aligned_data["single_cell"][epoch_name]["cell"]["sem"][i]
-            )
+            data.append(event_aligned_data["single_cell"][epoch_name]["cell"]["sem"][i])
 
     # convert activity dict to dataframe
 
@@ -2324,6 +2281,7 @@ def save_event_aligned_statistics_to_csv(
     event_aligned_data, valid_cells, output_filename
 ):
     """Save event-aligned statistics to a csv file.
+
     :param event_aligned_data: dictionary containing event-aligned data
     :param valid_cells: list of cell names for cells that were processed
     :param output_filename: path to the output csv file
@@ -2362,18 +2320,14 @@ def save_event_aligned_statistics_to_csv(
         ]:
             epoch_dict[col_name] = [
                 event_aligned_data["population"][epoch_name][col_name],
-                event_aligned_data["single_cell"][epoch_name]["up_modulated"][
+                event_aligned_data["single_cell"][epoch_name]["up_modulated"][col_name],
+                event_aligned_data["single_cell"][epoch_name]["down_modulated"][
                     col_name
                 ],
-                event_aligned_data["single_cell"][epoch_name][
-                    "down_modulated"
-                ][col_name],
                 event_aligned_data["single_cell"][epoch_name]["non_modulated"][
                     col_name
                 ],
-            ] + list(
-                event_aligned_data["single_cell"][epoch_name]["cell"][col_name]
-            )
+            ] + list(event_aligned_data["single_cell"][epoch_name]["cell"][col_name])
 
         # convert dictionary to dataframe
         epoch_dataframe = pd.DataFrame(epoch_dict)
@@ -2384,6 +2338,7 @@ def save_event_aligned_statistics_to_csv(
 
     # save stats dataframe to disk
     output_stats_dataframe.to_csv(output_filename, index=False)
+
 
 def compare_peri_event_activity_across_epochs_ideas_wrapper(
     input_cellset_files: List[IdeasFile],
@@ -2417,7 +2372,8 @@ def compare_peri_event_activity_across_epochs_ideas_wrapper(
     :param input_events_h5_file: path to the events file
     :param event_type: string representing an event type (currently only supports 1 event type)
     :param epoch_names: list of epoch names
-    :param epoch_periods: list of epoch periods specified as list of tuples encoded as a string (e.g. "(1,10), (11,20)")
+    :param epoch_periods: list of epoch periods specified as list of tuples encoded as a string
+        (e.g. "(1,10), (11,20)")
     :param epoch_colors: list of epoch colors
     :param epoch_min_events: minimum number of events per epoch
     :param visual_window_pre: time in seconds before each event to use for visualization
@@ -2436,7 +2392,8 @@ def compare_peri_event_activity_across_epochs_ideas_wrapper(
     :param modulation_colors: comma separated strings with color inputs
     These colors represent [up-modulated, down-modulated, non-modulated] groups.
     :param cmap: colormap applied to the activity heatmap
-    :param temporal_downsampling_factor: downsampling factor to apply to the traces during the analysis
+    :param temporal_downsampling_factor: downsampling factor to apply to the traces during the
+        analysis
     :param population_activity_plot_limits: y-axis range (z-score) applied to the event-aligned
      population activity plot specified as 'min,max' (e.g. -1,1) or 'auto'
     :param activity_heatmap_color_limits: colormap range (z-score) applied to the activity heatmap
@@ -2444,7 +2401,6 @@ def compare_peri_event_activity_across_epochs_ideas_wrapper(
     :param activity_by_modulation_plot_limits: y-axis range (z-score) applied to the event-aligned
      activity by modulation plot specified as 'min,max' (e.g. -1,1) or 'auto'
     """
-
     compare_peri_event_activity_across_epochs(
         input_cellset_files=input_cellset_files,
         input_events_h5_file=input_events_h5_file,
@@ -2477,51 +2433,79 @@ def compare_peri_event_activity_across_epochs_ideas_wrapper(
         metadata = outputs._load_and_remove_output_metadata()
         epoch_names = [e.strip().replace(" ", "") for e in epoch_names.split(",")]
         with outputs.register(raise_missing_file=False) as output_data:
-            output_file = output_data.register_file(
-                "event_aligned_activity.TRACES.csv",
-                subdir="event_aligned_traces"
-            ).register_preview(
-                f"population_activity{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                caption="Mean population activity over time. Shaded areas represent the different epochs."
-            ).register_preview(
-                f"event_aligned_population_activity{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                caption="Comparison of event-aligned average population activity across the epochs."
+            output_file = (
+                output_data.register_file(
+                    "event_aligned_activity.TRACES.csv", subdir="event_aligned_traces"
+                )
+                .register_preview(
+                    f"population_activity{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                    caption=(
+                        "Mean population activity over time. Shaded areas represent "
+                        "the different epochs."
+                    ),
+                )
+                .register_preview(
+                    f"event_aligned_population_activity"
+                    f"{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                    caption=(
+                        "Comparison of event-aligned average population activity across "
+                        "the epochs."
+                    ),
+                )
             )
 
             for epoch_name in epoch_names:
                 output_file.register_preview(
-                    f"event_aligned_population_activity_{epoch_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                    caption=f"Event-aligned average population activity line plot (epoch: {epoch_name}).",
+                    f"event_aligned_population_activity_{epoch_name}"
+                    f"{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                    caption=(
+                        "Event-aligned average population activity line plot "
+                        f"(epoch: {epoch_name})."
+                    ),
                 )
             for epoch_name in epoch_names:
                 output_file.register_preview(
-                    f"event_aligned_single_cell_activity_heatmap_{epoch_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                    caption=f"Event-aligned single-cell activity heatmap (epoch: {epoch_name})",
+                    f"event_aligned_single_cell_activity_heatmap_{epoch_name}"
+                    f"{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                    caption=(
+                        "Event-aligned single-cell activity heatmap "
+                        f"(epoch: {epoch_name})"
+                    ),
                 )
 
             for md in metadata.get("event_aligned_traces", {}):
                 output_file.register_metadata(**md)
-            
+
             output_file = output_data.register_file(
                 "event_aligned_activity.STATISTICS.csv",
-                subdir="event_aligned_statistics"
+                subdir="event_aligned_statistics",
             )
             for epoch_name in epoch_names:
                 output_file.register_preview(
-                    f"event_aligned_activity_by_modulation_{epoch_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                    caption=f"Event-aligned average sub-population activity line plot (up-, down-, and non-modulated neurons) (epoch: {epoch_name})."
+                    f"event_aligned_activity_by_modulation_{epoch_name}"
+                    f"{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                    caption=(
+                        "Event-aligned average sub-population activity line plot "
+                        f"(up-, down-, and non-modulated neurons) (epoch: {epoch_name})."
+                    ),
                 )
             for epoch_name in epoch_names:
                 output_file.register_preview(
                     f"cell_map_{epoch_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                    caption=f"Cell map visualizing spatial organization of modulation (epoch: {epoch_name}).",
+                    caption=(
+                        "Cell map visualizing spatial organization of modulation "
+                        f"(epoch: {epoch_name})."
+                    ),
                 )
 
             mod_groups = ["up_modulated", "down_modulated", "non_modulated"]
             for mod_group in mod_groups:
                 output_file.register_preview(
                     f"event_aligned_activity_{mod_group}.svg",
-                    caption=f"Comparison of event-aligned activity of {mod_group.replace('_', ' ')} cells across epochs.",
+                    caption=(
+                        "Comparison of event-aligned activity of "
+                        f"{mod_group.replace('_', ' ')} cells across epochs."
+                    ),
                 )
 
             output_file.register_preview(
@@ -2529,10 +2513,13 @@ def compare_peri_event_activity_across_epochs_ideas_wrapper(
                 caption="Number of up-, down-, and non-modulated neurons per epoch.",
             ).register_preview(
                 f"event_count_per_epoch{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                caption="Number of events in each epoch."
+                caption="Number of events in each epoch.",
             ).register_preview(
                 "mean_post_minus_pre_activity_per_epoch.svg",
-                caption="Comparison of mean post-pre activity across the epochs. The error bars represent the standard error of the mean.",
+                caption=(
+                    "Comparison of mean post-pre activity across the epochs. "
+                    "The error bars represent the standard error of the mean."
+                ),
             )
 
             for md in metadata.get("event_aligned_statistics", {}):
@@ -2540,9 +2527,9 @@ def compare_peri_event_activity_across_epochs_ideas_wrapper(
 
             output_file = output_data.register_file(
                 "pairwise_epoch_comparisons.csv",
-                subdir="event_aligned_epoch_comparison_data"
+                subdir="event_aligned_epoch_comparison_data",
             )
-            
+
             for i in range(len(epoch_names)):
                 for j in range(i, len(epoch_names) - 1):
                     epoch_name1 = epoch_names[i]
@@ -2556,9 +2543,9 @@ def compare_peri_event_activity_across_epochs_ideas_wrapper(
                             f"the data as a histogram. The right panel contains a cell "
                             f"map colored by the magnitude of the difference in "
                             f"post-pre activity between the epochs."
-                        )
-                    ) 
-            
+                        ),
+                    )
+
             output_file.register_preview(
                 "post_minus_pre_boxplot.svg",
                 caption=(
@@ -2568,8 +2555,7 @@ def compare_peri_event_activity_across_epochs_ideas_wrapper(
             )
             for md in metadata.get("event_aligned_epoch_comparison_data", {}):
                 output_file.register_metadata(**md)
-            
+
         logger.info("Registered output data")
     except Exception:
         logger.exception("Failed to generate output data!")
-    

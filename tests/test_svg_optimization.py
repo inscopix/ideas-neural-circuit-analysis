@@ -82,9 +82,7 @@ class TestSVGOptimization:
 
         return quad_cells, poly_count, line_segments
 
-    def _create_spatial_correlation_plot(
-        self, n_points=1000, gridsize=30, n_lines=100
-    ):
+    def _create_spatial_correlation_plot(self, n_points=1000, gridsize=30, n_lines=100):
         """Create a spatial correlation plot similar to correlation tool."""
         # Generate synthetic data
         x_pos = np.random.uniform(0, 1000, n_points)
@@ -193,12 +191,8 @@ class TestSVGOptimization:
         assert (
             LINECOLLECTION_SEGMENT_FACTOR > 0
         ), "LINECOLLECTION_SEGMENT_FACTOR should be positive"
-        assert (
-            POLYCOLLECTION_FACTOR > 0
-        ), "POLYCOLLECTION_FACTOR should be positive"
-        assert (
-            SCATTER_POINT_FACTOR > 0
-        ), "SCATTER_POINT_FACTOR should be positive"
+        assert POLYCOLLECTION_FACTOR > 0, "POLYCOLLECTION_FACTOR should be positive"
+        assert SCATTER_POINT_FACTOR > 0, "SCATTER_POINT_FACTOR should be positive"
 
         # Test relative magnitudes make sense
         # PolyCollection should have highest factor (most complex)
@@ -348,9 +342,7 @@ class TestSVGOptimization:
         sizes = np.random.uniform(10, 50, n_points)
 
         fig, ax = plt.subplots(figsize=(8, 6))
-        scatter = ax.scatter(
-            x, y, c=colors, s=sizes, alpha=0.7, cmap="viridis"
-        )
+        scatter = ax.scatter(x, y, c=colors, s=sizes, alpha=0.7, cmap="viridis")
 
         ax.set_title(f"Scatter Plot ({n_points} points)")
         ax.set_xlabel("X Value")
@@ -443,12 +435,8 @@ class TestSVGOptimization:
         quad_cells, poly_count, line_segments = self._count_plot_elements(fig)
 
         assert quad_cells == 0, "Empty plot should have 0 QuadMesh cells"
-        assert (
-            poly_count == 0
-        ), "Empty plot should have 0 PolyCollection elements"
-        assert (
-            line_segments == 0
-        ), "Empty plot should have 0 LineCollection segments"
+        assert poly_count == 0, "Empty plot should have 0 PolyCollection elements"
+        assert line_segments == 0, "Empty plot should have 0 LineCollection segments"
 
         plt.close(fig)
 
@@ -460,12 +448,8 @@ class TestSVGOptimization:
 
         # Should still be 0 since plot() creates Line2D objects, not collections
         assert quad_cells == 0, "Line plot should have 0 QuadMesh cells"
-        assert (
-            poly_count == 0
-        ), "Line plot should have 0 PolyCollection elements"
-        assert (
-            line_segments == 0
-        ), "Line plot should have 0 LineCollection segments"
+        assert poly_count == 0, "Line plot should have 0 PolyCollection elements"
+        assert line_segments == 0, "Line plot should have 0 LineCollection segments"
 
         plt.close(fig)
 
@@ -525,9 +509,7 @@ class TestSVGOptimization:
         with plt.style.context("default"):
             # Test matrix scaling
             small_matrix = self._create_correlation_matrix_plot(matrix_size=50)
-            large_matrix = self._create_correlation_matrix_plot(
-                matrix_size=200
-            )
+            large_matrix = self._create_correlation_matrix_plot(matrix_size=200)
 
             small_estimate = estimate_svg_size(small_matrix)
             large_estimate = estimate_svg_size(large_matrix)

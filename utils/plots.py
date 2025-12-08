@@ -1,3 +1,5 @@
+"""Plotting helpers for IDEAS population and peri-event visualizations."""
+
 import logging
 import os
 from itertools import cycle
@@ -74,9 +76,7 @@ def plot_trace_preview(
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
         ax.set_xlabel("Time (s)", fontdict=LABEL_FONT)
-    ax.set_title(
-        f"Traces of the first {num_cells} cells ", fontdict=TITLE_FONT
-    )
+    ax.set_title(f"Traces of the first {num_cells} cells ", fontdict=TITLE_FONT)
 
     # add cellset boundaries as vertical dashed lines if several cellsets;
     # "boundaries" is a list of temporal boundaries between cellsets,
@@ -112,6 +112,7 @@ def plot_trace_preview(
         bbox_inches="tight",
         transparent=True,
     )
+    plt.close(fig)
 
 
 def _get_contrasting_text_color(color: str) -> str:
@@ -170,11 +171,8 @@ def _draw_epoch_color_bar(
     ax.tick_params(axis="x", which="both", direction="out", length=5)
 
 
-def _create_group_preview(
-    df, metric, epoch_names, epoch_colors, group_name, save_name
-):
-    """Create a group preview plot comparing different epochs based on a
-    specified metric.
+def _create_group_preview(df, metric, epoch_names, epoch_colors, group_name, save_name):
+    """Create a group preview plot comparing epochs for a metric.
 
     :Parameters
         df (pd.DataFrame): DataFrame containing the data to
@@ -204,9 +202,7 @@ def _create_group_preview(
     )
     ax[0].set_ylabel(f"{metric} Activity", fontdict=LABEL_FONT)
     ax[0].set_xlabel("Epoch", fontdict=LABEL_FONT)
-    ax[0].set_title(
-        f"{group_name} {metric} Activity Comparison", fontdict=TITLE_FONT
-    )
+    ax[0].set_title(f"{group_name} {metric} Activity Comparison", fontdict=TITLE_FONT)
     counter = 1
     for i in range(len(epoch_names)):
         for j in range(i, len(epoch_names) - 1):
@@ -296,9 +292,7 @@ def _plot_combined_data(
         )
         ax[0].set_ylabel("Average Positive Correlation", fontdict=LABEL_FONT)
         ax[0].set_xlabel("Epoch", fontdict=LABEL_FONT)
-        ax[0].set_ylim(
-            0, np.max(corr_data["Average Positive Correlation"]) * 1.1
-        )
+        ax[0].set_ylim(0, np.max(corr_data["Average Positive Correlation"]) * 1.1)
         ax[0].set_xticklabels([])
         ax[0].set_xlabel("")
         sns.boxplot(
@@ -312,9 +306,7 @@ def _plot_combined_data(
         )
         ax[1].set_ylabel("Average Negative Correlation")
         ax[1].set_xlabel("Epoch")
-        ax[1].set_ylim(
-            np.min(corr_data["Average Negative Correlation"]) * 1.1, 0
-        )
+        ax[1].set_ylim(np.min(corr_data["Average Negative Correlation"]) * 1.1, 0)
         ax[1].set_ylabel("Average Negative Correlation", fontdict=LABEL_FONT)
         ax[1].set_xlabel("Epoch", fontdict=LABEL_FONT)
         fig.tight_layout()
@@ -371,9 +363,7 @@ def _plot_average_timecourse(
                 label = None
             ax.axvline(boundary, linestyle="--", color="k", label=label)
 
-    ax.set_ylabel(
-        f"Average {data_name}\nPopulation Activity", fontdict=LABEL_FONT
-    )
+    ax.set_ylabel(f"Average {data_name}\nPopulation Activity", fontdict=LABEL_FONT)
     # ax.set_xticks([])
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -394,8 +384,7 @@ def _plot_timecourse(
     scale_method,
     heatmap="auto",
 ):
-    """Create function will plot the average timecourse of activity across the
-    entire recording as well as plot a single view overview of the data.
+    """Plot the average timecourse and a single-view overview of the data.
 
     For traces it will be a heatmap, and for events it will be a raster
     plot.
@@ -403,9 +392,7 @@ def _plot_timecourse(
     avg_data = np.nanmean(data, axis=1)
 
     # Plotting average timecourse
-    fig, ax = plt.subplots(
-        nrows=1, ncols=2, figsize=(10, 4), width_ratios=[10, 1]
-    )
+    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 4), width_ratios=[10, 1])
     # convert bin values from frames to seconds
     time = np.arange(0, data.shape[0]) * period
     # create single time course trace
@@ -420,10 +407,7 @@ def _plot_timecourse(
         epoch_names=epoch_names,
         data_name=data_name,
     )
-    if (
-        scale_method == Rescale.FRACTIONAL_CHANGE.value
-        and data_name == "Traces"
-    ):
+    if scale_method == Rescale.FRACTIONAL_CHANGE.value and data_name == "Traces":
         ax[0].axhline(1, color="grey", linestyle="--")
     elif scale_method == Rescale.STANDARDIZE_EPOCH.value:
         ax[0].axhline(0, color="grey", linestyle="--")
@@ -559,9 +543,7 @@ def _plot_timecourse(
 
         ax[1].set_xlabel("Time (s)", fontdict=LABEL_FONT)
         ax[1].set_xticks(np.linspace(0, len(time), 5))
-        ax[1].set_xticklabels(
-            [int(label) for label in np.linspace(0, time[-1], 5)]
-        )
+        ax[1].set_xticklabels([int(label) for label in np.linspace(0, time[-1], 5)])
         ax[1].tick_params(axis="x", rotation=0)
 
         # converting boundaries from seconds to samples, to enable proper x-axis location on heatmap
@@ -583,9 +565,7 @@ def _plot_timecourse(
             e_events = []
             for cell in raw_data:
                 e_cell_events = [
-                    event
-                    for event in cell
-                    if event >= epoch[0] and event <= epoch[1]
+                    event for event in cell if event >= epoch[0] and event <= epoch[1]
                 ]
                 e_events.append(e_cell_events)
 
@@ -679,8 +659,7 @@ def _plot_box_and_strip(
     ylabel,
     save_name,
 ):
-    """Plot a combination of boxplot and stripplot for given epochs and
-    activity data.
+    """Plot a combined boxplot and stripplot for epoch activity data.
 
     :Parameters
         epochs (list): List of epoch identifiers.
@@ -740,7 +719,7 @@ def _plot_box_and_strip(
     )
 
 
-def _clean_ax(ax):
+def _clean_ax(ax):  # noqa: F811
     """Remove spines from an axis."""
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -876,11 +855,8 @@ def _plot_difference_cellmap(
     )
 
 
-def _plot_comparison(
-    data, epoch_colors, aov, pairwise, metric, group_name, save_name
-):
-    """Plot a comparison of a single ANOVA of activity data across epochs for
-    two groups using a boxplot.
+def _plot_comparison(data, epoch_colors, aov, pairwise, metric, group_name, save_name):
+    """Plot ANOVA comparisons of activity across epochs for two groups using a boxplot.
 
     :Parameters
         data (pd.DataFrame): The data to plot, must
@@ -930,8 +906,7 @@ def _plot_correlation_comparison(
     group_name,
     save_name,
 ):
-    """Plot a comparison of average positive and negative correlations across
-    epochs for two groups.
+    """Plot positive and negative correlation comparisons across epochs for two groups.
 
     :Parameters
         data (pd.DataFrame): DataFrame containing the data to plot. Must include columns 'Epoch',
@@ -1014,8 +989,7 @@ def _create_one_way_legend(aov, pairwise, ax):
 
 
 def _format_labels(keys, p_values, ax, limit=0.001):
-    """Format and set the legend labels for a given matplotlib axis based on
-    provided keys and p-values.
+    """Format and set legend labels based on provided keys and p-values.
 
     :Parameters
         keys (list of str): A list of source names to be used as labels.
@@ -1036,9 +1010,7 @@ def _format_labels(keys, p_values, ax, limit=0.001):
 
     handles, labels = ax.get_legend_handles_labels()
 
-    handles = handles + [plt.Line2D([0], [0], color="white", lw=0)] * len(
-        new_label
-    )
+    handles = handles + [plt.Line2D([0], [0], color="white", lw=0)] * len(new_label)
     labels = labels + new_label
 
     ax.legend(
@@ -1147,8 +1119,7 @@ def _plot_mixed_corr_comparisons(
     neg_aov,
     neg_pairwise,
 ):
-    """Plot mixed correlation comparisons using boxplots for both positive and
-    negative correlations.
+    """Plot mixed correlation comparisons for positive and negative correlations.
 
     This function generates two figures:
     1. ANOVA comparison figure for positive and negative correlations.
@@ -1228,15 +1199,11 @@ def _plot_mixed_corr_comparisons(
     # Pairwise figure
     # Positive Correlation
     if "Contrast" in pos_pairwise.columns:
-        reduced_pos_pairwise = pos_pairwise[
-            pos_pairwise["Contrast"] == "Epoch * Group"
-        ]
+        reduced_pos_pairwise = pos_pairwise[pos_pairwise["Contrast"] == "Epoch * Group"]
         _create_pairwise_legend(reduced_pos_pairwise, ax[0])
 
         # Negative Correlation
-        reduced_neg_pairwise = neg_pairwise[
-            neg_pairwise["Contrast"] == "Epoch * Group"
-        ]
+        reduced_neg_pairwise = neg_pairwise[neg_pairwise["Contrast"] == "Epoch * Group"]
         _create_pairwise_legend(reduced_neg_pairwise, ax[1])
     else:
         logger.warning(
@@ -1288,9 +1255,7 @@ def _plot_state_time(
     # Set consistent font size
     plt.rcParams.update({"font.size": 12})
 
-    include_state_epoch = bool(
-        epoch_periods and epoch_names and len(epoch_periods) > 0
-    )
+    include_state_epoch = bool(epoch_periods and epoch_names and len(epoch_periods) > 0)
     sanitized_epoch_names: List[str] = []
     if include_state_epoch:
         sanitized_epoch_names = [
@@ -1371,9 +1336,7 @@ def _plot_state_time(
         )
 
         state_epoch_counts = (
-            behavior.groupby([column_name, "_plot_epoch"])
-            .size()
-            .unstack(fill_value=0)
+            behavior.groupby([column_name, "_plot_epoch"]).size().unstack(fill_value=0)
         )
         state_epoch_counts = state_epoch_counts.reindex(
             index=state_names, columns=ordered_epochs, fill_value=0
@@ -1420,7 +1383,8 @@ def _plot_state_epoch_time(
 
     if not (epoch_periods and epoch_names and len(epoch_periods) > 0):
         logger.warning(
-            "Epoch information missing for _plot_state_epoch_time; falling back to _plot_state_time."
+            "Epoch information missing for _plot_state_epoch_time; falling back to "
+            "_plot_state_time."
         )
         _plot_state_time(
             behavior,
@@ -1469,9 +1433,7 @@ def _plot_state_epoch_time(
     )
 
     state_epoch_counts = (
-        behavior.groupby([column_name, "_plot_epoch"])
-        .size()
-        .unstack(fill_value=0)
+        behavior.groupby([column_name, "_plot_epoch"]).size().unstack(fill_value=0)
     )
     state_epoch_counts = state_epoch_counts.reindex(
         index=state_names, columns=ordered_epochs, fill_value=0
@@ -1533,8 +1495,7 @@ def _plot_state_epoch_time(
         ax=ax_dist,
         cmap="Blues",
         cbar_kws={"label": "Time (s)"},
-        annot=state_epoch_seconds.shape[0] <= 10
-        and state_epoch_seconds.shape[1] <= 8,
+        annot=state_epoch_seconds.shape[0] <= 10 and state_epoch_seconds.shape[1] <= 8,
         fmt=".1f",
     )
     ax_dist.set_title("State-Epoch Duration", fontdict=TITLE_FONT)
@@ -1580,6 +1541,7 @@ def _plot_traces_with_epochs(
     epoch_names: Optional[List[str]] = None,
 ) -> None:
     """Plot traces with state overlays plus optional epoch color bar.
+
     :param traces: neural activity of individual cells
                    (2D array <num_timepoints x num_cells>)
     :param behavior: binary 2D array indicating the presence/
@@ -1675,9 +1637,7 @@ def _plot_traces_with_epochs(
     ax_trace.spines.right.set_visible(False)
     ax_trace.spines.top.set_visible(False)
 
-    ax_trace.set_title(
-        f"Traces of the first {num_to_plot} cells", fontdict=TITLE_FONT
-    )
+    ax_trace.set_title(f"Traces of the first {num_to_plot} cells", fontdict=TITLE_FONT)
 
     # Calculate mean activity of population and plot
     mean_activity = np.nanmean(traces, axis=1)
@@ -1697,12 +1657,8 @@ def _plot_traces_with_epochs(
                 label = "cellset boundary"
             else:
                 label = None
-            ax_mean.axvline(
-                boundary, linestyle="--", color="k", label=label
-            )
-            ax_trace.axvline(
-                boundary, linestyle="--", color="k", label=label
-            )
+            ax_mean.axvline(boundary, linestyle="--", color="k", label=label)
+            ax_trace.axvline(boundary, linestyle="--", color="k", label=label)
 
     # Create manual handles for the legend
     handles = []
@@ -1744,6 +1700,7 @@ def plot_neuron_fractions(
     ylabel="Fraction of cells significantly modulated",
 ):
     """Plot the fractions of neurons for different states.
+
     :Parameters
     fractions (dict): A dictionary containing the fractions of neurons for different states.
     data (dict): A dictionary containing the data for each state.
@@ -1790,6 +1747,7 @@ def _plot_raster_with_epochs(
     epoch_names: Optional[List[str]] = None,
 ) -> None:
     """Plot event raster with state overlays plus optional epoch color bar.
+
     :param traces: neural activity of individual cells
                    (2D array <num_timepoints x num_cells>)
     :param behavior: binary 2D array indicating the presence/
@@ -1879,9 +1837,7 @@ def _plot_raster_with_epochs(
     mean_activity = np.nanmean(event_timeseries, axis=1)
     # Smooth the mean activity with a rolling window of 1 second
     window = int(1 / period)
-    mean_activity = np.convolve(
-        mean_activity, np.ones(window) / window, mode="same"
-    )
+    mean_activity = np.convolve(mean_activity, np.ones(window) / window, mode="same")
     # Create time axis for mean activity
     time_axis = np.arange(event_timeseries.shape[0]) * period
     ax_mean.plot(time_axis, mean_activity, color="black")
@@ -1985,18 +1941,14 @@ def _plot_traces(
                 plot_end,
                 color=state_colors[idx],
                 alpha=0.4,
-                label=(
-                    state_names[idx] if start == starts[0] else ""
-                ),
+                label=(state_names[idx] if start == starts[0] else ""),
             )
             ax_traces[1].axvspan(
                 plot_start,
                 plot_end,
                 color=state_colors[idx],
                 alpha=0.4,
-                label=(
-                    state_names[idx] if start == starts[0] else ""
-                ),
+                label=(state_names[idx] if start == starts[0] else ""),
             )
 
     ax_traces[1].set_xlim([0, traces.shape[0] * period])
@@ -2026,12 +1978,8 @@ def _plot_traces(
                 label = "cellset boundary"
             else:
                 label = None
-            ax_traces[0].axvline(
-                boundary, linestyle="--", color="k", label=label
-            )
-            ax_traces[1].axvline(
-                boundary, linestyle="--", color="k", label=label
-            )
+            ax_traces[0].axvline(boundary, linestyle="--", color="k", label=label)
+            ax_traces[1].axvline(boundary, linestyle="--", color="k", label=label)
 
     handles = []
     for state, color in zip(state_names, state_colors):
@@ -2066,9 +2014,7 @@ def _plot_raster(
     trace_fig, ax = plt.subplots(
         nrows=2, ncols=1, figsize=(15, 10), height_ratios=[1, 8]
     )
-    ax[1].eventplot(
-        events, color="black", linelengths=0.5, linewidths=0.8, alpha=0.5
-    )
+    ax[1].eventplot(events, color="black", linelengths=0.5, linewidths=0.8, alpha=0.5)
 
     ax[1].set_ylabel("Cell index", fontdict=LABEL_FONT)
     ax[1].set_xlabel("Time (s)", fontdict=LABEL_FONT)
@@ -2098,18 +2044,14 @@ def _plot_raster(
                 plot_end,
                 color=state_colors[idx],
                 alpha=0.4,
-                label=(
-                    state_names[idx] if start == starts[0] else ""
-                ),
+                label=(state_names[idx] if start == starts[0] else ""),
             )
             ax[1].axvspan(
                 plot_start,
                 plot_end,
                 color=state_colors[idx],
                 alpha=0.4,
-                label=(
-                    state_names[idx] if start == starts[0] else ""
-                ),
+                label=(state_names[idx] if start == starts[0] else ""),
             )
     ax[1].set_ylim([0, len(events)])
     ax[1].set_xlim([0, event_timeseries.shape[0] * period])
@@ -2120,9 +2062,7 @@ def _plot_raster(
 
     mean_activity = np.nanmean(event_timeseries, axis=1)
     window = int(1 / period)
-    mean_activity = np.convolve(
-        mean_activity, np.ones(window) / window, mode="same"
-    )
+    mean_activity = np.convolve(mean_activity, np.ones(window) / window, mode="same")
     time_axis = np.arange(event_timeseries.shape[0]) * period
     ax[0].plot(time_axis, mean_activity, color="black")
     ax[0].set_xlim([0, event_timeseries.shape[0] * period])
@@ -2165,7 +2105,7 @@ def _plot_population_average(
     ylabel="Mean Activity",
     xlabel="State",
 ) -> None:
-    """Plot the population average activity as a box plot"""
+    """Plot the population average activity as a box plot."""
     # Set consistent font size
     plt.rcParams.update({"font.size": 12})
 
@@ -2261,11 +2201,9 @@ def plot_modulated_neuron_footprints(
     non_modulation_color="gray",
     plot_type: str = "map",
 ) -> None:
-    """Make a plot of footprints of all cells, and color
-    them by whether they are up or down modulated in different
-    contexts.
-    data: dictionary with modulation data, output of
-    _make_ modulation_data
+    """Plot footprints colored by modulation status across contexts.
+
+    data: dictionary with modulation data, output of _make_ modulation_data
     :param x: vector containing the x position of each cell
               (1D array <num_cells>)
     :param y: vector containing the y position of each cell
@@ -2297,9 +2235,7 @@ def plot_modulated_neuron_footprints(
         for s1 in data.keys():
             first_state = data[s1]
             # Get the comparisons for this state
-            comparisons = [
-                c for c in first_state.keys() if c != "mean_activity"
-            ]
+            comparisons = [c for c in first_state.keys() if c != "mean_activity"]
             for s2 in comparisons:
                 counter = plot_comparison_row(
                     fig,
@@ -2382,6 +2318,7 @@ def plot_comparison_row(
     LABEL_FONT,
 ):
     """Plot a comparison row of modulation levels and significance maps for a given case.
+
     :Parameters
     fig (matplotlib.figure.Figure): The figure object to plot on.
     axs (numpy.ndarray): Array of axes objects to plot on.
@@ -2511,8 +2448,8 @@ def plot_comparison_row(
 
     return counter
 
-#### COMPARE PERI-EVENT ACROSS EPOCHS
 
+# COMPARE PERI-EVENT ACROSS EPOCHS
 
 
 def plot_population_mean_event_window_across_epochs(
@@ -2583,12 +2520,8 @@ def plot_population_mean_event_window_across_epochs(
 
     ax.set_title(plot_title, fontsize=config.PLOT_TITLE_FONT_SIZE)
 
-    ax.set_xlabel(
-        "Time from Event (seconds)", fontsize=config.PLOT_LABEL_FONT_SIZE
-    )
-    ax.set_ylabel(
-        "Neural Activity (z-score)", fontsize=config.PLOT_LABEL_FONT_SIZE
-    )
+    ax.set_xlabel("Time from Event (seconds)", fontsize=config.PLOT_LABEL_FONT_SIZE)
+    ax.set_ylabel("Neural Activity (z-score)", fontsize=config.PLOT_LABEL_FONT_SIZE)
 
     # adjust plot limits
     if plot_limits not in [None, "auto"]:
@@ -2755,6 +2688,7 @@ def plot_population_activity(
     boundaries=None,
 ):
     """Plot mean population activity over the duration of the recording.
+
     - Highlight epoch periods.
     - Overlay events onto the timeline.
 
@@ -2812,13 +2746,9 @@ def plot_population_activity(
     # adjust figure settings
     ax.margins(x=0)
     ax.legend()
-    ax.set_title(
-        "Mean Population Activity", fontsize=config.PLOT_TITLE_FONT_SIZE
-    )
+    ax.set_title("Mean Population Activity", fontsize=config.PLOT_TITLE_FONT_SIZE)
     ax.set_xlabel("Time (seconds)", fontsize=config.PLOT_LABEL_FONT_SIZE)
-    ax.set_ylabel(
-        "Neural Activity (z-score)", fontsize=config.PLOT_LABEL_FONT_SIZE
-    )
+    ax.set_ylabel("Neural Activity (z-score)", fontsize=config.PLOT_LABEL_FONT_SIZE)
 
     if plot_limits not in [None, "auto"]:
         y_limits = [float(lim) for lim in plot_limits.split(",")]
@@ -2918,9 +2848,7 @@ def plot_post_minus_pre_per_epoch_bar_chart(data, epoch_data, output_filename):
     plt.close(fig)
 
 
-def plot_number_of_modulated_cells_per_epoch(
-    data, epoch_data, output_filename
-):
+def plot_number_of_modulated_cells_per_epoch(data, epoch_data, output_filename):
     """Plot the number of modulated cells per epoch as a bar chart.
 
     :param data: dictionary containing population data and individual cell data
@@ -2948,16 +2876,12 @@ def plot_number_of_modulated_cells_per_epoch(
         measurements = item["measurements"]
         color = item["color"]
         offset = width * multiplier
-        rects = ax.bar(
-            x + offset, measurements, width, label=label, color=color
-        )
+        rects = ax.bar(x + offset, measurements, width, label=label, color=color)
         ax.bar_label(rects, padding=3)
         multiplier += 1
 
     # adjust figure settings
-    ax.set_xticks(
-        x + width, ["Up-Modulated", "Down-Modulated", "Non-Modulated"]
-    )
+    ax.set_xticks(x + width, ["Up-Modulated", "Down-Modulated", "Non-Modulated"])
     plt.ylabel("Number of Cells")
     plt.title("Number of Modulated Cells Per Epoch")
     ax.legend()
@@ -2975,8 +2899,8 @@ def plot_number_of_modulated_cells_per_epoch(
 def plot_post_minus_pre_activity_differences_with_cell_map(
     cell_set_files, data, epoch_data, output_dir, group_name=None
 ):
-    """Plot the post-pre activity differences between a pair of epochs along with a
-    color-coded cell map.
+    """Plot post-pre activity differences with a color-coded cell map.
+
     :param cell_set_files: list of paths to the isxd cell set files
     :param data: dictionary containing population data and individual cell data
     :param epoch_data: dictionary containing data relevant to each epoch (keys are the epoch names)
@@ -3009,7 +2933,6 @@ def plot_post_minus_pre_activity_differences_with_cell_map(
             "No cell set files available, skipping the post-pre activity "
             "differences histogram and cell map preview"
         )
-        post_minus_pre_activity_differences_preview_files = None
     else:
         (
             num_accepted_cells,
@@ -3037,7 +2960,6 @@ def plot_post_minus_pre_activity_differences_with_cell_map(
         num_cells = len(x)
 
         # plot difference distribution and cell map
-        # post_minus_pre_activity_differences_preview_files = (
         _plot_difference_cellmap2(
             epoch_names=list(epoch_data.keys()),
             x=x,
@@ -3083,16 +3005,9 @@ def plot_post_minus_pre_activity_differences_with_cell_map(
     # return (
     #     post_minus_pre_activity_differences_preview_files,
     #     # post_minus_pre_boxplot_preview_file,
-    # )
 
 
-def _clean_ax(ax):
-    """Remove spines from an axis.
-
-    :param ax: matplotlib axis
-    """
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
+# )
 
 
 def _plot_difference_cellmap_single_epoch_pair(
@@ -3232,6 +3147,7 @@ def _plot_difference_cellmap2(
 
     # return post_minus_pre_activity_differences_preview_files
 
+
 def _plot_mixed_comparisons2(
     data,
     g1_color,
@@ -3284,8 +3200,7 @@ def _plot_box_and_strip2(
     epoch_column_name="Epoch",
     value_column_name="Activity",
 ):
-    """Plot a combination of boxplot and stripplot for given epochs and
-    activity data.
+    """Plot a combined boxplot and stripplot for epoch activity data.
 
     :Parameters
         epoch_names (list): List of names corresponding to each epoch.

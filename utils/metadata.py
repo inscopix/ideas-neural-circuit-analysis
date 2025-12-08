@@ -1,3 +1,5 @@
+"""Metadata helpers for IDEAS file formats."""
+
 import os
 import isx
 import json
@@ -29,15 +31,11 @@ def read_isxc_metadata(input_filename):
             isx_comp_desc_offset = 32
 
             # multiplied by 2 since there are 2 descriptors (frame and meta data)
-            session_offset_location = (
-                frame_count_location + isx_comp_desc_offset * 2
-            )
+            session_offset_location = frame_count_location + isx_comp_desc_offset * 2
 
             # extract the session offset from the header to get location of the session data
             f.seek(session_offset_location, 0)
-            session_offset = int.from_bytes(
-                f.read(sizeof_size_t), byteorder="little"
-            )
+            session_offset = int.from_bytes(f.read(sizeof_size_t), byteorder="little")
 
             # move reader to the session data
             f.seek(session_offset, 0)
@@ -68,9 +66,7 @@ def read_isxd_metadata(input_filename):
         with open(input_filename, "rb") as f:
             footer_size_offset = 8
             f.seek(-footer_size_offset, 2)
-            footer_size = int.from_bytes(
-                f.read(footer_size_offset), byteorder="little"
-            )
+            footer_size = int.from_bytes(f.read(footer_size_offset), byteorder="little")
             offset = footer_size + footer_size_offset + 1
             f.seek(-offset, 2)
             metadata = json.loads(f.read(footer_size))
@@ -84,7 +80,7 @@ def read_isxd_metadata(input_filename):
 
 
 def is_multicolor(metadata, check_interleaved=True):
-    """Check if an isxd file is from a multicolor recording
+    """Check if an isxd file is from a multicolor recording.
 
     :param metadata: dictionary containing metadata of isxd file
     :param check_interleaved: if False, only checks if a file originates from
@@ -95,13 +91,8 @@ def is_multicolor(metadata, check_interleaved=True):
     from multicolor movies (e.g. processed movies, cell sets, event set, etc.)
     if check_deinterleaved=True: True only for multicolor movies that have not been deinterleaved
     """
-    if (
-        "extraProperties" not in metadata
-        or metadata["extraProperties"] is None
-    ):
-        logger.warn(
-            "Unable to determine whether the input is a multicolor movie"
-        )
+    if "extraProperties" not in metadata or metadata["extraProperties"] is None:
+        logger.warn("Unable to determine whether the input is a multicolor movie")
         return False
 
     # return False if we cannot determine if the file is multicolor
@@ -114,8 +105,7 @@ def is_multicolor(metadata, check_interleaved=True):
         # but has been deinterleaved
         has_multicolor_metadata = (
             "dualColor" in metadata["extraProperties"]["microscope"]
-            and "enabled"
-            in metadata["extraProperties"]["microscope"]["dualColor"]
+            and "enabled" in metadata["extraProperties"]["microscope"]["dualColor"]
             and metadata["extraProperties"]["microscope"]["dualColor"]["mode"]
             == "multiplexing"
         )
@@ -134,7 +124,7 @@ def is_multicolor(metadata, check_interleaved=True):
 
 
 def is_multiplane(metadata, check_interleaved=True):
-    """Check if an isxd file is from a multiplane recording
+    """Check if an isxd file is from a multiplane recording.
 
     :param metadata: dictionary containing metadata of isxd file
     :param check_interleaved: if False, only checks if a file originates from
@@ -149,13 +139,8 @@ def is_multiplane(metadata, check_interleaved=True):
         return False
 
     # return False if we cannot determine if the file is multiplane
-    if (
-        "extraProperties" not in metadata
-        or metadata["extraProperties"] is None
-    ):
-        logger.warn(
-            "Unable to determine whether the input is a multiplane movie"
-        )
+    if "extraProperties" not in metadata or metadata["extraProperties"] is None:
+        logger.warn("Unable to determine whether the input is a multiplane movie")
         return False
 
     has_multiplane_metadata = False
@@ -183,7 +168,7 @@ def is_multiplane(metadata, check_interleaved=True):
 
 
 def get_multiplane_efocus_vals(metadata):
-    """Retrieve efocus values from multiplane isxd file metadata
+    """Retrieve efocus values from multiplane isxd file metadata.
 
     :param metadata: dictionary containing metadata of multiplane isxd file
 
@@ -216,9 +201,7 @@ def get_multiplane_efocus_vals(metadata):
                         ]:
                             if "efocus" in triggered["destination"]["device"]:
                                 v_max = triggered["destination"]["vMax"]
-                                max_amplitude = triggered["destination"][
-                                    "maxAmplitude"
-                                ]
+                                max_amplitude = triggered["destination"]["maxAmplitude"]
                     # get efocus values
                     for data in waveform["data"]:
                         if isinstance(data, str):
@@ -227,9 +210,7 @@ def get_multiplane_efocus_vals(metadata):
                             # the identifier only - needs to match 0x3200
                             if int(data, 16) >> 16 == 0x3200:
                                 efocus = (
-                                    (int(data, 16) & 0xFFFF)
-                                    * v_max
-                                    / max_amplitude
+                                    (int(data, 16) & 0xFFFF) * v_max / max_amplitude
                                 )
                                 efocus_vals.add(int(efocus))
         return sorted(list(efocus_vals))
@@ -240,48 +221,43 @@ def get_multiplane_efocus_vals(metadata):
 
 
 def get_multicolor_efocus_vals(metadata):
-    """Retrieve efocus values from multicolor isxd file
+    """Retrieve efocus values from multicolor isxd file.
 
     :param metadata: dictionary containing metadata of multicolor isxd file
 
     :return: set containing unique efocus values
     """
     mode = metadata["extraProperties"]["microscope"]["dualColor"]["mode"]
-    green_efocus = metadata["extraProperties"]["microscope"]["dualColor"][
-        mode
-    ]["green"]["focus"]
-    red_efocus = metadata["extraProperties"]["microscope"]["dualColor"][mode][
-        "red"
+    green_efocus = metadata["extraProperties"]["microscope"]["dualColor"][mode][
+        "green"
     ]["focus"]
+    red_efocus = metadata["extraProperties"]["microscope"]["dualColor"][mode]["red"][
+        "focus"
+    ]
     return [green_efocus, red_efocus]
 
 
 def get_efocus(input_filename, tmp_dir="/tmp"):
     """Return the efocus value associated with the input ISXD/IMU/GPIO file.
+
     For multiplane and multicolor data, the list of efocus values will be returned.
 
     :param input_filename: path to the input file
     :return: efocus value
     """
     # parse input file name
-    file_basename, file_extension = os.path.splitext(
-        os.path.basename(input_filename)
-    )
+    file_basename, file_extension = os.path.splitext(os.path.basename(input_filename))
     file_extension = file_extension.lower()
 
     # extract file metadata
     if file_extension == ".gpio":
         isx.export_gpio_to_isxd(input_filename, tmp_dir)
-        tmp_gpio_isxd_filename = os.path.join(
-            tmp_dir, file_basename + "_gpio.isxd"
-        )
+        tmp_gpio_isxd_filename = os.path.join(tmp_dir, file_basename + "_gpio.isxd")
         metadata = read_isxd_metadata(tmp_gpio_isxd_filename)
         os.remove(tmp_gpio_isxd_filename)
     elif file_extension == ".imu":
         isx.export_gpio_to_isxd(input_filename, tmp_dir)
-        tmp_imu_isxd_filename = os.path.join(
-            tmp_dir, file_basename + "_imu.isxd"
-        )
+        tmp_imu_isxd_filename = os.path.join(tmp_dir, file_basename + "_imu.isxd")
         metadata = read_isxd_metadata(tmp_imu_isxd_filename)
         os.remove(tmp_imu_isxd_filename)
     elif file_extension == ".isxc":
@@ -290,7 +266,8 @@ def get_efocus(input_filename, tmp_dir="/tmp"):
         metadata = read_isxd_metadata(input_filename)
     else:
         logger.warning(
-            f"The efocus value cannot be extracted from a file with file extension '{file_extension}'"
+            "The efocus value cannot be extracted from a file with file extension "
+            f"'{file_extension}'"
         )
         return None
 
@@ -309,9 +286,7 @@ def get_efocus(input_filename, tmp_dir="/tmp"):
         elif is_multicolor(metadata, check_interleaved=True):
             return get_multicolor_efocus_vals(metadata)
     except Exception:
-        logger.warning(
-            "Could not retrieve multiplane/multicolor efocus values"
-        )
+        logger.warning("Could not retrieve multiplane/multicolor efocus values")
 
     # get efocus value from IDAS metadata
     try:

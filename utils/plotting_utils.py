@@ -38,9 +38,7 @@ def add_epoch_overlays_to_axes(
         color = epoch_colors[i] if i < len(epoch_colors) else f"C{i % 10}"
         name = epoch_names[i] if i < len(epoch_names) else f"epoch_{i+1}"
 
-        ax.axvspan(
-            start, end, alpha=alpha, color=color, label=f"Epoch: {name}"
-        )
+        ax.axvspan(start, end, alpha=alpha, color=color, label=f"Epoch: {name}")
 
 
 def save_figure_with_cleanup(
@@ -143,9 +141,7 @@ def create_dual_panel_plot_with_epoch_overlays(
     plt.rcParams.update({"font.size": 12})
 
     # Create figure with 2 panels
-    fig, ax = plt.subplots(
-        nrows=2, ncols=1, figsize=(15, 10), height_ratios=[1, 8]
-    )
+    fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(15, 10), height_ratios=[1, 8])
 
     # Top panel: Population average activity
     if "smoothed_activity" in callback_kwargs:
@@ -173,12 +169,8 @@ def create_dual_panel_plot_with_epoch_overlays(
     bottom_panel_callback(ax[1], data, period, **callback_kwargs)
 
     # Add epoch overlays to both panels
-    add_epoch_overlays_to_axes(
-        ax[0], epochs, epoch_colors, epoch_names, alpha=0.4
-    )
-    add_epoch_overlays_to_axes(
-        ax[1], epochs, epoch_colors, epoch_names, alpha=0.4
-    )
+    add_epoch_overlays_to_axes(ax[0], epochs, epoch_colors, epoch_names, alpha=0.4)
+    add_epoch_overlays_to_axes(ax[1], epochs, epoch_colors, epoch_names, alpha=0.4)
 
     # Add cellset boundaries to both panels
     if boundaries is not None and len(boundaries) > 2:
@@ -190,9 +182,7 @@ def create_dual_panel_plot_with_epoch_overlays(
     # Add consistent legend
     handles = []
     for epoch_name, epoch_color in zip(epoch_names, epoch_colors):
-        handles.append(
-            plt.Line2D([0], [0], color=epoch_color, lw=4, label=epoch_name)
-        )
+        handles.append(plt.Line2D([0], [0], color=epoch_color, lw=4, label=epoch_name))
 
     # Add legend to the top panel
     if len(epoch_names) > 0:
@@ -249,9 +239,7 @@ def plot_traces_bottom_panel(ax, traces, period: float, **kwargs) -> None:
     # Style the bottom panel
     ax.set_ylabel("Cell index", fontdict={"fontsize": 12})
     ax.set_xlabel("Time (s)", fontdict={"fontsize": 12})
-    ax.set_title(
-        f"Traces of the first {num_cells} cells", fontdict={"fontsize": 13}
-    )
+    ax.set_title(f"Traces of the first {num_cells} cells", fontdict={"fontsize": 13})
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     last_time = time[-1] if len(time) > 0 else 0
@@ -284,9 +272,7 @@ def plot_events_bottom_panel(
 
     """
     # Bottom panel: Event raster plot
-    ax.eventplot(
-        events, color="black", linelengths=0.5, linewidths=0.8, alpha=0.5
-    )
+    ax.eventplot(events, color="black", linelengths=0.5, linewidths=0.8, alpha=0.5)
     ax.set_ylabel("Cell index", fontdict={"fontsize": 12})
     ax.set_xlabel("Time (s)", fontdict={"fontsize": 12})
     ax.spines["top"].set_visible(False)

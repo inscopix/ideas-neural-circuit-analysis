@@ -17,27 +17,17 @@ class TestCombineComparePeriEventData(unittest.TestCase):
     # define directories
     temporary_dir = "/tmp"
     input_dir = "data/combine_compare_peri_event_data"
-    output_dir = os.path.join(
-        temporary_dir, "tmp_combine_compare_peri_event_data"
-    )
+    output_dir = os.path.join(temporary_dir, "tmp_combine_compare_peri_event_data")
 
     # output manifest
-    output_manifest_json_schema = (
-        "toolbox/tests/schemas/output_manifest_schema.json"
-    )
+    output_manifest_json_schema = "toolbox/tests/schemas/output_manifest_schema.json"
     output_manifest_file_basename = "output_manifest.json"
-    output_manifest_file = os.path.join(
-        output_dir, output_manifest_file_basename
-    )
+    output_manifest_file = os.path.join(output_dir, output_manifest_file_basename)
 
     # output metadata
-    output_metadata_json_schema = (
-        "toolbox/tests/schemas/output_metadata_schema.json"
-    )
+    output_metadata_json_schema = "toolbox/tests/schemas/output_metadata_schema.json"
     output_metadata_file_basename = "output_metadata.json"
-    output_metadata_file = os.path.join(
-        output_dir, output_metadata_file_basename
-    )
+    output_metadata_file = os.path.join(output_dir, output_metadata_file_basename)
 
     def setUp(self):
         if os.path.exists(self.output_dir):
@@ -99,45 +89,25 @@ class TestCombineComparePeriEventData(unittest.TestCase):
 
         # validate event-aligned traces
         df_traces = pd.read_csv(
-            os.path.join(
-                self.output_dir, f"event_aligned_activity_{group_name}.csv"
-            )
+            os.path.join(self.output_dir, f"event_aligned_activity_{group_name}.csv")
         )
         self.assertEqual(df_traces.shape, (119, 249))
 
         # validate population mean and sem (the expected values were computed manually)
-        self.assertAlmostEqual(
-            -0.00139902927655282, df_traces["population_mean"][0]
-        )
-        self.assertAlmostEqual(
-            0.00661793085084028, df_traces["population_sem"][0]
-        )
+        self.assertAlmostEqual(-0.00139902927655282, df_traces["population_mean"][0])
+        self.assertAlmostEqual(0.00661793085084028, df_traces["population_sem"][0])
 
         # validate sub-population mean and sem
-        self.assertAlmostEqual(
-            -0.049593321516071064, df_traces["up_modulated_mean"][0]
-        )
-        self.assertAlmostEqual(
-            0.02248465911945461, df_traces["up_modulated_sem"][0]
-        )
-        self.assertAlmostEqual(
-            0.0284092191640714, df_traces["down_modulated_mean"][0]
-        )
-        self.assertAlmostEqual(
-            0.0325825083730468, df_traces["down_modulated_sem"][0]
-        )
-        self.assertAlmostEqual(
-            0.000372933333441427, df_traces["non_modulated_mean"][0]
-        )
-        self.assertAlmostEqual(
-            0.006994805756296599, df_traces["non_modulated_sem"][0]
-        )
+        self.assertAlmostEqual(-0.049593321516071064, df_traces["up_modulated_mean"][0])
+        self.assertAlmostEqual(0.02248465911945461, df_traces["up_modulated_sem"][0])
+        self.assertAlmostEqual(0.0284092191640714, df_traces["down_modulated_mean"][0])
+        self.assertAlmostEqual(0.0325825083730468, df_traces["down_modulated_sem"][0])
+        self.assertAlmostEqual(0.000372933333441427, df_traces["non_modulated_mean"][0])
+        self.assertAlmostEqual(0.006994805756296599, df_traces["non_modulated_sem"][0])
 
         # validate event-aligned statistics
         df_stats = pd.read_csv(
-            os.path.join(
-                self.output_dir, f"event_aligned_statistics_{group_name}.csv"
-            )
+            os.path.join(self.output_dir, f"event_aligned_statistics_{group_name}.csv")
         )
         self.assertEqual(df_stats.shape, (240, 8))
 
@@ -397,45 +367,25 @@ class TestCombineComparePeriEventData(unittest.TestCase):
 
         # validate event-aligned traces
         df_traces = pd.read_csv(
-            os.path.join(
-                self.output_dir, f"event_aligned_activity_{group_name}.csv"
-            )
+            os.path.join(self.output_dir, f"event_aligned_activity_{group_name}.csv")
         )
         self.assertEqual(df_traces.shape, (119, 249))
 
         # validate population mean and sem (the expected values were computed manually)
-        self.assertAlmostEqual(
-            -0.00139902927655283, df_traces["population_mean"][0]
-        )
-        self.assertAlmostEqual(
-            0.00033011431246619, df_traces["population_sem"][0]
-        )
+        self.assertAlmostEqual(-0.00139902927655283, df_traces["population_mean"][0])
+        self.assertAlmostEqual(0.00033011431246619, df_traces["population_sem"][0])
 
         # validate sub-population mean and sem
-        self.assertAlmostEqual(
-            -0.051186460829229084, df_traces["up_modulated_mean"][0]
-        )
-        self.assertAlmostEqual(
-            0.02071081107105348, df_traces["up_modulated_sem"][0]
-        )
-        self.assertAlmostEqual(
-            0.0414322152247661, df_traces["down_modulated_mean"][0]
-        )
-        self.assertAlmostEqual(
-            0.0260459921213894, df_traces["down_modulated_sem"][0]
-        )
-        self.assertAlmostEqual(
-            0.000363094912905372, df_traces["non_modulated_mean"][0]
-        )
-        self.assertAlmostEqual(
-            0.000430922819479477, df_traces["non_modulated_sem"][0]
-        )
+        self.assertAlmostEqual(-0.051186460829229084, df_traces["up_modulated_mean"][0])
+        self.assertAlmostEqual(0.02071081107105348, df_traces["up_modulated_sem"][0])
+        self.assertAlmostEqual(0.0414322152247661, df_traces["down_modulated_mean"][0])
+        self.assertAlmostEqual(0.0260459921213894, df_traces["down_modulated_sem"][0])
+        self.assertAlmostEqual(0.000363094912905372, df_traces["non_modulated_mean"][0])
+        self.assertAlmostEqual(0.000430922819479477, df_traces["non_modulated_sem"][0])
 
         # validate event-aligned statistics
         df_stats = pd.read_csv(
-            os.path.join(
-                self.output_dir, f"event_aligned_statistics_{group_name}.csv"
-            )
+            os.path.join(self.output_dir, f"event_aligned_statistics_{group_name}.csv")
         )
         self.assertEqual(df_stats.shape, (240, 8))
 
@@ -724,9 +674,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
 
         # validate event-aligned traces for GROUP 1
         df_traces_group1 = pd.read_csv(
-            os.path.join(
-                self.output_dir, f"event_aligned_activity_{group1_name}.csv"
-            )
+            os.path.join(self.output_dir, f"event_aligned_activity_{group1_name}.csv")
         )
         self.assertEqual(df_traces_group1.shape, (119, 249))
 
@@ -751,9 +699,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
 
         # validate event-aligned statistics for GROUP 1
         df_stats_group1 = pd.read_csv(
-            os.path.join(
-                self.output_dir, f"event_aligned_statistics_{group1_name}.csv"
-            )
+            os.path.join(self.output_dir, f"event_aligned_statistics_{group1_name}.csv")
         )
         self.assertEqual(df_stats_group1.shape, (240, 8))
 
@@ -777,10 +723,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group1[
                     (df_stats_group1.modulation == 1.0)
-                    & (
-                        df_stats_group1.file
-                        == "group1_subject1.STATISTICS.csv"
-                    )
+                    & (df_stats_group1.file == "group1_subject1.STATISTICS.csv")
                 ]
             ),
         )
@@ -789,10 +732,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group1[
                     (df_stats_group1.modulation == -1.0)
-                    & (
-                        df_stats_group1.file
-                        == "group1_subject1.STATISTICS.csv"
-                    )
+                    & (df_stats_group1.file == "group1_subject1.STATISTICS.csv")
                 ]
             ),
         )
@@ -801,10 +741,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group1[
                     (df_stats_group1.modulation == 0.0)
-                    & (
-                        df_stats_group1.file
-                        == "group1_subject1.STATISTICS.csv"
-                    )
+                    & (df_stats_group1.file == "group1_subject1.STATISTICS.csv")
                 ]
             ),
         )
@@ -814,10 +751,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group1[
                     (df_stats_group1.modulation == 1.0)
-                    & (
-                        df_stats_group1.file
-                        == "group1_subject2.STATISTICS.csv"
-                    )
+                    & (df_stats_group1.file == "group1_subject2.STATISTICS.csv")
                 ]
             ),
         )
@@ -826,10 +760,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group1[
                     (df_stats_group1.modulation == -1.0)
-                    & (
-                        df_stats_group1.file
-                        == "group1_subject2.STATISTICS.csv"
-                    )
+                    & (df_stats_group1.file == "group1_subject2.STATISTICS.csv")
                 ]
             ),
         )
@@ -838,19 +769,14 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group1[
                     (df_stats_group1.modulation == 0.0)
-                    & (
-                        df_stats_group1.file
-                        == "group1_subject2.STATISTICS.csv"
-                    )
+                    & (df_stats_group1.file == "group1_subject2.STATISTICS.csv")
                 ]
             ),
         )
 
         # validate event-aligned traces for GROUP 2
         df_traces_group2 = pd.read_csv(
-            os.path.join(
-                self.output_dir, f"event_aligned_activity_{group2_name}.csv"
-            )
+            os.path.join(self.output_dir, f"event_aligned_activity_{group2_name}.csv")
         )
         self.assertEqual(df_traces_group2.shape, (119, 249))
 
@@ -875,9 +801,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
 
         # validate event-aligned statistics for GROUP 2
         df_stats_group2 = pd.read_csv(
-            os.path.join(
-                self.output_dir, f"event_aligned_statistics_{group2_name}.csv"
-            )
+            os.path.join(self.output_dir, f"event_aligned_statistics_{group2_name}.csv")
         )
         self.assertEqual(df_stats_group2.shape, (240, 8))
 
@@ -901,10 +825,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group2[
                     (df_stats_group2.modulation == 1.0)
-                    & (
-                        df_stats_group2.file
-                        == "group2_subject1.STATISTICS.csv"
-                    )
+                    & (df_stats_group2.file == "group2_subject1.STATISTICS.csv")
                 ]
             ),
         )
@@ -913,10 +834,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group2[
                     (df_stats_group2.modulation == -1.0)
-                    & (
-                        df_stats_group2.file
-                        == "group2_subject1.STATISTICS.csv"
-                    )
+                    & (df_stats_group2.file == "group2_subject1.STATISTICS.csv")
                 ]
             ),
         )
@@ -925,10 +843,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group2[
                     (df_stats_group2.modulation == 0.0)
-                    & (
-                        df_stats_group2.file
-                        == "group2_subject1.STATISTICS.csv"
-                    )
+                    & (df_stats_group2.file == "group2_subject1.STATISTICS.csv")
                 ]
             ),
         )
@@ -938,10 +853,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group2[
                     (df_stats_group2.modulation == 1.0)
-                    & (
-                        df_stats_group2.file
-                        == "group2_subject2.STATISTICS.csv"
-                    )
+                    & (df_stats_group2.file == "group2_subject2.STATISTICS.csv")
                 ]
             ),
         )
@@ -950,10 +862,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group2[
                     (df_stats_group2.modulation == -1.0)
-                    & (
-                        df_stats_group2.file
-                        == "group2_subject2.STATISTICS.csv"
-                    )
+                    & (df_stats_group2.file == "group2_subject2.STATISTICS.csv")
                 ]
             ),
         )
@@ -962,10 +871,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group2[
                     (df_stats_group2.modulation == 0.0)
-                    & (
-                        df_stats_group2.file
-                        == "group2_subject2.STATISTICS.csv"
-                    )
+                    & (df_stats_group2.file == "group2_subject2.STATISTICS.csv")
                 ]
             ),
         )
@@ -1798,8 +1704,10 @@ class TestCombineComparePeriEventData(unittest.TestCase):
         #                     "file_key": "group2_stats_files",
         #                     "file_name": "group2_subject2.STATISTICS.csv",
         #                     "file_id": "829ce922-d4ac-4549-a5f0-4c5ced9e9630",
-        #                     "file_path": "/ideas/toolbox/tests/data/combine_compare_peri_event_data"
-        #                     "/shifted_time_windows/group2_subject2.STATISTICS.csv",
+        #                     "file_path": (
+        #                         "/ideas/toolbox/tests/data/combine_compare_peri_event_data"
+        #                         "/shifted_time_windows/group2_subject2.STATISTICS.csv"
+        #                     ),
         #                     "file_type": "statistics",
         #                     "file_format": "csv",
         #                     "file_structure": "table",
@@ -1850,16 +1758,20 @@ class TestCombineComparePeriEventData(unittest.TestCase):
         #                             "name": "Event-aligned sub-population activity figure",
         #                             "help": "Event-aligned average sub-population activity "
         #                             "line plot (up-, down-, and non-modulated neurons)",
-        #                             "file_path": "/tmp/tmp_combine_compare_peri_event_data/event"
-        #                             "_aligned_activity_by_modulation_wt.preview.svg",
+        #                             "file_path": (
+        #                                 "/tmp/tmp_combine_compare_peri_event_data/"
+        #                                 "event_aligned_activity_by_modulation_wt.preview.svg"
+        #                             ),
         #                             "file_format": "svg",
         #                         },
         #                         {
         #                             "name": "Fraction of neurons in each sub-population",
         #                             "help": "Pie chart depicting the fraction of neurons in each "
         #                             "sub-population (up-, down-, and non-modulated neurons)",
-        #                             "file_path": "/tmp/tmp_combine_compare_peri_event_data/fraction"
-        #                             "_of_modulated_neurons_wt.preview.svg",
+        #                             "file_path": (
+        #                                 "/tmp/tmp_combine_compare_peri_event_data/"
+        #                                 "fraction_of_modulated_neurons_wt.preview.svg"
+        #                             ),
         #                             "file_format": "svg",
         #                         },
         #                     ],
@@ -2062,48 +1974,28 @@ class TestCombineComparePeriEventData(unittest.TestCase):
 
         # validate event-aligned traces
         df_traces = pd.read_csv(
-            os.path.join(
-                self.output_dir, f"event_aligned_activity_{group_name}.csv"
-            )
+            os.path.join(self.output_dir, f"event_aligned_activity_{group_name}.csv")
         )
         self.assertEqual(df_traces.shape, (119, 249))
 
         # validate population mean and sem (the expected values were computed manually)
-        self.assertAlmostEqual(
-            -0.00139902927655282, df_traces["population_mean"][0]
-        )
-        self.assertAlmostEqual(
-            0.00661793085084028, df_traces["population_sem"][0]
-        )
+        self.assertAlmostEqual(-0.00139902927655282, df_traces["population_mean"][0])
+        self.assertAlmostEqual(0.00661793085084028, df_traces["population_sem"][0])
 
         # validate that population shuffled data is not included in the combined data file
         self.assertTrue("population_shuffled_mean" not in df_traces.columns)
 
         # validate sub-population mean and sem
-        self.assertAlmostEqual(
-            -0.049593321516071064, df_traces["up_modulated_mean"][0]
-        )
-        self.assertAlmostEqual(
-            0.02248465911945461, df_traces["up_modulated_sem"][0]
-        )
-        self.assertAlmostEqual(
-            0.0284092191640714, df_traces["down_modulated_mean"][0]
-        )
-        self.assertAlmostEqual(
-            0.0325825083730468, df_traces["down_modulated_sem"][0]
-        )
-        self.assertAlmostEqual(
-            0.000372933333441427, df_traces["non_modulated_mean"][0]
-        )
-        self.assertAlmostEqual(
-            0.006994805756296599, df_traces["non_modulated_sem"][0]
-        )
+        self.assertAlmostEqual(-0.049593321516071064, df_traces["up_modulated_mean"][0])
+        self.assertAlmostEqual(0.02248465911945461, df_traces["up_modulated_sem"][0])
+        self.assertAlmostEqual(0.0284092191640714, df_traces["down_modulated_mean"][0])
+        self.assertAlmostEqual(0.0325825083730468, df_traces["down_modulated_sem"][0])
+        self.assertAlmostEqual(0.000372933333441427, df_traces["non_modulated_mean"][0])
+        self.assertAlmostEqual(0.006994805756296599, df_traces["non_modulated_sem"][0])
 
         # validate event-aligned statistics
         df_stats = pd.read_csv(
-            os.path.join(
-                self.output_dir, f"event_aligned_statistics_{group_name}.csv"
-            )
+            os.path.join(self.output_dir, f"event_aligned_statistics_{group_name}.csv")
         )
         self.assertEqual(df_stats.shape, (240, 8))
 
@@ -2363,48 +2255,28 @@ class TestCombineComparePeriEventData(unittest.TestCase):
 
         # validate event-aligned traces
         df_traces = pd.read_csv(
-            os.path.join(
-                self.output_dir, f"event_aligned_activity_{group_name}.csv"
-            )
+            os.path.join(self.output_dir, f"event_aligned_activity_{group_name}.csv")
         )
         self.assertEqual(df_traces.shape, (119, 249))
 
         # validate population mean and sem (the expected values were computed manually)
-        self.assertAlmostEqual(
-            -0.00139902927655282, df_traces["population_mean"][0]
-        )
-        self.assertAlmostEqual(
-            0.00661793085084028, df_traces["population_sem"][0]
-        )
+        self.assertAlmostEqual(-0.00139902927655282, df_traces["population_mean"][0])
+        self.assertAlmostEqual(0.00661793085084028, df_traces["population_sem"][0])
 
         # validate that population shuffled data is not included in the combined data file
         self.assertTrue("population_shuffled_mean" not in df_traces.columns)
 
         # validate sub-population mean and sem
-        self.assertAlmostEqual(
-            -0.049593321516071064, df_traces["up_modulated_mean"][0]
-        )
-        self.assertAlmostEqual(
-            0.02248465911945461, df_traces["up_modulated_sem"][0]
-        )
-        self.assertAlmostEqual(
-            0.0284092191640714, df_traces["down_modulated_mean"][0]
-        )
-        self.assertAlmostEqual(
-            0.0325825083730468, df_traces["down_modulated_sem"][0]
-        )
-        self.assertAlmostEqual(
-            0.000372933333441427, df_traces["non_modulated_mean"][0]
-        )
-        self.assertAlmostEqual(
-            0.006994805756296599, df_traces["non_modulated_sem"][0]
-        )
+        self.assertAlmostEqual(-0.049593321516071064, df_traces["up_modulated_mean"][0])
+        self.assertAlmostEqual(0.02248465911945461, df_traces["up_modulated_sem"][0])
+        self.assertAlmostEqual(0.0284092191640714, df_traces["down_modulated_mean"][0])
+        self.assertAlmostEqual(0.0325825083730468, df_traces["down_modulated_sem"][0])
+        self.assertAlmostEqual(0.000372933333441427, df_traces["non_modulated_mean"][0])
+        self.assertAlmostEqual(0.006994805756296599, df_traces["non_modulated_sem"][0])
 
         # validate event-aligned statistics
         df_stats = pd.read_csv(
-            os.path.join(
-                self.output_dir, f"event_aligned_statistics_{group_name}.csv"
-            )
+            os.path.join(self.output_dir, f"event_aligned_statistics_{group_name}.csv")
         )
         self.assertEqual(df_stats.shape, (240, 8))
 
@@ -2693,9 +2565,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
 
         # validate event-aligned traces for GROUP 1
         df_traces_group1 = pd.read_csv(
-            os.path.join(
-                self.output_dir, f"event_aligned_activity_{group1_name}.csv"
-            )
+            os.path.join(self.output_dir, f"event_aligned_activity_{group1_name}.csv")
         )
         self.assertEqual(df_traces_group1.shape, (119, 249))
 
@@ -2708,9 +2578,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
         )
 
         # validate that no shuffled data is present in the csv file
-        self.assertTrue(
-            "population_shuffled_mean" not in df_traces_group1.columns
-        )
+        self.assertTrue("population_shuffled_mean" not in df_traces_group1.columns)
 
         # validate sub-population mean and sem
         self.assertAlmostEqual(
@@ -2725,9 +2593,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
 
         # validate event-aligned statistics for GROUP 1
         df_stats_group1 = pd.read_csv(
-            os.path.join(
-                self.output_dir, f"event_aligned_statistics_{group1_name}.csv"
-            )
+            os.path.join(self.output_dir, f"event_aligned_statistics_{group1_name}.csv")
         )
         self.assertEqual(df_stats_group1.shape, (240, 8))
 
@@ -2751,10 +2617,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group1[
                     (df_stats_group1.modulation == 1.0)
-                    & (
-                        df_stats_group1.file
-                        == "group1_subject1.STATISTICS.csv"
-                    )
+                    & (df_stats_group1.file == "group1_subject1.STATISTICS.csv")
                 ]
             ),
         )
@@ -2763,10 +2626,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group1[
                     (df_stats_group1.modulation == -1.0)
-                    & (
-                        df_stats_group1.file
-                        == "group1_subject1.STATISTICS.csv"
-                    )
+                    & (df_stats_group1.file == "group1_subject1.STATISTICS.csv")
                 ]
             ),
         )
@@ -2775,10 +2635,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group1[
                     (df_stats_group1.modulation == 0.0)
-                    & (
-                        df_stats_group1.file
-                        == "group1_subject1.STATISTICS.csv"
-                    )
+                    & (df_stats_group1.file == "group1_subject1.STATISTICS.csv")
                 ]
             ),
         )
@@ -2788,10 +2645,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group1[
                     (df_stats_group1.modulation == 1.0)
-                    & (
-                        df_stats_group1.file
-                        == "group1_subject2.STATISTICS.csv"
-                    )
+                    & (df_stats_group1.file == "group1_subject2.STATISTICS.csv")
                 ]
             ),
         )
@@ -2800,10 +2654,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group1[
                     (df_stats_group1.modulation == -1.0)
-                    & (
-                        df_stats_group1.file
-                        == "group1_subject2.STATISTICS.csv"
-                    )
+                    & (df_stats_group1.file == "group1_subject2.STATISTICS.csv")
                 ]
             ),
         )
@@ -2812,19 +2663,14 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group1[
                     (df_stats_group1.modulation == 0.0)
-                    & (
-                        df_stats_group1.file
-                        == "group1_subject2.STATISTICS.csv"
-                    )
+                    & (df_stats_group1.file == "group1_subject2.STATISTICS.csv")
                 ]
             ),
         )
 
         # validate event-aligned traces for GROUP 2
         df_traces_group2 = pd.read_csv(
-            os.path.join(
-                self.output_dir, f"event_aligned_activity_{group2_name}.csv"
-            )
+            os.path.join(self.output_dir, f"event_aligned_activity_{group2_name}.csv")
         )
         self.assertEqual(df_traces_group2.shape, (119, 249))
 
@@ -2849,9 +2695,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
 
         # validate event-aligned statistics for GROUP 2
         df_stats_group2 = pd.read_csv(
-            os.path.join(
-                self.output_dir, f"event_aligned_statistics_{group2_name}.csv"
-            )
+            os.path.join(self.output_dir, f"event_aligned_statistics_{group2_name}.csv")
         )
         self.assertEqual(df_stats_group2.shape, (240, 8))
 
@@ -2875,10 +2719,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group2[
                     (df_stats_group2.modulation == 1.0)
-                    & (
-                        df_stats_group2.file
-                        == "group2_subject1.STATISTICS.csv"
-                    )
+                    & (df_stats_group2.file == "group2_subject1.STATISTICS.csv")
                 ]
             ),
         )
@@ -2887,10 +2728,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group2[
                     (df_stats_group2.modulation == -1.0)
-                    & (
-                        df_stats_group2.file
-                        == "group2_subject1.STATISTICS.csv"
-                    )
+                    & (df_stats_group2.file == "group2_subject1.STATISTICS.csv")
                 ]
             ),
         )
@@ -2899,10 +2737,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group2[
                     (df_stats_group2.modulation == 0.0)
-                    & (
-                        df_stats_group2.file
-                        == "group2_subject1.STATISTICS.csv"
-                    )
+                    & (df_stats_group2.file == "group2_subject1.STATISTICS.csv")
                 ]
             ),
         )
@@ -2912,10 +2747,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group2[
                     (df_stats_group2.modulation == 1.0)
-                    & (
-                        df_stats_group2.file
-                        == "group2_subject2.STATISTICS.csv"
-                    )
+                    & (df_stats_group2.file == "group2_subject2.STATISTICS.csv")
                 ]
             ),
         )
@@ -2924,10 +2756,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group2[
                     (df_stats_group2.modulation == -1.0)
-                    & (
-                        df_stats_group2.file
-                        == "group2_subject2.STATISTICS.csv"
-                    )
+                    & (df_stats_group2.file == "group2_subject2.STATISTICS.csv")
                 ]
             ),
         )
@@ -2936,10 +2765,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             len(
                 df_stats_group2[
                     (df_stats_group2.modulation == 0.0)
-                    & (
-                        df_stats_group2.file
-                        == "group2_subject2.STATISTICS.csv"
-                    )
+                    & (df_stats_group2.file == "group2_subject2.STATISTICS.csv")
                 ]
             ),
         )
@@ -3308,10 +3134,7 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             self.assertEqual(sorted(actual_files), sorted(expected_files))
 
             # remove output files ahead of next iteration
-            [
-                os.remove(os.path.join(self.output_dir, f))
-                for f in expected_files
-            ]
+            [os.remove(os.path.join(self.output_dir, f)) for f in expected_files]
 
     def test_combine_single_group_invalid_average_method(self):
         # define input files
@@ -3399,17 +3222,13 @@ class TestCombineComparePeriEventData(unittest.TestCase):
 
         # validate event-aligned traces
         df_traces = pd.read_csv(
-            os.path.join(
-                self.output_dir, f"event_aligned_activity_{group_name}.csv"
-            )
+            os.path.join(self.output_dir, f"event_aligned_activity_{group_name}.csv")
         )
         self.assertEqual(df_traces.shape, (119, 249))
 
         # validate event-aligned statistics
         df_stats = pd.read_csv(
-            os.path.join(
-                self.output_dir, f"event_aligned_statistics_{group_name}.csv"
-            )
+            os.path.join(self.output_dir, f"event_aligned_statistics_{group_name}.csv")
         )
         self.assertEqual(df_stats.shape, (240, 8))
 
@@ -3493,33 +3312,25 @@ class TestCombineComparePeriEventData(unittest.TestCase):
 
         # validate event-aligned traces for GROUP 1
         df_traces_group1 = pd.read_csv(
-            os.path.join(
-                self.output_dir, f"event_aligned_activity_{group1_name}.csv"
-            )
+            os.path.join(self.output_dir, f"event_aligned_activity_{group1_name}.csv")
         )
         self.assertEqual(df_traces_group1.shape, (119, 249))
 
         # validate event-aligned statistics for GROUP 1
         df_stats_group1 = pd.read_csv(
-            os.path.join(
-                self.output_dir, f"event_aligned_statistics_{group1_name}.csv"
-            )
+            os.path.join(self.output_dir, f"event_aligned_statistics_{group1_name}.csv")
         )
         self.assertEqual(df_stats_group1.shape, (240, 8))
 
         # validate event-aligned traces for GROUP 2
         df_traces_group2 = pd.read_csv(
-            os.path.join(
-                self.output_dir, f"event_aligned_activity_{group2_name}.csv"
-            )
+            os.path.join(self.output_dir, f"event_aligned_activity_{group2_name}.csv")
         )
         self.assertEqual(df_traces_group2.shape, (119, 249))
 
         # validate event-aligned statistics for GROUP 2
         df_stats_group2 = pd.read_csv(
-            os.path.join(
-                self.output_dir, f"event_aligned_statistics_{group2_name}.csv"
-            )
+            os.path.join(self.output_dir, f"event_aligned_statistics_{group2_name}.csv")
         )
         self.assertEqual(df_stats_group2.shape, (240, 8))
 
@@ -3646,8 +3457,8 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             # execute workflow and expect a IdeasError error to be raised
             self.assertRaisesRegex(
                 IdeasError,
-                "Visualization parameter 'Population activity \(y-axis range\)' must be specified "
-                "as 'auto' or 'min,max' \(e.g. -1,1\) where the minimum and "
+                r"Visualization parameter 'Population activity \(y-axis range\)' must be specified "
+                r"as 'auto' or 'min,max' \(e.g. -1,1\) where the minimum and "
                 "maximum are not equal.",
                 combine_compare_peri_event_data,
                 group1_traces_files=group1_traces_files,
@@ -3707,8 +3518,8 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             # execute workflow and expect a IdeasError error to be raised
             self.assertRaisesRegex(
                 IdeasError,
-                "Visualization parameter 'Activity heatmap \(colormap range\)' must be specified "
-                "as 'auto' or 'min,max' \(e.g. -1,1\) where the minimum and "
+                r"Visualization parameter 'Activity heatmap \(colormap range\)' must be specified "
+                r"as 'auto' or 'min,max' \(e.g. -1,1\) where the minimum and "
                 "maximum are not equal.",
                 combine_compare_peri_event_data,
                 group1_traces_files=group1_traces_files,
@@ -3768,8 +3579,8 @@ class TestCombineComparePeriEventData(unittest.TestCase):
             # execute workflow and expect a IdeasError error to be raised
             self.assertRaisesRegex(
                 IdeasError,
-                "Visualization parameter 'Activity by modulation group \(y-axis range\)' must be "
-                "specified as 'auto' or 'min,max' \(e.g. -1,1\) where the "
+                r"Visualization parameter 'Activity by modulation group \(y-axis range\)' must be "
+                r"specified as 'auto' or 'min,max' \(e.g. -1,1\) where the "
                 "minimum and maximum are not equal.",
                 combine_compare_peri_event_data,
                 group1_traces_files=group1_traces_files,

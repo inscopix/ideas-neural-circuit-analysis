@@ -39,9 +39,7 @@ class TestPreviewIntegrationWorkflow:
 
         # Create event file with proper .isxd extension
         eventset_file = tmp_path / "test_eventset.isxd"
-        events = np.random.poisson(
-            0.1, (num_timepoints, num_cells)
-        )  # Sparse events
+        events = np.random.poisson(0.1, (num_timepoints, num_cells))  # Sparse events
 
         # Just create empty file with correct extension
         eventset_file.touch()
@@ -144,9 +142,7 @@ class TestPreviewIntegrationWorkflow:
         )
 
         # Mock event loading
-        mock_all_offsets = [
-            [0.5, 1.5, 2.5] for _ in range(5)
-        ]  # Events for each cell
+        mock_all_offsets = [[0.5, 1.5, 2.5] for _ in range(5)]  # Events for each cell
         mock_all_amplitudes = [[1.0, 1.2, 0.8] for _ in range(5)]
         mock_load_eventset.return_value = (
             mock_all_offsets,
@@ -366,9 +362,7 @@ class TestPreviewIntegrationWorkflow:
         )
 
         # Mock event loading
-        mock_all_offsets = [
-            [0.5, 1.5, 2.5] for _ in range(5)
-        ]  # Events for each cell
+        mock_all_offsets = [[0.5, 1.5, 2.5] for _ in range(5)]  # Events for each cell
         mock_all_amplitudes = [[1.0, 1.2, 0.8] for _ in range(5)]
         mock_load_eventset.return_value = (
             mock_all_offsets,
@@ -473,9 +467,7 @@ class TestPreviewIntegrationWorkflow:
         )
 
         # Mock event loading
-        mock_all_offsets = [
-            [0.5, 1.5, 2.5] for _ in range(5)
-        ]  # Events for each cell
+        mock_all_offsets = [[0.5, 1.5, 2.5] for _ in range(5)]  # Events for each cell
         mock_all_amplitudes = [[1.0, 1.2, 0.8] for _ in range(5)]
         mock_load_eventset.return_value = (
             mock_all_offsets,
@@ -612,9 +604,7 @@ class TestPreviewIntegrationWorkflow:
         )
 
         # Mock event loading
-        mock_all_offsets = [
-            [0.5, 1.5, 2.5] for _ in range(5)
-        ]  # Events for each cell
+        mock_all_offsets = [[0.5, 1.5, 2.5] for _ in range(5)]  # Events for each cell
         mock_all_amplitudes = [[1.0, 1.2, 0.8] for _ in range(5)]
         mock_load_eventset.return_value = (
             mock_all_offsets,
@@ -704,9 +694,7 @@ class TestEndToEndPreviewValidation:
         for i, (state, _epoch) in enumerate(combinations):
             # State color should match state index
             state_idx = generator.states.index(state)
-            expected_state_color = generator.color_scheme.state_colors[
-                state_idx
-            ]
+            expected_state_color = generator.color_scheme.state_colors[state_idx]
             assert state_colors[i] == expected_state_color
 
     def test_complete_preview_parameter_validation(self, tmp_path):

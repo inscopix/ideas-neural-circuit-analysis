@@ -4,13 +4,11 @@ Analyzes neural activity patterns across behavioral states and time epochs,
 integrating correlation and population activity analysis with baseline comparisons.
 """
 
-import json
-import os
 from beartype import beartype
 from pathlib import Path
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
-from beartype.typing import List, Optional, Iterable, Tuple, Union
+from beartype.typing import List, Optional, Union
 from ideas.exceptions import IdeasError
 from utils.state_epoch_data import (
     StateEpochDataManager,
@@ -82,6 +80,7 @@ USEFUL_OUTPUT_METADATA_KEYS = {
     # "format",
 }
 
+
 def _extract_useful_metadata(metadata: dict) -> dict:
     """Return only the metadata fields we want to register with IDEAS."""
     if not metadata:
@@ -90,9 +89,9 @@ def _extract_useful_metadata(metadata: dict) -> dict:
     return {
         key: value
         for key, value in metadata.items()
-        if key in USEFUL_OUTPUT_METADATA_KEYS
-        and value not in (None, "", [], {})
+        if key in USEFUL_OUTPUT_METADATA_KEYS and value not in (None, "", [], {})
     }
+
 
 # Analysis feature flags (not exposed via the main function)
 @dataclass(frozen=True)
@@ -110,6 +109,7 @@ class StateEpochAnalysisFeatureFlags:
 
 
 _FEATURE_FLAGS = StateEpochAnalysisFeatureFlags()
+
 
 def get_state_epoch_analysis_feature_flags() -> StateEpochAnalysisFeatureFlags:
     """Return a copy of the current feature flag configuration."""
@@ -237,22 +237,18 @@ def state_epoch_baseline_analysis(
             f"'{method}'. This tool only supports '{SUPPORTED_STATE_COMPARISON_METHOD}' "
             "to maintain parity with the standard-python implementation."
         )
-    logger.info(
-        "State comparison method: %s", SUPPORTED_STATE_COMPARISON_METHOD
-    )
+    logger.info("State comparison method: %s", SUPPORTED_STATE_COMPARISON_METHOD)
     feature_flags = get_state_epoch_analysis_feature_flags()
 
     if include_event_correlation_preview:
         logger.info("Event correlation outputs enabled when event data is available.")
 
     annotations_file_list = annotations_file or []
-    
+
     # Check for None entries first before other validation
     if any(path is None for path in annotations_file_list):
-        raise IdeasError(
-            "annotations_file cannot contain empty or null entries."
-        )
-    
+        raise IdeasError("annotations_file cannot contain empty or null entries.")
+
     has_annotations = (
         bool(annotations_file_list)
         and annotations_file_list[0] is not None
@@ -283,9 +279,7 @@ def state_epoch_baseline_analysis(
     epoch_color_list = [c.strip() for c in epoch_colors.split(",")]
 
     epoch_only_mode = feature_flags.allow_epoch_only_mode and (
-        not has_annotations
-        or len(states) == 0
-        or all(state == "" for state in states)
+        not has_annotations or len(states) == 0 or all(state == "" for state in states)
     )
 
     if epoch_only_mode:
@@ -388,9 +382,7 @@ def state_epoch_baseline_analysis(
     # Validate baseline by attempting to get baseline data
     logger.info("Validating baseline availability...")
     try:
-        baseline_data = results.get_baseline_data(
-            baseline_state, baseline_epoch
-        )
+        baseline_data = results.get_baseline_data(baseline_state, baseline_epoch)
         num_timepoints = baseline_data.get("num_timepoints", 0)
         logger.info(
             f"Baseline validation passed: {baseline_state}-{baseline_epoch} "
@@ -452,7 +444,9 @@ def state_epoch_baseline_analysis(
 
     logger.info("State-epoch baseline analysis completed successfully")
 
+
 analyze = state_epoch_baseline_analysis
+
 
 @beartype
 def state_epoch_baseline_analysis_ideas_wrapper(
@@ -489,6 +483,7 @@ def state_epoch_baseline_analysis_ideas_wrapper(
     sort_by_time: bool = True,
 ) -> None:
     """Ideas wrapper for state epoch baseline analysis tool.
+
     Perform combined state-epoch analysis with baseline comparison.
 
     This tool analyzes neural activity patterns across behavioral states
@@ -563,7 +558,7 @@ def state_epoch_baseline_analysis_ideas_wrapper(
         alpha=alpha,
         n_shuffle=n_shuffle,
         tolerance=tolerance,
-        sort_by_time=sort_by_time
+        sort_by_time=sort_by_time,
     )
 
     logger.info("Registering output data")
@@ -574,108 +569,160 @@ def state_epoch_baseline_analysis_ideas_wrapper(
             output_data.register_file(
                 ACTIVITY_PER_STATE_EPOCH_DATA_CSV,
                 subdir=Path(ACTIVITY_PER_STATE_EPOCH_DATA_CSV).stem,
-                prefix=output_prefix
+                prefix=output_prefix,
             ).register_preview(
                 STATE_EPOCH_TIME_PREVIEW,
-                caption="Time spent in each state-epoch combination, with per-state totals shown for context.",
+                caption=(
+                    "Time spent in each state-epoch combination, with per-state totals "
+                    "shown for context."
+                ),
             ).register_preview(
                 TRACE_POPULATION_AVERAGE_PREVIEW,
-                caption="Average trace activity across state-epoch combinations. Bar plot showing mean activity ± standard error for each state-epoch combination."
+                caption=(
+                    "Average trace activity across state-epoch combinations. Bar plot "
+                    "showing mean activity ± standard error for each state-epoch combination."
+                ),
             ).register_preview(
                 TRACE_STATE_OVERLAY,
-                caption="Trace preview with state-colored traces showing neural activity patterns colored by behavioral state."
+                caption=(
+                    "Trace preview with state-colored traces showing neural activity "
+                    "patterns colored by behavioral state."
+                ),
             ).register_preview(
                 EVENT_POPULATION_AVERAGE_PREVIEW,
-                caption="Average event rates across state-epoch combinations. Box plots showing event frequency distributions when event data is available."
+                caption=(
+                    "Average event rates across state-epoch combinations. Box plots "
+                    "showing event frequency distributions when event data is available."
+                ),
             ).register_preview(
                 EVENT_STATE_OVERLAY,
-                caption="Event raster plot with state-colored events showing event patterns colored by behavioral state."
+                caption=(
+                    "Event raster plot with state-colored events showing event patterns "
+                    "colored by behavioral state."
+                ),
             ).register_metadata_dict(
-                **_extract_useful_metadata(output_metadata.get(Path(ACTIVITY_PER_STATE_EPOCH_DATA_CSV).stem, {}))
+                **_extract_useful_metadata(
+                    output_metadata.get(
+                        Path(ACTIVITY_PER_STATE_EPOCH_DATA_CSV).stem, {}
+                    )
+                )
             )
 
             output_data.register_file(
                 CORRELATIONS_PER_STATE_EPOCH_DATA_CSV,
                 subdir=Path(CORRELATIONS_PER_STATE_EPOCH_DATA_CSV).stem,
-                prefix=output_prefix
+                prefix=output_prefix,
             ).register_preview(
                 CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
-                "Distribution of the selected per-cell correlation statistic across neurons and state-epoch combinations.",
+                "Distribution of the selected per-cell correlation statistic across "
+                "neurons and state-epoch combinations.",
             ).register_preview(
                 EVENT_CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
-                "Distribution of the selected per-cell event correlation statistic across neurons and state-epoch combinations."
+                "Distribution of the selected per-cell event correlation statistic "
+                "across neurons and state-epoch combinations.",
             ).register_metadata_dict(
-                **_extract_useful_metadata(output_metadata.get(Path(CORRELATIONS_PER_STATE_EPOCH_DATA_CSV).stem, {}))
+                **_extract_useful_metadata(
+                    output_metadata.get(
+                        Path(CORRELATIONS_PER_STATE_EPOCH_DATA_CSV).stem, {}
+                    )
+                )
             )
 
             output_data.register_file(
                 MODULATION_VS_BASELINE_DATA_CSV,
                 subdir=Path(MODULATION_VS_BASELINE_DATA_CSV).stem,
-                prefix=output_prefix
+                prefix=output_prefix,
             ).register_preview(
                 TRACE_MODULATION_HISTOGRAM_PREVIEW,
-                "Distribution of modulation scores across neurons relative to baseline. Histograms show the modulation scores for all neurons compared to the baseline state-epoch combination."
+                "Distribution of modulation scores across neurons relative to baseline. "
+                "Histograms show the modulation scores for all neurons compared to the "
+                "baseline state-epoch combination.",
             ).register_preview(
                 TRACE_MODULATION_FOOTPRINT_PREVIEW,
-                "Spatial distribution of modulated neurons relative to baseline. Cell footprints are colored by modulation direction and significance relative to the baseline state-epoch combination."
+                "Spatial distribution of modulated neurons relative to baseline. Cell "
+                "footprints are colored by modulation direction and significance relative "
+                "to the baseline state-epoch combination.",
             ).register_preview(
                 EVENT_MODULATION_HISTOGRAM_PREVIEW,
-                "Distribution of event modulation scores across neurons relative to baseline. Histograms showing event modulation when event data is available."
+                "Distribution of event modulation scores across neurons relative to "
+                "baseline. Histograms showing event modulation when event data is "
+                "available.",
             ).register_preview(
                 EVENT_MODULATION_PREVIEW,
-                "Spatial footprints of event-modulated neurons relative to baseline. Cell maps colored by event modulation significance when event data is available."
+                "Spatial footprints of event-modulated neurons relative to baseline. "
+                "Cell maps colored by event modulation significance when event data is "
+                "available.",
             ).register_metadata_dict(
-                **_extract_useful_metadata(output_metadata.get(Path(MODULATION_VS_BASELINE_DATA_CSV).stem, {}))
+                **_extract_useful_metadata(
+                    output_metadata.get(Path(MODULATION_VS_BASELINE_DATA_CSV).stem, {})
+                )
             )
 
             output_data.register_file(
                 AVERAGE_CORRELATIONS_CSV,
                 subdir=Path(AVERAGE_CORRELATIONS_CSV).stem,
-                prefix=output_prefix
+                prefix=output_prefix,
             ).register_preview(
                 AVERAGE_CORRELATIONS_PREVIEW,
-                "Bar plots showing average positive and negative correlations for each state-epoch combination. Provides summary statistics of correlation patterns.",
+                "Bar plots showing average positive and negative correlations for each "
+                "state-epoch combination. Provides summary statistics of correlation "
+                "patterns.",
             ).register_preview(
                 EVENT_AVERAGE_CORRELATIONS_PREVIEW,
-                "Bar plots showing average positive and negative event correlations for each state-epoch combination.",
+                "Bar plots showing average positive and negative event correlations for "
+                "each state-epoch combination.",
             ).register_metadata_dict(
-                **_extract_useful_metadata(output_metadata.get(Path(AVERAGE_CORRELATIONS_CSV).stem, {}))
+                **_extract_useful_metadata(
+                    output_metadata.get(Path(AVERAGE_CORRELATIONS_CSV).stem, {})
+                )
             )
 
             output_data.register_file(
                 RAW_CORRELATIONS_H5_NAME,
                 subdir=Path(RAW_CORRELATIONS_H5_NAME).stem,
-                prefix=output_prefix
+                prefix=output_prefix,
             ).register_preview(
                 CORRELATION_MATRICES_PREVIEW,
-                "Pairwise Pearson correlation matrices between neurons for each state-epoch combination. Shows how neural correlations change across different conditions.",
+                "Pairwise Pearson correlation matrices between neurons for each "
+                "state-epoch combination. Shows how neural correlations change across "
+                "different conditions.",
             ).register_preview(
                 EVENT_CORRELATION_MATRICES_PREVIEW,
-                "Pairwise event correlation matrices between neurons for each state-epoch combination when event data is available.",
+                "Pairwise event correlation matrices between neurons for each "
+                "state-epoch combination when event data is available.",
             ).register_metadata_dict(
-                **_extract_useful_metadata(output_metadata.get(Path(RAW_CORRELATIONS_H5_NAME).stem, {}))
+                **_extract_useful_metadata(
+                    output_metadata.get(Path(RAW_CORRELATIONS_H5_NAME).stem, {})
+                )
             )
 
             output_data.register_file(
                 RAW_CORRELATIONS_ZIP_NAME,
                 subdir=Path(RAW_CORRELATIONS_ZIP_NAME).stem,
-                prefix=output_prefix
+                prefix=output_prefix,
             ).register_preview(
                 SPATIAL_CORRELATION_PREVIEW,
-                "Relationship between spatial distance and neural correlation across different state-epoch combinations. Scatter plots show pairwise neural correlation versus physical distance between cell centroids.",
+                "Relationship between spatial distance and neural correlation across "
+                "different state-epoch combinations. Scatter plots show pairwise neural "
+                "correlation versus physical distance between cell centroids.",
             ).register_preview(
                 SPATIAL_CORRELATION_MAP_PREVIEW,
-                "Spatial map of neural correlations across state-epoch combinations. Colored lines connect neuron pairs above the correlation threshold, with line color indicating correlation strength.",
+                "Spatial map of neural correlations across state-epoch combinations. "
+                "Colored lines connect neuron pairs above the correlation threshold, with "
+                "line color indicating correlation strength.",
             ).register_preview(
                 EVENT_SPATIAL_CORRELATION_PREVIEW,
-                "Relationship between spatial distance and event-based neural correlation across state-epoch combinations.",
+                "Relationship between spatial distance and event-based neural correlation "
+                "across state-epoch combinations.",
             ).register_preview(
                 EVENT_SPATIAL_CORRELATION_MAP_PREVIEW,
-                "Spatial map of event-based neural correlations when event data is available.",
+                "Spatial map of event-based neural correlations when event data is "
+                "available.",
             ).register_metadata_dict(
-                **_extract_useful_metadata(output_metadata.get(Path(RAW_CORRELATIONS_ZIP_NAME).stem, {}))
+                **_extract_useful_metadata(
+                    output_metadata.get(Path(RAW_CORRELATIONS_ZIP_NAME).stem, {})
+                )
             )
 
     except Exception:
         logger.exception("Failed to generate output data!")
-    
