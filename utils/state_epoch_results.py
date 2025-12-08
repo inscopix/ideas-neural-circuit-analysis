@@ -117,14 +117,10 @@ def _calculate_correlation_metrics(
 
     try:
         # Use existing correlation computation logic
-        correlation_matrix = measures.correlation_matrix(
-            traces, fill_diagonal=0.0
-        )
+        correlation_matrix = measures.correlation_matrix(traces, fill_diagonal=0.0)
 
         # Compute statistics using shared function
-        stats = _compute_correlation_statistics(
-            correlation_matrix, strong_threshold
-        )
+        stats = _compute_correlation_statistics(correlation_matrix, strong_threshold)
 
         # Combine matrix and statistics
         result = {"correlation_matrix": correlation_matrix}
@@ -234,21 +230,13 @@ def _calculate_event_metrics(
 
                 # Add event correlation results with event_ prefix
                 result["event_correlation_matrix"] = event_correlation_matrix
-                result["event_mean_correlation"] = event_corr_stats[
-                    "mean_correlation"
-                ]
-                result["event_std_correlation"] = event_corr_stats[
-                    "std_correlation"
-                ]
+                result["event_mean_correlation"] = event_corr_stats["mean_correlation"]
+                result["event_std_correlation"] = event_corr_stats["std_correlation"]
                 result["event_median_correlation"] = event_corr_stats[
                     "median_correlation"
                 ]
-                result["event_max_correlation"] = event_corr_stats[
-                    "max_correlation"
-                ]
-                result["event_min_correlation"] = event_corr_stats[
-                    "min_correlation"
-                ]
+                result["event_max_correlation"] = event_corr_stats["max_correlation"]
+                result["event_min_correlation"] = event_corr_stats["min_correlation"]
                 result["event_mean_positive_correlation"] = event_corr_stats[
                     "mean_positive_correlation"
                 ]
@@ -316,9 +304,7 @@ class StateEpochResults:
         key = (state, epoch)
         return self.combination_results.get(key)
 
-    def get_activity_vector(
-        self, state: str, epoch: str
-    ) -> Optional[np.ndarray]:
+    def get_activity_vector(self, state: str, epoch: str) -> Optional[np.ndarray]:
         """Return mean activity vector for a combination, if available.
 
         :Args
@@ -354,9 +340,7 @@ class StateEpochResults:
             return None
         return results.get("event_rates")
 
-    def get_correlation_stats(
-        self, state: str, epoch: str
-    ) -> Optional[Dict[str, Any]]:
+    def get_correlation_stats(self, state: str, epoch: str) -> Optional[Dict[str, Any]]:
         """Return correlation statistics and per-cell extrema for a combination.
 
         Computes summary statistics using the shared helper and returns
@@ -407,9 +391,7 @@ class StateEpochResults:
             "mean_per_cell": mean_per_cell,
         }
 
-    def get_correlation_matrix(
-        self, state: str, epoch: str
-    ) -> Optional[np.ndarray]:
+    def get_correlation_matrix(self, state: str, epoch: str) -> Optional[np.ndarray]:
         """Return raw correlation matrix for a combination, if available."""
         results = self.get_combination_results(state, epoch)
         if not results:
@@ -545,9 +527,7 @@ class StateEpochResults:
             try:
                 baseline_results["event_rates"] = np.nanmean(events, axis=0)
             except Exception as e:
-                logger.warning(
-                    f"Failed to calculate event rates for baseline: {e}"
-                )
+                logger.warning(f"Failed to calculate event rates for baseline: {e}")
 
         # Quality warnings for traces
         num_timepoints = baseline_results.get("num_timepoints", 0)
@@ -561,17 +541,13 @@ class StateEpochResults:
         if mean_activity is not None and np.allclose(
             mean_activity, 0, atol=MIN_ACTIVITY_THRESHOLD
         ):
-            logger.warning(
-                f"Baseline {baseline_id} has very low activity levels"
-            )
+            logger.warning(f"Baseline {baseline_id} has very low activity levels")
 
         # Quality warnings for events
         if event_rates is not None:
             mean_event_rate = np.nanmean(event_rates)
             if np.allclose(mean_event_rate, 0, atol=MIN_EVENT_RATE_THRESHOLD):
-                logger.warning(
-                    f"Baseline {baseline_id} has very low event rates"
-                )
+                logger.warning(f"Baseline {baseline_id} has very low event rates")
 
     def _extract_baseline_data(
         self, baseline_results: Dict[str, Any]
@@ -625,14 +601,10 @@ class StateEpochResults:
                     summary["combinations_with_data"].append((state, epoch))
 
                 if has_traces:
-                    summary["combinations_with_trace_data"].append(
-                        (state, epoch)
-                    )
+                    summary["combinations_with_trace_data"].append((state, epoch))
 
                 if has_events:
-                    summary["combinations_with_event_data"].append(
-                        (state, epoch)
-                    )
+                    summary["combinations_with_event_data"].append((state, epoch))
 
         return summary
 
@@ -708,9 +680,7 @@ def analyze_state_epoch_combination(
         correlation_results = _calculate_correlation_metrics(traces)
         if correlation_results.get("correlation_matrix") is None:
             # Provide detailed context for debugging if this was unexpected
-            if (
-                traces.shape[1] > 1
-            ):  # Only warn if we expected correlations to work
+            if traces.shape[1] > 1:  # Only warn if we expected correlations to work
                 n_timepoints, n_cells = traces.shape[0], traces.shape[1]
                 logger.warning(
                     f"Correlation calculation failed for {state}-{epoch}. "
@@ -768,33 +738,34 @@ def calculate_baseline_modulation(
 
     """
     try:
-        baseline_data = results.get_baseline_data(
-            baseline_state, baseline_epoch
-        )
+        baseline_data = results.get_baseline_data(baseline_state, baseline_epoch)
     except IdeasError as e:
         logger.error(f"Baseline data error: {e}")
         return {"error": str(e)}
 
     baseline_mean = baseline_data["mean_activity"]
 
-    # Check if baseline has event data for integrated event modulation
-    baseline_event_rates = baseline_data.get("event_rates")
+    # Check if baseline has full event data (required for event modulation)
     baseline_events = baseline_data.get("events")
-    has_event_data = (
-        baseline_event_rates is not None or baseline_events is not None
-    )
+    baseline_event_rates = None
+    has_event_data = baseline_events is not None
 
     # Calculate baseline event rates if needed
-    if (
-        has_event_data
-        and baseline_event_rates is None
-        and baseline_events is not None
-    ):
-        try:
-            baseline_event_rates = np.nanmean(baseline_events, axis=0)
-        except Exception as e:
-            logger.warning(f"Failed to calculate baseline event rates: {e}")
-            has_event_data = False
+    if has_event_data:
+        baseline_event_rates = baseline_data.get("event_rates")
+        if baseline_event_rates is None:
+            try:
+                baseline_event_rates = np.nanmean(baseline_events, axis=0)
+                baseline_data["event_rates"] = baseline_event_rates
+            except Exception as e:
+                logger.warning(
+                    "Failed to calculate baseline event rates for %s-%s: %s. "
+                    "Event modulation will be disabled.",
+                    baseline_state,
+                    baseline_epoch,
+                    e,
+                )
+                has_event_data = False
 
     modulation_results = {
         "baseline_state": baseline_state,
@@ -872,9 +843,7 @@ def calculate_baseline_modulation(
             p_values_corrected = p_values
             # Store the correctly-classified neurons from permutation test
             # (these use proper alpha/2 threshold for two one-tailed comparisons)
-            up_modulated_neurons = modulation_results_detailed[
-                "up_modulated_neurons"
-            ]
+            up_modulated_neurons = modulation_results_detailed["up_modulated_neurons"]
             down_modulated_neurons = modulation_results_detailed[
                 "down_modulated_neurons"
             ]
@@ -919,51 +888,113 @@ def calculate_baseline_modulation(
 
         # Calculate event modulation if event data is available
         if has_event_data:
-            test_event_rates = combination_results.get("event_rates")
             test_events = combination_results.get("events")
+            if test_events is None:
+                logger.warning(
+                    "Skipping event modulation for %s-%s: missing event data.",
+                    state,
+                    epoch,
+                )
+                continue
+
+            test_event_rates = combination_results.get("event_rates")
 
             # Calculate event rates if not available
-            if test_event_rates is None and test_events is not None:
+            if test_event_rates is None:
                 try:
                     test_event_rates = np.nanmean(test_events, axis=0)
                     combination_results["event_rates"] = test_event_rates
                 except Exception as e:
                     logger.warning(
-                        f"Failed to calculate event rates for {state}-{epoch}: {e}"
+                        "Failed to calculate event rates for %s-%s: %s. "
+                        "Skipping event modulation for this combination.",
+                        state,
+                        epoch,
+                        e,
                     )
-                    test_event_rates = None
+                    continue
 
-            if test_event_rates is not None:
-                # Calculate event modulation using the same robust approach as activity
-                try:
-                    event_modulation_scores = _calculate_modulation_scores(
-                        test_event_rates, baseline_event_rates
-                    )
+            can_run_event_permutation = (
+                baseline_events is not None
+                and test_events is not None
+                and baseline_events.size > 0
+                and test_events.size > 0
+                and baseline_events.shape[1] == test_events.shape[1]
+            )
 
-                    # Use simple statistical approach for event modulation (conservative)
-                    # For now, use a simplified approach - could be enhanced later
-                    event_p_values = np.ones(
-                        len(event_modulation_scores)
-                    )  # Conservative p-values
+            if not can_run_event_permutation:
+                logger.warning(
+                    "Skipping event modulation for %s-%s: incompatible event "
+                    "dimensions (baseline=%s, test=%s).",
+                    state,
+                    epoch,
+                    None if baseline_events is None else baseline_events.shape,
+                    test_events.shape if test_events is not None else None,
+                )
+                continue
 
-                    # Apply significance threshold
-                    event_significant = (
-                        np.abs(event_modulation_scores) > 0.1
-                    )  # Simple threshold
+            try:
+                baseline_event_mask = np.ones(baseline_events.shape[0], dtype=bool)
+                test_event_mask = np.ones(test_events.shape[0], dtype=bool)
+                all_events = np.vstack([baseline_events, test_events])
+                combined_mask_baseline_events = np.concatenate(
+                    [
+                        baseline_event_mask,
+                        np.zeros(test_events.shape[0], dtype=bool),
+                    ]
+                )
+                combined_mask_test_events = np.concatenate(
+                    [
+                        np.zeros(baseline_events.shape[0], dtype=bool),
+                        test_event_mask,
+                    ]
+                )
+                event_modulation_results = find_two_state_modulated_neurons(
+                    traces=all_events,
+                    when1=combined_mask_test_events,
+                    when2=combined_mask_baseline_events,
+                    alpha=alpha,
+                    n_shuffle=n_shuffle,
+                )
 
-                    modulation_results["event_modulation"][combination_key] = {
-                        "modulation_index": event_modulation_scores,
-                        "p_values": event_p_values,
-                        "p_values_corrected": event_p_values,  # No correction for now
-                        "significant": event_significant,
-                        "n_significant": np.sum(event_significant),
-                        "fraction_significant": np.mean(event_significant),
-                    }
+                event_modulation_index = event_modulation_results["modulation_scores"]
+                event_p_values = event_modulation_results["p_val"]
+                event_up = event_modulation_results["up_modulated_neurons"]
+                event_down = event_modulation_results["down_modulated_neurons"]
 
-                except Exception as e:
-                    logger.warning(
-                        f"Event modulation calculation failed for {state}-{epoch}: {e}"
-                    )
+                modulation_results["event_modulation"][combination_key] = {
+                    "modulation_index": event_modulation_index,
+                    "p_values": event_p_values,
+                    "p_values_corrected": event_p_values,
+                    "up_modulated_neurons": event_up,
+                    "down_modulated_neurons": event_down,
+                    "significant": (
+                        event_p_values < alpha
+                        if event_p_values is not None
+                        else np.zeros(len(event_modulation_index), dtype=bool)
+                    ),
+                    "n_significant": (
+                        np.sum(event_p_values < alpha)
+                        if event_p_values is not None
+                        else 0
+                    ),
+                    "fraction_significant": (
+                        np.mean(event_p_values < alpha)
+                        if event_p_values is not None
+                        else 0
+                    ),
+                    "significance_method": "permutation_test",
+                }
+            except Exception as e:
+                logger.warning(
+                    "Event permutation test failed for %s-%s vs %s-%s: %s. "
+                    "Skipping event modulation for this combination.",
+                    state,
+                    epoch,
+                    baseline_state,
+                    baseline_epoch,
+                    e,
+                )
 
     return modulation_results
 
@@ -1159,13 +1190,9 @@ def _extract_baseline_array(
         Baseline data array or None if not available
 
     """
-    baseline_results = results.get_combination_results(
-        baseline_state, baseline_epoch
-    )
+    baseline_results = results.get_combination_results(baseline_state, baseline_epoch)
     if baseline_results is None:
-        logger.warning(
-            f"No baseline data found for {baseline_state}-{baseline_epoch}"
-        )
+        logger.warning(f"No baseline data found for {baseline_state}-{baseline_epoch}")
         return None
 
     baseline_data = baseline_results.get(data_key)
@@ -1326,9 +1353,7 @@ def _prepare_modulation_data(
         # Add modulation data for non-baseline combinations
         if f"{state}_{epoch}" != f"{baseline_state}_{baseline_epoch}":
             # Calculate modulation scores
-            modulation_scores = _calculate_modulation_scores(
-                test_data, baseline_data
-            )
+            modulation_scores = _calculate_modulation_scores(test_data, baseline_data)
 
             # Get p-values with fallback
             p_values = _get_p_values_with_fallback(
