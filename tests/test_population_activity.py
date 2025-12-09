@@ -6,9 +6,6 @@ import pytest
 import numpy as np
 import pandas as pd
 from ideas.exceptions import IdeasError
-
-# from ideas_data import fetch
-
 from utils.utils import Comp
 from analysis.population_activity import (
     population_activity,
