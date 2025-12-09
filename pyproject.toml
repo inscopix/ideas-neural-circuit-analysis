@@ -38,3 +38,14 @@ dynamic = ["version"]
 pythonpath = [
   "."
 ]
+
+[tool.ruff]
+line-length = 100
+extend-exclude = ["venv", "venv_test", "venv3", ".venv"]
+
+[tool.flake8]
+max-line-length = 100
+extend-exclude = ["venv", "venv_test", "venv3", ".venv", ".git", "__pycache__", ".ruff_cache"]
+
+[tool.pydocstyle]
+add-ignore = ["D104"]  # ignore missing package docstring to reduce noise

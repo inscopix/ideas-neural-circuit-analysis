@@ -1,0 +1,4 @@
+[pydocstyle]
+add-ignore = D104
+
+
