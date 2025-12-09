@@ -225,7 +225,6 @@ invalid_inputs = [
 def test_population_activity(params, output_file_cleanup):
     """Check that code runs without error with valid inputs."""
 
-    # Mock event_set_to_events because the environment's isx module lacks EventSet
     with mock.patch("ideas.analysis.io.event_set_to_events") as mock_event_set:
         # data/input_cellset.isxd has 118 cells
         num_cells = 118
