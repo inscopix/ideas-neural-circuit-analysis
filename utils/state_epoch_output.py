@@ -70,7 +70,9 @@ class ColorScheme:
                 self.modulation_colors[2],
             )
         else:
-            up_color = self.modulation_colors[0] if self.modulation_colors else "red"
+            up_color = (
+                self.modulation_colors[0] if self.modulation_colors else "red"
+            )
             down_color = (
                 self.modulation_colors[1]
                 if self.modulation_colors and len(self.modulation_colors) > 1
@@ -214,7 +216,9 @@ class StateEpochOutputGenerator:
     ) -> str:
         """Normalize correlation statistic selection."""
         if correlation_statistic is None:
-            logger.warning("No correlation_statistic provided; defaulting to 'max'.")
+            logger.warning(
+                "No correlation_statistic provided; defaulting to 'max'."
+            )
             return "max"
 
         normalized = str(correlation_statistic).strip().lower()
@@ -276,11 +280,11 @@ class StateEpochOutputGenerator:
         self._save_correlation_summary_csv(results, cell_info)
         self._save_modulation_results_csv(modulation_results, cell_info)
 
-        self._save_average_correlations_csv(results)  # Correlations.py style format
+        self._save_average_correlations_csv(
+            results
+        )  # Correlations.py style format
         self._save_raw_correlations_h5(results)  # Raw correlation matrices in H5 format
-        self._save_raw_correlations_zip(
-            results, cell_info
-        )  # Raw correlation data in ZIP
+        self._save_raw_correlations_zip(results, cell_info)  # Raw correlation data in ZIP
 
         # Generate preview plots
         correlation_colors = self.color_scheme.correlation_colors
@@ -330,24 +334,36 @@ class StateEpochOutputGenerator:
             # Get additional activity metrics and event data
             combination_data = results.get_combination_results(state, epoch)
             std_activity = (
-                combination_data.get("std_activity") if combination_data else None
+                combination_data.get("std_activity")
+                if combination_data
+                else None
             )
             median_activity = (
-                combination_data.get("median_activity") if combination_data else None
+                combination_data.get("median_activity")
+                if combination_data
+                else None
             )
             activity_cv = (
-                combination_data.get("activity_cv") if combination_data else None
+                combination_data.get("activity_cv")
+                if combination_data
+                else None
             )
 
             # Get event-based metrics (matching trace statistics)
             event_rates = results.get_event_rates(state, epoch)
 
             # Get additional event statistics to match trace statistics
-            event_std = combination_data.get("event_std") if combination_data else None
-            event_median = (
-                combination_data.get("event_median") if combination_data else None
+            event_std = (
+                combination_data.get("event_std") if combination_data else None
             )
-            event_cv = combination_data.get("event_cv") if combination_data else None
+            event_median = (
+                combination_data.get("event_median")
+                if combination_data
+                else None
+            )
+            event_cv = (
+                combination_data.get("event_cv") if combination_data else None
+            )
 
             for cell_idx, activity in enumerate(mean_activity):
                 cell_name = (
@@ -369,7 +385,8 @@ class StateEpochOutputGenerator:
                 )
                 cell_event_median = (
                     event_median[cell_idx]
-                    if event_median is not None and cell_idx < len(event_median)
+                    if event_median is not None
+                    and cell_idx < len(event_median)
                     else np.nan
                 )
                 cell_event_cv = (
@@ -388,7 +405,8 @@ class StateEpochOutputGenerator:
                         "mean_trace_activity": activity,
                         "std_trace_activity": (
                             std_activity[cell_idx]
-                            if std_activity is not None and cell_idx < len(std_activity)
+                            if std_activity is not None
+                            and cell_idx < len(std_activity)
                             else np.nan
                         ),
                         "median_trace_activity": (
@@ -399,7 +417,8 @@ class StateEpochOutputGenerator:
                         ),
                         "trace_activity_cv": (
                             activity_cv[cell_idx]
-                            if activity_cv is not None and cell_idx < len(activity_cv)
+                            if activity_cv is not None
+                            and cell_idx < len(activity_cv)
                             else np.nan
                         ),
                         # Event-based activity metrics (matching trace structure)
@@ -412,7 +431,9 @@ class StateEpochOutputGenerator:
 
         if data_rows:
             df = pd.DataFrame(data_rows)
-            output_path = self._get_output_path(ACTIVITY_PER_STATE_EPOCH_DATA_CSV)
+            output_path = self._get_output_path(
+                ACTIVITY_PER_STATE_EPOCH_DATA_CSV
+            )
             df.to_csv(output_path, index=False)
             logger.info(
                 f"Saved activity summary with trace and event data to {output_path}"
@@ -443,30 +464,36 @@ class StateEpochOutputGenerator:
 
             # Get trace correlation matrix to calculate positive/negative averages
             corr_matrix = results.get_correlation_matrix(state, epoch)
-            pos_corr_trace, neg_corr_trace = self._calculate_pos_neg_correlations(
-                corr_matrix
+            pos_corr_trace, neg_corr_trace = (
+                self._calculate_pos_neg_correlations(corr_matrix)
             )
 
             # Try to get event correlation matrix (if events were analyzed)
             combination_data = results.get_combination_results(state, epoch)
             event_corr_matrix = None
             if combination_data:
-                event_corr_matrix = combination_data.get("event_correlation_matrix")
+                event_corr_matrix = combination_data.get(
+                    "event_correlation_matrix"
+                )
 
             # Calculate event correlation statistics if available
             if event_corr_matrix is not None and event_corr_matrix.size > 0:
-                event_corr_stats = self._calculate_correlation_stats(event_corr_matrix)
+                event_corr_stats = self._calculate_correlation_stats(
+                    event_corr_matrix
+                )
                 max_event_correlations = event_corr_stats["max_per_cell"]
                 min_event_correlations = event_corr_stats["min_per_cell"]
                 mean_event_correlations = event_corr_stats["mean_per_cell"]
-                pos_corr_event, neg_corr_event = self._calculate_pos_neg_correlations(
-                    event_corr_matrix
+                pos_corr_event, neg_corr_event = (
+                    self._calculate_pos_neg_correlations(event_corr_matrix)
                 )
             else:
                 # No event correlations available - use NaN
                 max_event_correlations = np.full(len(max_correlations), np.nan)
                 min_event_correlations = np.full(len(max_correlations), np.nan)
-                mean_event_correlations = np.full(len(max_correlations), np.nan)
+                mean_event_correlations = np.full(
+                    len(max_correlations), np.nan
+                )
                 pos_corr_event = np.nan
                 neg_corr_event = np.nan
 
@@ -487,9 +514,15 @@ class StateEpochOutputGenerator:
                         "min_trace_correlation": min_correlations[cell_idx],
                         "mean_trace_correlation": mean_correlations[cell_idx],
                         # Per-cell event correlation statistics
-                        "max_event_correlation": max_event_correlations[cell_idx],
-                        "min_event_correlation": min_event_correlations[cell_idx],
-                        "mean_event_correlation": mean_event_correlations[cell_idx],
+                        "max_event_correlation": max_event_correlations[
+                            cell_idx
+                        ],
+                        "min_event_correlation": min_event_correlations[
+                            cell_idx
+                        ],
+                        "mean_event_correlation": mean_event_correlations[
+                            cell_idx
+                        ],
                         # Population-level trace correlations
                         "positive_trace_correlation": pos_corr_trace,
                         "negative_trace_correlation": neg_corr_trace,
@@ -501,7 +534,9 @@ class StateEpochOutputGenerator:
 
         if data_rows:
             df = pd.DataFrame(data_rows)
-            output_path = self._get_output_path(CORRELATIONS_PER_STATE_EPOCH_DATA_CSV)
+            output_path = self._get_output_path(
+                CORRELATIONS_PER_STATE_EPOCH_DATA_CSV
+            )
             df.to_csv(output_path, index=False)
             logger.info(
                 f"Saved correlation summary with trace and event data to {output_path}"
@@ -552,7 +587,9 @@ class StateEpochOutputGenerator:
             # Calculate mean of all off-diagonal correlations (population-level)
             upper_triangle = np.triu(corr_matrix, k=1)
             valid_corrs = upper_triangle[~np.isnan(upper_triangle)]
-            mean_corr = np.mean(valid_corrs) if len(valid_corrs) > 0 else np.nan
+            mean_corr = (
+                np.mean(valid_corrs) if len(valid_corrs) > 0 else np.nan
+            )
 
         except Exception as e:
             logger.warning(f"Failed to calculate correlation stats: {e}")
@@ -658,9 +695,13 @@ class StateEpochOutputGenerator:
             trace_p_values = trace_mod_data.get("p_values", [])
             trace_significant = trace_mod_data.get("significant", [])
             trace_index_len = (
-                len(trace_modulation_index) if trace_modulation_index is not None else 0
+                len(trace_modulation_index)
+                if trace_modulation_index is not None
+                else 0
             )
-            trace_p_len = len(trace_p_values) if trace_p_values is not None else 0
+            trace_p_len = (
+                len(trace_p_values) if trace_p_values is not None else 0
+            )
             trace_significant_len = (
                 len(trace_significant) if trace_significant is not None else 0
             )
@@ -671,9 +712,13 @@ class StateEpochOutputGenerator:
             event_p_values = event_mod_data.get("p_values", [])
             event_significant = event_mod_data.get("significant", [])
             event_index_len = (
-                len(event_modulation_index) if event_modulation_index is not None else 0
+                len(event_modulation_index)
+                if event_modulation_index is not None
+                else 0
             )
-            event_p_len = len(event_p_values) if event_p_values is not None else 0
+            event_p_len = (
+                len(event_p_values) if event_p_values is not None else 0
+            )
             event_significant_len = (
                 len(event_significant) if event_significant is not None else 0
             )
@@ -694,7 +739,8 @@ class StateEpochOutputGenerator:
                 # Create trace modulation categorical indicator
                 trace_value = (
                     trace_modulation_index[cell_idx]
-                    if trace_modulation_index is not None and trace_index_len > cell_idx
+                    if trace_modulation_index is not None
+                    and trace_index_len > cell_idx
                     else None
                 )
                 trace_modulation_categorical = 0  # Default: non-modulated
@@ -712,7 +758,8 @@ class StateEpochOutputGenerator:
                 # Create event modulation categorical indicator
                 event_value = (
                     event_modulation_index[cell_idx]
-                    if event_modulation_index is not None and event_index_len > cell_idx
+                    if event_modulation_index is not None
+                    and event_index_len > cell_idx
                     else None
                 )
                 event_modulation_categorical = 0  # Default: non-modulated
@@ -767,7 +814,9 @@ class StateEpochOutputGenerator:
             f"Saved modulation results with trace and event data to {output_path}"
         )
 
-    def _save_average_correlations_csv(self, results: StateEpochResults) -> None:
+    def _save_average_correlations_csv(
+        self, results: StateEpochResults
+    ) -> None:
         """Save average correlations CSV file with both trace and event data."""
         data_rows = []
 
@@ -792,12 +841,16 @@ class StateEpochOutputGenerator:
                 # Handle empty arrays to avoid warnings
                 pos_trace_data = trace_corr_data[trace_corr_data > 0]
                 pos_trace_corr = (
-                    np.nanmean(pos_trace_data) if len(pos_trace_data) > 0 else np.nan
+                    np.nanmean(pos_trace_data)
+                    if len(pos_trace_data) > 0
+                    else np.nan
                 )
 
                 neg_trace_data = trace_corr_data[trace_corr_data < 0]
                 neg_trace_corr = (
-                    np.nanmean(neg_trace_data) if len(neg_trace_data) > 0 else np.nan
+                    np.nanmean(neg_trace_data)
+                    if len(neg_trace_data) > 0
+                    else np.nan
                 )
 
                 row_data["positive_trace_correlation"] = pos_trace_corr
@@ -821,14 +874,18 @@ class StateEpochOutputGenerator:
                     (event_corr_data > 0) & ~np.isnan(event_corr_data)
                 ]
                 pos_event_corr = (
-                    np.nanmean(pos_event_data) if len(pos_event_data) > 0 else np.nan
+                    np.nanmean(pos_event_data)
+                    if len(pos_event_data) > 0
+                    else np.nan
                 )
 
                 neg_event_data = event_corr_data[
                     (event_corr_data < 0) & ~np.isnan(event_corr_data)
                 ]
                 neg_event_corr = (
-                    np.nanmean(neg_event_data) if len(neg_event_data) > 0 else np.nan
+                    np.nanmean(neg_event_data)
+                    if len(neg_event_data) > 0
+                    else np.nan
                 )
 
                 row_data["positive_event_correlation"] = pos_event_corr
@@ -872,7 +929,9 @@ class StateEpochOutputGenerator:
 
             combination_results = results.get_combination_results(state, epoch)
             if combination_results:
-                event_corr_matrix = combination_results.get("event_correlation_matrix")
+                event_corr_matrix = combination_results.get(
+                    "event_correlation_matrix"
+                )
                 if event_corr_matrix is not None:
                     event_correlation_matrices[key] = event_corr_matrix
 
@@ -903,6 +962,8 @@ class StateEpochOutputGenerator:
         self, results: StateEpochResults, cell_info: Dict[str, Any]
     ) -> None:
         """Save raw correlation matrices and cell name pairs to ZIP file."""
+        from analysis import correlations as correlations_module
+
         correlation_matrices = {}
         cell_names = cell_info.get("cell_names", [])
 
@@ -929,7 +990,9 @@ class StateEpochOutputGenerator:
                     sort_indices=sort_indices,
                     positions=None,
                 )
-                logger.info("Saved raw correlations ZIP using correlations.py function")
+                logger.info(
+                    "Saved raw correlations ZIP using correlations.py function"
+                )
             finally:
                 os.chdir(current_dir)
         else:
@@ -1000,9 +1063,7 @@ class StateEpochOutputGenerator:
                 {
                     **base_values,
                     "file_type": "correlation_statistics",
-                    "description": (
-                        "Correlation statistics per cell across state-epoch combinations"
-                    ),
+                    "description": "Correlation statistics per cell across state-epoch combinations",
                     "analysis_type": "correlation_analysis",
                     "correlation_method": "pearson",
                 },
@@ -1325,7 +1386,9 @@ class StateEpochOutputGenerator:
                 self._get_output_path(preview_filename),
                 f"{title} placeholder",
             )
-            logger.info(f"Created placeholder preview for {preview_filename}: {title}")
+            logger.info(
+                f"Created placeholder preview for {preview_filename}: {title}"
+            )
         except Exception as exc:
             logger.warning(
                 f"Could not create placeholder preview for {preview_filename}: {exc}"
@@ -1390,14 +1453,17 @@ class StateEpochOutputGenerator:
         state_colors = [
             self.color_scheme.get_state_color(state, self.states)
             for state, epoch in results.get_all_combinations()
-            if f"{state}_{epoch}" in data_structure  # Only colors for data that exists
+            if f"{state}_{epoch}"
+            in data_structure  # Only colors for data that exists
         ]
 
         # Use population activity tool's function with consistent state colors
         _plot_population_average(
             data=data_structure,
             filename=str(self._get_output_path(filename_constant)),
-            state_colors=state_colors[: len(data_structure)],  # Ensure correct length
+            state_colors=state_colors[
+                : len(data_structure)
+            ],  # Ensure correct length
             ylabel=ylabel,
             xlabel="State-Epoch",
         )
@@ -1413,7 +1479,9 @@ class StateEpochOutputGenerator:
             )
 
             if not activity_data:
-                logger.warning("No activity data available for population average plot")
+                logger.warning(
+                    "No activity data available for population average plot"
+                )
                 return
 
             # Plot with consistent colors
@@ -1448,13 +1516,17 @@ class StateEpochOutputGenerator:
     ) -> None:
         """Create state-epoch time summary plots mirroring population activity tool."""
         if annotations_df is None:
-            logger.info("Annotations unavailable for state time preview; skipping.")
+            logger.info(
+                "Annotations unavailable for state time preview; skipping."
+            )
             return
 
         period = cell_info.get("period", 1.0)
         try:
             plot_func = (
-                _plot_state_epoch_time if self.epoch_periods else _plot_state_time
+                _plot_state_epoch_time
+                if self.epoch_periods
+                else _plot_state_time
             )
 
             plot_func(
@@ -1468,7 +1540,9 @@ class StateEpochOutputGenerator:
                 epoch_periods=self.epoch_periods,
             )
         except Exception as exc:
-            raise RuntimeError(f"Failed to create state time preview: {exc}") from exc
+            raise RuntimeError(
+                f"Failed to create state time preview: {exc}"
+            ) from exc
 
     def _create_trace_preview(
         self,
@@ -1519,7 +1593,9 @@ class StateEpochOutputGenerator:
 
             # Create separate overlay previews
             if annotations_df is not None:
-                logger.info("Creating trace preview with state overlays")
+                logger.info(
+                    "Creating trace preview with state overlays"
+                )
 
                 # 1. Create state overlay preview (like population_activity.py)
                 self._plot_trace_preview_with_state_overlays(
@@ -1543,7 +1619,9 @@ class StateEpochOutputGenerator:
                 #     epoch_names=epoch_names[: len(epochs)],
                 # )
 
-            logger.info(f"Created trace state overlay preview: {TRACE_STATE_OVERLAY}")
+            logger.info(
+                f"Created trace state overlay preview: {TRACE_STATE_OVERLAY}"
+            )
 
         except Exception as e:
             logger.warning(f"Could not create trace preview: {e}")
@@ -1557,7 +1635,9 @@ class StateEpochOutputGenerator:
     ) -> None:
         """Create correlation matrices preview plot."""
         # Collect correlation matrices from all combinations
-        correlation_matrices = self._collect_correlation_matrices(results, matrix_key)
+        correlation_matrices = self._collect_correlation_matrices(
+            results, matrix_key
+        )
 
         if correlation_matrices:
             from analysis.correlations import plot_correlation_matrices
@@ -1627,7 +1707,9 @@ class StateEpochOutputGenerator:
             )
 
             # Extract correlation matrices from results
-            correlation_matrix = self._collect_correlation_matrices(results, matrix_key)
+            correlation_matrix = self._collect_correlation_matrices(
+                results, matrix_key
+            )
 
             if not correlation_matrix:
                 logger.warning(
@@ -1663,12 +1745,16 @@ class StateEpochOutputGenerator:
                     triu_data=shortened_triu_data,
                     out_file_name=str(output_path),
                 )
-                logger.info(f"Created spatial correlation preview: {output_path}")
+                logger.info(
+                    f"Created spatial correlation preview: {output_path}"
+                )
             else:
                 logger.warning("No spatial correlation data available")
 
         except Exception as e:
-            logger.warning(f"Could not create spatial correlation preview: {e}")
+            logger.warning(
+                f"Could not create spatial correlation preview: {e}"
+            )
 
     def _create_spatial_correlation_map_preview(
         self,
@@ -1713,7 +1799,9 @@ class StateEpochOutputGenerator:
             # Use the plot_correlation_spatial_map function from correlations tool
             from analysis.correlations import plot_correlation_spatial_map
 
-            correlation_matrix = self._collect_correlation_matrices(results, matrix_key)
+            correlation_matrix = self._collect_correlation_matrices(
+                results, matrix_key
+            )
 
             if not correlation_matrix:
                 logger.warning(
@@ -1737,10 +1825,14 @@ class StateEpochOutputGenerator:
                 max_lines=500,
                 out_file_name=str(output_path),
             )
-            logger.info(f"Created spatial correlation map preview: {output_path}")
+            logger.info(
+                f"Created spatial correlation map preview: {output_path}"
+            )
 
         except Exception as e:
-            logger.warning(f"Could not create spatial correlation map preview: {e}")
+            logger.warning(
+                f"Could not create spatial correlation map preview: {e}"
+            )
 
     def _create_average_correlations_preview(
         self,
@@ -1779,7 +1871,9 @@ class StateEpochOutputGenerator:
             )
 
         except Exception as e:
-            logger.warning(f"Could not create average correlations preview: {e}")
+            logger.warning(
+                f"Could not create average correlations preview: {e}"
+            )
 
     def _determine_combination_order(
         self,
@@ -1885,6 +1979,7 @@ class StateEpochOutputGenerator:
         box_palette : Dict[str, str]
             Mapping of state-epoch labels to their configured state colors for box plots.
         """
+
         state_palette = {
             label: self.color_scheme.get_state_color(state, self.states)
             for (state, _), label in zip(combination_order, labels)
@@ -1919,7 +2014,9 @@ class StateEpochOutputGenerator:
             return
 
         valid_labels = set(correlation_df["state_epoch"].unique())
-        combination_order = self._determine_combination_order(results, valid_labels)
+        combination_order = self._determine_combination_order(
+            results, valid_labels
+        )
 
         if not combination_order:
             logger.warning(
@@ -1963,7 +2060,9 @@ class StateEpochOutputGenerator:
             axis="both", which="major", labelsize=LABEL_FONT["fontsize"]
         )
         if len(labels) > 1:
-            axes[0].legend(loc="upper left", fontsize=LABEL_FONT["fontsize"] - 2)
+            axes[0].legend(
+                loc="upper left", fontsize=LABEL_FONT["fontsize"] - 2
+            )
 
         # Box plot
         sns.boxplot(
@@ -2045,10 +2144,14 @@ class StateEpochOutputGenerator:
             if "activity_modulation" in modulation_results:
                 modulation_source = modulation_results["activity_modulation"]
             else:
-                logger.warning(f"No activity_modulation data available for {title}")
+                logger.warning(
+                    f"No activity_modulation data available for {title}"
+                )
                 modulation_source = None
 
-            if not validate_data_availability(modulation_source, "modulation source"):
+            if not validate_data_availability(
+                modulation_source, "modulation source"
+            ):
                 return
 
             # Extract and process modulation data using helper
@@ -2062,9 +2165,12 @@ class StateEpochOutputGenerator:
                 try:
                     if (
                         "baseline_mean_activity" in modulation_results
-                        and modulation_results["baseline_mean_activity"] is not None
+                        and modulation_results["baseline_mean_activity"]
+                        is not None
                     ):
-                        baseline_activity = modulation_results["baseline_mean_activity"]
+                        baseline_activity = modulation_results[
+                            "baseline_mean_activity"
+                        ]
                         # Ensure baseline_activity is an array and get its length safely
                         baseline_activity = np.atleast_1d(baseline_activity)
                         activity_size = len(baseline_activity)
@@ -2305,7 +2411,9 @@ class StateEpochOutputGenerator:
 
             # Create separate overlay previews
             if annotations_df is not None:
-                logger.info("Creating event preview with state overlays")
+                logger.info(
+                    "Creating event preview with state overlays"
+                )
 
                 # 1. Create state overlay event preview (like population_activity.py)
                 self._plot_event_preview_with_state_overlays(
@@ -2330,7 +2438,9 @@ class StateEpochOutputGenerator:
                 #     epoch_colors=epoch_colors[: len(epochs)],
                 #     epoch_names=epoch_names[: len(epochs)],
                 # )
-            logger.info(f"Created event state overlay preview: {EVENT_STATE_OVERLAY}")
+            logger.info(
+                f"Created event state overlay preview: {EVENT_STATE_OVERLAY}"
+            )
 
         except Exception as e:
             logger.warning(f"Could not create event preview: {e}")
@@ -2344,10 +2454,14 @@ class StateEpochOutputGenerator:
         """Create event average preview leveraging existing StateEpochResults data."""
         try:
             # Get data directly from results object (no re-extraction needed)
-            event_data = self._get_population_data_from_results(results, "event_rates")
+            event_data = self._get_population_data_from_results(
+                results, "event_rates"
+            )
 
             if not event_data:
-                logger.warning("No event data available for event average preview")
+                logger.warning(
+                    "No event data available for event average preview"
+                )
                 return
 
             # Plot with consistent colors
@@ -2402,7 +2516,9 @@ class StateEpochOutputGenerator:
             # Get modulation colors via centralized color scheme
             if modulation_colors:
                 self.color_scheme.modulation_colors = modulation_colors
-            up_color, down_color, non_color = self.color_scheme.get_modulation_colors()
+            up_color, down_color, non_color = (
+                self.color_scheme.get_modulation_colors()
+            )
 
             plot_modulated_neuron_footprints(
                 data=event_data,
@@ -2508,3 +2624,4 @@ class StateEpochOutputGenerator:
                 filename=EVENT_STATE_OVERLAY,
                 boundaries=boundaries,
             )
+

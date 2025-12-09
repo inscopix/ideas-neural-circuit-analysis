@@ -13,12 +13,8 @@ def _ideas_error_logger(
     message: str,
     log_file: str = "exit_status.txt",
 ):
-    """Log IdeasError details to a file for backend ingestion.
-
-    :param exit_code: exit code to write
-    :param message: error message content
-    :param log_file: destination log filename
-    """
+    """log errors raised using IdeasError in file for
+    BE to pick up and read"""
     with open(log_file, "w") as file:
         file.write(f"{exit_code} , {message}\n")
 

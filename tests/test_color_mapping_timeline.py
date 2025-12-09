@@ -59,7 +59,9 @@ class TestColorMappingFunctionality:
                 "epoch": epoch,
             }
 
-        results.get_combination_results.side_effect = mock_get_combination_results
+        results.get_combination_results.side_effect = (
+            mock_get_combination_results
+        )
 
         return results
 
@@ -142,7 +144,9 @@ class TestPreviewFunctionIntegration:
                 "epoch": epoch,
             }
 
-        results.get_combination_results.side_effect = mock_get_combination_results
+        results.get_combination_results.side_effect = (
+            mock_get_combination_results
+        )
 
         # Mock behavioral annotations
         annotations_df = pd.DataFrame(
@@ -320,7 +324,9 @@ class TestPreviewFunctionIntegration:
             )
 
             # Should complete without errors (graceful handling)
-            assert True, "Preview functions handled missing annotations gracefully"
+            assert (
+                True
+            ), "Preview functions handled missing annotations gracefully"
         except Exception as e:
             pytest.fail(
                 f"Preview functions should handle missing annotations gracefully, but got: {e}"

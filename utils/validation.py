@@ -1,5 +1,3 @@
-"""Validation utilities for epoch and correlation parameters."""
-
 import logging
 
 import numpy as np
@@ -21,7 +19,9 @@ def _validate_correlation_params(
     """Validate the parameters for the correlation calculation."""
     if method == "state vs baseline":
         assert baseline_state is not None, "Baseline state must be provided"
-        assert baseline_state in state_names, "Baseline state must be one of the states"
+        assert (
+            baseline_state in state_names
+        ), "Baseline state must be one of the states"
         assert (
             len(state_names) > 1
         ), "If using state vs baseline, must have at least 1 non-baseline state"
@@ -66,7 +66,8 @@ def _validate_files(files):
 
 
 def _validate_epoch_name_strings(epoch_names):
-    """Clean epoch name inputs and ensure the norm epoch is present.
+    """Clean string inputs to catch common user errors, and ensure that norm
+    epoch name exists in the epoch names.
 
     :Parameters
         epoch_names: List or comma-separated string of epoch names
@@ -188,7 +189,8 @@ def _check_num_epochs(
     epoch_names,
     epoch_colors,
 ):
-    """Check that the counts of epochs, names, and colors are consistent.
+    """Check if the number of epochs, epoch names, and epoch colors are the
+    same.
 
     :Parameters
         epochs: List of epoch time ranges
@@ -200,7 +202,8 @@ def _check_num_epochs(
     """
     if len(epochs) != len(epoch_names) or len(epochs) != len(epoch_colors):
         raise IdeasError(
-            "The number of epochs, epoch names, and epoch colors must be the" " same."
+            "The number of epochs, epoch names, and epoch colors must be the"
+            " same."
         )
 
     if len(epochs) < 2:

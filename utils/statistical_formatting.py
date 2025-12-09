@@ -40,7 +40,8 @@ def _get_stat_method_for_row(row):
     else:
         # Fallback: use OR logic for unrecognized contrasts
         is_paired = (
-            row.get("state_pairing") == "paired" or row.get("group_pairing") == "paired"
+            row.get("state_pairing") == "paired"
+            or row.get("group_pairing") == "paired"
         )
 
     if parametric:
@@ -92,7 +93,9 @@ def _standardize_anova_output(
             # First pass: look for explicit error terms to extract error_df
             for idx, row in df.iterrows():
                 source = str(row.get("Source", "")).lower()
-                if any(term in source for term in ["error", "residual", "within"]):
+                if any(
+                    term in source for term in ["error", "residual", "within"]
+                ):
                     error_df = row.get("DF", row.get("df1", np.nan))
                     break
 
@@ -113,7 +116,9 @@ def _standardize_anova_output(
             # Second pass: assign df2 values for each row
             for idx, row in df.iterrows():
                 source = str(row.get("Source", "")).lower()
-                if any(term in source for term in ["error", "residual", "within"]):
+                if any(
+                    term in source for term in ["error", "residual", "within"]
+                ):
                     # This is an error term, use its DF directly
                     df2_val = row.get("DF", row.get("df1", np.nan))
                     df2_values.append(df2_val)
@@ -138,13 +143,17 @@ def _standardize_anova_output(
         if "df1" in df.columns:
             missing_df1 = df["df1"].isna()
             if missing_df1.any():
-                df.loc[missing_df1, "df1"] = df.loc[missing_df1, "DF"].fillna(1)
+                df.loc[missing_df1, "df1"] = df.loc[missing_df1, "DF"].fillna(
+                    1
+                )
 
         # Add metadata
         df["Comparison"] = metadata.get("Comparison", "Unknown Comparison")
 
         # Set Measure column - prioritize measure_name parameter, then metadata
-        measure_value = measure_name or metadata.get("Measure", "Unknown Measure")
+        measure_value = measure_name or metadata.get(
+            "Measure", "Unknown Measure"
+        )
 
         # Only set Measure if it doesn't already exist or is empty/NA
         # This preserves Status-based Measure values for correlation data
@@ -157,12 +166,16 @@ def _standardize_anova_output(
         elif (
             measure_value
             and (
-                df["Measure"].isna() | (df["Measure"] == "") | (df["Measure"] == "NA")
+                df["Measure"].isna()
+                | (df["Measure"] == "")
+                | (df["Measure"] == "NA")
             ).any()
         ):
             # Fill only empty/NA values while preserving existing non-empty values
             missing_mask = (
-                df["Measure"].isna() | (df["Measure"] == "") | (df["Measure"] == "NA")
+                df["Measure"].isna()
+                | (df["Measure"] == "")
+                | (df["Measure"] == "NA")
             )
             df.loc[missing_mask, "Measure"] = measure_value
 
@@ -200,7 +213,9 @@ def _get_mixed_pairwise_sig(
             filtered_pairwise = pairwise[pairwise[status_col] == status]
         else:
             filtered_pairwise = (
-                pairwise[pairwise[status_col].isnull()] if status_col else pairwise
+                pairwise[pairwise[status_col].isnull()]
+                if status_col
+                else pairwise
             )
 
         if filtered_pairwise.empty:
@@ -210,7 +225,9 @@ def _get_mixed_pairwise_sig(
         p_col = (
             "p-corr"
             if "p-corr" in filtered_pairwise.columns
-            else "p-unc" if "p-unc" in filtered_pairwise.columns else None
+            else "p-unc"
+            if "p-unc" in filtered_pairwise.columns
+            else None
         )
         if not p_col:
             return "No p-value column found"
@@ -222,11 +239,12 @@ def _get_mixed_pairwise_sig(
             if contrast in ["state * group", "state * group_name"]:
                 state = row.get("state", "")
                 if state:
-                    result_text += (
-                        f"{contrast} ({state}): p={row.get(p_col, np.nan):.3f}\n"
-                    )
+                    result_text += f"{contrast} ({state}): p={row.get(p_col, np.nan):.3f}\n"
             elif (
-                contrast == "state" and state_legend_show and "A" in row and "B" in row
+                contrast == "state"
+                and state_legend_show
+                and "A" in row
+                and "B" in row
             ):
                 result_text += (
                     f"{row.get('A', '')} × {row.get('B', '')}: "
@@ -234,7 +252,9 @@ def _get_mixed_pairwise_sig(
                 )
 
         return (
-            result_text if result_text else "No significant differences between states"
+            result_text
+            if result_text
+            else "No significant differences between states"
         )
 
     except Exception as e:
@@ -258,11 +278,17 @@ def _compute_missing_effect_sizes(df: pd.DataFrame) -> pd.DataFrame:
     for effect_col in ["hedges", "cohen-d", "cohens_d", "eta2", "np2"]:
         if effect_col in df.columns and needs_filling.any():
             valid_mask = (
-                df[effect_col].notna() & (df[effect_col] != "NA") & needs_filling
+                df[effect_col].notna()
+                & (df[effect_col] != "NA")
+                & needs_filling
             )
             if valid_mask.any():
-                df.loc[valid_mask, "effect_size"] = df.loc[valid_mask, effect_col]
-                needs_filling = (df["effect_size"].isna()) | (df["effect_size"] == "NA")
+                df.loc[valid_mask, "effect_size"] = df.loc[
+                    valid_mask, effect_col
+                ]
+                needs_filling = (df["effect_size"].isna()) | (
+                    df["effect_size"] == "NA"
+                )
 
     # Compute from T-statistic if still needed
     if needs_filling.any() and "T" in df.columns:
@@ -272,16 +298,23 @@ def _compute_missing_effect_sizes(df: pd.DataFrame) -> pd.DataFrame:
                 "state_pairing" in df.columns
                 and (df["state_pairing"] == "paired").any()
             ) or ("Paired" in df.columns and df["Paired"].any())
-            cohens_d = t_vals / np.sqrt(4) if is_paired else t_vals * np.sqrt(0.5)
+            cohens_d = (
+                t_vals / np.sqrt(4) if is_paired else t_vals * np.sqrt(0.5)
+            )
             mask_computable = (
-                needs_filling & t_vals.notna() & (t_vals != 0) & np.isfinite(t_vals)
+                needs_filling
+                & t_vals.notna()
+                & (t_vals != 0)
+                & np.isfinite(t_vals)
             )
             if mask_computable.any():
                 df.loc[mask_computable, "effect_size"] = cohens_d.where(
                     mask_computable & pd.notna(cohens_d), "NA"
                 )
         except Exception as e:
-            logger.debug(f"Could not compute effect size from t-statistic: {e}")
+            logger.debug(
+                f"Could not compute effect size from t-statistic: {e}"
+            )
 
     # Only fill non-numeric columns with "NA", keep NaN for numeric columns
     numeric_cols = df.select_dtypes(include=[np.number]).columns
@@ -340,14 +373,22 @@ def _add_pairing_columns(
     elif state_comparison_type == "group":
         df["group_pairing"] = data_pairing
         # Even for group state_comparison_type, check if we have state comparisons in the data
-        if "Contrast" in df.columns and "A" in df.columns and "B" in df.columns:
+        if (
+            "Contrast" in df.columns
+            and "A" in df.columns
+            and "B" in df.columns
+        ):
             # Check for state comparisons based on contrast and A/B columns
             state_comparison_mask = (
                 (df["Contrast"] == "state")
                 # Check if A and B contain state names (not group names)
                 | (
-                    ~df["A"].astype(str).str.contains("group", case=False, na=False)
-                    & ~df["B"].astype(str).str.contains("group", case=False, na=False)
+                    ~df["A"]
+                    .astype(str)
+                    .str.contains("group", case=False, na=False)
+                    & ~df["B"]
+                    .astype(str)
+                    .str.contains("group", case=False, na=False)
                     & (df["Contrast"] != "group")
                     & (
                         ~df["Contrast"]
@@ -365,17 +406,28 @@ def _add_pairing_columns(
                 .str.contains("state \\* group", case=False, na=False)
             )
             df.loc[interaction_mask, "state_pairing"] = "paired"
-    elif state_comparison_type in ["state-group", "mixed"] or has_group_comparisons:
+    elif (
+        state_comparison_type in ["state-group", "mixed"]
+        or has_group_comparisons
+    ):
         df["state_pairing"] = "paired"
         df["group_pairing"] = data_pairing
     else:
         if has_group_comparisons:
             df["group_pairing"] = data_pairing
         # Check for state comparisons in any other case
-        if "Contrast" in df.columns and "A" in df.columns and "B" in df.columns:
+        if (
+            "Contrast" in df.columns
+            and "A" in df.columns
+            and "B" in df.columns
+        ):
             state_comparison_mask = (df["Contrast"] == "state") | (
-                ~df["A"].astype(str).str.contains("group", case=False, na=False)
-                & ~df["B"].astype(str).str.contains("group", case=False, na=False)
+                ~df["A"]
+                .astype(str)
+                .str.contains("group", case=False, na=False)
+                & ~df["B"]
+                .astype(str)
+                .str.contains("group", case=False, na=False)
                 & (df["Contrast"] != "group")
             )
             df.loc[state_comparison_mask, "state_pairing"] = "paired"
@@ -572,7 +624,8 @@ def _infer_stat_method(df: pd.DataFrame) -> pd.DataFrame:
             ["coefficient", "t_value"],
             lambda row: (
                 "lmm_reml"
-                if pd.notna(row.get("coefficient")) and pd.notna(row.get("t_value"))
+                if pd.notna(row.get("coefficient"))
+                and pd.notna(row.get("t_value"))
                 else None
             ),
             None,
@@ -587,7 +640,8 @@ def _infer_stat_method(df: pd.DataFrame) -> pd.DataFrame:
             ["T", "state_pairing"],
             lambda row: (
                 "paired_ttest"
-                if pd.notna(row.get("T")) and row.get("state_pairing") == "paired"
+                if pd.notna(row.get("T"))
+                and row.get("state_pairing") == "paired"
                 else None
             ),
             None,
@@ -622,7 +676,9 @@ def _infer_stat_method(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def _cleanup_final_csv_columns(df: pd.DataFrame, output_type: str) -> pd.DataFrame:
+def _cleanup_final_csv_columns(
+    df: pd.DataFrame, output_type: str
+) -> pd.DataFrame:
     """Remove non-critical columns for cleaner final CSV output."""
     if df is None or df.empty:
         return df
@@ -691,7 +747,9 @@ def _cleanup_final_csv_columns(df: pd.DataFrame, output_type: str) -> pd.DataFra
             "state_comparison_type",
             "normalized_subject_id",
         ]
-        essential_cols = [col for col in df.columns if col not in excluded_cols]
+        essential_cols = [
+            col for col in df.columns if col not in excluded_cols
+        ]
 
         # For mixed data, be more permissive about empty values since it might be raw data
         mixed_preserve = [
@@ -710,7 +768,9 @@ def _cleanup_final_csv_columns(df: pd.DataFrame, output_type: str) -> pd.DataFra
     else:
         # Default case - exclude specific unwanted columns
         essential_cols = [
-            col for col in df.columns if col not in ["Status", "state_comparison_type"]
+            col
+            for col in df.columns
+            if col not in ["Status", "state_comparison_type"]
         ]
 
     # Always preserve these columns even if they have empty values - base set for all output types
@@ -774,7 +834,9 @@ def _cleanup_final_csv_columns(df: pd.DataFrame, output_type: str) -> pd.DataFra
 
     # Always remove internal-only columns if they somehow made it through
     internal_only_cols = ["state_comparison_type", "normalized_subject_id"]
-    cols_to_remove = [col for col in internal_only_cols if col in final_df.columns]
+    cols_to_remove = [
+        col for col in internal_only_cols if col in final_df.columns
+    ]
     if cols_to_remove:
         final_df = final_df.drop(columns=cols_to_remove)
 
@@ -801,8 +863,16 @@ def _fill_missing_state_information(df: pd.DataFrame) -> pd.DataFrame:
         pingouin_dash_mask = df["state"] == "-"
         group_comparison_mask = (
             pingouin_dash_mask
-            & (df["Contrast"].astype(str).str.contains("group", case=False, na=False))
-            & (~df["Contrast"].astype(str).str.contains("\\*", case=False, na=False))
+            & (
+                df["Contrast"]
+                .astype(str)
+                .str.contains("group", case=False, na=False)
+            )
+            & (
+                ~df["Contrast"]
+                .astype(str)
+                .str.contains("\\*", case=False, na=False)
+            )
         )
         if group_comparison_mask.any():
             df.loc[group_comparison_mask, "state"] = "across_states"
@@ -819,8 +889,16 @@ def _fill_missing_state_information(df: pd.DataFrame) -> pd.DataFrame:
         # Group comparisons
         group_comparison_mask = (
             missing_state_mask
-            & (df["Contrast"].astype(str).str.contains("group", case=False, na=False))
-            & (~df["Contrast"].astype(str).str.contains("\\*", case=False, na=False))
+            & (
+                df["Contrast"]
+                .astype(str)
+                .str.contains("group", case=False, na=False)
+            )
+            & (
+                ~df["Contrast"]
+                .astype(str)
+                .str.contains("\\*", case=False, na=False)
+            )
         )
         if group_comparison_mask.any():
             df.loc[group_comparison_mask, "state"] = "across_states"
@@ -828,8 +906,16 @@ def _fill_missing_state_information(df: pd.DataFrame) -> pd.DataFrame:
         # State comparisons - these are comparisons across states, not within a specific state
         state_comparison_mask = (
             missing_state_mask
-            & (df["Contrast"].astype(str).str.contains("state", case=False, na=False))
-            & (~df["Contrast"].astype(str).str.contains("group", case=False, na=False))
+            & (
+                df["Contrast"]
+                .astype(str)
+                .str.contains("state", case=False, na=False)
+            )
+            & (
+                ~df["Contrast"]
+                .astype(str)
+                .str.contains("group", case=False, na=False)
+            )
         )
         if state_comparison_mask.any():
             # For pure state comparisons, use empty string for clean CSV output
@@ -882,7 +968,9 @@ def _standardize_missing_values(
     for col in df.columns:
         # Create mask for empty/missing values
         mask_empty = (
-            df[col].isna() | (df[col] == "") | (df[col].astype(str).str.strip() == "")
+            df[col].isna()
+            | (df[col] == "")
+            | (df[col].astype(str).str.strip() == "")
         )
 
         if col in numeric_cols:
@@ -897,7 +985,9 @@ def _standardize_missing_values(
     return df
 
 
-def _fill_essential_metadata(df: pd.DataFrame, output_type: str) -> pd.DataFrame:
+def _fill_essential_metadata(
+    df: pd.DataFrame, output_type: str
+) -> pd.DataFrame:
     """Fill essential metadata columns with intelligent defaults."""
     if df is None or df.empty:
         return df
@@ -905,7 +995,10 @@ def _fill_essential_metadata(df: pd.DataFrame, output_type: str) -> pd.DataFrame
     df = df.copy()
 
     # Handle analysis_level
-    if "analysis_level" not in df.columns or (df["analysis_level"] == "NA").any():
+    if (
+        "analysis_level" not in df.columns
+        or (df["analysis_level"] == "NA").any()
+    ):
         if "analysis_level" not in df.columns:
             df["analysis_level"] = "NA"
 
@@ -917,7 +1010,9 @@ def _fill_essential_metadata(df: pd.DataFrame, output_type: str) -> pd.DataFrame
                 "stat_method" in df.columns
                 and df["stat_method"].str.contains("lmm", na=False).any()
             ):
-                lmm_mask = mask_empty & df["stat_method"].str.contains("lmm", na=False)
+                lmm_mask = mask_empty & df["stat_method"].str.contains(
+                    "lmm", na=False
+                )
                 df.loc[lmm_mask, "analysis_level"] = "subject/cell"
                 df.loc[mask_empty & ~lmm_mask, "analysis_level"] = "subject"
             else:

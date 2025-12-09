@@ -1,6 +1,5 @@
-"""Compare neuronal activity across epochs and generate summaries."""
-
 import json
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -59,13 +58,33 @@ def run(
     tolerance: Optional[float] = 1e-4,
     heatmap: Optional[tuple] = "auto",
 ):
-    """Compare neuron activity across epochs for traces and events.
+    """Compare the activity of neurons between any number of epochs. The tool
+    requires a cell set file and an event set file for each epoch. The tool
+    will compare the activity of all nuerons between each epoch and run an
+    ANOVA test to determine if the activity is significantly different. The
+    tool will also calculate the modulation index for each neuron and determine
+    if the neuron is up-modulated, down-modulated, or non-modulated compared
+    pairwise between epochs. This tool will output a plot of the average
+    timecourse of activity for each epoch, a matrix of scatter plots of the
+    activity between epochs, a box plot of the activity between epochs with
+    ANOVA, and a matrix of cell maps showing the modulation index of each
+    neuron.
 
-    Reads matched cell set and event set files per epoch, compares activity
-    across epochs, and runs ANOVA tests to detect significant differences. Also
-    computes per-neuron modulation indices to classify up-, down-, or
-    non-modulated cells. Outputs include timecourse plots, scatter matrices,
-    box plots with ANOVA, modulation maps, and saved modulation CSV data.
+    This tool will compute these for traces and events if provided.
+
+    :Raises
+        IdeasError: If there is an error in reading the cell set files or event set files.
+
+    :Returns
+        None
+
+        - A plot of the average timecourse of activity for each epoch as "Traces_Timecourse.svg".
+        - A matrix of scatter plots of the activity between epochs
+          as "Population_Activity_Overview.svg".
+        - A box plot of the activity between epochs with ANOVA as "Population_Activity.svg".
+        - A matrix of cell maps showing the modulation index of each neuron as "Modulation_Map.svg".
+    :Saves
+        - A CSV file of the modulation data as "modulation.csv".
     """
     try:
         (
@@ -183,8 +202,12 @@ def run(
     elif num_undecided_cells > 0:
         cell_status_filter = "undecided"
     else:
-        logger.warning("No valid cells found. Using 'accepted' as fallback filter.")
-        cell_status_filter = "accepted"  # Fallback to prevent undefined variable
+        logger.warning(
+            "No valid cells found. Using 'accepted' as fallback filter."
+        )
+        cell_status_filter = (
+            "accepted"  # Fallback to prevent undefined variable
+        )
 
     x = [cx for cx, stat in zip(x, status) if stat == cell_status_filter]
     y = [cx for cx, stat in zip(y, status) if stat == cell_status_filter]
@@ -289,7 +312,9 @@ def run(
             else:
                 logger.warning("Unfiltered event validation failed.")
         except Exception as e:
-            logger.warning(f"Error during unfiltered event validation step: {e}")
+            logger.warning(
+                f"Error during unfiltered event validation step: {e}"
+            )
             # valid_events remains False
 
         # --- Attempt 2: Validate with filtered offsets (if Attempt 1 failed) ---
@@ -308,7 +333,9 @@ def run(
                     for cell in filtered_offsets
                 ]
 
-                if _validate_events(traces, filtered_offsets, filtered_indices):
+                if _validate_events(
+                    traces, filtered_offsets, filtered_indices
+                ):
                     logger.info("Filtered event validation successful.")
                     valid_events = True
                     final_offsets = filtered_offsets
@@ -316,7 +343,9 @@ def run(
                 else:
                     logger.warning("Filtered event validation failed.")
             except Exception as e:
-                logger.warning(f"Error during filtered event validation step: {e}")
+                logger.warning(
+                    f"Error during filtered event validation step: {e}"
+                )
                 # valid_events remains False
 
         # --- Final Check ---
@@ -447,7 +476,6 @@ def epoch_activity_ideas_wrapper(
     tolerance: Optional[float] = 1e-4,
     heatmap: Optional[tuple] = "auto",
 ):
-    """Run epoch activity workflow using IDEAS file inputs."""
     run(
         cell_set_files=cell_set_files,
         event_set_files=event_set_files,
@@ -462,44 +490,28 @@ def epoch_activity_ideas_wrapper(
         tolerance=tolerance,
         heatmap=heatmap,
     )
-
+    
     try:
         logger.info("Registering output data")
-        output_prefix = outputs.input_paths_to_output_prefix(
-            cell_set_files, event_set_files
-        )
+        output_prefix = outputs.input_paths_to_output_prefix(cell_set_files, event_set_files)
         metadata = outputs._load_and_remove_output_metadata()
         with outputs.register(raise_missing_file=False) as output_data:
             output_data.register_file(
                 "Traces_timecourse_data.npy",
                 prefix=output_prefix,
-                subdir="Traces_timecourse_data",
+                subdir="Traces_timecourse_data"
             ).register_preview(
                 "Trace_Preview.svg",
-                caption=(
-                    "Preview of calcium traces for up to the first 20 cells with epoch "
-                    "periods overlaid"
-                ),
+                caption="Preview of calcium traces for up to the first 20 cells with epoch periods overlaid"
             ).register_preview(
                 "Trace_Preview.svg",
-                caption=(
-                    "Preview of calcium traces for up to the first 20 cells with epoch "
-                    "periods overlaid"
-                ),
+                caption="Preview of calcium traces for up to the first 20 cells with epoch periods overlaid"
             ).register_preview(
                 "Traces_Single_Cell_Timecourse.svg",
-                caption=(
-                    "Top panel is the trace activity averaged across the entire population. "
-                    "Bottom panel is a heat map showing the activity of individual cell "
-                    "trace activities across the entire recording"
-                ),
+                caption="Top panel is the trace activity averaged across the entire population. Bottom panel is a heat map showing the activity of individual cell trace activities across the entire recording"
             ).register_preview(
                 "Traces_Population_Timecourse.svg",
-                caption=(
-                    "Left panel is trace activity averaged across the entire population. "
-                    "Right panel is the average trace activity averaged across the entire "
-                    "population in each epoch. Error bars represent the standard deviation"
-                ),
+                caption="Left panel is trace activity averaged across the entire population. Right panel is the average trace activity averaged across the entire population in each epoch. Error bars represent the standard deviation"
             ).register_metadata_dict(
                 **metadata["Traces_timecourse_data"]
             )
@@ -507,20 +519,13 @@ def epoch_activity_ideas_wrapper(
             output_data.register_file(
                 "Traces_activity_data.csv",
                 prefix=output_prefix,
-                subdir="Traces_activity_data",
+                subdir="Traces_activity_data"
             ).register_preview(
                 "Population_Traces_differences.svg",
-                caption=(
-                    "Each row is a histogram of the pairwise difference of trace activity "
-                    "levels between different epochs. On the right of each row is the "
-                    "magnitude of change at each individual cell"
-                ),
+                caption="Each row is a histogram of the pairwise difference of trace activity levels between different epochs. On The right of each row is the magnitude of change at each individual cell"
             ).register_preview(
                 "Population_Traces.svg",
-                caption=(
-                    "Average trace activity across epochs displayed using a box plot "
-                    "overlaid over a strip plot with lines connecting cells across epochs"
-                ),
+                caption="Average trace activity across epochs displayed using a box plot overlaid over a strip plot with lines connecting cells across epochs"
             ).register_metadata_dict(
                 **metadata["Traces_activity_data"]
             )
@@ -528,40 +533,27 @@ def epoch_activity_ideas_wrapper(
             output_data.register_file(
                 "Population_Traces_Correlation.npy",
                 prefix=output_prefix,
-                subdir="Population_Traces_Correlation",
+                subdir="Population_Traces_Correlation"
             ).register_preview(
                 "Correlations.svg",
-                caption=(
-                    "Correlation heatmaps for each epoch with similar neurons clustered together"
-                ),
+                caption="Correlation heatmaps for each epoch with similar neurons clustered together"
             ).register_preview(
                 "Average_Correlations.svg",
-                caption=(
-                    "Summary plot showing the amplitude of average positive and negative "
-                    "correlations"
-                ),
+                caption="Summary plot showing the amplitude of average positive and negative correlations"
             ).register_metadata_dict(
                 **metadata["Traces_correlation_data"]
             )
-
+            
             output_data.register_file(
                 "Eventrate_timecourse_data.npy",
                 prefix=output_prefix,
-                subdir="Eventrate_timecourse_data",
+                subdir="Eventrate_timecourse_data"
             ).register_preview(
                 "Eventrate_Population_Timecourse.svg",
-                caption=(
-                    "Left panel is the event rate averaged across the entire population. "
-                    "Right panel is the average event rate averaged across the entire "
-                    "population in each epoch. Error bars represent the standard deviation"
-                ),
+                caption="Left panel is the event rate averaged across the entire population. Right panel is the average event rate averaged across the entire population in each epoch. Error bars represent the standard deviation"
             ).register_preview(
                 "Eventrate_Single_Cell_Timecourse.svg",
-                caption=(
-                    "Top panel is the event rate averaged across the entire population. "
-                    "Bottom panel is a raster plot showing the event timestamps of "
-                    "individual cells across the entire recording"
-                ),
+                caption="Top panel is the event rate averaged across the entire population. Bottom panel is a raster plot showing the event timestamps  of individual cells across the entire recording"
             ).register_metadata_dict(
                 **metadata["Eventrate_timecourse_data"]
             )
@@ -569,20 +561,13 @@ def epoch_activity_ideas_wrapper(
             output_data.register_file(
                 "Eventrate_activity_data.csv",
                 prefix=output_prefix,
-                subdir="Eventrate_activity_data",
+                subdir="Eventrate_activity_data"
             ).register_preview(
                 "Population_Eventrate.svg",
-                caption=(
-                    "Average event rate across epochs displayed using a box plot overlaid "
-                    "over a strip plot with lines connecting cells across epochs"
-                ),
+                caption="Average event rate across epochs displayed using a box plot overlaid over a strip plot with lines connecting cells across epochs"
             ).register_preview(
                 "Population_Eventrate_differences.svg",
-                caption=(
-                    "Each row is a histogram of the pairwise difference of event rate "
-                    "between different epochs. On the right of each row is the magnitude "
-                    "of change at each individual cell"
-                ),
+                caption="Each row is a histogram of the pairwise difference of event rate between different epochs. On The right of each row is the magnitude of change at each individual cell"
             ).register_metadata_dict(
                 **metadata["Eventrate_activity_data"]
             )

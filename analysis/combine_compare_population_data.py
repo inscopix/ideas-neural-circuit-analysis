@@ -1,5 +1,3 @@
-"""Combine and compare population-level activity across groups."""
-
 import fnmatch
 import json
 import os
@@ -19,7 +17,6 @@ import pandas as pd
 # )
 
 import utils.config as config
-
 # from toolbox.utils.data_model import (
 #     IdeasFile,
 #     IdeasGroup,
@@ -29,7 +26,6 @@ from ideas.exceptions import IdeasError
 from ideas.tools.log import get_logger
 from ideas.tools.types import IdeasFile
 from ideas.tools import outputs
-
 # from toolbox.utils.output_manifest import save_output_manifest
 
 # Import utilities for this tool
@@ -84,7 +80,11 @@ def _combine_group_data_frames(
         df2_copy["group"] = group2_name
         dfs_to_combine.append(df2_copy)
 
-    return pd.concat(dfs_to_combine, ignore_index=True) if dfs_to_combine else None
+    return (
+        pd.concat(dfs_to_combine, ignore_index=True)
+        if dfs_to_combine
+        else None
+    )
 
 
 def combine_compare_population_data(
@@ -171,10 +171,15 @@ def combine_compare_population_data(
             output_dir = os.getcwd()
         os.makedirs(output_dir, exist_ok=True)
 
+        # Initialize lists for output files
+        output_files = []
+
         # Set default group names first
         group1_name = group1_name or "Group 1"
         group2_name = (
-            group2_name or "Group 2" if group2_population_activity_files else None
+            group2_name or "Group 2"
+            if group2_population_activity_files
+            else None
         )
 
         # Validate group names using centralized validation
@@ -191,7 +196,9 @@ def combine_compare_population_data(
                 logger.info(
                     "Running PAIRED analysis between groups (requires matched samples)"
                 )
-                logger.debug(f"Using '{subject_matching}' method for subject matching")
+                logger.debug(
+                    f"Using '{subject_matching}' method for subject matching"
+                )
             else:
                 logger.info(
                     "Running UNPAIRED analysis between groups (standard comparison)"
@@ -208,7 +215,9 @@ def combine_compare_population_data(
         )
 
         # Validate file groups using centralized function
-        validate_file_group(group1_population_activity_files, "group 1", "activity")
+        validate_file_group(
+            group1_population_activity_files, "group 1", "activity"
+        )
 
         if group1_population_events_files:
             validate_file_group(
@@ -219,7 +228,9 @@ def combine_compare_population_data(
             )
 
         if group2_population_activity_files:
-            validate_file_group(group2_population_activity_files, "group 2", "activity")
+            validate_file_group(
+                group2_population_activity_files, "group 2", "activity"
+            )
 
             if group2_population_events_files:
                 validate_file_group(
@@ -238,12 +249,16 @@ def combine_compare_population_data(
             modulation_colors_list = ["red", "blue"]
 
         # Validate group colors
-        group1_color = validate_colors(group1_color or "blue", color_type="group")[0]
+        group1_color = validate_colors(
+            group1_color or "blue", color_type="group"
+        )[0]
         group_names = [group1_name]
         group_colors = [group1_color]
 
         if group2_population_activity_files:
-            group2_color = validate_colors(group2_color or "red", color_type="group")[0]
+            group2_color = validate_colors(
+                group2_color or "red", color_type="group"
+            )[0]
             group_names.append(group2_name)
             group_colors.append(group2_color)
 
@@ -257,11 +272,18 @@ def combine_compare_population_data(
             )
 
             # Update file lists with matched pairs
-            group1_population_activity_files = [pair[0] for pair in matched_files]
-            group2_population_activity_files = [pair[1] for pair in matched_files]
+            group1_population_activity_files = [
+                pair[0] for pair in matched_files
+            ]
+            group2_population_activity_files = [
+                pair[1] for pair in matched_files
+            ]
 
             # Update event files if present
-            if group1_population_events_files and group2_population_events_files:
+            if (
+                group1_population_events_files
+                and group2_population_events_files
+            ):
                 matched_event_files = match_subjects(
                     group1_files=group1_population_events_files,
                     group2_files=group2_population_events_files,
@@ -289,7 +311,9 @@ def combine_compare_population_data(
         # SINGLE POINT DETECTION: Detect comparison type and baseline state
         # once from first file
         # This ensures consistency throughout the entire analysis pipeline
-        logger.info("Detecting comparison type and " "baseline state from raw data...")
+        logger.info(
+            "Detecting comparison type and " "baseline state from raw data..."
+        )
         first_activity_file = group1_population_activity_files[0]
 
         # Initialize with safe defaults
@@ -298,7 +322,9 @@ def combine_compare_population_data(
 
         try:
             first_df = pd.read_csv(first_activity_file)
-            detected_state_comparison_type = detect_state_comparison_type(first_df)
+            detected_state_comparison_type = detect_state_comparison_type(
+                first_df
+            )
             detected_baseline_state, _, _ = detect_baseline_state(first_df)
 
             # Validate states against user-specified or detected comparison type
@@ -368,7 +394,8 @@ def combine_compare_population_data(
                 s for s in final_validated_states if s != global_baseline_state
             ]
             modulation_state_colors_list = [
-                global_state_color_map.get(s, "#1f77b4") for s in modulation_states
+                global_state_color_map.get(s, "#1f77b4")
+                for s in modulation_states
             ]
             logger.info(
                 "Modulation plot colors (baseline excluded):"
@@ -377,7 +404,8 @@ def combine_compare_population_data(
         else:
             # For non-baseline comparisons, use colors for all validated states
             modulation_state_colors_list = [
-                global_state_color_map.get(s, "#1f77b4") for s in final_validated_states
+                global_state_color_map.get(s, "#1f77b4")
+                for s in final_validated_states
             ]
 
         # For activity plots, use the complete mapping (will be applied during visualization)
@@ -648,23 +676,25 @@ def combine_compare_population_data(
         if group2_population_activity_files is None:
             group2_population_activity_files = []
 
-        if len(group2_population_activity_files) > 1:
+        if (
+            len(group2_population_activity_files) > 1
+        ):
             comparison_metadata = [
                 {
-                    "key": "ideas.data.states",
+                    "key" : "ideas.data.states",
                     "name": "States",
-                    "value": final_validated_states,
+                    "value": final_validated_states
                 },
                 {
-                    "key": "ideas.metrics.total_num_cells_group1",
+                    "key" : "ideas.metrics.total_num_cells_group1",
                     "name": "Number of cells (first group)",
-                    "value": group1_population_md[1]["value"],
+                    "value": group1_population_md[1]["value"]
                 },
                 {
-                    "key": "ideas.metrics.total_num_cells_group2",
+                    "key" : "ideas.metrics.total_num_cells_group2",
                     "name": "Number of cells (second group)",
-                    "value": group2_population_md[1]["value"],
-                },
+                    "value": group2_population_md[1]["value"]
+                }
             ]
             # comparison_metadata = {
             #     config.IDEAS_METADATA_KEY: {
@@ -697,14 +727,14 @@ def combine_compare_population_data(
             # define comparison metadata
             comparison_metadata = [
                 {
-                    "key": "ideas.data.states",
+                    "key" : "ideas.data.states",
                     "name": "States",
-                    "value": final_validated_states,
+                    "value": final_validated_states
                 },
                 {
-                    "key": "ideas.metrics.total_num_cells_group1",
+                    "key" : "ideas.metrics.total_num_cells_group1",
                     "name": "Number of cells (first group)",
-                    "value": group1_population_md[1]["value"],
+                    "value": group1_population_md[1]["value"]
                 },
             ]
             # comparison_metadata = {
@@ -756,12 +786,11 @@ def combine_compare_population_data(
         if act_group1 is not None and not act_group1.empty:
             barplot_filename = os.path.join(
                 output_dir,
-                f"{group1_name}_mean_activity_barplot"
-                f"{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                f"{group1_name}_mean_activity_barplot{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
             )
             # Get actual component states from the data
             component_states = sorted(act_group1["state"].unique())
-            create_boxplot_preview(
+            barplot_success = create_boxplot_preview(
                 data_df=act_group1,
                 col_name="activity",
                 group_name=group1_name,
@@ -777,10 +806,9 @@ def combine_compare_population_data(
             #     barplot_preview = IdeasPreviewFile(
             #         name=f"{group1_name} Mean Activity Barplot",
             #         help=(
-            #             "Box and whisker plot displaying the distribution of mean neural "
-            #             "activity across experimental states for "
-            #             f"{group1_name}. The plot shows median values, quartiles, and "
-            #             "outliers for each state."
+            #             f"Box and whisker plot displaying the distribution of mean neural activity "
+            #             f"across experimental states for {group1_name}. The plot shows "
+            #             f"median values, quartiles, and outliers for each state."
             #         ),
             #         file_path=os.path.abspath(barplot_filename),
             #         file_format=FileFormat.SVG_FILE.value[1],
@@ -790,12 +818,11 @@ def combine_compare_population_data(
         if ev_group1 is not None and not ev_group1.empty:
             barplot_filename = os.path.join(
                 output_dir,
-                f"{group1_name}_mean_event_rate_barplot"
-                f"{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                f"{group1_name}_mean_event_rate_barplot{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
             )
             # Get actual component states from the data
             component_states = sorted(ev_group1["state"].unique())
-            create_boxplot_preview(
+            barplot_success = create_boxplot_preview(
                 data_df=ev_group1,
                 col_name="activity",
                 group_name=group1_name,
@@ -823,12 +850,11 @@ def combine_compare_population_data(
         if act_group2 is not None and not act_group2.empty:
             barplot_filename = os.path.join(
                 output_dir,
-                f"{group2_name}_mean_activity_barplot"
-                f"{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                f"{group2_name}_mean_activity_barplot{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
             )
             # Get actual component states from the data
             component_states = sorted(act_group2["state"].unique())
-            create_boxplot_preview(
+            barplot_success = create_boxplot_preview(
                 data_df=act_group2,
                 col_name="activity",
                 group_name=group2_name,
@@ -844,10 +870,9 @@ def combine_compare_population_data(
             #     barplot_preview = IdeasPreviewFile(
             #         name=f"{group2_name} Mean Activity Barplot",
             #         help=(
-            #             "Box and whisker plot displaying the distribution of mean neural "
-            #             "activity across experimental states for "
-            #             f"{group2_name}. The plot shows median values, quartiles, and "
-            #             "outliers for each state."
+            #             f"Box and whisker plot displaying the distribution of mean neural activity "
+            #             f"across experimental states for {group2_name}. The plot shows "
+            #             f"median values, quartiles, and outliers for each state."
             #         ),
             #         file_path=os.path.abspath(barplot_filename),
             #         file_format=FileFormat.SVG_FILE.value[1],
@@ -861,7 +886,7 @@ def combine_compare_population_data(
             )
             # Get actual component states from the data
             component_states = sorted(ev_group2["state"].unique())
-            create_boxplot_preview(
+            barplot_success = create_boxplot_preview(
                 data_df=ev_group2,
                 col_name="activity",
                 group_name=group2_name,
@@ -899,10 +924,8 @@ def combine_compare_population_data(
             "pairwise_comparisons.csv": comparison_metadata,
         }
         if group2_name:
-            output_metadata[f"population_activity_data_{group2_name}"] = (
-                group2_population_md
-            )
-
+            output_metadata[f"population_activity_data_{group2_name}"] = group2_population_md
+        
         with open(os.path.join(output_dir, "output_metadata.json"), "w") as f:
             json.dump(output_metadata, f, indent=4)
 
@@ -1003,7 +1026,9 @@ def combine_population_data(
                         if not df.empty:
                             event_dataframes.append(df)
                         else:
-                            logger.warning(f"Event activity file {file_path} is empty")
+                            logger.warning(
+                                f"Event activity file {file_path} is empty"
+                            )
                     else:
                         logger.warning(
                             f"Event activity file {file_path} does not exist"
@@ -1032,7 +1057,9 @@ def combine_population_data(
         # ========================================================================
 
         group_prefix = (
-            f"{group_name.replace(' ', '_')}_" if data_pairing == "unpaired" else ""
+            f"{group_name.replace(' ', '_')}_"
+            if data_pairing == "unpaired"
+            else ""
         )
 
         # Log clean subject ID assignment strategy
@@ -1072,7 +1099,10 @@ def combine_population_data(
             population_dataframes[i]["Comparison"] = "trace_activity"
 
             # Ensure the significance threshold is the same for all recordings
-            if significance_threshold is not None and significance_threshold > 0:
+            if (
+                significance_threshold is not None
+                and significance_threshold > 0
+            ):
                 population_dataframes[i] = reclassify_neurons(
                     population_dataframes[i], states, significance_threshold
                 )
@@ -1089,7 +1119,9 @@ def combine_population_data(
                     continue
 
                 event_dataframes[i]["file"] = filename
-                event_dataframes[i]["total_cell_count"] = len(event_dataframes[i])
+                event_dataframes[i]["total_cell_count"] = len(
+                    event_dataframes[i]
+                )
 
                 # CLEAN SUBJECT ID ASSIGNMENT - identical to activity files for consistency
                 # Must match activity files exactly for proper data alignment
@@ -1102,7 +1134,10 @@ def combine_population_data(
                 event_dataframes[i]["Comparison"] = "event_rate"
 
                 # Reclassify neurons based on the specified significance threshold
-                if significance_threshold is not None and significance_threshold > 0:
+                if (
+                    significance_threshold is not None
+                    and significance_threshold > 0
+                ):
                     event_dataframes[i] = reclassify_neurons(
                         event_dataframes[i], states, significance_threshold
                     )
@@ -1130,7 +1165,9 @@ def combine_population_data(
         if event_dataframes:
             try:
                 df_events = pd.concat(event_dataframes, ignore_index=True)
-                df_population = pd.concat([df_activity, df_events], ignore_index=True)
+                df_population = pd.concat(
+                    [df_activity, df_events], ignore_index=True
+                )
                 logger.info(
                     f"Successfully processed {len(event_dataframes)}"
                     f" event data files for {group_name}"
@@ -1154,7 +1191,9 @@ def combine_population_data(
             f"population_activity_data_{group_name}.csv".replace(" ", "_"),
         )
         # Apply cleanup to remove unwanted columns before saving
-        df_population_clean = _cleanup_final_csv_columns(df_population, "mixed")
+        df_population_clean = _cleanup_final_csv_columns(
+            df_population, "mixed"
+        )
         df_population_clean.to_csv(output_population_filename, index=False)
 
         # extract and organize modulation data for downstream analysis
@@ -1169,13 +1208,18 @@ def combine_population_data(
             # Ensure modulation data has total_cell_count information
             if "file" in act_mod_data.columns:
                 act_mod_data = act_mod_data.merge(
-                    df_activity[["file", "total_cell_count"]].drop_duplicates(),
+                    df_activity[
+                        ["file", "total_cell_count"]
+                    ].drop_duplicates(),
                     on="file",
                     how="left",
                 )
                 # Calculate percentage of modulated cells
                 act_mod_data["percent_cells"] = np.round(
-                    (act_mod_data["num_cells"] / act_mod_data["total_cell_count"])
+                    (
+                        act_mod_data["num_cells"]
+                        / act_mod_data["total_cell_count"]
+                    )
                     * 100,
                     2,
                 )
@@ -1196,13 +1240,18 @@ def combine_population_data(
                     and "total_cell_count" in df_events.columns
                 ):
                     ev_mod_data = ev_mod_data.merge(
-                        df_events[["file", "total_cell_count"]].drop_duplicates(),
+                        df_events[
+                            ["file", "total_cell_count"]
+                        ].drop_duplicates(),
                         on="file",
                         how="left",
                     )
                     # Calculate percentage of modulated cells for events
                     ev_mod_data["percent_cells"] = np.round(
-                        (ev_mod_data["num_cells"] / ev_mod_data["total_cell_count"])
+                        (
+                            ev_mod_data["num_cells"]
+                            / ev_mod_data["total_cell_count"]
+                        )
                         * 100,
                         2,
                     )
@@ -1213,7 +1262,9 @@ def combine_population_data(
                         "skipping percentage calculations"
                     )
             except Exception as e:
-                logger.error(f"Error processing event modulation data: {str(e)}")
+                logger.error(
+                    f"Error processing event modulation data: {str(e)}"
+                )
                 raise IdeasError(
                     f"Error processing event modulation data: {str(e)}",
                 )
@@ -1234,18 +1285,24 @@ def combine_population_data(
                 ev_data["group"] = group_name
                 ev_data["group_id"] = group_id
             except Exception as e:
-                logger.warning(f"Error processing event activity data: {str(e)}")
+                logger.warning(
+                    f"Error processing event activity data: {str(e)}"
+                )
 
         # Detect comparison type and baseline state for metadata
         # (Already detected earlier, just use the values)
 
         population_data_metadata = [
-            {"key": "ideas.dataset.states", "name": "States", "value": states},
+            {
+                "key": "ideas.dataset.states",
+                "name": "States",
+                "value": states
+            },
             {
                 "key": "ideas.metrics.total_num_cells",
                 "name": "Number of cells",
-                "value": total_cells,
-            },
+                "value": total_cells
+            }
         ]
 
         # population_data_metadata = {
@@ -1389,8 +1446,8 @@ def calculate_and_plot_stats(
     data_pairing: str,
     significance_threshold: float,
     modulation_colors: Optional[List[str]] = None,
-    group1_population_file=None,
-    group2_population_file=None,
+    group1_population_file = None,
+    group2_population_file = None,
     global_state_comparison_type: Optional[str] = None,
     global_baseline_state: Optional[str] = None,
 ):
@@ -1549,7 +1606,8 @@ def calculate_and_plot_stats(
 
             # Convert state color mapping to list for modulation plots
             modulation_plot_colors = [
-                state_colors.get(state, "#1f77b4") for state in modulation_plot_states
+                state_colors.get(state, "#1f77b4")
+                for state in modulation_plot_states
             ]
 
         plot_combined_modulation_data(
@@ -1589,7 +1647,9 @@ def calculate_and_plot_stats(
                     if " vs " in state:
                         # Extract individual states from pairwise comparison
                         state1, state2 = state.split(" vs ")
-                        activity_states.extend([state1.strip(), state2.strip()])
+                        activity_states.extend(
+                            [state1.strip(), state2.strip()]
+                        )
                     else:
                         activity_states.append(state)
                 # Remove duplicates while preserving order
@@ -1665,7 +1725,9 @@ def calculate_and_plot_stats(
             if not act_aov.empty:
                 aov = pd.concat([aov, act_aov], ignore_index=True)
             if not act_pairwise.empty:
-                pairwise = pd.concat([pairwise, act_pairwise], ignore_index=True)
+                pairwise = pd.concat(
+                    [pairwise, act_pairwise], ignore_index=True
+                )
         else:
             # For multiple groups, calculate group comparison statistics
 
@@ -1689,12 +1751,15 @@ def calculate_and_plot_stats(
 
             # Skip ANOVA pairwise tests - they're redundant with LMM pairwise tests
             logger.info(
-                "Skipping ANOVA pairwise tests " "(redundant with LMM pairwise tests)"
+                "Skipping ANOVA pairwise tests "
+                "(redundant with LMM pairwise tests)"
             )
 
             # Create group comparison visualization using LMM pairwise for plotting
             if group_df is not None and not group_df.empty:
-                anova_type = "rm_anova" if data_pairing == "paired" else "mixed_anova"
+                anova_type = (
+                    "rm_anova" if data_pairing == "paired" else "mixed_anova"
+                )
                 group_anova_filename = os.path.join(
                     output_dir,
                     f"{data_type.lower()}_group_{anova_type}"
@@ -1733,7 +1798,9 @@ def calculate_and_plot_stats(
             if not act_aov.empty:
                 aov = pd.concat([aov, act_aov], ignore_index=True)
             if not act_pairwise.empty:
-                pairwise = pd.concat([pairwise, act_pairwise], ignore_index=True)
+                pairwise = pd.concat(
+                    [pairwise, act_pairwise], ignore_index=True
+                )
 
     return aov, pairwise, preview_files
 
@@ -1932,7 +1999,9 @@ def match_subjects(
         )
         return number
 
-    def create_lookup_dict(files: List[str], method: str) -> Dict[Union[int, str], str]:
+    def create_lookup_dict(
+        files: List[str], method: str
+    ) -> Dict[Union[int, str], str]:
         """Create a lookup dictionary based on the matching method."""
         lookup = {}
         for file in files:
@@ -2032,7 +2101,8 @@ def match_subjects(
 
             # Create pairs of matched files
             matched_pairs = [
-                (group1_dict[name], group2_dict[name]) for name in common_filenames
+                (group1_dict[name], group2_dict[name])
+                for name in common_filenames
             ]
             # Sort by filename for consistency
             matched_pairs.sort(key=lambda x: os.path.basename(x[0]))
@@ -2232,7 +2302,9 @@ def extract_combined_activity_data(
         # Add baseline state if detected and not already in the list
         if baseline_state and baseline_state not in states_for_activity:
             states_for_activity.append(baseline_state)
-            logger.info(f"Added baseline state '{baseline_state}' to activity analysis")
+            logger.info(
+                f"Added baseline state '{baseline_state}' to activity analysis"
+            )
 
         # Also check for any other states in mean activity columns that might have been missed
         # This handles all possible scaling methods from population_activity.py
@@ -2271,7 +2343,9 @@ def extract_combined_activity_data(
             for state in states_for_activity:
                 # Find columns that match the pattern "mean * in {state}"
                 mean_cols = [
-                    c for c in m_df.columns if fnmatch.fnmatch(c, f"mean * in {state}")
+                    c
+                    for c in m_df.columns
+                    if fnmatch.fnmatch(c, f"mean * in {state}")
                 ]
 
                 if not mean_cols:
@@ -2293,7 +2367,11 @@ def extract_combined_activity_data(
 
                 # Extract the unit information from the column name
                 # Remove 'mean ' prefix and ' in {state}' suffix to get the unit
-                unit = mean_col.replace("mean ", "").replace(f" in {state}", "").strip()
+                unit = (
+                    mean_col.replace("mean ", "")
+                    .replace(f" in {state}", "")
+                    .strip()
+                )
 
                 # Create a dictionary with the extracted data
                 # This ensures proper subject identification for statistical analysis
@@ -2318,7 +2396,9 @@ def extract_combined_activity_data(
                 if "subject_id" in m_df.columns:
                     state_data["subject_id"] = m_df["subject_id"]
                 if "normalized_subject_id" in m_df.columns:
-                    state_data["normalized_subject_id"] = m_df["normalized_subject_id"]
+                    state_data["normalized_subject_id"] = m_df[
+                        "normalized_subject_id"
+                    ]
                 if "total_cell_count" in m_df.columns:
                     state_data["total_cell_count"] = m_df["total_cell_count"]
 
@@ -2474,7 +2554,11 @@ def extract_combined_modulation_data(
                         }
 
                         # Add pairwise-specific fields
-                        if state_comparison_type == "pairwise" and state1 and state2:
+                        if (
+                            state_comparison_type == "pairwise"
+                            and state1
+                            and state2
+                        ):
                             record["state1"] = state1
                             record["state2"] = state2
 
@@ -2491,7 +2575,11 @@ def extract_combined_modulation_data(
                         }
 
                         # Add pairwise-specific fields
-                        if state_comparison_type == "pairwise" and state1 and state2:
+                        if (
+                            state_comparison_type == "pairwise"
+                            and state1
+                            and state2
+                        ):
                             raw_mod_record["state1"] = state1
                             raw_mod_record["state2"] = state2
 
@@ -2514,7 +2602,6 @@ def extract_combined_modulation_data(
         raise IdeasError(
             f"Error extracting combined modulation data: {str(e)}",
         )
-
 
 def combine_compare_population_data_ideas_wrapper(
     group1_population_activity_files: List[IdeasFile],
@@ -2607,40 +2694,41 @@ def combine_compare_population_data_ideas_wrapper(
         significance_threshold=significance_threshold,
         multiple_correction=multiple_correction,
         effect_size=effect_size,
-        state_comparison_method=state_comparison_method,
+        state_comparison_method=state_comparison_method
     )
 
     try:
         logger.info("Registering output data")
         metadata = outputs._load_and_remove_output_metadata()
         with outputs.register(raise_missing_file=False) as output_data:
-            anova_type = "rm_anova" if data_pairing == "paired" else "mixed_anova"
+            anova_type = (
+                "rm_anova" if data_pairing == "paired" else "mixed_anova"
+            )
             for group_name in [group1_name, group2_name]:
                 subdir_base = "group1" if group_name == group1_name else "group2"
                 data_types = ["activity", "events"]
-
+                
                 output_file = output_data.register_file(
                     f"population_activity_data_{group_name}.csv",
                     subdir=f"{subdir_base}_population_activity_data",
                 )
                 for md in metadata.get(f"population_activity_data_{group_name}", {}):
-                    output_file.register_metadata(**md)
+                    output_file.register_metadata(**md) 
 
                 for data_type in data_types:
                     output_file.register_preview(
                         f"{data_type}_modulation_distribution_{group_name}.preview.svg",
                         caption=(
-                            "Stacked bar chart displaying the proportion of neurons with "
+                            f"Stacked bar chart displaying the proportion of neurons with "
                             f"increased, decreased, and unchanged {data_type} for each "
                             f"experimental state in the {group_name} group."
                         ),
                     ).register_preview(
-                        f"{group_name}_mean_{data_type}_barplot"
-                        f"{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                        f"{group_name}_mean_{data_type}_barplot{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
                         caption=(
-                            "Box and whisker plot displaying the distribution of mean neural "
-                            f"{data_type} across experimental states for {group1_name}. "
-                            "The plot shows median values, quartiles, and outliers for each state."
+                            f"Box and whisker plot displaying the distribution of mean neural {data_type} "
+                            f"across experimental states for {group1_name}. The plot shows "
+                            f"median values, quartiles, and outliers for each state."
                         ),
                     )
 
@@ -2651,15 +2739,14 @@ def combine_compare_population_data_ideas_wrapper(
                 )
                 for md in metadata.get(output_name, {}):
                     output_file.register_metadata(**md)
-
+                
                 for data_type in data_types:
                     output_file.register_preview(
-                        f"{data_type}_modulation_distribution"
-                        f"{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                        f"{data_type}_modulation_distribution{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
                         caption=(
-                            "Stacked bar chart displaying the proportion of neurons with "
+                            f"Stacked bar chart displaying the proportion of neurons with "
                             f"increased, decreased, and unchanged {data_type} for each "
-                            f"experimental state across {group1_name}, {group2_name} groups."
+                            f"experimental state across {group1_name}, {group2_name}  groups."
                         ),
                     ).register_preview(
                         f"{data_type}_state_lmm{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
@@ -2676,7 +2763,7 @@ def combine_compare_population_data_ideas_wrapper(
                             f"of Variance (ANOVA). The plot shows group differences with "
                             f"mean values, error bars, and individual data points."
                         ),
-                    )
+                    )  
 
         logger.info("Registered output data")
     except Exception:

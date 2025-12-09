@@ -1,5 +1,3 @@
-"""General utility functions and enums for IDEAS analyses."""
-
 import ast
 import json
 import logging
@@ -28,7 +26,7 @@ DIVISION_THRESHOLD = 1e-10
 
 
 def get_num_cells_by_status(cellset_filename: str):
-    """Count the number of cells for each cell status."""
+    """Count the number of cells for each cell status"""
     cell_set = isx.CellSet.read(cellset_filename)
 
     num_accepted_cells = 0
@@ -46,9 +44,9 @@ def get_num_cells_by_status(cellset_filename: str):
 
     return num_accepted_cells, num_undecided_cells, num_rejected_cells
 
-
 class Metric(Enum):
-    """Metric definitions used throughout the toolbox.
+    """Metric is an enumeration that defines various types of metrics used in
+    the toolbox.
 
     :Attributes
         TRACE_ACTIVITY (str): Represents the trace activity metric.
@@ -64,8 +62,8 @@ class Metric(Enum):
 
 
 class Rescale(Enum):
-    """Rescale methods used in the toolbox.
-
+    """Rescale is an enumeration that defines various
+    types of rescaling methods used in the toolbox.
     :Attributes
         NONE (str): Represents no rescaling.
         NORMALIZE (str): Represents normalization rescaling.
@@ -85,7 +83,6 @@ class Rescale(Enum):
 
 class Comp(Enum):
     """Comp is an enumeration class that defines different types of comparisons.
-
     :Attributes
         NOT_STATE (str): Represents a comparison between a state and a non-state.
         NOT_DEFINED (str): Represents a comparison between a state and an undefined state.
@@ -132,8 +129,7 @@ def _save_experiment_annotations_preview_and_metadata(
     top_n_states: int = 10,
 ) -> None:
     """Save a preview of an experiment annotations dataframe to a SVG file.
-
-    By default the top ten most common states are shown on a bar chart.
+       By default the top ten most common states are shown on a bar chart.
 
     :param df: input dataframe from which to extract a preview
     :param output_preview_filename: path to the output json file
@@ -211,9 +207,9 @@ def _get_cellset_data(
     tolerance: float = 1e-6,
     concat: bool = True,
 ):
-    """Get traces for non-rejected neurons.
-
-    Traces with NaNs in them are automatically marked as rejected.
+    """Get traces for non-rejected neurons
+    traces with NaNs in them are automatically marked
+    as a rejected
     """
     traces = io.cell_set_to_traces(
         files=cell_set_files,
@@ -302,7 +298,7 @@ def _check_states_valid(
     behavior: pd.DataFrame,
     column_name: str,
 ):
-    """Check that states are valid and column names are present."""
+    """Check that states are valid, column names are valid, etc"""
     valid_states = list(behavior[column_name].unique())
 
     if column_name not in behavior:
@@ -349,12 +345,16 @@ def _norm_2D_array(array):
 
 
 def _standardize_2D_array(array):
-    """Standardize a 2D array to zero mean and unit variance."""
+    """Standardize a 2D array to have a mean of 0 and a standard deviation of
+    1.
+    """
     return (array - np.nanmean(array, axis=0)) / np.nanstd(array, axis=0)
 
 
 def _fractional_change_2D_array(array, epochs, period):
-    """Calculate fractional change in the array compared to the first epoch."""
+    """Calculate the fractional change in the array compared to the first epoch
+    defined.
+    """
     # Convert the period to an
     # make the array non-negative by adding the minimum value
     array += np.abs(np.nanmin(array))
@@ -407,7 +407,8 @@ def _standardize_baseline(traces, behavior, column_name, baseline_state):
 def _process_files(
     files: List[str], data_type: str, df: pd.DataFrame, epoch_names: List[str]
 ) -> pd.DataFrame:
-    """Process files, validate their content, and merge into a single DataFrame.
+    """Process a list of files, validates their content, and merges them into
+    a single DataFrame.
 
     :Args
         files (List[str]): List of file paths to be processed.
@@ -493,7 +494,8 @@ def _combine_data(
     epoch_names: List[str],
     metadata: dict,
 ):
-    """Combine trace and event data from multiple CSV files into two DataFrames.
+    """Combine trace and event data from multiple CSV files into two
+    DataFrames.
 
     :Args
         traces (List[str]): List of file paths to trace CSV files.
@@ -576,8 +578,12 @@ def _combine_data(
                     pos_vals = vals[vals > 0]
                     neg_vals = vals[vals < 0]
 
-                    avg_pos_corr = np.nanmean(pos_vals) if len(pos_vals) > 0 else np.nan
-                    avg_neg_corr = np.nanmean(neg_vals) if len(neg_vals) > 0 else np.nan
+                    avg_pos_corr = (
+                        np.nanmean(pos_vals) if len(pos_vals) > 0 else np.nan
+                    )
+                    avg_neg_corr = (
+                        np.nanmean(neg_vals) if len(neg_vals) > 0 else np.nan
+                    )
 
                     temp_df = pd.DataFrame(
                         {
@@ -592,7 +598,9 @@ def _combine_data(
                     # drop columns with all-NA entries in corr_data
                     corr_data = corr_data.dropna(axis="columns", how="all")
                     # add the data to the dataframe
-                    corr_data = pd.concat([corr_data, temp_df], ignore_index=True)
+                    corr_data = pd.concat(
+                        [corr_data, temp_df], ignore_index=True
+                    )
             except Exception as e:
                 logger.warning(
                     f"Error processing correlation file {corr_file}: {str(e)}"
@@ -625,7 +633,9 @@ def _epoch_time_to_index(epochs, period):
     :Returns
     list: A list of indices corresponding to the converted epoch time.
     """
-    return [(int((epoch[0] / period)), int(epoch[1] / period)) for epoch in epochs]
+    return [
+        (int((epoch[0] / period)), int(epoch[1] / period)) for epoch in epochs
+    ]
 
 
 @beartype
@@ -633,7 +643,7 @@ def event_set_to_events(
     files: Union[str, List[str]],  # , flush_concatenate: bool = True
 ):
     # -> (NumpyFloat2DArray, NumpyFloatVector):
-    """Read event set file and get all offsets and amplitudes.
+    """Read event set file and get all offsets and amplitudes
 
     :Returns
     - all_offsets: list (length of num cells) of lists (length of num events) of offsets
@@ -677,7 +687,9 @@ def event_set_to_events(
                 all_offsets[i].extend(offsets.tolist())
                 all_amplitudes[i].extend(amplitudes.tolist())
         # update the time offset
-        time_offset += eventset.timing.num_samples * eventset.timing.period.secs_float
+        time_offset += (
+            eventset.timing.num_samples * eventset.timing.period.secs_float
+        )
 
     return all_offsets, all_amplitudes
 
@@ -708,7 +720,9 @@ def estimate_svg_size(fig) -> int:
     for ax in fig.get_axes():
         # Check for mesh/collection objects (used for correlation matrices)
         for collection in ax.collections:
-            if isinstance(collection, QuadMesh) and hasattr(collection, "_coordinates"):
+            if isinstance(collection, QuadMesh) and hasattr(
+                collection, "_coordinates"
+            ):
                 mesh_shape = collection._coordinates.shape
                 if len(mesh_shape) >= 3:
                     cell_count = (mesh_shape[0] - 1) * (mesh_shape[1] - 1)
@@ -720,9 +734,13 @@ def estimate_svg_size(fig) -> int:
                     num_segments = len(collection.get_segments())
                     # Each segment has a start and end point,
                     # but complexity might scale with segment count
-                    estimated_size += num_segments * LINECOLLECTION_SEGMENT_FACTOR
+                    estimated_size += (
+                        num_segments * LINECOLLECTION_SEGMENT_FACTOR
+                    )
                 except Exception as e:
-                    logger.warning(f"Could not get segments from LineCollection: {e}")
+                    logger.warning(
+                        f"Could not get segments from LineCollection: {e}"
+                    )
             elif isinstance(collection, PolyCollection):
                 # Estimate complexity for PolyCollection (e.g., hexbin plots, scatter plots)
                 try:
@@ -731,7 +749,9 @@ def estimate_svg_size(fig) -> int:
                     # Each polygon can have multiple vertices, complexity scales with polygon count
                     estimated_size += num_polygons * POLYCOLLECTION_FACTOR
                 except Exception as e:
-                    logger.warning(f"Could not get paths from PolyCollection: {e}")
+                    logger.warning(
+                        f"Could not get paths from PolyCollection: {e}"
+                    )
             elif hasattr(collection, "get_offsets"):
                 # PathCollection (scatter plots) - detect by presence of get_offsets method
                 try:
@@ -739,7 +759,9 @@ def estimate_svg_size(fig) -> int:
                     # Each scatter point becomes an SVG element, complexity scales with point count
                     estimated_size += num_points * SCATTER_POINT_FACTOR
                 except Exception as e:
-                    logger.warning(f"Could not get offsets from scatter plot: {e}")
+                    logger.warning(
+                        f"Could not get offsets from scatter plot: {e}"
+                    )
 
     return estimated_size
 
@@ -785,7 +807,9 @@ def save_optimized_svg(
             fig.set_layout_engine("constrained")
         except Exception:
             # If all layout options fail, proceed without layout optimization
-            logger.debug("Layout optimization skipped due to incompatible axes")
+            logger.debug(
+                "Layout optimization skipped due to incompatible axes"
+            )
             pass
 
     # Estimate the size using the extracted function
@@ -826,7 +850,9 @@ def save_optimized_svg(
                     continue
 
                 if hasattr(artist, "set_rasterized"):
-                    if isinstance(artist, Collection) or isinstance(artist, AxesImage):
+                    if isinstance(artist, Collection) or isinstance(
+                        artist, AxesImage
+                    ):
                         artist.set_rasterized(True)
 
         # Save with rasterization
@@ -857,7 +883,10 @@ def _validate_epochs_param(
     epochs: Optional[Union[list, str]],
     define_epochs_by: str,
 ) -> str:
-    """Normalize the epochs parameter to a string representation."""
+    """Validate epochs parameter by ensuring it is a string. When defining
+    epochs by local file time, the list of lists of tuples is interpreted
+    as a list i.o. a string by BE, hence the need for this present function.
+    """
     # if epochs is a list, reformat it properly as a list of lists
     # (one per input cell set) of tuples (one per epoch)
     if isinstance(epochs, list):
@@ -895,7 +924,9 @@ def _redefine_epochs(
     epochs: str,
     boundaries: List[int],
 ) -> str:
-    """Redefine epochs using cell set boundaries or elapsed global time."""
+    """Redefine epochs, either by setting one epoch per input cell set, or by
+    adding elapsed global time to epochs defined in local file time.
+    """
     if define_epochs_by in ["files", "local file time"]:
         # map epochs to cellsets
         if define_epochs_by == "files":
@@ -933,9 +964,13 @@ def _get_cellset_boundaries(
     cell_set_files,
     period,
 ):
-    """Get temporal boundaries between cellsets in seconds."""
+    """Get a list of temporal boundaries between cellsets,
+    including 0 and last global time point, in seconds.
+    """
     # get cellset lengths; cs stands for cellset
-    cs_length_list = [isx.CellSet.read(x).timing.num_samples for x in cell_set_files]
+    cs_length_list = [
+        isx.CellSet.read(x).timing.num_samples for x in cell_set_files
+    ]
 
     # get cumulative cellset lengths
     cumul_cs_length_list = np.cumsum([0] + cs_length_list)
@@ -950,7 +985,7 @@ def _get_cellset_boundaries(
 def remove_unsupported_characters(
     input_string: str, unsupported_chars=["$"], placeholder_char="�"
 ):
-    """Remove unsupported characters from a string and replace them with a placeholder.
+    """Remove unsupported characters from a given string and replace them for a placeholder character.
 
     :param input_string: string from which to remove unsupported characters
     :param unsupported_chars: list of characters to remove
@@ -965,10 +1000,8 @@ def remove_unsupported_characters(
             )
     return output_string
 
-
 def compute_end_time(timing_info):
     """Compute end time of an isxd file.
-
     :param isxd_timing_info: json object containing isxd timing information
     :return: end time json object of the form
              {
@@ -997,7 +1030,6 @@ def compute_end_time(timing_info):
 
 def validate_cellset_series_compatibility(input_files):
     """Validate that input files form a valid series.
-
     :param input_files: list of paths to isxd cell set files
     :return: True if files form a valid cell set series, False otherwise
     """
@@ -1008,7 +1040,9 @@ def validate_cellset_series_compatibility(input_files):
     first_cell_set = isx.CellSet.read(input_files[0])
     first_cell_set_metadata = read_isxd_metadata(input_files[0])
     num_cells = first_cell_set.num_cells
-    cell_statuses = [first_cell_set.get_cell_status(i) for i in range(num_cells)]
+    cell_statuses = [
+        first_cell_set.get_cell_status(i) for i in range(num_cells)
+    ]
     del first_cell_set
 
     # ensure cell set contains at least 1 cell
@@ -1020,7 +1054,9 @@ def validate_cellset_series_compatibility(input_files):
     # initialize series timing and spacing info to those of first cell set
     series_spacing_info = first_cell_set_metadata["spacingInfo"]
     series_timing_info = first_cell_set_metadata["timingInfo"]
-    series_timing_info["end"] = compute_end_time(first_cell_set_metadata["timingInfo"])
+    series_timing_info["end"] = compute_end_time(
+        first_cell_set_metadata["timingInfo"]
+    )
 
     # loop over all other cell sets and ensure they can be combined into a series
     for f in input_files[1:]:
@@ -1036,7 +1072,8 @@ def validate_cellset_series_compatibility(input_files):
 
         # ensure cell statuses match across input files
         isxd_cell_statuses = [
-            isxd_cell_set.get_cell_status(i) for i in range(isxd_cell_set.num_cells)
+            isxd_cell_set.get_cell_status(i)
+            for i in range(isxd_cell_set.num_cells)
         ]
         if isxd_cell_statuses != cell_statuses:
             raise IdeasError(

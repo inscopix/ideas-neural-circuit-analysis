@@ -1,5 +1,3 @@
-"""Statistical helper functions for IDEAS analyses."""
-
 from scipy import stats
 from typing import List
 import pingouin as pg
@@ -86,8 +84,7 @@ def is_normal(
             parametric = False
     except Exception as e:
         logger.warning(
-            "An error occurred during the normality test: "
-            f"{str(e)}. Defaulting to non-parametric tests."
+            f"An error occurred during the normality test: {str(e)}. Defaulting to non-parametric tests."
         )
         parametric = False
     return parametric
@@ -130,12 +127,18 @@ def statistically_compare_two_groups(
     else:
         if paired:
             # non-parametric test for paired data
-            logger.info("Performing Wilcoxon signed-rank test (non-parametric, paired)")
-            df = pg.wilcoxon(x=x, y=y, alternative=alternative, nan_policy="omit")
+            logger.info(
+                "Performing Wilcoxon signed-rank test (non-parametric, paired)"
+            )
+            df = pg.wilcoxon(
+                x=x, y=y, alternative=alternative, nan_policy="omit"
+            )
             test = "Wilcoxon signed-rank test"
         else:
             # non-parametric test for unpaired data
-            logger.info("Performing Mann–Whitney U test (non-parametric, unpaired)")
+            logger.info(
+                "Performing Mann–Whitney U test (non-parametric, unpaired)"
+            )
             df = pg.mwu(x=x, y=y, alternative=alternative, nan_policy="omit")
             test = "Mann–Whitney U test"
 

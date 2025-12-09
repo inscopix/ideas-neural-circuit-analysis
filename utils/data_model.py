@@ -21,17 +21,19 @@ def generate_unique_id():
 
 
 class MetadataInstruction(Enum):
-    """Metadata instructions."""
+    """Metadata instructions"""
 
     ADD = 1, "add"
     INHERIT = 2, "inherit"
 
 
 class IdeasPreviewFile:
-    """Individual preview file."""
+    """Individual preview file"""
 
-    def __init__(self, name, help, file_path, file_format, order=None, data_files=None):
-        """Construct preview file."""
+    def __init__(
+        self, name, help, file_path, file_format, order=None, data_files=None
+    ):
+        """Construct preview file"""
         self.name = name
         self.help = help
         self.file_path = file_path
@@ -40,7 +42,7 @@ class IdeasPreviewFile:
         self.data_files = data_files
 
     def to_dict(self):
-        """Convert preview file to a dictionary representation."""
+        """Convert preview file to a dictionary representation"""
         d = {
             "name": self.name,
             "help": self.help,
@@ -58,16 +60,16 @@ class IdeasPreviewFile:
 
 
 class IdeasMetadataFile:
-    """Individual metadata file."""
+    """Individual metadata file"""
 
     def __init__(self, file_path, file_format, metadata_type):
-        """Construct metadata file."""
+        """Construct metadata file"""
         self.file_path = file_path
         self.file_format = file_format
         self.metadata_type = metadata_type
 
     def to_dict(self):
-        """Convert metadata file to a dictionary representation."""
+        """Convert metadata file to a dictionary representation"""
         return {
             "file_path": self.file_path,
             "file_format": self.file_format,
@@ -76,7 +78,7 @@ class IdeasMetadataFile:
 
 
 class IdeasSeries:
-    """Individual series."""
+    """Individual series"""
 
     def __init__(
         self,
@@ -87,7 +89,7 @@ class IdeasSeries:
         add_metadata=None,
         inherit_metadata=None,
     ):
-        """Construct series on IDEAS."""
+        """Construct series on IDEAS"""
         self.series_key = series_key
         self.series_type = series_type
         self.series_id = generate_unique_id()
@@ -115,19 +117,26 @@ class IdeasSeries:
             ),
         }
 
-        if "ideas" not in self.series_metadata[MetadataInstruction.ADD.value[1]]:
-            self.series_metadata[MetadataInstruction.ADD.value[1]]["ideas"] = {}
+        if (
+            "ideas"
+            not in self.series_metadata[MetadataInstruction.ADD.value[1]]
+        ):
+            self.series_metadata[MetadataInstruction.ADD.value[1]][
+                "ideas"
+            ] = {}
 
         if (
             "dataset"
-            not in self.series_metadata[MetadataInstruction.ADD.value[1]]["ideas"]
+            not in self.series_metadata[MetadataInstruction.ADD.value[1]][
+                "ideas"
+            ]
         ):
             self.series_metadata[MetadataInstruction.ADD.value[1]]["ideas"][
                 "dataset"
             ] = {}
 
     def to_dict(self):
-        """Convert series to a dictionary representation."""
+        """Convert series to a dictionary representation"""
         d = {
             "series_key": self.series_key,
             "series_name": self.series_name,
@@ -145,7 +154,7 @@ class IdeasSeries:
 
 
 class IdeasFile:
-    """Individual file."""
+    """Individual file"""
 
     def __init__(
         self,
@@ -162,7 +171,7 @@ class IdeasFile:
         add_metadata=None,
         inherit_metadata=None,
     ):
-        """Construct file on IDEAS."""
+        """Construct file on IDEAS"""
         self.file_key = file_key
         self.file_name = os.path.basename(file_path)
         self.file_id = generate_unique_id()
@@ -191,23 +200,25 @@ class IdeasFile:
             self.file_metadata[MetadataInstruction.ADD.value[1]]["ideas"] = {}
         if (
             "dataset"
-            not in self.file_metadata[MetadataInstruction.ADD.value[1]]["ideas"]
+            not in self.file_metadata[MetadataInstruction.ADD.value[1]][
+                "ideas"
+            ]
         ):
             self.file_metadata[MetadataInstruction.ADD.value[1]]["ideas"][
                 "dataset"
             ] = {}
-        self.file_metadata[MetadataInstruction.ADD.value[1]]["ideas"]["dataset"][
-            "file_type"
-        ] = self.file_type
-        self.file_metadata[MetadataInstruction.ADD.value[1]]["ideas"]["dataset"][
-            "file_format"
-        ] = self.file_format
-        self.file_metadata[MetadataInstruction.ADD.value[1]]["ideas"]["dataset"][
-            "file_structure"
-        ] = self.file_structure
+        self.file_metadata[MetadataInstruction.ADD.value[1]]["ideas"][
+            "dataset"
+        ]["file_type"] = self.file_type
+        self.file_metadata[MetadataInstruction.ADD.value[1]]["ideas"][
+            "dataset"
+        ]["file_format"] = self.file_format
+        self.file_metadata[MetadataInstruction.ADD.value[1]]["ideas"][
+            "dataset"
+        ]["file_structure"] = self.file_structure
 
     def to_dict(self):
-        """Convert file to a dictionary representation."""
+        """Convert file to a dictionary representation"""
         d = {
             "file_key": self.file_key,
             "file_name": self.file_name,
@@ -235,7 +246,7 @@ class IdeasFile:
 
 
 class IdeasGroup:
-    """Collection of objects and files."""
+    """Collection of objects and files"""
 
     def __init__(
         self,
@@ -246,7 +257,7 @@ class IdeasGroup:
         add_metadata=None,
         inherit_metadata=None,
     ):
-        """Construct group on IDEAS."""
+        """Construct group on IDEAS"""
         self.group_key = group_key
         self.group_type = group_type
         self.group_id = generate_unique_id()
@@ -271,21 +282,26 @@ class IdeasGroup:
             ),
         }
 
-        if "ideas" not in self.group_metadata[MetadataInstruction.ADD.value[1]]:
+        if (
+            "ideas"
+            not in self.group_metadata[MetadataInstruction.ADD.value[1]]
+        ):
             self.group_metadata[MetadataInstruction.ADD.value[1]]["ideas"] = {}
         if (
             "dataset"
-            not in self.group_metadata[MetadataInstruction.ADD.value[1]]["ideas"]
+            not in self.group_metadata[MetadataInstruction.ADD.value[1]][
+                "ideas"
+            ]
         ):
             self.group_metadata[MetadataInstruction.ADD.value[1]]["ideas"][
                 "dataset"
             ] = {}
-        self.group_metadata[MetadataInstruction.ADD.value[1]]["ideas"]["dataset"][
-            "group_type"
-        ] = self.group_type
+        self.group_metadata[MetadataInstruction.ADD.value[1]]["ideas"][
+            "dataset"
+        ]["group_type"] = self.group_type
 
     def to_dict(self):
-        """Convert group to a dictionary representation."""
+        """Convert group to a dictionary representation"""
         d = {
             "group_key": self.group_key,
             "group_type": self.group_type,
@@ -323,7 +339,7 @@ class IdeasGroup:
 
 
 class IdeasObject:
-    """Collection of files."""
+    """Collection of files"""
 
     def __init__(
         self,
@@ -334,7 +350,7 @@ class IdeasObject:
         add_metadata=None,
         inherit_metadata=None,
     ):
-        """Construct object on IDEAS."""
+        """Construct object on IDEAS"""
         self.object_key = object_key
         self.object_type = object_type
         self.object_id = generate_unique_id()
@@ -357,18 +373,25 @@ class IdeasObject:
             ),
         }
 
-        if "ideas" not in self.object_metadata[MetadataInstruction.ADD.value[1]]:
-            self.object_metadata[MetadataInstruction.ADD.value[1]]["ideas"] = {}
+        if (
+            "ideas"
+            not in self.object_metadata[MetadataInstruction.ADD.value[1]]
+        ):
+            self.object_metadata[MetadataInstruction.ADD.value[1]][
+                "ideas"
+            ] = {}
         if (
             "dataset"
-            not in self.object_metadata[MetadataInstruction.ADD.value[1]]["ideas"]
+            not in self.object_metadata[MetadataInstruction.ADD.value[1]][
+                "ideas"
+            ]
         ):
             self.object_metadata[MetadataInstruction.ADD.value[1]]["ideas"][
                 "dataset"
             ] = {}
-        self.object_metadata[MetadataInstruction.ADD.value[1]]["ideas"]["dataset"][
-            "object_type"
-        ] = self.object_type
+        self.object_metadata[MetadataInstruction.ADD.value[1]]["ideas"][
+            "dataset"
+        ]["object_type"] = self.object_type
 
         # set object name
         if object_files and len(object_files) == 1 and not is_series:
@@ -385,7 +408,7 @@ class IdeasObject:
             self.object_name = object_key
 
     def to_dict(self):
-        """Convert object to a dictionary representation."""
+        """Convert object to a dictionary representation"""
         d = {
             "object_key": self.object_key,
             "object_name": self.object_name,
@@ -397,6 +420,8 @@ class IdeasObject:
             d["is_series"] = self.is_series
 
         if self.object_data is not None and len(self.object_data) != 0:
-            d["object_data"] = [f.to_dict() for fid, f in self.object_data.items()]
+            d["object_data"] = [
+                f.to_dict() for fid, f in self.object_data.items()
+            ]
 
         return d

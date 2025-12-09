@@ -1,5 +1,3 @@
-"""Utility helpers for combining and comparing population-level data."""
-
 import logging
 import warnings
 import traceback
@@ -30,7 +28,9 @@ from utils.statistical_formatting import (
     _standardize_anova_output,
 )
 
-warnings.filterwarnings("ignore", message="Group .* has less than .* valid samples")
+warnings.filterwarnings(
+    "ignore", message="Group .* has less than .* valid samples"
+)
 
 DEFAULT_SIGNIFICANCE_THRESHOLD = 0.05
 logger = logging.getLogger(__name__)
@@ -63,7 +63,9 @@ def _compute_effect_sizes(
                         )
                         / (len(state1_data) + len(state2_data) - 2)
                     )
-                    cohens_d = (state2_data.mean() - state1_data.mean()) / pooled_std
+                    cohens_d = (
+                        state2_data.mean() - state1_data.mean()
+                    ) / pooled_std
                     state_mask = lmm_result["Source"].str.contains(
                         "state", case=False, na=False
                     )
@@ -77,7 +79,9 @@ def _compute_effect_sizes(
                     df = float(row["df2"])
                     if df > 0:
                         partial_eta_sq = (t_val**2) / (t_val**2 + df)
-                        lmm_result.loc[idx, "partial_eta_squared"] = partial_eta_sq
+                        lmm_result.loc[
+                            idx, "partial_eta_squared"
+                        ] = partial_eta_sq
                 except (ValueError, TypeError):
                     continue
 
@@ -174,7 +178,9 @@ def _validate_statistical_power(df, subject_column, measure_name):
         warnings.append(f"Insufficient subjects ({n_subjects}) for analysis")
         return True, "; ".join(warnings)
     elif n_subjects < 3:
-        warnings.append(f"Low subject count ({n_subjects}) - interpret with caution")
+        warnings.append(
+            f"Low subject count ({n_subjects}) - interpret with caution"
+        )
     elif n_subjects < 5:
         warnings.append(
             f"Moderate subject count ({n_subjects}) - limited generalizability"
@@ -230,7 +236,9 @@ def _improve_degrees_of_freedom(model_result, data, subject_column):
         effective_df = max(2, n_subjects - n_params)
 
         if effective_df < 5:
-            logger.debug(f"Low degrees of freedom ({effective_df}) - reduced precision")
+            logger.debug(
+                f"Low degrees of freedom ({effective_df}) - reduced precision"
+            )
 
         logger.debug(
             f"Improved DF calculation: {effective_df} (from {n_subjects} subjects)"
@@ -266,7 +274,9 @@ def _fit_simple_poisson_glmm(df, formula, subject_column, dv):
         avg_data[dv] = np.maximum(avg_data[dv], 0)
         simplified_formula = formula.split("|")[0].strip()
 
-        model = GLM.from_formula(simplified_formula, data=avg_data, family=Poisson())
+        model = GLM.from_formula(
+            simplified_formula, data=avg_data, family=Poisson()
+        )
         result = model.fit()
 
         logger.info("Poisson GLM fitted successfully for count data")
@@ -334,7 +344,9 @@ def calculate_state_lmm_stats(
 
         # Enhanced input validation
         required_columns = ["state", "normalized_subject_id"]
-        missing_columns = [col for col in required_columns if col not in df.columns]
+        missing_columns = [
+            col for col in required_columns if col not in df.columns
+        ]
         if missing_columns:
             logger.error(
                 f"Missing required columns for {measure_name} LMM: {missing_columns}"
@@ -527,7 +539,9 @@ def calculate_state_lmm_stats(
 
                 pairwise_result = _add_pairing_columns(
                     pairwise_result,
-                    state_comparison_type="state" if has_single_group else "mixed",
+                    state_comparison_type="state"
+                    if has_single_group
+                    else "mixed",
                     data_pairing=data_pairing,
                 )
 
@@ -571,9 +585,7 @@ def calculate_state_lmm_stats(
                         f"statistical concerns - see warnings"
                     )
                 else:
-                    combined_notes = (
-                        "Results generated with statistical concerns - see warnings"
-                    )
+                    combined_notes = "Results generated with statistical concerns - see warnings"
                 lmm_result["analysis_notes"] = combined_notes
 
         return lmm_result, pairwise_result
@@ -676,15 +688,23 @@ def calculate_group_anova_stats(
             return pd.DataFrame(), pd.DataFrame(), group_df
 
     except Exception as e:
-        logger.error(f"Error in data preparation: {type(e).__name__}: {str(e)}")
+        logger.error(
+            f"Error in data preparation: {type(e).__name__}: {str(e)}"
+        )
         return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
     # Check if we have groups to compare - do this outside try block so IdeasError propagates
     if "group" not in group_df.columns or group_df["group"].nunique() < 2:
         # Check if this is a single state scenario
         if len(states) == 1 or group_df["state"].nunique() == 1:
-            state_name = group_df["state"].iloc[0] if not group_df.empty else "unknown"
-            n_groups = group_df["group"].nunique() if "group" in group_df.columns else 0
+            state_name = (
+                group_df["state"].iloc[0] if not group_df.empty else "unknown"
+            )
+            n_groups = (
+                group_df["group"].nunique()
+                if "group" in group_df.columns
+                else 0
+            )
             n_subjects = (
                 group_df["normalized_subject_id"].nunique()
                 if "normalized_subject_id" in group_df.columns
@@ -706,7 +726,9 @@ def calculate_group_anova_stats(
         n_states = group_df["state"].nunique()
         if n_states == 1:
             # Single state, multiple groups - use simple group comparison
-            logger.info("Single state detected - performing direct group comparison")
+            logger.info(
+                "Single state detected - performing direct group comparison"
+            )
             return _handle_single_state_group_comparison(
                 group_df=group_df,
                 correction=correction,
@@ -771,7 +793,9 @@ def calculate_group_anova_stats(
         # Add basic metadata
         if not aov_df.empty:
             aov_df["Comparison"] = (
-                measure_name.capitalize() if measure_name else "Group Comparison"
+                measure_name.capitalize()
+                if measure_name
+                else "Group Comparison"
             )
             aov_df["Measure"] = measure_name
             aov_df["state_comparison_type"] = "group"
@@ -784,7 +808,9 @@ def calculate_group_anova_stats(
 
         if not pairwise_df.empty:
             pairwise_df["Comparison"] = (
-                measure_name.capitalize() if measure_name else "Group Comparison"
+                measure_name.capitalize()
+                if measure_name
+                else "Group Comparison"
             )
             pairwise_df["Measure"] = measure_name
             pairwise_df["state_comparison_type"] = "group"
@@ -834,9 +860,9 @@ def calculate_group_anova_stats(
             # Only add warnings to ANOVA results (not pairwise) to match LMM approach
             if not aov_df.empty:
                 aov_df["statistical_warnings"] = warning_text
-                aov_df["analysis_notes"] = (
-                    "Results generated with statistical concerns - see warnings"
-                )
+                aov_df[
+                    "analysis_notes"
+                ] = "Results generated with statistical concerns - see warnings"
 
             # Don't add warnings to pairwise results anymore - they go to ANOVA CSV via aov_df
 
@@ -939,7 +965,9 @@ def _calculate_subject_averages(
 
         logger.debug(f"Grouping by: {group_cols}")
 
-        averaged_df = df.groupby(group_cols, observed=True).agg(agg_dict).reset_index()
+        averaged_df = (
+            df.groupby(group_cols, observed=True).agg(agg_dict).reset_index()
+        )
         averaged_df["is_averaged"] = True
 
         if (
@@ -976,7 +1004,9 @@ def detect_state_comparison_type(df: pd.DataFrame) -> str:
             "Cannot detect comparison type: Empty dataframe provided",
         )
 
-    modulation_columns = [col for col in df.columns if "modulation scores in " in col]
+    modulation_columns = [
+        col for col in df.columns if "modulation scores in " in col
+    ]
 
     if not modulation_columns:
         raise IdeasError(
@@ -1075,14 +1105,20 @@ def validate_states_by_state_comparison_type(
                 ):
                     validated_states.append(pair)
         else:
-            validated_states = [s for s in requested_states if s in available_states]
+            validated_states = [
+                s for s in requested_states if s in available_states
+            ]
     elif state_comparison_type == "state_vs_baseline" and baseline_state:
         validated_states = [
-            s for s in requested_states if s != baseline_state and s in mod_states
+            s
+            for s in requested_states
+            if s != baseline_state and s in mod_states
         ]
     else:
         available_states = [s for s in mod_states if " vs " not in s]
-        validated_states = [s for s in requested_states if s in available_states]
+        validated_states = [
+            s for s in requested_states if s in available_states
+        ]
 
     if not validated_states:
         raise IdeasError(
@@ -1131,7 +1167,9 @@ def validate_user_specified_comparison_method(
 
     # First, detect what the data actually contains
     detected_comparison_type = detect_state_comparison_type(df)
-    detected_baseline_state, mod_states, mean_states = detect_baseline_state(df)
+    detected_baseline_state, mod_states, mean_states = detect_baseline_state(
+        df
+    )
 
     # Handle "state_vs_not_defined" as an alias for "state_vs_not_state"
     # These represent different conceptual analyses, but the input data
@@ -1329,9 +1367,7 @@ def _perform_lmm_analysis(
 
         # Use module-level deduplication for LMM data structure
 
-        structure_key = (
-            f"lmm_structure_{n_subjects}_{n_observations}_{has_nested_structure}"
-        )
+        structure_key = f"lmm_structure_{n_subjects}_{n_observations}_{has_nested_structure}"
         if structure_key not in _global_lmm_structure_logged:
             logger.info(
                 f"LMM data structure: {n_subjects} subjects, {n_observations} observations"
@@ -1417,7 +1453,9 @@ def _perform_lmm_analysis(
 
         # Check for sufficient variation in the data
         if df[dv].std() == 0:
-            logger.warning(f"No variation in {measure_name} dependent variable")
+            logger.warning(
+                f"No variation in {measure_name} dependent variable"
+            )
             return pd.DataFrame(), False, lmm_warning_messages
 
         # Check for minimum observations per subject - relaxed for single group analysis
@@ -1425,7 +1463,9 @@ def _perform_lmm_analysis(
         min_obs_per_subject = obs_per_subject.min()
 
         if min_obs_per_subject < 1:
-            logger.warning(f"No valid {measure_name} observations for some subjects")
+            logger.warning(
+                f"No valid {measure_name} observations for some subjects"
+            )
             return pd.DataFrame(), False, lmm_warning_messages
         elif min_obs_per_subject == 1 and has_single_group:
             logger.warning(
@@ -1576,9 +1616,13 @@ def _perform_lmm_analysis(
                         logger.debug(
                             f"Attempting LMM fit for {measure_name} using {method} optimizer"
                         )
-                        result = model.fit(method=method, maxiter=1000, reml=True)
+                        result = model.fit(
+                            method=method, maxiter=1000, reml=True
+                        )
                         if result.converged:
-                            logger.info(f"LMM converged successfully using {method}")
+                            logger.info(
+                                f"LMM converged successfully using {method}"
+                            )
                             break
                         else:
                             convergence_issues.append(
@@ -1599,12 +1643,17 @@ def _perform_lmm_analysis(
 
             # Store caught warnings relevant to statsmodels LMM
             fit_warnings.extend(
-                [w for w in caught_warnings if "statsmodels" in str(w.filename)]
+                [
+                    w
+                    for w in caught_warnings
+                    if "statsmodels" in str(w.filename)
+                ]
             )
 
         # Enhanced warning detection and reporting
         singular_cov_warn = any(
-            "covariance is singular" in str(w.message).lower() for w in fit_warnings
+            "covariance is singular" in str(w.message).lower()
+            for w in fit_warnings
         )
         boundary_warn = any(
             "on the boundary" in str(w.message).lower() for w in fit_warnings
@@ -1633,7 +1682,9 @@ def _perform_lmm_analysis(
                 ):
                     cond_num = np.linalg.cond(result.cov_params)
                     # More sensitive detection: use 1e8 instead of 1e12
-                    has_singular_covariance = has_singular_covariance or cond_num > 1e8
+                    has_singular_covariance = (
+                        has_singular_covariance or cond_num > 1e8
+                    )
 
                     # Additional checks for singular covariance
                     # Check for near-zero determinant
@@ -1657,7 +1708,9 @@ def _perform_lmm_analysis(
                 has_singular_covariance = True
 
         if result is not None and result.bse is not None:
-            has_invalid_se = np.isnan(result.bse).any() or np.isinf(result.bse).any()
+            has_invalid_se = (
+                np.isnan(result.bse).any() or np.isinf(result.bse).any()
+            )
 
         # Collect all warning messages for proper timing - consolidate singular covariance warnings
         all_issues = []
@@ -1692,16 +1745,20 @@ def _perform_lmm_analysis(
                 logger.warning(f"LMM fitting failed for {measure_name}")
                 return pd.DataFrame(), False, lmm_warning_messages
             else:
-                warning_msg = (
-                    f"LMM non-convergence for {measure_name} - interpret with caution"
-                )
+                warning_msg = f"LMM non-convergence for {measure_name} - interpret with caution"
                 lmm_warning_messages.append(warning_msg)
-                logger.debug(f"LMM convergence issues: {'; '.join(convergence_issues)}")
+                logger.debug(
+                    f"LMM convergence issues: {'; '.join(convergence_issues)}"
+                )
 
         # Summary of model fitting status
         if result is not None:
             df_residual = getattr(result, "df_resid", None)
-            if df_residual is None or np.isnan(df_residual) or np.isinf(df_residual):
+            if (
+                df_residual is None
+                or np.isnan(df_residual)
+                or np.isinf(df_residual)
+            ):
                 df_residual = max(1, len(df) - len(result.params))
                 logger.debug(f"Using fallback df calculation: {df_residual}")
 
@@ -1759,7 +1816,8 @@ def _perform_lmm_analysis(
                 # Add metadata
                 has_cell_data = (
                     "cell" in df.columns
-                    and df.groupby([subject, "state"])["cell"].nunique().max() > 1
+                    and df.groupby([subject, "state"])["cell"].nunique().max()
+                    > 1
                 )
 
                 # Add standardized metadata
@@ -1788,7 +1846,9 @@ def _perform_lmm_analysis(
                     lmm_result = _standardize_anova_output(
                         lmm_result,
                         metadata=metadata,
-                        analysis_level=("subject/cell" if has_cell_data else "subject"),
+                        analysis_level=(
+                            "subject/cell" if has_cell_data else "subject"
+                        ),
                         state_comparison_type="state",
                         measure_name=measure_name,
                     )
@@ -1811,7 +1871,9 @@ def _perform_lmm_analysis(
                 improved_df = _improve_degrees_of_freedom(result, df, subject)
                 if improved_df is not None:
                     lmm_result["df2"] = improved_df
-                    logger.debug(f"Updated DF from {df_residual} to {improved_df}")
+                    logger.debug(
+                        f"Updated DF from {df_residual} to {improved_df}"
+                    )
 
                 # 2. Add effect size calculations (Cohen's d, partial eta-squared)
                 lmm_result = _compute_effect_sizes(lmm_result, df, dv, subject)
@@ -1824,7 +1886,9 @@ def _perform_lmm_analysis(
                         logger.warning(f"Model assumption issue: {warning}")
 
                 # Add diagnostic info to results (as metadata columns)
-                lmm_result["normality_p"] = diagnostics.get("normality_pvalue", np.nan)
+                lmm_result["normality_p"] = diagnostics.get(
+                    "normality_pvalue", np.nan
+                )
                 lmm_result["homoscedasticity_p"] = diagnostics.get(
                     "homoscedasticity_pvalue", np.nan
                 )
@@ -1982,7 +2046,9 @@ def calculate_mod_stats_direct(
     try:
         # Input validation
         if df is None or df.empty:
-            logger.warning(f"No {comparison_description.lower()} data provided")
+            logger.warning(
+                f"No {comparison_description.lower()} data provided"
+            )
             return pd.DataFrame(), pd.DataFrame()
 
         if not states or state_comparison_type is None:
@@ -2000,11 +2066,15 @@ def calculate_mod_stats_direct(
         # Get the statistical method for this condition
         method_mapping = get_statistical_method_mapping()
         condition_key = (comp_type, data_structure)
-        statistical_method = method_mapping.get(condition_key, "Unknown method")
+        statistical_method = method_mapping.get(
+            condition_key, "Unknown method"
+        )
 
         # Enhanced data summary
         n_subjects = (
-            df.get("normalized_subject_id", df.get("subject_id", pd.Series())).nunique()
+            df.get(
+                "normalized_subject_id", df.get("subject_id", pd.Series())
+            ).nunique()
             if not df.empty
             else 0
         )
@@ -2017,10 +2087,14 @@ def calculate_mod_stats_direct(
         if "group" in df.columns and not df["group"].isnull().all():
             actual_group_column = "group"
             n_groups = df["group"].nunique()
-        elif "group_name" in df.columns and not df["group_name"].isnull().all():
+        elif (
+            "group_name" in df.columns and not df["group_name"].isnull().all()
+        ):
             actual_group_column = "group_name"
             n_groups = df["group_name"].nunique()
-        elif group_column in df.columns and not df[group_column].isnull().all():
+        elif (
+            group_column in df.columns and not df[group_column].isnull().all()
+        ):
             actual_group_column = group_column
             n_groups = df[group_column].nunique()
 
@@ -2051,7 +2125,9 @@ def calculate_mod_stats_direct(
                         available_columns,
                     )
                 else:
-                    logger.warning("None of the expected group columns exist in data")
+                    logger.warning(
+                        "None of the expected group columns exist in data"
+                    )
 
             # Automatically switch to single group analysis
             logger.info("Automatically switching to single-group analysis...")
@@ -2068,13 +2144,17 @@ def calculate_mod_stats_direct(
             logger.info("Analysis configuration:")
             logger.info(f"  • Statistical method: {statistical_method}")
             logger.info(f"  • Design: {data_structure}")
-            logger.info(f"  • Dependent variable: {measure_column} (modulation counts)")
+            logger.info(
+                f"  • Dependent variable: {measure_column} (modulation counts)"
+            )
             logger.info(
                 f"  • Data: {n_subjects} subjects, {n_states} states, {n_groups} groups"
             )
             _global_config_logged.add(config_key)
         else:
-            logger.debug(f"{comparison_description} analysis config (deduplicated)")
+            logger.debug(
+                f"{comparison_description} analysis config (deduplicated)"
+            )
             logger.debug(
                 f"  • Data: {n_subjects} subjects, {n_states} states, {n_groups} groups"
             )
@@ -2113,12 +2193,16 @@ def calculate_mod_stats_direct(
                     "Applying weighted proportions for %s to prevent pseudoreplication",
                     status,
                 )
-                status_df = _calculate_weighted_modulation_proportions(status_df)
+                status_df = _calculate_weighted_modulation_proportions(
+                    status_df
+                )
 
             # Update measure_column to use proportions instead of raw counts when available
             if use_weighted_proportions and "proportion" in status_df.columns:
                 current_measure_column = "proportion"
-                logger.info(f"Using weighted proportions for {status} analysis")
+                logger.info(
+                    f"Using weighted proportions for {status} analysis"
+                )
             else:
                 current_measure_column = measure_column
                 if use_weighted_proportions:
@@ -2166,9 +2250,7 @@ def calculate_mod_stats_direct(
                 data_pairing,
             )
 
-            status_result_key = (
-                f"status_results_{status}_{len(anova_results)}_{len(pairwise_results)}"
-            )
+            status_result_key = f"status_results_{status}_{len(anova_results)}_{len(pairwise_results)}"
             if len(anova_results) > 0 or len(pairwise_results) > 0:
                 if status_result_key not in _global_status_results_logged:
                     logger.info(
@@ -2191,7 +2273,9 @@ def calculate_mod_stats_direct(
 
         # Create result DataFrames
         anova_df = (
-            pd.DataFrame(all_anova_results) if all_anova_results else pd.DataFrame()
+            pd.DataFrame(all_anova_results)
+            if all_anova_results
+            else pd.DataFrame()
         )
         pairwise_df = (
             pd.DataFrame(all_pairwise_results)
@@ -2238,7 +2322,9 @@ def calculate_mod_stats_direct(
                     )
                 _global_status_results_logged.add(correction_key)
             else:
-                logger.debug(f"Pingouin {correction} correction message (deduplicated)")
+                logger.debug(
+                    f"Pingouin {correction} correction message (deduplicated)"
+                )
 
         # Apply final output standardization
         if not anova_df.empty:
@@ -2272,18 +2358,16 @@ def calculate_mod_stats_direct(
             # Add warnings to both ANOVA and pairwise results for modulation analysis
             if not anova_df.empty:
                 anova_df["statistical_warnings"] = warning_text
-                anova_df["analysis_notes"] = (
-                    "Results generated with statistical concerns - see warnings"
-                )
+                anova_df[
+                    "analysis_notes"
+                ] = "Results generated with statistical concerns - see warnings"
 
         # Final summary
         total_anova = len(all_anova_results)
         total_pairwise = len(all_pairwise_results)
 
         # Use module-level deduplication for completion messages
-        completion_key = (
-            f"completion_{comparison_description}_{total_anova}_{total_pairwise}"
-        )
+        completion_key = f"completion_{comparison_description}_{total_anova}_{total_pairwise}"
         if completion_key not in _global_status_results_logged:
             if total_anova > 0 or total_pairwise > 0:
                 logger.info(
@@ -2296,7 +2380,9 @@ def calculate_mod_stats_direct(
                 )
             _global_status_results_logged.add(completion_key)
         else:
-            logger.debug(f"{comparison_description} completion message (deduplicated)")
+            logger.debug(
+                f"{comparison_description} completion message (deduplicated)"
+            )
         return anova_df, pairwise_df
 
     except Exception as e:
@@ -2354,7 +2440,11 @@ def _dispatch_direct_analysis(
             state_name = (
                 states[0]
                 if len(states) == 1
-                else (status_df["state"].iloc[0] if not status_df.empty else "unknown")
+                else (
+                    status_df["state"].iloc[0]
+                    if not status_df.empty
+                    else "unknown"
+                )
             )
             logger.error(
                 f"Could not run statistical comparison for {status}: single group "
@@ -2534,7 +2624,9 @@ def _direct_pairwise_multiple_groups(
 
                     t_val = ttest_result["T"].iloc[0]
                     p_val = ttest_result["p-val"].iloc[0]
-                    cohen_d = ttest_result.get("cohen-d", pd.Series([np.nan])).iloc[0]
+                    cohen_d = ttest_result.get(
+                        "cohen-d", pd.Series([np.nan])
+                    ).iloc[0]
 
                     result_dict = {
                         "Status": status,
@@ -2591,7 +2683,9 @@ def _direct_single_group_anova(
         )
 
         if not is_valid:
-            logger.debug(f"Single group validation failed for {status}: {error_msg}")
+            logger.debug(
+                f"Single group validation failed for {status}: {error_msg}"
+            )
             return [], []
 
         if len(states) < 2 or validated_df["state"].nunique() < 2:
@@ -2625,19 +2719,25 @@ def _direct_single_group_anova(
             n_states = validated_df["state"].nunique()
 
             # Check for sufficient data per subject-state combination
-            obs_per_subj_state = validated_df.groupby([subject_col, "state"]).size()
+            obs_per_subj_state = validated_df.groupby(
+                [subject_col, "state"]
+            ).size()
             min_obs_per_comb = obs_per_subj_state.min()
 
             # Check for variance in the measure across subjects and states
             state_means = validated_df.groupby("state")[measure_column].mean()
-            subject_means = validated_df.groupby(subject_col)[measure_column].mean()
+            subject_means = validated_df.groupby(subject_col)[
+                measure_column
+            ].mean()
 
             # Log diagnostic information
             logger.debug(
                 f"RM ANOVA diagnostics for {status}: {n_subjects} subjects, "
                 f"{n_states} states"
             )
-            logger.debug(f"Min observations per subject-state: {min_obs_per_comb}")
+            logger.debug(
+                f"Min observations per subject-state: {min_obs_per_comb}"
+            )
             logger.debug(
                 f"State variance: {state_means.var():.6f}, "
                 f"Subject variance: {subject_means.var():.6f}"
@@ -2655,8 +2755,12 @@ def _direct_single_group_anova(
                 # This is appropriate for state comparisons
                 # where same subjects measured across states
                 with warnings.catch_warnings():
-                    warnings.filterwarnings("ignore", message=".*divide by zero.*")
-                    warnings.filterwarnings("ignore", message=".*invalid value.*")
+                    warnings.filterwarnings(
+                        "ignore", message=".*divide by zero.*"
+                    )
+                    warnings.filterwarnings(
+                        "ignore", message=".*invalid value.*"
+                    )
 
                     anova_result = _safe_anova(
                         data=validated_df,
@@ -2850,7 +2954,11 @@ def _direct_multiple_groups_rm_anova(
         if not all(col in validated_df.columns for col in required_cols):
             logger.warning(
                 "Missing required columns for RM ANOVA: %s",
-                [col for col in required_cols if col not in validated_df.columns],
+                [
+                    col
+                    for col in required_cols
+                    if col not in validated_df.columns
+                ],
             )
             return [], []
 
@@ -2967,7 +3075,9 @@ def _direct_multiple_groups_mixed_anova(
         )
 
         if not is_valid:
-            logger.error(f"Could not run mixed ANOVA for {status}: {error_msg}")
+            logger.error(
+                f"Could not run mixed ANOVA for {status}: {error_msg}"
+            )
             return [], []
 
         required_cols = [
@@ -2980,7 +3090,11 @@ def _direct_multiple_groups_mixed_anova(
         if not all(col in validated_df.columns for col in required_cols):
             logger.warning(
                 "Missing required columns for Mixed ANOVA: %s",
-                [col for col in required_cols if col not in validated_df.columns],
+                [
+                    col
+                    for col in required_cols
+                    if col not in validated_df.columns
+                ],
             )
             return [], []
 
@@ -3129,8 +3243,12 @@ def _handle_single_state_group_comparison(
 
             if ttest_result is not None and not ttest_result.empty:
                 # Extract group data for means
-                group1_data = group_df[group_df["group"] == groups[0]]["activity"]
-                group2_data = group_df[group_df["group"] == groups[1]]["activity"]
+                group1_data = group_df[group_df["group"] == groups[0]][
+                    "activity"
+                ]
+                group2_data = group_df[group_df["group"] == groups[1]][
+                    "activity"
+                ]
 
                 state_name = group_df["state"].iloc[0]
 
@@ -3144,7 +3262,9 @@ def _handle_single_state_group_comparison(
                     "mean(B)": group2_data.mean(),
                     "T": ttest_result["T"].iloc[0],
                     "p-unc": ttest_result["p-val"].iloc[0],
-                    "cohen-d": ttest_result.get("cohen-d", pd.Series([np.nan])).iloc[0],
+                    "cohen-d": ttest_result.get(
+                        "cohen-d", pd.Series([np.nan])
+                    ).iloc[0],
                     "Comparison": (
                         measure_name.capitalize()
                         if measure_name
@@ -3223,7 +3343,9 @@ def _handle_single_state_group_comparison(
                 # Add metadata to pairwise results
                 pairwise_result["State"] = state_name
                 pairwise_result["Comparison"] = (
-                    measure_name.capitalize() if measure_name else "Group Comparison"
+                    measure_name.capitalize()
+                    if measure_name
+                    else "Group Comparison"
                 )
                 pairwise_result["Measure"] = measure_name
                 pairwise_result["state_comparison_type"] = "group"
@@ -3264,10 +3386,14 @@ def _log_missing_state_contrasts(
     skipped_pairs: Dict[Tuple[str, str], str],
 ) -> None:
     """Log comprehensive information about missing state contrast combinations."""
-    missing_pairs = [pair for pair in expected_pairs if pair not in processed_pairs]
+    missing_pairs = [
+        pair for pair in expected_pairs if pair not in processed_pairs
+    ]
 
     if missing_pairs:
-        logger.debug(f"Missing {len(missing_pairs)} state contrasts for {status}:")
+        logger.debug(
+            f"Missing {len(missing_pairs)} state contrasts for {status}:"
+        )
         for pair in missing_pairs:
             reason = skipped_pairs.get(pair, "Unknown reason")
             logger.debug(f"  - '{pair}': {reason}")
@@ -3337,7 +3463,9 @@ def _direct_pairwise_state_comparison(
                 logger.warning(
                     f"State '{state_pair}' is not in expected pairwise format 'A vs B'"
                 )
-                skipped_pairs[state_pair] = "Invalid format: missing ' vs ' separator"
+                skipped_pairs[
+                    state_pair
+                ] = "Invalid format: missing ' vs ' separator"
                 continue
 
             # Extract individual states from the pair
@@ -3349,9 +3477,9 @@ def _direct_pairwise_state_comparison(
             state_data = validated_df[validated_df["state"] == state_pair]
 
             if len(state_data) < 2:
-                skipped_pairs[state_pair] = (
-                    f"Insufficient data: only {len(state_data)} records found, need ≥2"
-                )
+                skipped_pairs[
+                    state_pair
+                ] = f"Insufficient data: only {len(state_data)} records found, need ≥2"
                 continue
 
             groups = state_data["group"].unique()
@@ -3375,7 +3503,9 @@ def _direct_pairwise_state_comparison(
 
                     t_val = ttest_result["T"].iloc[0]
                     p_val = ttest_result["p-val"].iloc[0]
-                    cohen_d = ttest_result.get("cohen-d", pd.Series([np.nan])).iloc[0]
+                    cohen_d = ttest_result.get(
+                        "cohen-d", pd.Series([np.nan])
+                    ).iloc[0]
 
                     result_dict = {
                         "Status": status,
@@ -3401,9 +3531,9 @@ def _direct_pairwise_state_comparison(
                     pairwise_results.append(result_dict)
                     processed_pairs.append(state_pair)
                 else:
-                    skipped_pairs[state_pair] = (
-                        "T-test failed: invalid or empty statistical result"
-                    )
+                    skipped_pairs[
+                        state_pair
+                    ] = "T-test failed: invalid or empty statistical result"
             else:
                 skipped_pairs[state_pair] = (
                     f"Insufficient groups: found {len(groups)} groups "

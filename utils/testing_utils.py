@@ -1,16 +1,16 @@
-"""Testing utilities for validating IDEAS outputs and metadata."""
-
+import os
 import copy
+import json
 import re
-
 # from jsonschema import validate
 import numpy as np
+import utils.config as config
 
 # from ideas_commons.constants import FileCategory
 
 
 def compare_float_dataframes(df1, df2, atol=1e-08):
-    """Compare the contents of two float data frames and their types.
+    """Compare the contents of two float data frames and their types
 
     :param df1: first pandas dataframe to be compared
     :param df2: second pandas dataframe to be compared
@@ -28,7 +28,9 @@ def compare_float_dataframes(df1, df2, atol=1e-08):
     # compare numeric values
     df1_num = df1.select_dtypes(include=np.number)
     df2_num = df2.select_dtypes(include=np.number)
-    if not np.allclose(df1_num.values, df2_num.values, atol=atol, equal_nan=True):
+    if not np.allclose(
+        df1_num.values, df2_num.values, atol=atol, equal_nan=True
+    ):
         return False
 
     # compare non-numeric values
@@ -42,7 +44,6 @@ def compare_float_dataframes(df1, df2, atol=1e-08):
 
 def compare_metadata_dictionaries(expected_dict, actual_dict):
     """Compare expected and actual metadata dictionaries.
-
     - The 'group_id' field is ignored since uuid's are unique to each run.
 
     :param expected_dict: expected metadata dictionary
@@ -92,10 +93,11 @@ def clean_dict(obj, func=lambda key: re.match("^.+_id[s]?$", key)):
 
 
 def retrieve_dict_values(obj, target_key):
-    """Recursively retrieve all values associated with the specified field.
+    """Recursively retrieve all values associated with
+    the specified field in a given dictionary.
 
-    :param obj: dict or list of dicts to search
-    :param target_key: key for which we want to extract values
+    :param obj: dict or list of dicts
+    :param k: key for which we want to extract values
     """
     values = []
     if isinstance(obj, dict):

@@ -379,7 +379,9 @@ def test_cc_epochs_one_group(
 @patch("numpy.save", MagicMock())
 @patch("json.dump", MagicMock())
 @patch("builtins.open", mock_open())
-def test_cc_epochs_minimal_epochs(mock_files_setup, mock_csv_read, cleanup_plots):
+def test_cc_epochs_minimal_epochs(
+    mock_files_setup, mock_csv_read, cleanup_plots
+):
     """Test run_cc_epochs with minimal number of epochs (2)"""
 
     # Override mock_csv_read for this test
@@ -539,7 +541,9 @@ def test_cc_epochs_different_corrections(
 # Error case tests
 def test_cc_epochs_insufficient_traces():
     """Test run_cc_epochs with insufficient trace files (should raise error)"""
-    with pytest.raises(IdeasError, match="Group1 must have more than 1 trace file"):
+    with pytest.raises(
+        IdeasError, match="Group1 must have more than 1 trace file"
+    ):
         run_cc_epochs(
             group1_traces=["/mock/data/single_trace.csv"],
             group2_traces=None,
@@ -580,7 +584,9 @@ def test_cc_epochs_inconsistent_epochs_colors():
 
 def test_cc_epochs_invalid_group_name():
     """Test run_cc_epochs with invalid group name containing special characters"""
-    with pytest.raises(IdeasError, match="Group1 name contains special characters"):
+    with pytest.raises(
+        IdeasError, match="Group1 name contains special characters"
+    ):
         run_cc_epochs(
             group1_traces=["/mock/data/trace1.csv", "/mock/data/trace2.csv"],
             group2_traces=None,
@@ -635,7 +641,9 @@ def test_cc_epochs_medium_neuronal_data(tmp_path, monkeypatch, cleanup_plots):
 
     # Generate matching event data
     df_event = df_trace.copy()
-    df_event["Activity"] = np.random.normal(loc=2.0, scale=0.5, size=len(df_event))
+    df_event["Activity"] = np.random.normal(
+        loc=2.0, scale=0.5, size=len(df_event)
+    )
     event_file = tmp_path / "medium_event.csv"
     df_event.to_csv(event_file, index=False)
 
@@ -715,7 +723,9 @@ def test_cc_epochs_large_neuronal_data(tmp_path, monkeypatch, cleanup_plots):
 
     # Generate matching event data
     df_event = df_trace.copy()
-    df_event["Activity"] = np.random.normal(loc=2.0, scale=0.5, size=len(df_event))
+    df_event["Activity"] = np.random.normal(
+        loc=2.0, scale=0.5, size=len(df_event)
+    )
     event_file = tmp_path / "large_event.csv"
     df_event.to_csv(event_file, index=False)
 
@@ -785,7 +795,9 @@ def generate_neuronal_data():
         Returns:
             dict: Paths to generated files and metadata
         """
-        np.random.seed(42 + num_cells)  # Vary seed by size to avoid identical patterns
+        np.random.seed(
+            42 + num_cells
+        )  # Vary seed by size to avoid identical patterns
         epochs = [f"Epoch{i + 1}" for i in range(num_epochs)]
 
         # Generate trace data
@@ -970,7 +982,9 @@ def test_cc_epochs_large_data(
         group1_traces=data["trace_files"],
         group1_events=data["event_files"],
         group1_corr=data["corr_files"],
-        group2_traces=data["trace_files"],  # Test two group scenario with same data
+        group2_traces=data[
+            "trace_files"
+        ],  # Test two group scenario with same data
         group2_events=data["event_files"],
         group2_corr=data["corr_files"],
         epoch_names=",".join(data["epochs"]),
@@ -1051,7 +1065,9 @@ def test_cc_epochs_different_epochs_count(
                     epoch_pairs.add((row["A"], row["B"]))
 
         # Check if we have a reasonable number of comparisons
-        assert len(epoch_pairs) > 0, "No epoch comparisons found in A/B columns"
+        assert (
+            len(epoch_pairs) > 0
+        ), "No epoch comparisons found in A/B columns"
         print(f"Found {len(epoch_pairs)} unique epoch pairs in A/B columns")
 
     else:
@@ -1068,8 +1084,12 @@ def test_cc_epochs_different_epochs_count(
                     )
                     found_comparisons += matches
 
-        assert found_comparisons > 0, "No epoch comparisons found in Comparison column"
-        print(f"Found {found_comparisons} epoch comparisons in Comparison column")
+        assert (
+            found_comparisons > 0
+        ), "No epoch comparisons found in Comparison column"
+        print(
+            f"Found {found_comparisons} epoch comparisons in Comparison column"
+        )
 
     # Verify that we have results relating to Activity measurements
     activity_mentions = pairwise_df.apply(
