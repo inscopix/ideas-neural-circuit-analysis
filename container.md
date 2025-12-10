@@ -44,7 +44,7 @@ For i/o and data processing operations, the following packages are installed:
 
 Additionally, the following packages are installed for neural processing specifically: 
 
-* `ideas-python==1.0.0`
+* `ideas-python==1.1.1`
 * `isx==2.1.0`
 * `pynwb==3.1.2`
 * `pynapple==0.10.1`
