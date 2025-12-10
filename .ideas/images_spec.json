@@ -2,17 +2,17 @@
   {
     "schema_version": "0.0.1",
     "repository": "platform/neural-analysis",
-    "label": "1.0.1",
+    "label": "1.0.2",
     "make_arguments": "build LABEL={label}",
     "visibility": "public",
     "readme_path": "container.md",
     "description": "Inscopix container image for neural analysis tools",
     "tags": [
-		"python",
-		"neural",
-		"stats",
-    "plotting",
-    "io"
+      "python",
+      "neural",
+      "stats",
+      "plotting",
+      "io"
     ]
   }
 ]
