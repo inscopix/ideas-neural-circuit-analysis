@@ -28,11 +28,21 @@ dependencies = [
     "isx==2.1.0",
     "pynwb==3.1.2",
     "pynapple==0.10.1",
-    "pytest==9.0.1",
     "beartype==0.22.6",
 ]
 
 dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit",
+    "pytest",
+    "pytest-cov",
+    "pytest-mock",
+    "pytest-order",
+    "pytest-watch",
+    "ruff==0.11.4",
+]
 
 [tool.pytest.ini_options]
 pythonpath = [
@@ -40,12 +50,20 @@ pythonpath = [
 ]
 
 [tool.ruff]
-line-length = 100
+# flake8-builtins (A)
+# pycodestyle errors (E) and warnings (W)
+# pyflakes (F)
+# isort (I)
+lint.select = ["A", "E", "W", "F", "I"]
+show-fixes = true
+line-length = 88
+# Be permissive of long lines
+lint.ignore = ["E501", "A005"]
+target-version = "py313"
 extend-exclude = ["venv", "venv_test", "venv3", ".venv"]
 
-[tool.flake8]
-max-line-length = 100
-extend-exclude = ["venv", "venv_test", "venv3", ".venv", ".git", "__pycache__", ".ruff_cache"]
+[tool.ruff.lint.isort]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
 
 [tool.pydocstyle]
 add-ignore = ["D104"]  # ignore missing package docstring to reduce noise

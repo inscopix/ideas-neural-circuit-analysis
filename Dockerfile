@@ -27,9 +27,10 @@ COPY pyproject.toml ./
 # This can be done globally, but using venv is best practice
 RUN apt-get -y update \
     && apt-get install -y libgl1 \
+    && rm -rf /var/lib/apt/lists/* \
     && ${PYTHON} -m venv ${VENV} \
-    && ${PYTHON_VENV} -m pip install --upgrade pip \
-    && ${PYTHON_VENV} -m pip install .
+    && ${PYTHON_VENV} -m pip install --no-cache --upgrade pip \
+    && ${PYTHON_VENV} -m pip install --no-cache '.[dev]'
 
 # Add venv bin to path
 ENV PATH="/ideas/${VENV}/bin:${PATH}"

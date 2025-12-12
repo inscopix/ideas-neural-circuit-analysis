@@ -35,4 +35,23 @@ test: clean build
 		--platform ${PLATFORM} \
 		--rm \
 		${IMAGE_TAG} \
-		pytest ${TEST_ARGS}
+		python -m pytest ${TEST_ARGS}
+
+ruff:
+	@echo "Running tests..."
+	docker run \
+		--platform ${PLATFORM} \
+		--rm \
+		-v $(PWD):/ideas/code \
+		${IMAGE_TAG} \
+		bash -c "python -m ruff format /ideas/code $(ARGS) && python -m ruff check --fix /ideas/code $(ARGS)"
+
+ruff-check:
+	docker run \
+		--platform ${PLATFORM} \
+		--rm \
+		-v $(PWD):/ideas/code \
+		${IMAGE_TAG} \
+		bash -c "python -m ruff format --check /ideas/code $(ARGS) && python -m ruff check --no-fix /ideas/code $(ARGS)"
+
+lint: ruff
