@@ -5,11 +5,12 @@ analysis results from state-epoch baseline analysis.
 """
 
 import logging
+
 import numpy as np
 from beartype import beartype
-from beartype.typing import List, Optional, Dict, Any, Tuple
-from ideas.exceptions import IdeasError
+from beartype.typing import Any, Dict, List, Optional, Tuple
 from ideas.analysis import measures
+from ideas.exceptions import IdeasError
 
 # Import modulation functions from population_activity.py to avoid duplication
 from analysis.population_activity import (

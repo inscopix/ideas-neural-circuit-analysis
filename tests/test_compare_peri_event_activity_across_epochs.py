@@ -1,12 +1,14 @@
 import os
 import shutil
-import pandas as pd
-import numpy as np
 import unittest
+
+import numpy as np
+import pandas as pd
+from ideas.exceptions import IdeasError
+
 from analysis.compare_peri_event_activity_across_epochs import (
     compare_peri_event_activity_across_epochs,
 )
-from ideas.exceptions import IdeasError
 
 
 class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
@@ -24,22 +26,14 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
     )
 
     # output manifest
-    output_manifest_json_schema = (
-        "toolbox/tests/schemas/output_manifest_schema.json"
-    )
+    output_manifest_json_schema = "toolbox/tests/schemas/output_manifest_schema.json"
     output_manifest_file_basename = "output_manifest.json"
-    output_manifest_file = os.path.join(
-        output_dir, output_manifest_file_basename
-    )
+    output_manifest_file = os.path.join(output_dir, output_manifest_file_basename)
 
     # output metadata
-    output_metadata_json_schema = (
-        "toolbox/tests/schemas/output_metadata_schema.json"
-    )
+    output_metadata_json_schema = "toolbox/tests/schemas/output_metadata_schema.json"
     output_metadata_file_basename = "output_metadata.json"
-    output_metadata_file = os.path.join(
-        output_dir, output_metadata_file_basename
-    )
+    output_metadata_file = os.path.join(output_dir, output_metadata_file_basename)
 
     # input files
     input_cellset_isxd_files = [
@@ -56,9 +50,7 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
         if os.path.exists(self.output_dir):
             shutil.rmtree(self.output_dir)
 
-    def validate_existence_of_output_files(
-        self, output_dir, files_to_exclude=[]
-    ):
+    def validate_existence_of_output_files(self, output_dir, files_to_exclude=[]):
         """Validate that the expected output files exist once tool execution completes."""
         output_files = os.listdir(output_dir)
         for f in [
@@ -99,14 +91,10 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
             if f not in files_to_exclude:
                 self.assertTrue(f in output_files)
 
-    def validate_traces_file_column_names(
-        self, traces_df, epoch_names, cell_ids
-    ):
+    def validate_traces_file_column_names(self, traces_df, epoch_names, cell_ids):
         """Validate output traces file column names."""
         exp_epoch_headers = epoch_names + ["Time"]
-        act_epochs_headers = np.unique(
-            traces_df.columns.get_level_values(0)
-        ).tolist()
+        act_epochs_headers = np.unique(traces_df.columns.get_level_values(0)).tolist()
         self.assertEqual(exp_epoch_headers, act_epochs_headers)
         self.assertEqual(traces_df.columns[0], ("Time", "Unnamed: 0_level_1"))
 
@@ -128,9 +116,7 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
             + [f"C{str(i).zfill(2)}_sem" for i in cell_ids]
         ):
             for epoch_name in epoch_names:
-                self.assertTrue(
-                    (epoch_name, second_level_header) in traces_df.columns
-                )
+                self.assertTrue((epoch_name, second_level_header) in traces_df.columns)
 
     def validate_statistics_file_column_names(self, df):
         """Validate output statistics file column names."""
@@ -147,9 +133,7 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
         act_cols = list(df.columns)
         self.assertEqual(exp_cols, act_cols)
 
-    def validate_pairwise_comparisons_file_column_names(
-        self, df, cols_to_exclude=None
-    ):
+    def validate_pairwise_comparisons_file_column_names(self, df, cols_to_exclude=None):
         """Validate output pairwise comparisons file column names."""
         exp_cols = [
             "Comparison",
@@ -205,18 +189,16 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -307,18 +289,16 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -408,9 +388,7 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
                             "file_format": "csv",
                             "file_structure": "time_series",
                             "file_category": "result",
-                            "parent_ids": [
-                                "ed1b62b0-883b-4738-85e6-e64f6e177418"
-                            ],
+                            "parent_ids": ["ed1b62b0-883b-4738-85e6-e64f6e177418"],
                             "preview": [
                                 {
                                     "name": "Mean population activity",
@@ -633,18 +611,16 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -724,9 +700,7 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
                             "file_format": "csv",
                             "file_structure": "time_series",
                             "file_category": "result",
-                            "parent_ids": [
-                                "ed1b62b0-883b-4738-85e6-e64f6e177418"
-                            ],
+                            "parent_ids": ["ed1b62b0-883b-4738-85e6-e64f6e177418"],
                             "preview": [
                                 {
                                     "name": "Mean population activity",
@@ -953,18 +927,16 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -1059,9 +1031,7 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
                             "file_format": "csv",
                             "file_structure": "time_series",
                             "file_category": "result",
-                            "parent_ids": [
-                                "ed1b62b0-883b-4738-85e6-e64f6e177418"
-                            ],
+                            "parent_ids": ["ed1b62b0-883b-4738-85e6-e64f6e177418"],
                             "preview": [
                                 {
                                     "name": "Mean population activity",
@@ -1278,18 +1248,16 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -1333,18 +1301,16 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -1453,9 +1419,7 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
                             "file_format": "csv",
                             "file_structure": "time_series",
                             "file_category": "result",
-                            "parent_ids": [
-                                "d119e5e1-c9e0-41cd-bca0-2333072c07ed"
-                            ],
+                            "parent_ids": ["d119e5e1-c9e0-41cd-bca0-2333072c07ed"],
                             "preview": [
                                 {
                                     "name": "Mean population activity",
@@ -1645,18 +1609,16 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -1699,18 +1661,16 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -1806,9 +1766,7 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
                             "file_format": "csv",
                             "file_structure": "time_series",
                             "file_category": "result",
-                            "parent_ids": [
-                                "d5821783-5f03-4184-a502-7c68ce080107"
-                            ],
+                            "parent_ids": ["d5821783-5f03-4184-a502-7c68ce080107"],
                             "preview": [
                                 {
                                     "name": "Mean population activity",
@@ -1947,18 +1905,16 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -2048,9 +2004,7 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
                             "file_format": "csv",
                             "file_structure": "time_series",
                             "file_category": "result",
-                            "parent_ids": [
-                                "ed1b62b0-883b-4738-85e6-e64f6e177418"
-                            ],
+                            "parent_ids": ["ed1b62b0-883b-4738-85e6-e64f6e177418"],
                             "preview": [
                                 {
                                     "name": "Mean population activity",
@@ -2278,18 +2232,16 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -2378,9 +2330,7 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
                             "file_format": "csv",
                             "file_structure": "time_series",
                             "file_category": "result",
-                            "parent_ids": [
-                                "e4a031de-64ed-4a18-ac59-913b96029aa0"
-                            ],
+                            "parent_ids": ["e4a031de-64ed-4a18-ac59-913b96029aa0"],
                             "preview": [
                                 {
                                     "name": "Mean population activity",
@@ -2607,18 +2557,16 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -2728,9 +2676,7 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
                             "file_format": "csv",
                             "file_structure": "time_series",
                             "file_category": "result",
-                            "parent_ids": [
-                                "c62db136-d662-4d1c-bcf4-a980cc288f45"
-                            ],
+                            "parent_ids": ["c62db136-d662-4d1c-bcf4-a980cc288f45"],
                             "preview": [
                                 {
                                     "name": "Mean population activity",
@@ -2916,18 +2862,16 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -3236,18 +3180,16 @@ class TestComparePeriEventActivityAcrossEpochs(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],

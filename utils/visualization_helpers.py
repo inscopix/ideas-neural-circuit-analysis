@@ -7,20 +7,22 @@ in the IDEAS toolbox, including modulation plots, state comparisons, and statist
 import logging
 import os
 from typing import Dict, List, Optional
+
 import matplotlib.pyplot as plt
-from matplotlib.axes import Axes
-import seaborn as sns
 import numpy as np
 import pandas as pd
+import seaborn as sns
+from ideas.analysis import plots
 from ideas.exceptions import IdeasError
+from matplotlib.axes import Axes
+
 import utils.config as config
-from utils.statistical_validation import (
-    _suppress_pingouin_warnings,
-)
 from utils.statistical_formatting import (
     _get_mixed_pairwise_sig,
 )
-from ideas.analysis import plots
+from utils.statistical_validation import (
+    _suppress_pingouin_warnings,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -66,16 +68,12 @@ def plot_modulation_distribution(
     # Check if this is a pairwise comparison
     is_pairwise = False
     if "state_comparison_type" in modulation_scores.columns:
-        is_pairwise = any(
-            modulation_scores["state_comparison_type"] == "pairwise"
-        )
+        is_pairwise = any(modulation_scores["state_comparison_type"] == "pairwise")
     else:
         # If no state_comparison_type column, detect from state names
         if "state" in modulation_scores.columns:
             state_samples = modulation_scores["state"].dropna().unique()
-            is_pairwise = any(
-                [" vs " in str(state) for state in state_samples]
-            )
+            is_pairwise = any([" vs " in str(state) for state in state_samples])
 
     # Determine which states to plot based on pairwise status
     available_states = []
@@ -94,10 +92,7 @@ def plot_modulation_distribution(
                     # Also check if any individual state from the pair is in the requested states
                     elif " vs " in str(pair):
                         state1, state2 = str(pair).split(" vs ")
-                        if (
-                            state1.strip() in states
-                            or state2.strip() in states
-                        ):
+                        if state1.strip() in states or state2.strip() in states:
                             filtered_states.append(pair)
 
                 # If no filtering worked, use all available states as fallback
@@ -105,9 +100,7 @@ def plot_modulation_distribution(
                     logger.warning(
                         f"No pairwise states found for requested states {states}"
                     )
-                    logger.info(
-                        f"Available pairwise states: {available_states}"
-                    )
+                    logger.info(f"Available pairwise states: {available_states}")
                     filtered_states = available_states
 
                 available_states = filtered_states
@@ -122,16 +115,12 @@ def plot_modulation_distribution(
         filtered_states = available_states
     else:
         # For non-pairwise, filter based on requested states
-        filtered_states = [
-            state for state in available_states if state in states
-        ]
+        filtered_states = [state for state in available_states if state in states]
 
     # Log information about which states are being plotted
     if len(filtered_states) < len(states) and not is_pairwise:
         missing_states = set(states) - set(filtered_states)
-        logger.warning(
-            f"States not found in modulation data: {missing_states}"
-        )
+        logger.warning(f"States not found in modulation data: {missing_states}")
 
     # If no states are available, create an empty plot with a message
     if not filtered_states:
@@ -185,9 +174,7 @@ def plot_modulation_distribution(
 
     # Set x-axis label based on data type
     xlabel = (
-        "Activity Modulation"
-        if data_type == "activity"
-        else "Event Rate Modulation"
+        "Activity Modulation" if data_type == "activity" else "Event Rate Modulation"
     )
 
     # Determine the comparison type for title formatting
@@ -195,14 +182,10 @@ def plot_modulation_distribution(
     baseline_state = None
 
     if "state_comparison_type" in modulation_scores.columns:
-        if any(
-            modulation_scores["state_comparison_type"] == "state_vs_baseline"
-        ):
+        if any(modulation_scores["state_comparison_type"] == "state_vs_baseline"):
             is_baseline_comparison = True
             if "baseline_state" in modulation_scores.columns:
-                baseline_values = (
-                    modulation_scores["baseline_state"].dropna().unique()
-                )
+                baseline_values = modulation_scores["baseline_state"].dropna().unique()
                 if len(baseline_values) > 0:
                     baseline_state = baseline_values[0]
 
@@ -218,9 +201,7 @@ def plot_modulation_distribution(
         all_vals = []
         for mod_array in state_data["modulation"].values:
             if isinstance(mod_array, (list, np.ndarray)):
-                if len(mod_array) == 1 and isinstance(
-                    mod_array[0], np.ndarray
-                ):
+                if len(mod_array) == 1 and isinstance(mod_array[0], np.ndarray):
                     all_vals.extend(mod_array[0])
                 else:
                     all_vals.extend(mod_array)
@@ -233,7 +214,9 @@ def plot_modulation_distribution(
         vals = np.array(all_vals)
 
         if len(vals) == 0:
-            logger.warning(f"No valid modulation values for {label_prefix.lower()} '{state}'")
+            logger.warning(
+                f"No valid modulation values for {label_prefix.lower()} '{state}'"
+            )
             ax[i].text(
                 0.5,
                 0.5,
@@ -572,11 +555,11 @@ class PlottingHelpers:
             title = f"{status_title} Cells ({data_type_title})\n(Pairwise Contrasts)"
         elif state_comparison_type == "state_vs_baseline":
             if baseline_state:
-                title = f"{status_title} Cells ({data_type_title})\n(vs. {baseline_state})"
-            else:
                 title = (
-                    f"{status_title} Cells ({data_type_title})\n(vs. Baseline)"
+                    f"{status_title} Cells ({data_type_title})\n(vs. {baseline_state})"
                 )
+            else:
+                title = f"{status_title} Cells ({data_type_title})\n(vs. Baseline)"
         else:
             title = f"{status_title} Cells ({data_type_title})"
 
@@ -609,8 +592,7 @@ class PlottingHelpers:
                     sig_info
                     and sig_info.strip()
                     and not any(
-                        no_sig_msg in sig_info
-                        for no_sig_msg in no_sig_messages
+                        no_sig_msg in sig_info for no_sig_msg in no_sig_messages
                     )
                 ):
                     title += f"\n{sig_info}"
@@ -672,15 +654,12 @@ def plot_state_lmm_comparison(
         # Add check for empty dataframe
         if df is None or df.empty:
             logger.warning(
-                f"Cannot plot state LMM comparison for {data_type}: "
-                f"Empty dataframe provided."
+                f"Cannot plot state LMM comparison for {data_type}: Empty dataframe provided."
             )
             # Create an empty plot
             fig, ax = plt.subplots(figsize=(7, 7))
             ax.text(0.5, 0.5, "No data available", ha="center", va="center")
-            ax.set_title(
-                f"{data_type.capitalize()} State Comparison - No Data"
-            )
+            ax.set_title(f"{data_type.capitalize()} State Comparison - No Data")
             # Save placeholder if output dir provided
             if output_dir:
                 placeholder_filename = os.path.join(
@@ -696,9 +675,7 @@ def plot_state_lmm_comparison(
         # Use violin plot for state comparison
         if not has_single_group and group_names and group_colors:
             # Get unique groups in the order specified by group_names
-            unique_groups = [
-                g for g in group_names if g in df["group"].unique()
-            ]
+            unique_groups = [g for g in group_names if g in df["group"].unique()]
 
             # Create a mapping of group names to their colors using the provided lists
             group_color_map = {
@@ -709,15 +686,11 @@ def plot_state_lmm_comparison(
 
             # Apply same state ordering logic as single group
             actual_states_in_data = (
-                set(df["state"].unique())
-                if "state" in df.columns
-                else set(states)
+                set(df["state"].unique()) if "state" in df.columns else set(states)
             )
 
             # Start with user-provided states that are in the data (preserving user order)
-            final_states = [
-                state for state in states if state in actual_states_in_data
-            ]
+            final_states = [state for state in states if state in actual_states_in_data]
 
             # Add any additional states from data that aren't in user list
             # (like auto-added baseline)
@@ -755,15 +728,11 @@ def plot_state_lmm_comparison(
             # Single group case - use violin plot with state colors
             # Get all states actually present in the data
             actual_states_in_data = (
-                set(df["state"].unique())
-                if "state" in df.columns
-                else set(states)
+                set(df["state"].unique()) if "state" in df.columns else set(states)
             )
 
             # Start with user-provided states that are in the data (preserving user order)
-            final_states = [
-                state for state in states if state in actual_states_in_data
-            ]
+            final_states = [state for state in states if state in actual_states_in_data]
 
             # Add any additional states from data that aren't in user list
             # (like auto-added baseline)
@@ -815,8 +784,7 @@ def plot_state_lmm_comparison(
                     sig_info
                     and sig_info.strip()
                     and not any(
-                        no_sig_msg in sig_info
-                        for no_sig_msg in no_sig_messages
+                        no_sig_msg in sig_info for no_sig_msg in no_sig_messages
                     )
                 ):
                     title += f"\n{sig_info}"
@@ -836,8 +804,7 @@ def plot_state_lmm_comparison(
                 # Construct filename using output_dir if filename is not provided
                 save_path = os.path.join(
                     output_dir,
-                    f"{data_type}_state_lmm"
-                    + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION,
+                    f"{data_type}_state_lmm" + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION,
                 )
 
             # Save the plot using the determined save path
@@ -901,9 +868,7 @@ def plot_group_anova_comparison(
             # Create an empty plot
             fig, ax = plt.subplots(figsize=(7, 7))
             ax.text(0.5, 0.5, "No data available", ha="center", va="center")
-            ax.set_title(
-                f"{data_type.capitalize()} Group Comparison - No Data"
-            )
+            ax.set_title(f"{data_type.capitalize()} Group Comparison - No Data")
             # Save placeholder if output dir provided
             if output_dir:
                 placeholder_filename = os.path.join(
@@ -969,9 +934,7 @@ def plot_group_anova_comparison(
                     and "normalized_subject_id" in state_data.columns
                 ):
                     # Group data by subject ID
-                    for subject_id in state_data[
-                        "normalized_subject_id"
-                    ].unique():
+                    for subject_id in state_data["normalized_subject_id"].unique():
                         subject_data = state_data[
                             state_data["normalized_subject_id"] == subject_id
                         ]
@@ -990,9 +953,7 @@ def plot_group_anova_comparison(
                                 if not group_data.empty:
                                     x_pos = i + (k - 0.5) * 0.4
                                     x_positions.append(x_pos)
-                                    y_values.append(
-                                        group_data["activity"].iloc[0]
-                                    )
+                                    y_values.append(group_data["activity"].iloc[0])
 
                             # Only connect points if we have exactly two points to connect
                             if len(x_positions) == 2 and len(y_values) == 2:
@@ -1063,8 +1024,7 @@ def plot_group_anova_comparison(
                     sig_info
                     and sig_info.strip()
                     and not any(
-                        no_sig_msg in sig_info
-                        for no_sig_msg in no_sig_messages
+                        no_sig_msg in sig_info for no_sig_msg in no_sig_messages
                     )
                 ):
                     title += f"\n{sig_info}"
@@ -1083,10 +1043,7 @@ def plot_group_anova_comparison(
             else:
                 # Construct filename using output_dir
                 # if filename is not provided
-                filename_base = (
-                    f"{data_type}_group_"
-                    f"{'rm_anova' if data_pairing == 'paired' else 'mixed_anova'}"
-                )
+                filename_base = f"{data_type}_group_{'rm_anova' if data_pairing == 'paired' else 'mixed_anova'}"
                 save_path = os.path.join(
                     output_dir,
                     filename_base + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION,
@@ -1190,18 +1147,12 @@ def _plot_multi_group_data(
 
                         for group_name in unique_groups:
                             if group_name in subject_groups.groups:
-                                group_subset = subject_groups.get_group(
-                                    group_name
-                                )
+                                group_subset = subject_groups.get_group(group_name)
                                 if not group_subset.empty:
                                     group_idx = unique_groups.index(group_name)
                                     x_pos = (
                                         i
-                                        + (
-                                            group_idx
-                                            - len(unique_groups) / 2
-                                            + 0.5
-                                        )
+                                        + (group_idx - len(unique_groups) / 2 + 0.5)
                                         * x_offset_factor
                                     )
                                     group_positions.append(x_pos)
@@ -1210,10 +1161,7 @@ def _plot_multi_group_data(
                                     )
 
                         # Connect points with a line if we have exactly 2 points
-                        if (
-                            len(group_positions) == 2
-                            and len(group_values) == 2
-                        ):
+                        if len(group_positions) == 2 and len(group_values) == 2:
                             ax.plot(
                                 group_positions,
                                 group_values,
@@ -1267,9 +1215,7 @@ def _plot_single_group_data(
         if len(state_colors) >= len(final_states):
             state_color_map = {
                 state: color
-                for state, color in zip(
-                    final_states, state_colors[: len(final_states)]
-                )
+                for state, color in zip(final_states, state_colors[: len(final_states)])
             }
         else:
             # Fallback to default colors if not enough state colors provided
@@ -1401,7 +1347,9 @@ def _get_clean_activity_title(
         return f"Single-Cell {data_type.capitalize()}"
     else:
         if data_pairing == "paired":
-            return f"Subject-averaged {data_type.capitalize()}\n(Paired Group Comparison)"
+            return (
+                f"Subject-averaged {data_type.capitalize()}\n(Paired Group Comparison)"
+            )
         else:
             return f"Subject-averaged {data_type.capitalize()}\n(Group Comparison)"
 
@@ -1491,9 +1439,7 @@ def plot_single_state_group_comparison(
                 x="group",
                 y="activity",
                 order=unique_groups,
-                palette=[
-                    group_color_map.get(g, "#1f77b4") for g in unique_groups
-                ],
+                palette=[group_color_map.get(g, "#1f77b4") for g in unique_groups],
                 ax=ax,
                 fill=True,
                 linewidth=1,
@@ -1548,14 +1494,10 @@ def plot_single_state_group_comparison(
                     group_values = []
 
                     for j, group_name in enumerate(unique_groups):
-                        group_subset = subject_data[
-                            subject_data["group"] == group_name
-                        ]
+                        group_subset = subject_data[subject_data["group"] == group_name]
                         if not group_subset.empty:
                             group_positions.append(j)
-                            group_values.append(
-                                group_subset["activity"].iloc[0]
-                            )
+                            group_values.append(group_subset["activity"].iloc[0])
 
                     # Connect points if we have exactly 2 points
                     if len(group_positions) == 2 and len(group_values) == 2:
@@ -1601,9 +1543,7 @@ def plot_single_state_group_comparison(
                 bbox_inches="tight",
                 transparent=True,
             )
-            logger.info(
-                f"Single state group comparison plot saved: {output_filename}"
-            )
+            logger.info(f"Single state group comparison plot saved: {output_filename}")
 
         plt.close(fig)
 
@@ -1687,9 +1627,7 @@ def create_boxplot_preview(
         True if plot was created successfully, False otherwise
 
     """
-    axis_label = (
-        dimension_label.strip() if dimension_label else "State"
-    )
+    axis_label = dimension_label.strip() if dimension_label else "State"
 
     if col_name in data_df.columns and not data_df[col_name].isnull().all():
         try:
@@ -1804,18 +1742,14 @@ def create_cdf_preview(
         True if plot was created successfully, False otherwise
 
     """
-    axis_label = (
-        dimension_label.strip() if dimension_label else "State"
-    )
+    axis_label = dimension_label.strip() if dimension_label else "State"
 
     if col_name in data_df.columns and not data_df[col_name].isnull().all():
         try:
             fig, ax = plt.subplots(figsize=(5, 4))
 
             # Create palette mapping state names to colors
-            palette = [
-                state_color_map.get(s, "gray") for s in filter_state_names
-            ]
+            palette = [state_color_map.get(s, "gray") for s in filter_state_names]
 
             sns.ecdfplot(
                 data=data_df,

@@ -3,7 +3,7 @@ import logging
 import numpy as np
 from ideas.exceptions import IdeasError
 
-from utils.utils import _epoch_time_to_index, DIVISION_THRESHOLD
+from utils.utils import DIVISION_THRESHOLD, _epoch_time_to_index
 
 logger = logging.getLogger(__name__)
 
@@ -19,17 +19,15 @@ def _validate_correlation_params(
     """Validate the parameters for the correlation calculation."""
     if method == "state vs baseline":
         assert baseline_state is not None, "Baseline state must be provided"
-        assert (
-            baseline_state in state_names
-        ), "Baseline state must be one of the states"
-        assert (
-            len(state_names) > 1
-        ), "If using state vs baseline, must have at least 1 non-baseline state"
+        assert baseline_state in state_names, "Baseline state must be one of the states"
+        assert len(state_names) > 1, (
+            "If using state vs baseline, must have at least 1 non-baseline state"
+        )
 
     if method == "pairwise":
-        assert (
-            len(state_names) > 1
-        ), "If using pairwise, must have at least 2 states to compare"
+        assert len(state_names) > 1, (
+            "If using pairwise, must have at least 2 states to compare"
+        )
 
     if (
         trace_scale_method == "standardize_baseline"
@@ -202,8 +200,7 @@ def _check_num_epochs(
     """
     if len(epochs) != len(epoch_names) or len(epochs) != len(epoch_colors):
         raise IdeasError(
-            "The number of epochs, epoch names, and epoch colors must be the"
-            " same."
+            "The number of epochs, epoch names, and epoch colors must be the same."
         )
 
     if len(epochs) < 2:

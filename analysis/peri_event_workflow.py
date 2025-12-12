@@ -1,45 +1,45 @@
 import json
-import pathlib
-import logging
-import os
-import shutil
 import math
+import os
+import pathlib
+import shutil
 from collections import OrderedDict
 from typing import List, Optional
+
 import h5py
 import isx
-import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import utils.config as config
-from scipy import stats
-from skimage.measure import find_contours
-# from toolbox.utils.data_model import IdeasFile, IdeasGroup, IdeasPreviewFile
-from ideas.exceptions import IdeasError
-from utils.footprint_utils import compute_cell_centroid
+
 # from toolbox.utils.output_manifest import (
 #     save_metadata_manifest,
 #     save_output_manifest,
 # )
 from ideas.analysis.utils import (
-    # compute_sampling_rate,
-    get_file_size,
     # read_isxd_metadata,
     _sort_isxd_files_by_start_time,
+    # compute_sampling_rate,
+    get_file_size,
 )
-from utils.utils import (
-    validate_cellset_series_compatibility,
-    get_num_cells_by_status,
-    compute_sampling_rate
-)
-from ideas.tools import outputs
-from ideas.tools.types import IdeasFile
-from ideas.tools import log
 
-from utils.metadata import (
-    read_isxd_metadata
+# from toolbox.utils.data_model import IdeasFile, IdeasGroup, IdeasPreviewFile
+from ideas.exceptions import IdeasError
+from ideas.tools import log, outputs
+from ideas.tools.types import IdeasFile
+from scipy import stats
+from skimage.measure import find_contours
+
+import utils.config as config
+from utils.footprint_utils import compute_cell_centroid
+from utils.metadata import read_isxd_metadata
+from utils.utils import (
+    compute_sampling_rate,
+    get_num_cells_by_status,
+    validate_cellset_series_compatibility,
 )
+
 logger = log.get_logger()
 
 PLOT_PARAMS = {}
@@ -162,17 +162,13 @@ def extract_mean_event_windows_per_event_shuffle(
 
         # compute the mean event window of the current shuffle by averaging
         # all event windows across time
-        event_windows[i] = np.nanmean(
-            shuffle_event_windows, axis=0, dtype="float32"
-        )
+        event_windows[i] = np.nanmean(shuffle_event_windows, axis=0, dtype="float32")
         del shuffle_event_windows
 
     return event_windows
 
 
-def compute_post_minus_pre(
-    event_windows, pre_event_indices, post_event_indices
-):
+def compute_post_minus_pre(event_windows, pre_event_indices, post_event_indices):
     """Compute the average post- minus pre-event activity for the given event windows.
     - Given a window of time around a given event (i.e. an event window),
       compute the mean activity before (pre) and subtract that value from
@@ -192,9 +188,7 @@ def compute_post_minus_pre(
     elif event_windows.ndim == 2:
         post_minus_pre = np.nanmean(
             event_windows[post_event_indices], axis=0, dtype="float32"
-        ) - np.nanmean(
-            event_windows[pre_event_indices], axis=0, dtype="float32"
-        )
+        ) - np.nanmean(event_windows[pre_event_indices], axis=0, dtype="float32")
     else:
         raise IdeasError(
             "Post minus pre event activity difference can only be computed "
@@ -502,12 +496,8 @@ def plot_population_mean_event_window(
 
     ax.set_title(plot_title, fontsize=config.PLOT_TITLE_FONT_SIZE)
 
-    ax.set_xlabel(
-        "Time from Event (seconds)", fontsize=config.PLOT_LABEL_FONT_SIZE
-    )
-    ax.set_ylabel(
-        "Neural Activity (z-score)", fontsize=config.PLOT_LABEL_FONT_SIZE
-    )
+    ax.set_xlabel("Time from Event (seconds)", fontsize=config.PLOT_LABEL_FONT_SIZE)
+    ax.set_ylabel("Neural Activity (z-score)", fontsize=config.PLOT_LABEL_FONT_SIZE)
 
     # adjust plot limits
     global PLOT_PARAMS
@@ -520,9 +510,7 @@ def plot_population_mean_event_window(
     ):
         y_limits = [
             float(lim)
-            for lim in PLOT_PARAMS["population_activity_plot_limits"].split(
-                ","
-            )
+            for lim in PLOT_PARAMS["population_activity_plot_limits"].split(",")
         ]
         ax.set_ylim(y_limits)
     ax.set_xlim(x_limits)
@@ -642,16 +630,12 @@ def plot_single_neurons_heatmap(
             plot_title += "\n(epoch: {0})".format(epoch_name)
 
     ax.set_title(plot_title, fontsize=config.PLOT_TITLE_FONT_SIZE)
-    ax.set_xlabel(
-        "Time from Event (seconds)", fontsize=config.PLOT_LABEL_FONT_SIZE
-    )
+    ax.set_xlabel("Time from Event (seconds)", fontsize=config.PLOT_LABEL_FONT_SIZE)
     ax.set_ylabel("Neuron Number", fontsize=config.PLOT_LABEL_FONT_SIZE)
 
     # Save as SVG without dpi (avoids rasterization)
     fig.tight_layout()
-    fig.savefig(
-        output_filename, format="svg", bbox_inches="tight", transparent=True
-    )
+    fig.savefig(output_filename, format="svg", bbox_inches="tight", transparent=True)
     plt.close(fig)
 
 
@@ -781,12 +765,8 @@ def plot_single_cell_modulation(
 
     ax.set_title(plot_title, fontsize=config.PLOT_TITLE_FONT_SIZE)
 
-    ax.set_xlabel(
-        "Time from Event (seconds)", fontsize=config.PLOT_LABEL_FONT_SIZE
-    )
-    ax.set_ylabel(
-        "Neural Activity (z-score)", fontsize=config.PLOT_LABEL_FONT_SIZE
-    )
+    ax.set_xlabel("Time from Event (seconds)", fontsize=config.PLOT_LABEL_FONT_SIZE)
+    ax.set_ylabel("Neural Activity (z-score)", fontsize=config.PLOT_LABEL_FONT_SIZE)
 
     # adjust plot limits
     global PLOT_PARAMS
@@ -799,9 +779,7 @@ def plot_single_cell_modulation(
     ):
         y_limits = [
             float(lim)
-            for lim in PLOT_PARAMS["activity_by_modulation_plot_limits"].split(
-                ","
-            )
+            for lim in PLOT_PARAMS["activity_by_modulation_plot_limits"].split(",")
         ]
         ax.set_ylim(y_limits)
     ax.margins(x=0)
@@ -960,9 +938,7 @@ def validate_modulation_colors(modulation_colors):
             )
 
     except Exception:
-        logger.warning(
-            "Using default modulation colors: %s", default_modulation_colors
-        )
+        logger.warning("Using default modulation colors: %s", default_modulation_colors)
         return default_modulation_colors
 
     # Return validated colors if all checks pass
@@ -1013,8 +989,7 @@ def bin_traces_update_period(
             [
                 np.nanmean(
                     standardized_traces_df[
-                        i
-                        * bin_size_in_idxs : min(
+                        i * bin_size_in_idxs : min(
                             (i + 1) * bin_size_in_idxs, len(traces_timepoints)
                         )
                     ],
@@ -1029,8 +1004,7 @@ def bin_traces_update_period(
             [
                 np.nanmean(
                     traces_timepoints[
-                        i
-                        * bin_size_in_idxs : min(
+                        i * bin_size_in_idxs : min(
                             (i + 1) * bin_size_in_idxs, len(traces_timepoints)
                         )
                     ]
@@ -1077,18 +1051,12 @@ def validate_peri_event_workflow_parameters(params):
             )
 
     # validate visual window
-    if (
-        "pre" not in params["visual_window"]
-        or "post" not in params["visual_window"]
-    ):
+    if "pre" not in params["visual_window"] or "post" not in params["visual_window"]:
         raise IdeasError(
             "The 'pre' and 'post' keys must be specified under the 'visual_window' parameter",
         )
 
-    if (
-        params["visual_window"]["pre"] == 0
-        and params["visual_window"]["post"] == 0
-    ):
+    if params["visual_window"]["pre"] == 0 and params["visual_window"]["post"] == 0:
         raise IdeasError(
             "The visual window cannot be empty. 'pre' and 'post' cannot both be equal to 0.",
         )
@@ -1119,17 +1087,12 @@ def validate_peri_event_workflow_parameters(params):
             >= params["statistical_window"][side][1]
         ):
             raise IdeasError(
-                "The '{0}' statistical window specified is invalid. ".format(
-                    side
-                )
+                "The '{0}' statistical window specified is invalid. ".format(side)
                 + "The end time must be larger than the start time.",
             )
 
     # ensure pre and post statistical windows are not identical
-    if (
-        params["statistical_window"]["pre"]
-        == params["statistical_window"]["post"]
-    ):
+    if params["statistical_window"]["pre"] == params["statistical_window"]["post"]:
         raise IdeasError(
             "The 'pre' and 'post' statistical windows cannot be identical.",
         )
@@ -1137,8 +1100,7 @@ def validate_peri_event_workflow_parameters(params):
     # ensure statistical window is within the visual window
     if (
         params["statistical_window"]["pre"][0] < params["visual_window"]["pre"]
-        or params["statistical_window"]["post"][1]
-        > params["visual_window"]["post"]
+        or params["statistical_window"]["post"][1] > params["visual_window"]["post"]
     ):
         raise IdeasError(
             "The statistical window must be contained within the visual window.",
@@ -1156,10 +1118,7 @@ def validate_peri_event_workflow_parameters(params):
         )
 
     # validate significance threshold
-    if (
-        params["significance_threshold"] < 0
-        or params["significance_threshold"] > 1
-    ):
+    if params["significance_threshold"] < 0 or params["significance_threshold"] > 1:
         raise IdeasError(
             "The p-value must be between 0 and 1",
         )
@@ -1258,9 +1217,7 @@ def peri_event_population_analysis(
     # Step 1: Compute true population mean activity across event windows
     # (i.e. windows around each event)
     # extract short traces around each event
-    event_windows = extract_event_windows(
-        mean_trace, event_indices, visual_window
-    )
+    event_windows = extract_event_windows(mean_trace, event_indices, visual_window)
 
     # - Compute mean event window, i.e. we average all event windows across time.
     # - Also compute the standard error of the mean (sem) associated with each timepoint.
@@ -1274,9 +1231,7 @@ def peri_event_population_analysis(
         ).astype("float32")
     else:
         # no SEM to compute if dealing with a single event
-        sem_event_window = np.full_like(
-            mean_event_window, math.nan, dtype="float32"
-        )
+        sem_event_window = np.full_like(mean_event_window, math.nan, dtype="float32")
 
     # Step 2: Construct the null distribution
     # - The null distribution is constructed by shuffling the events a number of times.
@@ -1309,12 +1264,8 @@ def peri_event_population_analysis(
 
     # plot population mean event window +- sem
     # versus the shuffled mean event window and associated confidence interval
-    plot_basename = os.path.join(
-        output_dir, "event_aligned_population_activity"
-    )
-    plot_preview_filename = (
-        plot_basename + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION
-    )
+    plot_basename = os.path.join(output_dir, "event_aligned_population_activity")
+    plot_preview_filename = plot_basename + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION
     plot_population_mean_event_window(
         x_values,
         x_limits,
@@ -1360,9 +1311,7 @@ def peri_event_population_analysis(
         post_minus_pre_null_dist_std,
     ) = compute_statistical_metrics(
         np.array([true_post_minus_pre]),
-        np.array(post_minus_pre_null_dist).reshape(
-            (len(post_minus_pre_null_dist), 1)
-        ),
+        np.array(post_minus_pre_null_dist).reshape((len(post_minus_pre_null_dist), 1)),
         significance_threshold,
     )
 
@@ -1442,23 +1391,19 @@ def peri_event_single_cell_analysis(
     )
     # extract short traces around each event
     # - this step returns an array with shape (num_events, num_timepoints_per_window, num_cells)
-    event_windows = extract_event_windows(
-        traces_df, event_indices, visual_window
-    )
+    event_windows = extract_event_windows(traces_df, event_indices, visual_window)
 
     # compute mean & sem event window per cell, i.e. average activity across all windows for each
     # cell - this step returns an array with shape (num_timepoints_per_window, num_cells)
     mean_event_windows = np.nanmean(event_windows, axis=0, dtype="float32")
 
     if event_windows.shape[0] > 1:
-        sem_event_windows = stats.sem(
-            event_windows, axis=0, nan_policy="omit"
-        ).astype("float32")
+        sem_event_windows = stats.sem(event_windows, axis=0, nan_policy="omit").astype(
+            "float32"
+        )
     else:
         # no SEM to compute if dealing with a single event
-        sem_event_windows = np.full_like(
-            mean_event_windows, math.nan, dtype="float32"
-        )
+        sem_event_windows = np.full_like(mean_event_windows, math.nan, dtype="float32")
 
     # - Compute mean activity difference between timepoints after the event (post)
     # and timepoints before (pre) the event.
@@ -1537,9 +1482,7 @@ def peri_event_single_cell_analysis(
             dtype="float32",
         )
     else:
-        mean_up_modulated = np.empty(
-            mean_event_windows.shape[0], dtype="float32"
-        )
+        mean_up_modulated = np.empty(mean_event_windows.shape[0], dtype="float32")
         mean_up_modulated.fill(np.nan)
     # up modulated SEM
     if num_cells_up_modulated > 1:
@@ -1549,9 +1492,7 @@ def peri_event_single_cell_analysis(
             nan_policy="omit",
         ).astype("float32")
     else:
-        sem_up_modulated = np.empty(
-            mean_event_windows.shape[0], dtype="float32"
-        )
+        sem_up_modulated = np.empty(mean_event_windows.shape[0], dtype="float32")
         sem_up_modulated.fill(np.nan)
 
     # down modulated MEAN
@@ -1562,9 +1503,7 @@ def peri_event_single_cell_analysis(
             dtype="float32",
         )
     else:
-        mean_down_modulated = np.empty(
-            mean_event_windows.shape[0], dtype="float32"
-        )
+        mean_down_modulated = np.empty(mean_event_windows.shape[0], dtype="float32")
         mean_down_modulated.fill(np.nan)
     # down modulated SEM
     if num_cells_down_modulated > 1:
@@ -1574,9 +1513,7 @@ def peri_event_single_cell_analysis(
             nan_policy="omit",
         ).astype("float32")
     else:
-        sem_down_modulated = np.empty(
-            mean_event_windows.shape[0], dtype="float32"
-        )
+        sem_down_modulated = np.empty(mean_event_windows.shape[0], dtype="float32")
         sem_down_modulated.fill(np.nan)
 
     # non modulated MEAN
@@ -1597,9 +1534,7 @@ def peri_event_single_cell_analysis(
             nan_policy="omit",
         ).astype("float32")
     else:
-        sem_non_modulated = np.empty(
-            mean_event_windows.shape[0], dtype="float32"
-        )
+        sem_non_modulated = np.empty(mean_event_windows.shape[0], dtype="float32")
         sem_non_modulated.fill(np.nan)
 
     # compute stats for each modulation group
@@ -1622,12 +1557,10 @@ def peri_event_single_cell_analysis(
             shuffled_mean_event_windows, up_modulated_indices
         )
 
-        up_modulated_post_minus_pre_null_dist = (
-            generate_post_minus_pre_shuffled_dist(
-                up_modulated_shuffled_mean_event_windows,
-                statistical_window_indices["pre"],
-                statistical_window_indices["post"],
-            )
+        up_modulated_post_minus_pre_null_dist = generate_post_minus_pre_shuffled_dist(
+            up_modulated_shuffled_mean_event_windows,
+            statistical_window_indices["pre"],
+            statistical_window_indices["post"],
         )
 
         (
@@ -1664,12 +1597,10 @@ def peri_event_single_cell_analysis(
             shuffled_mean_event_windows, down_modulated_indices
         )
 
-        down_modulated_post_minus_pre_null_dist = (
-            generate_post_minus_pre_shuffled_dist(
-                down_modulated_shuffled_mean_event_windows,
-                statistical_window_indices["pre"],
-                statistical_window_indices["post"],
-            )
+        down_modulated_post_minus_pre_null_dist = generate_post_minus_pre_shuffled_dist(
+            down_modulated_shuffled_mean_event_windows,
+            statistical_window_indices["pre"],
+            statistical_window_indices["post"],
         )
 
         (
@@ -1706,12 +1637,10 @@ def peri_event_single_cell_analysis(
             shuffled_mean_event_windows, non_modulated_indices
         )
 
-        non_modulated_post_minus_pre_null_dist = (
-            generate_post_minus_pre_shuffled_dist(
-                non_modulated_shuffled_mean_event_windows,
-                statistical_window_indices["pre"],
-                statistical_window_indices["post"],
-            )
+        non_modulated_post_minus_pre_null_dist = generate_post_minus_pre_shuffled_dist(
+            non_modulated_shuffled_mean_event_windows,
+            statistical_window_indices["pre"],
+            statistical_window_indices["post"],
         )
 
         (
@@ -1760,9 +1689,7 @@ def peri_event_single_cell_analysis(
         cell_centroid = compute_cell_centroid(footprints[i])
         if cell_centroid is None:
             cell_centroids[i] = [-1, -1]
-            logger.warning(
-                "centroid of cell {0} could not be located".format(i)
-            )
+            logger.warning("centroid of cell {0} could not be located".format(i))
         else:
             cell_centroids[i] = cell_centroid
 
@@ -1787,12 +1714,8 @@ def peri_event_single_cell_analysis(
             "sem": sem_up_modulated,
             "num_cells": num_cells_up_modulated,
             "true_mean_post-pre": up_modulated_true_post_minus_pre,
-            "shuffled_mean_post-pre": up_modulated_post_minus_pre_null_dist_mu[
-                0
-            ],
-            "shuffled_std_post-pre": up_modulated_post_minus_pre_null_dist_std[
-                0
-            ],
+            "shuffled_mean_post-pre": up_modulated_post_minus_pre_null_dist_mu[0],
+            "shuffled_std_post-pre": up_modulated_post_minus_pre_null_dist_std[0],
             "z-score": up_modulated_zscores[0],
             "p-value": up_modulated_pvalues[0],
             "modulation": up_modulated_modulations[0],
@@ -1802,12 +1725,8 @@ def peri_event_single_cell_analysis(
             "sem": sem_down_modulated,
             "num_cells": num_cells_down_modulated,
             "true_mean_post-pre": down_modulated_true_post_minus_pre,
-            "shuffled_mean_post-pre": down_modulated_post_minus_pre_null_dist_mu[
-                0
-            ],
-            "shuffled_std_post-pre": down_modulated_post_minus_pre_null_dist_std[
-                0
-            ],
+            "shuffled_mean_post-pre": down_modulated_post_minus_pre_null_dist_mu[0],
+            "shuffled_std_post-pre": down_modulated_post_minus_pre_null_dist_std[0],
             "z-score": down_modulated_zscores[0],
             "p-value": down_modulated_pvalues[0],
             "modulation": down_modulated_modulations[0],
@@ -1817,12 +1736,8 @@ def peri_event_single_cell_analysis(
             "sem": sem_non_modulated,
             "num_cells": num_cells_non_modulated,
             "true_mean_post-pre": non_modulated_true_post_minus_pre,
-            "shuffled_mean_post-pre": non_modulated_post_minus_pre_null_dist_mu[
-                0
-            ],
-            "shuffled_std_post-pre": non_modulated_post_minus_pre_null_dist_std[
-                0
-            ],
+            "shuffled_mean_post-pre": non_modulated_post_minus_pre_null_dist_mu[0],
+            "shuffled_std_post-pre": non_modulated_post_minus_pre_null_dist_std[0],
             "z-score": non_modulated_zscores[0],
             "p-value": non_modulated_pvalues[0],
             "modulation": non_modulated_modulations[0],
@@ -1898,49 +1813,41 @@ def save_event_aligned_traces_to_csv(
         mean_label = "{0}_mean".format(group_name)
         sem_label = "{0}_sem".format(group_name)
         shuffled_mean_label = "{0}_shuffled_mean".format(group_name)
-        shuffled_lower_conf_label = "{0}_shuffled_lower_conf".format(
-            group_name
-        )
-        shuffled_upper_conf_label = "{0}_shuffled_upper_conf".format(
-            group_name
-        )
+        shuffled_lower_conf_label = "{0}_shuffled_lower_conf".format(group_name)
+        shuffled_upper_conf_label = "{0}_shuffled_upper_conf".format(group_name)
 
         if group_name == "population":
             # add population data
-            output_activity_dict[mean_label] = event_aligned_data[group_name][
-                "mean"
+            output_activity_dict[mean_label] = event_aligned_data[group_name]["mean"]
+            output_activity_dict[sem_label] = event_aligned_data[group_name]["sem"]
+            output_activity_dict[shuffled_mean_label] = event_aligned_data[group_name][
+                "shuffled_mean"
             ]
-            output_activity_dict[sem_label] = event_aligned_data[group_name][
-                "sem"
-            ]
-            output_activity_dict[shuffled_mean_label] = event_aligned_data[
+            output_activity_dict[shuffled_lower_conf_label] = event_aligned_data[
                 group_name
-            ]["shuffled_mean"]
-            output_activity_dict[
-                shuffled_lower_conf_label
-            ] = event_aligned_data[group_name]["shuffled_lower_conf"]
-            output_activity_dict[
-                shuffled_upper_conf_label
-            ] = event_aligned_data[group_name]["shuffled_upper_conf"]
+            ]["shuffled_lower_conf"]
+            output_activity_dict[shuffled_upper_conf_label] = event_aligned_data[
+                group_name
+            ]["shuffled_upper_conf"]
         else:
             # add group data
-            output_activity_dict[mean_label] = event_aligned_data[
-                "single_cell"
-            ][group_name]["mean"]
-            output_activity_dict[sem_label] = event_aligned_data[
-                "single_cell"
-            ][group_name]["sem"]
+            output_activity_dict[mean_label] = event_aligned_data["single_cell"][
+                group_name
+            ]["mean"]
+            output_activity_dict[sem_label] = event_aligned_data["single_cell"][
+                group_name
+            ]["sem"]
 
     # add single-cell data
     for i, cell_name in enumerate(valid_cells):
         mean_label = "{0}_mean".format(cell_name)
         sem_label = "{0}_sem".format(cell_name)
-        output_activity_dict[mean_label] = event_aligned_data["single_cell"][
-            "cell"
-        ]["mean"][i]
-        output_activity_dict[sem_label] = event_aligned_data["single_cell"][
-            "cell"
-        ]["sem"][i]
+        output_activity_dict[mean_label] = event_aligned_data["single_cell"]["cell"][
+            "mean"
+        ][i]
+        output_activity_dict[sem_label] = event_aligned_data["single_cell"]["cell"][
+            "sem"
+        ][i]
 
     # convert activity dict to dataframe
     output_activity_dataframe = pd.DataFrame(output_activity_dict)
@@ -2115,12 +2022,8 @@ def peri_event_analysis_for_single_event_type(
             subset_traces_end_time = traces_timepoints[row_end_index - 1]
 
             # convert start and end times to the corresponding indices across the entire series
-            subset_traces_start_index = int(
-                round(subset_traces_start_time / period)
-            )
-            subset_traces_end_index = int(
-                round(subset_traces_end_time / period)
-            )
+            subset_traces_start_index = int(round(subset_traces_start_time / period))
+            subset_traces_end_index = int(round(subset_traces_end_time / period))
 
             series_item_endpoints.append(
                 (subset_traces_start_index, subset_traces_end_index)
@@ -2235,9 +2138,7 @@ def peri_event_analysis_for_single_event_type(
     }
 
     # run the peri-event analysis at the POPULATION level
-    (
-        output_data["population"]
-    ) = peri_event_population_analysis(
+    (output_data["population"]) = peri_event_population_analysis(
         traces_df,
         event_indices,
         event_indices_shuffles,
@@ -2336,33 +2237,27 @@ def peri_event_analysis_for_single_event_type(
         {
             "key": "ideas.metrics.num_valid_events",
             "name": "Number of events",
-            "value": num_events
+            "value": num_events,
         },
         {
             "key": "ideas.metrics.num_up_modulated_cells",
             "name": "Number of up-modulated cells",
-            "value": output_data["single_cell"][
-                "up_modulated"
-            ]["num_cells"]
+            "value": output_data["single_cell"]["up_modulated"]["num_cells"],
         },
         {
             "key": "ideas.metrics.num_down_modulated_cells",
             "name": "Number of down-modulated cells",
-            "value": output_data["single_cell"][
-                "down_modulated"
-            ]["num_cells"]
+            "value": output_data["single_cell"]["down_modulated"]["num_cells"],
         },
         {
             "key": "ideas.metrics.num_non_modulated_cells",
             "name": "Number of non-modulated cells",
-            "value": output_data["single_cell"][
-                "non_modulated"
-            ]["num_cells"]
+            "value": output_data["single_cell"]["non_modulated"]["num_cells"],
         },
         {
             "key": "ideas.timingInfo.numTimes",
             "name": "Number of timepoints",
-            "value": len(x_values)
+            "value": len(x_values),
         },
         {
             "key": "ideas.timingInfo.sampling_rate",
@@ -2375,28 +2270,32 @@ def peri_event_analysis_for_single_event_type(
 
     output_path = pathlib.Path(output_dir)
     output_metadata = {
-        str((output_path / output_traces_csv_filename).relative_to(output_path.parent)) : metadata_values,
-        str((output_path / output_stats_csv_filename).relative_to(output_path.parent)) : metadata_values
+        str(
+            (output_path / output_traces_csv_filename).relative_to(output_path.parent)
+        ): metadata_values,
+        str(
+            (output_path / output_stats_csv_filename).relative_to(output_path.parent)
+        ): metadata_values,
     }
 
     with open("output_metadata.json", "w") as f:
         json.dump(output_metadata, f, indent=4)
-            	
+
     # aligned_traces_metadata = {
     #     config.IDEAS_METADATA_KEY: {
-            # "dataset": {"signal": [{"name": "calcium", "units": "z-score"}]},
-            # "metrics": {
-            #     "num_up_modulated_cells": output_data["single_cell"][
-            #         "up_modulated"
-            #     ]["num_cells"],
-            #     "num_down_modulated_cells": output_data["single_cell"][
-            #         "down_modulated"
-            #     ]["num_cells"],
-            #     "num_non_modulated_cells": output_data["single_cell"][
-            #         "non_modulated"
-            #     ]["num_cells"],
-            #     "num_valid_events": num_events,
-            # },
+    # "dataset": {"signal": [{"name": "calcium", "units": "z-score"}]},
+    # "metrics": {
+    #     "num_up_modulated_cells": output_data["single_cell"][
+    #         "up_modulated"
+    #     ]["num_cells"],
+    #     "num_down_modulated_cells": output_data["single_cell"][
+    #         "down_modulated"
+    #     ]["num_cells"],
+    #     "num_non_modulated_cells": output_data["single_cell"][
+    #         "non_modulated"
+    #     ]["num_cells"],
+    #     "num_valid_events": num_events,
+    # },
     #         "timingInfo": {
     #             "blank": [],
     #             "cropped": [],
@@ -2598,15 +2497,11 @@ def run_peri_event_workflow(
 
     # store plot params globally
     global PLOT_PARAMS
-    PLOT_PARAMS[
-        "population_activity_plot_limits"
-    ] = population_activity_plot_limits
-    PLOT_PARAMS[
-        "activity_heatmap_color_limits"
-    ] = activity_heatmap_color_limits
-    PLOT_PARAMS[
-        "activity_by_modulation_plot_limits"
-    ] = activity_by_modulation_plot_limits
+    PLOT_PARAMS["population_activity_plot_limits"] = population_activity_plot_limits
+    PLOT_PARAMS["activity_heatmap_color_limits"] = activity_heatmap_color_limits
+    PLOT_PARAMS["activity_by_modulation_plot_limits"] = (
+        activity_by_modulation_plot_limits
+    )
     PLOT_PARAMS["modulation_colors"] = modulation_colors
 
     # sort input isxd cell sets in chronological order
@@ -2685,24 +2580,18 @@ def run_peri_event_workflow(
     traces_df = pd.DataFrame.from_dict(traces_dict)
 
     # standardize traces (z-scores)
-    standardized_traces_df = (traces_df - traces_df.mean()) / traces_df.std(
-        ddof=0
-    )
+    standardized_traces_df = (traces_df - traces_df.mean()) / traces_df.std(ddof=0)
 
     # construct traces timepoints
     traces_timepoints = []
     for i, cs in enumerate(cellsets):
         item_timepoints = np.array(
-            [
-                n * cs.timing.period.secs_float
-                for n in range(cs.timing.num_samples)
-            ]
+            [n * cs.timing.period.secs_float for n in range(cs.timing.num_samples)]
         )
 
         if i > 0:
             item_timepoints += (
-                traces_timepoints[-1]
-                + cellsets[i - 1].timing.period.secs_float
+                traces_timepoints[-1] + cellsets[i - 1].timing.period.secs_float
             )
 
         traces_timepoints.extend(item_timepoints)
@@ -2765,9 +2654,7 @@ def run_peri_event_workflow(
 
     # ensure time window does not exceed length of traces
     num_timepoints = first_cell_set_metadata["timingInfo"]["numTimes"]
-    visual_window_length = (
-        visual_window_frames[0] + 1 + visual_window_frames[1]
-    )
+    visual_window_length = visual_window_frames[0] + 1 + visual_window_frames[1]
     if visual_window_length > num_timepoints:
         raise IdeasError(
             "The visual window must be temporally shorter than the input traces.",
@@ -2923,34 +2810,48 @@ def run_peri_event_workflow_ideas_wrapper(
         with outputs.register(raise_missing_file=False) as output_data:
             output_dir = pathlib.Path.cwd()
             metadata = outputs._load_and_remove_output_metadata()
-            subdirectories = [str(x.relative_to(output_dir)) for x in output_dir.iterdir() if x.is_dir()]
+            subdirectories = [
+                str(x.relative_to(output_dir))
+                for x in output_dir.iterdir()
+                if x.is_dir()
+            ]
             event_types = [x for x in subdirectories if x.startswith("event_type")]
-            
+
             for event_type in event_types:
-                output_file = output_data.register_file(
-                    "event_aligned_activity.TRACES.csv",
-                    subdir=event_type
-                ).register_preview(
-                    "event_aligned_population_activity.preview.svg",
-                    caption="Event-aligned average population activity line plot"
-                ).register_preview(
-                    "event_aligned_single_cell_activity_heatmap.preview.svg",
-                    caption="Event-aligned single-cell activity heatmap"
+                output_file = (
+                    output_data.register_file(
+                        "event_aligned_activity.TRACES.csv", subdir=event_type
+                    )
+                    .register_preview(
+                        "event_aligned_population_activity.preview.svg",
+                        caption="Event-aligned average population activity line plot",
+                    )
+                    .register_preview(
+                        "event_aligned_single_cell_activity_heatmap.preview.svg",
+                        caption="Event-aligned single-cell activity heatmap",
+                    )
                 )
-                for md in metadata.get(f"{event_type}/event_aligned_activity.TRACES.csv", {}):
+                for md in metadata.get(
+                    f"{event_type}/event_aligned_activity.TRACES.csv", {}
+                ):
                     output_file.register_metadata(**md)
 
-                output_file = output_data.register_file(
-                    "event_aligned_activity.STATISTICS.csv",
-                    subdir=event_type
-                ).register_preview(
-                    "event_aligned_activity_by_modulation.preview.svg",
-                    caption="Event-aligned average sub-population activity line plot"
-                ).register_preview(
-                    "cell_map.preview.svg",
-                    caption="Cell map visualizing spatial organization of modulation"
+                output_file = (
+                    output_data.register_file(
+                        "event_aligned_activity.STATISTICS.csv", subdir=event_type
+                    )
+                    .register_preview(
+                        "event_aligned_activity_by_modulation.preview.svg",
+                        caption="Event-aligned average sub-population activity line plot",
+                    )
+                    .register_preview(
+                        "cell_map.preview.svg",
+                        caption="Cell map visualizing spatial organization of modulation",
+                    )
                 )
-                for md in metadata.get(f"{event_type}/event_aligned_activity.STATISTICS.csv", {}):
+                for md in metadata.get(
+                    f"{event_type}/event_aligned_activity.STATISTICS.csv", {}
+                ):
                     output_file.register_metadata(**md)
 
         logger.info("Registered output data")

@@ -1,11 +1,14 @@
 import os
 import shutil
 import unittest
-import pandas as pd
+
 import numpy as np
+import pandas as pd
+
 from analysis.combine_compare_peri_event_data_across_epochs import (
     combine_compare_peri_event_data_across_epochs,
 )
+
 
 class TestCombineComparePeriEventDataAcrossEpochs(unittest.TestCase):
     """Tests for the combine and compare peri-event data across epochs tool."""
@@ -15,30 +18,20 @@ class TestCombineComparePeriEventDataAcrossEpochs(unittest.TestCase):
 
     # define directories
     temporary_dir = "/tmp"
-    input_dir = (
-        "data/combine_compare_peri_event_data_across_epochs"
-    )
+    input_dir = "data/combine_compare_peri_event_data_across_epochs"
     output_dir = os.path.join(
         temporary_dir, "tmp_combine_compare_peri_event_data_across_epochs"
     )
 
     # output manifest
-    output_manifest_json_schema = (
-        "toolbox/tests/schemas/output_manifest_schema.json"
-    )
+    output_manifest_json_schema = "toolbox/tests/schemas/output_manifest_schema.json"
     output_manifest_file_basename = "output_manifest.json"
-    output_manifest_file = os.path.join(
-        output_dir, output_manifest_file_basename
-    )
+    output_manifest_file = os.path.join(output_dir, output_manifest_file_basename)
 
     # output metadata
-    output_metadata_json_schema = (
-        "toolbox/tests/schemas/output_metadata_schema.json"
-    )
+    output_metadata_json_schema = "toolbox/tests/schemas/output_metadata_schema.json"
     output_metadata_file_basename = "output_metadata.json"
-    output_metadata_file = os.path.join(
-        output_dir, output_metadata_file_basename
-    )
+    output_metadata_file = os.path.join(output_dir, output_metadata_file_basename)
 
     def setUp(self):
         if os.path.exists(self.output_dir):
@@ -49,14 +42,10 @@ class TestCombineComparePeriEventDataAcrossEpochs(unittest.TestCase):
         if os.path.exists(self.output_dir):
             shutil.rmtree(self.output_dir)
 
-    def validate_traces_file_column_names(
-        self, traces_df, epoch_names, cell_ids
-    ):
+    def validate_traces_file_column_names(self, traces_df, epoch_names, cell_ids):
         """Validate output traces file column names."""
         exp_epoch_headers = epoch_names + ["Time"]
-        act_epochs_headers = np.unique(
-            traces_df.columns.get_level_values(0)
-        ).tolist()
+        act_epochs_headers = np.unique(traces_df.columns.get_level_values(0)).tolist()
         self.assertEqual(exp_epoch_headers, act_epochs_headers)
         self.assertEqual(traces_df.columns[0], ("Time", "Unnamed: 0_level_1"))
 
@@ -71,9 +60,7 @@ class TestCombineComparePeriEventDataAcrossEpochs(unittest.TestCase):
             "non_modulated_sem",
         ] + [f"C{str(i).zfill(2)}_mean" for i in cell_ids]:
             for epoch_name in epoch_names:
-                self.assertTrue(
-                    (epoch_name, second_level_header) in traces_df.columns
-                )
+                self.assertTrue((epoch_name, second_level_header) in traces_df.columns)
 
     def validate_statistics_file_column_names(self, df):
         """Validate output statistics file column names."""
@@ -91,9 +78,7 @@ class TestCombineComparePeriEventDataAcrossEpochs(unittest.TestCase):
         act_cols = list(df.columns)
         self.assertEqual(exp_cols, act_cols)
 
-    def validate_pairwise_comparisons_file_column_names(
-        self, df, cols_to_exclude=None
-    ):
+    def validate_pairwise_comparisons_file_column_names(self, df, cols_to_exclude=None):
         """Validate output pairwise comparisons file column names."""
         exp_cols = [
             "Comparison",

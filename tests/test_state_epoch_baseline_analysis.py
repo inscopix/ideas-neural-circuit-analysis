@@ -10,33 +10,33 @@ Tests cover various scenarios including:
 """
 
 from __future__ import annotations
-from typing import Optional
+
 import json
 import os
 from pathlib import Path
+from typing import Optional
 from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pandas as pd
 import pytest
 from beartype.roar import BeartypeCallHintParamViolation
-
 from ideas.exceptions import IdeasError
 
 import analysis.state_epoch_baseline_analysis as seb_module
+import utils.state_epoch_output as seo_module
 from analysis.state_epoch_baseline_analysis import (
-    state_epoch_baseline_analysis,
-    analyze,
-    configure_state_epoch_analysis_feature_flags,
-    temporary_state_epoch_analysis_feature_flags,
     StateEpochDataManager,
+    StateEpochOutputGenerator,
     StateEpochResults,
+    analyze,
     analyze_state_epoch_combination,
     calculate_baseline_modulation,
-    StateEpochOutputGenerator,
+    configure_state_epoch_analysis_feature_flags,
+    state_epoch_baseline_analysis,
     state_epoch_baseline_analysis_ideas_wrapper,
+    temporary_state_epoch_analysis_feature_flags,
 )
-import utils.state_epoch_output as seo_module
 
 try:
     from analysis.epoch_activity import run as epoch_activity_run
@@ -1333,11 +1333,14 @@ class TestStateEpochInteractionScenarios:
 
         # Test mismatched baseline state - this should still raise an error
         # when validation happens
-        with patch(
-            "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
-        ) as mock_dm_class2, patch(
-            "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
-        ) as mock_validate2:
+        with (
+            patch(
+                "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
+            ) as mock_dm_class2,
+            patch(
+                "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
+            ) as mock_validate2,
+        ):
             mock_validate2.return_value = None
             mock_dm_class2.side_effect = IdeasError(
                 "Baseline state 'rest' not found in states: ['active', 'exploration']"
@@ -1358,11 +1361,14 @@ class TestStateEpochInteractionScenarios:
                 )
 
         # Test mismatched baseline epoch - this should still raise an error
-        with patch(
-            "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
-        ) as mock_dm_class3, patch(
-            "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
-        ) as mock_validate3:
+        with (
+            patch(
+                "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
+            ) as mock_dm_class3,
+            patch(
+                "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
+            ) as mock_validate3,
+        ):
             mock_validate3.return_value = None
             mock_dm_class3.side_effect = IdeasError(
                 "Baseline epoch 'epoch2' not found in epochs: ['epoch1']"
@@ -2036,24 +2042,24 @@ class TestAnalyzeStateEpochCombination:
         assert "event_cv" in results, "Event CV should be calculated"
 
         # Verify event correlation data is present
-        assert (
-            "event_correlation_matrix" in results
-        ), "Event correlation matrix should be calculated"
-        assert (
-            "event_mean_correlation" in results
-        ), "Event mean correlation should be calculated"
-        assert (
-            "event_max_correlation" in results
-        ), "Event max correlation should be calculated"
-        assert (
-            "event_min_correlation" in results
-        ), "Event min correlation should be calculated"
-        assert (
-            "event_mean_positive_correlation" in results
-        ), "Event mean positive correlation should be calculated"
-        assert (
-            "event_mean_negative_correlation" in results
-        ), "Event mean negative correlation should be calculated"
+        assert "event_correlation_matrix" in results, (
+            "Event correlation matrix should be calculated"
+        )
+        assert "event_mean_correlation" in results, (
+            "Event mean correlation should be calculated"
+        )
+        assert "event_max_correlation" in results, (
+            "Event max correlation should be calculated"
+        )
+        assert "event_min_correlation" in results, (
+            "Event min correlation should be calculated"
+        )
+        assert "event_mean_positive_correlation" in results, (
+            "Event mean positive correlation should be calculated"
+        )
+        assert "event_mean_negative_correlation" in results, (
+            "Event mean negative correlation should be calculated"
+        )
 
         # Verify event correlation matrix shape
         assert results["event_correlation_matrix"].shape == (
@@ -2062,15 +2068,15 @@ class TestAnalyzeStateEpochCombination:
         ), "Event correlation matrix should be 10x10"
 
         # Verify event correlation values are in valid range
-        assert (
-            -1 <= results["event_mean_correlation"] <= 1
-        ), "Event mean correlation should be in [-1, 1]"
-        assert (
-            -1 <= results["event_max_correlation"] <= 1
-        ), "Event max correlation should be in [-1, 1]"
-        assert (
-            -1 <= results["event_min_correlation"] <= 1
-        ), "Event min correlation should be in [-1, 1]"
+        assert -1 <= results["event_mean_correlation"] <= 1, (
+            "Event mean correlation should be in [-1, 1]"
+        )
+        assert -1 <= results["event_max_correlation"] <= 1, (
+            "Event max correlation should be in [-1, 1]"
+        )
+        assert -1 <= results["event_min_correlation"] <= 1, (
+            "Event min correlation should be in [-1, 1]"
+        )
 
     def test_event_correlation_skipped_when_correlations_disabled(
         self, mock_traces, mock_events
@@ -2101,12 +2107,12 @@ class TestAnalyzeStateEpochCombination:
         assert "event_rates" in results, "Event rates should be calculated"
 
         # But event correlation should NOT be present
-        assert (
-            "event_correlation_matrix" not in results
-        ), "Event correlation should be skipped when correlations disabled"
-        assert (
-            "event_mean_correlation" not in results
-        ), "Event correlation stats should be skipped when correlations disabled"
+        assert "event_correlation_matrix" not in results, (
+            "Event correlation should be skipped when correlations disabled"
+        )
+        assert "event_mean_correlation" not in results, (
+            "Event correlation stats should be skipped when correlations disabled"
+        )
 
     def test_event_correlation_skipped_for_single_cell(self):
         """Test that event correlation is skipped for single cell data."""
@@ -2138,12 +2144,12 @@ class TestAnalyzeStateEpochCombination:
         assert "event_rates" in results, "Event rates should be calculated"
 
         # But event correlations should NOT be present (single cell)
-        assert (
-            "event_correlation_matrix" not in results
-        ), "Event correlation should be skipped for single cell"
-        assert (
-            "event_mean_correlation" not in results
-        ), "Event correlation stats should be skipped for single cell"
+        assert "event_correlation_matrix" not in results, (
+            "Event correlation should be skipped for single cell"
+        )
+        assert "event_mean_correlation" not in results, (
+            "Event correlation stats should be skipped for single cell"
+        )
 
     def test_sparse_event_data_handling(self, mock_traces):
         """Test that sparse event data (few cells with events) is handled correctly."""
@@ -2184,18 +2190,18 @@ class TestAnalyzeStateEpochCombination:
         assert "event_rates" in results, "Event rates should be calculated"
 
         # Event correlation matrix should still be computed (but will have many NaN)
-        assert (
-            "event_correlation_matrix" in results
-        ), "Event correlation matrix should be calculated even with sparse data"
+        assert "event_correlation_matrix" in results, (
+            "Event correlation matrix should be calculated even with sparse data"
+        )
 
         # Check metadata about sparsity
         assert "event_active_cells" in results, "Should track number of active cells"
         assert "event_sparse_data" in results, "Should flag sparse event data"
 
         # Verify sparse data flag is True (< 50% cells active)
-        assert results[
-            "event_sparse_data"
-        ], "Should flag data as sparse when few cells have events"
+        assert results["event_sparse_data"], (
+            "Should flag data as sparse when few cells have events"
+        )
 
         # Verify active cell count (should be 2 cells with variance > threshold)
         assert (
@@ -2212,10 +2218,11 @@ class TestCalculateBaselineModulation:
         This is NOT a bug - it represents infinite fold-change which is mathematically
         correct when going from 0 to non-zero events.
         """
+        import numpy as np
+
         from utils.state_epoch_results import (
             _calculate_modulation_scores,
         )
-        import numpy as np
 
         # Case 1: Both zero (no modulation)
         baseline = np.array([0.0, 0.0, 0.0])
@@ -2229,9 +2236,9 @@ class TestCalculateBaselineModulation:
         test = np.array([0.05, 0.10, 0.01])
         modulation = _calculate_modulation_scores(test, baseline)
 
-        assert np.all(
-            modulation > 0.99
-        ), "Zero to non-zero should give modulation ≈ 1.0"
+        assert np.all(modulation > 0.99), (
+            "Zero to non-zero should give modulation ≈ 1.0"
+        )
         assert np.all(modulation <= 1.0), "Modulation should be clipped to 1.0"
 
         # Case 3: Non-zero baseline, zero test (complete suppression → -1.0)
@@ -2239,9 +2246,9 @@ class TestCalculateBaselineModulation:
         test = np.array([0.0, 0.0, 0.0])
         modulation = _calculate_modulation_scores(test, baseline)
 
-        assert np.all(
-            modulation < -0.99
-        ), "Non-zero to zero should give modulation ≈ -1.0"
+        assert np.all(modulation < -0.99), (
+            "Non-zero to zero should give modulation ≈ -1.0"
+        )
         assert np.all(modulation >= -1.0), "Modulation should be clipped to -1.0"
 
         # Case 4: Both non-zero (normal fold-change)
@@ -2250,9 +2257,9 @@ class TestCalculateBaselineModulation:
         modulation = _calculate_modulation_scores(test, baseline)
 
         # These should be moderate modulation scores
-        assert np.all(
-            np.abs(modulation) < 0.99
-        ), "Both non-zero should give moderate modulation"
+        assert np.all(np.abs(modulation) < 0.99), (
+            "Both non-zero should give moderate modulation"
+        )
         assert np.all(modulation > 0), "All increased so should be positive"
 
         # Verify specific expected values
@@ -2830,9 +2837,9 @@ class TestOutputGeneration:
             assert file_path.exists(), f"Required file {filename} was not created"
 
         # Verify that the directory was created and contains files
-        assert (
-            len(list(Path(temp_output_dir).glob("*.csv"))) > 0
-        ), "No CSV files were created"
+        assert len(list(Path(temp_output_dir).glob("*.csv"))) > 0, (
+            "No CSV files were created"
+        )
 
         # Optional preview files might not be created if visualization fails, but that's ok
         # The important thing is that the CSV data files and metadata are created
@@ -3447,22 +3454,22 @@ class TestToolConsistency:
         epochs = [single_epoch_config["epoch_names"]]
 
         # Verify baseline state exists in defined states
-        assert (
-            baseline_state in states
-        ), f"Baseline state '{baseline_state}' not in states {states}"
+        assert baseline_state in states, (
+            f"Baseline state '{baseline_state}' not in states {states}"
+        )
 
         # Verify baseline epoch exists in defined epochs
-        assert (
-            baseline_epoch in epochs
-        ), f"Baseline epoch '{baseline_epoch}' not in epochs {epochs}"
+        assert baseline_epoch in epochs, (
+            f"Baseline epoch '{baseline_epoch}' not in epochs {epochs}"
+        )
 
         # In single epoch mode, all states should be in the same epoch
         assert len(epochs) == 1, "Single epoch mode should have exactly one epoch"
 
         # Baseline epoch should be the single epoch
-        assert (
-            baseline_epoch == epochs[0]
-        ), "Baseline epoch should match the single epoch"
+        assert baseline_epoch == epochs[0], (
+            "Baseline epoch should match the single epoch"
+        )
 
     def test_epoch_parsing_consistency(self):
         """Test that epoch parsing is consistent."""
@@ -3549,9 +3556,9 @@ class TestDataConsistencyCore:
 
         # Test population_activity tool compatibility requirements
         required_cols = ["name", "state", "mean_trace_activity"]
-        assert all(
-            col in df.columns for col in required_cols
-        ), f"Missing required columns for population_activity compatibility: {required_cols}"
+        assert all(col in df.columns for col in required_cols), (
+            f"Missing required columns for population_activity compatibility: {required_cols}"
+        )
 
         # Test data types
         assert df["mean_trace_activity"].dtype in [
@@ -3561,12 +3568,12 @@ class TestDataConsistencyCore:
         assert df["state"].dtype == object, "State should be string/object type"
 
         # Test value ranges (neural activity should be positive, reasonable)
-        assert (
-            df["mean_trace_activity"] >= 0
-        ).all(), "Mean activity should be non-negative"
-        assert (
-            df["std_trace_activity"] >= 0
-        ).all(), "Standard deviation should be non-negative"
+        assert (df["mean_trace_activity"] >= 0).all(), (
+            "Mean activity should be non-negative"
+        )
+        assert (df["std_trace_activity"] >= 0).all(), (
+            "Standard deviation should be non-negative"
+        )
         assert (df["trace_activity_cv"] >= 0).all(), "CV should be non-negative"
 
     def test_modulation_csv_population_compatibility_requirements(self):
@@ -3588,23 +3595,23 @@ class TestDataConsistencyCore:
             "p_value",
             "significant",
         ]
-        assert all(
-            col in df.columns for col in required_cols
-        ), f"Missing required columns for population_activity compatibility: {required_cols}"
+        assert all(col in df.columns for col in required_cols), (
+            f"Missing required columns for population_activity compatibility: {required_cols}"
+        )
 
         # Test value ranges
-        assert (df["p_value"] >= 0).all() and (
-            df["p_value"] <= 1
-        ).all(), "P-values should be between 0 and 1"
+        assert (df["p_value"] >= 0).all() and (df["p_value"] <= 1).all(), (
+            "P-values should be between 0 and 1"
+        )
         assert (
             df["significant"].dtype == bool
             or df["significant"].isin([0, 1, True, False]).all()
         ), "Significant column should be boolean"
 
         # Modulation indices should be reasonable (typically between -5 and 5)
-        assert (
-            df["modulation_index"].abs() <= 10
-        ).all(), "Modulation indices outside reasonable range"
+        assert (df["modulation_index"].abs() <= 10).all(), (
+            "Modulation indices outside reasonable range"
+        )
 
     def test_correlation_csv_structure_requirements(self):
         """Test that correlation data meets correlations tool format requirements."""
@@ -3621,17 +3628,17 @@ class TestDataConsistencyCore:
 
         # Test correlations tool compatibility requirements
         required_cols = ["state", "mean_trace_correlation", "std_correlation"]
-        assert all(
-            col in df.columns for col in required_cols
-        ), f"Missing required columns for correlations tool compatibility: {required_cols}"
+        assert all(col in df.columns for col in required_cols), (
+            f"Missing required columns for correlations tool compatibility: {required_cols}"
+        )
 
         # Test correlation value ranges (-1 to 1)
         assert (df["mean_trace_correlation"] >= -1).all() and (
             df["mean_trace_correlation"] <= 1
         ).all(), "Mean correlations outside valid range [-1, 1]"
-        assert (
-            df["std_correlation"] >= 0
-        ).all(), "Standard deviation of correlations should be non-negative"
+        assert (df["std_correlation"] >= 0).all(), (
+            "Standard deviation of correlations should be non-negative"
+        )
         assert (df["positive_corr_fraction"] >= 0).all() and (
             df["positive_corr_fraction"] <= 1
         ).all(), "Positive correlation fraction should be between 0 and 1"
@@ -3673,17 +3680,17 @@ class TestDataConsistencyCore:
         for param in common_params:
             single_val = single_epoch_config.get(param)
             pop_val = population_config.get(param)
-            assert (
-                single_val == pop_val
-            ), f"Parameter {param} inconsistent: {single_val} vs {pop_val}"
+            assert single_val == pop_val, (
+                f"Parameter {param} inconsistent: {single_val} vs {pop_val}"
+            )
 
         # Test that single epoch covers full recording (equivalent to no epoch filtering)
-        assert single_epoch_config["epochs"].startswith(
-            "(0,"
-        ), "Single epoch should start from beginning of recording"
-        assert (
-            "9999" in single_epoch_config["epochs"]
-        ), "Single epoch should extend to end of recording"
+        assert single_epoch_config["epochs"].startswith("(0,"), (
+            "Single epoch should start from beginning of recording"
+        )
+        assert "9999" in single_epoch_config["epochs"], (
+            "Single epoch should extend to end of recording"
+        )
 
     def test_csv_vs_preview_consistency_requirements(self):
         """Test requirements for CSV-preview consistency."""
@@ -3710,9 +3717,9 @@ class TestDataConsistencyCore:
 
         for _csv_name, preview_name in expected_pairs:
             # Ensure the expected preview name is one the tool actually produces
-            assert preview_name.endswith(
-                ".svg"
-            ), f"Preview should be an SVG file: {preview_name}"
+            assert preview_name.endswith(".svg"), (
+                f"Preview should be an SVG file: {preview_name}"
+            )
 
     def test_metadata_structure_requirements(self):
         """Test that metadata structure meets system requirements."""
@@ -3734,9 +3741,9 @@ class TestDataConsistencyCore:
             }
 
         # Test structure requirements
-        assert (
-            len(metadata) >= 4
-        ), "Should have metadata for at least 4 main output types"
+        assert len(metadata) >= 4, (
+            "Should have metadata for at least 4 main output types"
+        )
 
         for key in expected_metadata_keys:
             assert key in metadata, f"Missing metadata key: {key}"
@@ -3758,19 +3765,19 @@ class TestDataConsistencyCore:
         df = pd.DataFrame(csv_data)
 
         # The values in CSV should be exactly what would be plotted in previews
-        assert len(df["mean_trace_activity"]) == len(
-            activity_values
-        ), "CSV should contain all activity values"
-        assert np.allclose(
-            df["mean_trace_activity"], activity_values
-        ), "CSV values should match source data exactly"
+        assert len(df["mean_trace_activity"]) == len(activity_values), (
+            "CSV should contain all activity values"
+        )
+        assert np.allclose(df["mean_trace_activity"], activity_values), (
+            "CSV values should match source data exactly"
+        )
 
         # Statistical consistency checks
         mean_from_csv = df["mean_trace_activity"].mean()
         expected_mean = np.mean(activity_values)
-        assert np.isclose(
-            mean_from_csv, expected_mean
-        ), "Statistical summaries should be consistent"
+        assert np.isclose(mean_from_csv, expected_mean), (
+            "Statistical summaries should be consistent"
+        )
 
     @pytest.mark.parametrize("n_states", [2, 3, 4])
     @pytest.mark.parametrize("n_cells", [5, 10])
@@ -3787,17 +3794,17 @@ class TestDataConsistencyCore:
         expected_correlation_rows = n_states * len(epochs)
 
         # Test scaling requirements
-        assert (
-            expected_activity_rows == n_cells * n_states
-        ), f"Activity data should scale as cells x states: {expected_activity_rows}"
-        assert (
-            expected_correlation_rows == n_states
-        ), f"Correlation data should scale as states: {expected_correlation_rows}"
+        assert expected_activity_rows == n_cells * n_states, (
+            f"Activity data should scale as cells x states: {expected_activity_rows}"
+        )
+        assert expected_correlation_rows == n_states, (
+            f"Correlation data should scale as states: {expected_correlation_rows}"
+        )
 
         # Test that we can handle reasonable data sizes
-        assert (
-            expected_activity_rows <= 1000
-        ), "Should handle reasonable data sizes efficiently"
+        assert expected_activity_rows <= 1000, (
+            "Should handle reasonable data sizes efficiently"
+        )
         assert len(states) <= 10, "Should handle reasonable number of states"
 
     def test_tool_integration_requirements(self):
@@ -3814,12 +3821,12 @@ class TestDataConsistencyCore:
         # This tests that the integration structure is correct
         for func_name in function_requirements:
             # Test that these are strings (would be function names)
-            assert isinstance(
-                func_name, str
-            ), f"Function requirement {func_name} should be string"
-            assert func_name.startswith("_") or func_name.startswith(
-                "plot"
-            ), f"Function {func_name} should follow naming convention"
+            assert isinstance(func_name, str), (
+                f"Function requirement {func_name} should be string"
+            )
+            assert func_name.startswith("_") or func_name.startswith("plot"), (
+                f"Function {func_name} should follow naming convention"
+            )
 
     def test_configuration_validation_requirements(self):
         """Test that configuration validation requirements are met."""
@@ -3832,15 +3839,15 @@ class TestDataConsistencyCore:
         valid_scale_methods = ["none", "z_score", "robust_z_score"]
 
         # Test configuration value validation requirements
-        assert (
-            "global file time" in valid_define_epochs_by
-        ), "Should support global file time for single epoch mode"
-        assert (
-            "none" in valid_scale_methods
-        ), "Should support no scaling for consistency with other tools"
-        assert (
-            len(valid_define_epochs_by) >= 3
-        ), "Should support multiple epoch definition methods"
+        assert "global file time" in valid_define_epochs_by, (
+            "Should support global file time for single epoch mode"
+        )
+        assert "none" in valid_scale_methods, (
+            "Should support no scaling for consistency with other tools"
+        )
+        assert len(valid_define_epochs_by) >= 3, (
+            "Should support multiple epoch definition methods"
+        )
 
     def test_expected_output_files_consistency(self):
         """Test that expected output files are consistent with configuration."""
@@ -3930,17 +3937,17 @@ class TestDataConsistencyCore:
             # Test field value consistency
             if key.endswith("_data"):
                 assert result_entry["is_output"], f"Data file {key} should be output"
-                assert not result_entry[
-                    "is_preview"
-                ], f"Data file {key} should not be preview"
+                assert not result_entry["is_preview"], (
+                    f"Data file {key} should not be preview"
+                )
 
             if key.endswith("_preview"):
-                assert result_entry[
-                    "is_preview"
-                ], f"Preview file {key} should be preview"
-                assert not result_entry[
-                    "is_output"
-                ], f"Preview file {key} should not be output"
+                assert result_entry["is_preview"], (
+                    f"Preview file {key} should be preview"
+                )
+                assert not result_entry["is_output"], (
+                    f"Preview file {key} should not be output"
+                )
 
 
 class TestCSVOutputValidation:
@@ -3961,9 +3968,9 @@ class TestCSVOutputValidation:
         # Test file naming consistency - all should end with .csv and contain descriptive names
         for csv_file in expected_core_files:
             assert csv_file.endswith(".csv"), f"Core file {csv_file} should be a CSV"
-            assert (
-                "_" in csv_file
-            ), f"Core file {csv_file} should have descriptive naming with underscores"
+            assert "_" in csv_file, (
+                f"Core file {csv_file} should have descriptive naming with underscores"
+            )
 
     def test_correlation_csv_includes_event_correlation_columns(self):
         """Test that correlations CSV includes event correlation columns."""
@@ -3985,29 +3992,29 @@ class TestCSVOutputValidation:
         ]
 
         # Verify expected column names are defined
-        assert (
-            len(expected_trace_correlation_columns) >= 5
-        ), "Should have at least 5 trace correlation columns"
-        assert (
-            len(expected_event_correlation_columns) >= 5
-        ), "Should have at least 5 event correlation columns"
+        assert len(expected_trace_correlation_columns) >= 5, (
+            "Should have at least 5 trace correlation columns"
+        )
+        assert len(expected_event_correlation_columns) >= 5, (
+            "Should have at least 5 event correlation columns"
+        )
 
         # Test that event correlation columns mirror trace correlation columns
         for trace_col in expected_trace_correlation_columns:
             # Derive expected event column name
             event_col = trace_col.replace("trace", "event")
-            assert (
-                event_col in expected_event_correlation_columns
-            ), f"Event column {event_col} should exist to match trace column {trace_col}"
+            assert event_col in expected_event_correlation_columns, (
+                f"Event column {event_col} should exist to match trace column {trace_col}"
+            )
 
         # Verify column naming convention consistency
         for col in expected_event_correlation_columns:
-            assert (
-                "event" in col
-            ), f"Event correlation column {col} should contain 'event'"
-            assert (
-                "correlation" in col
-            ), f"Event correlation column {col} should contain 'correlation'"
+            assert "event" in col, (
+                f"Event correlation column {col} should contain 'event'"
+            )
+            assert "correlation" in col, (
+                f"Event correlation column {col} should contain 'correlation'"
+            )
 
     def test_average_correlations_csv_includes_trace_and_event_columns(self):
         """Test that average_correlations.csv includes both trace and event data."""
@@ -4027,42 +4034,43 @@ class TestCSVOutputValidation:
         assert "state" in expected_columns, "Should have state identifier column"
 
         # Check trace correlation columns
-        assert (
-            "positive_trace_correlation" in expected_columns
-        ), "Should have positive trace correlation"
-        assert (
-            "negative_trace_correlation" in expected_columns
-        ), "Should have negative trace correlation"
+        assert "positive_trace_correlation" in expected_columns, (
+            "Should have positive trace correlation"
+        )
+        assert "negative_trace_correlation" in expected_columns, (
+            "Should have negative trace correlation"
+        )
 
         # Check event correlation columns
-        assert (
-            "positive_event_correlation" in expected_columns
-        ), "Should have positive event correlation"
-        assert (
-            "negative_event_correlation" in expected_columns
-        ), "Should have negative event correlation"
+        assert "positive_event_correlation" in expected_columns, (
+            "Should have positive event correlation"
+        )
+        assert "negative_event_correlation" in expected_columns, (
+            "Should have negative event correlation"
+        )
 
         # Verify symmetry between trace and event columns
         trace_columns = [col for col in expected_columns if "trace" in col]
         event_columns = [col for col in expected_columns if "event" in col]
 
-        assert len(trace_columns) == len(
-            event_columns
-        ), "Should have same number of trace and event correlation columns"
+        assert len(trace_columns) == len(event_columns), (
+            "Should have same number of trace and event correlation columns"
+        )
 
         # Verify each trace column has corresponding event column
         for trace_col in trace_columns:
             event_col = trace_col.replace("trace", "event")
-            assert (
-                event_col in event_columns
-            ), f"Event column {event_col} should exist to match trace column {trace_col}"
+            assert event_col in event_columns, (
+                f"Event column {event_col} should exist to match trace column {trace_col}"
+            )
 
     def test_mean_correlation_is_per_cell(self):
         """Test that mean_trace_correlation and mean_event_correlation are per-cell values."""
+        import numpy as np
+
         from analysis.state_epoch_baseline_analysis import (
             StateEpochResults,
         )
-        import numpy as np
 
         # Create a results object
         results = StateEpochResults()
@@ -4096,34 +4104,34 @@ class TestCSVOutputValidation:
         assert "mean_per_cell" in stats, "Should have mean_per_cell key"
         mean_per_cell = stats["mean_per_cell"]
 
-        assert isinstance(
-            mean_per_cell, np.ndarray
-        ), "mean_per_cell should be a numpy array"
+        assert isinstance(mean_per_cell, np.ndarray), (
+            "mean_per_cell should be a numpy array"
+        )
         assert len(mean_per_cell) == 5, "mean_per_cell should have one value per cell"
 
         # Verify values are different (each cell has different mean correlation)
         # Cell 0: mean of [0.5, 0.3, 0.2, 0.1] = 0.275
         # Cell 4: mean of [0.1, 0.2, 0.5, 0.8] = 0.4
-        assert not np.allclose(
-            mean_per_cell[0], mean_per_cell[4]
-        ), "Different cells should have different mean correlations"
+        assert not np.allclose(mean_per_cell[0], mean_per_cell[4]), (
+            "Different cells should have different mean correlations"
+        )
 
         # Verify approximate expected values (excluding diagonal)
         expected_mean_cell0 = np.mean([0.5, 0.3, 0.2, 0.1])  # 0.275
-        assert np.isclose(
-            mean_per_cell[0], expected_mean_cell0, atol=0.01
-        ), f"Cell 0 mean should be ~0.275, got {mean_per_cell[0]}"
+        assert np.isclose(mean_per_cell[0], expected_mean_cell0, atol=0.01), (
+            f"Cell 0 mean should be ~0.275, got {mean_per_cell[0]}"
+        )
 
         expected_mean_cell4 = np.mean([0.1, 0.2, 0.5, 0.8])  # 0.4
-        assert np.isclose(
-            mean_per_cell[4], expected_mean_cell4, atol=0.01
-        ), f"Cell 4 mean should be ~0.4, got {mean_per_cell[4]}"
+        assert np.isclose(mean_per_cell[4], expected_mean_cell4, atol=0.01), (
+            f"Cell 4 mean should be ~0.4, got {mean_per_cell[4]}"
+        )
 
         # Verify mean_correlation (population-level) is still scalar
         assert "mean_correlation" in stats, "Should have population mean_correlation"
-        assert isinstance(
-            stats["mean_correlation"], (float, np.floating)
-        ), "mean_correlation should be a scalar (population-level average)"
+        assert isinstance(stats["mean_correlation"], (float, np.floating)), (
+            "mean_correlation should be a scalar (population-level average)"
+        )
 
     def test_state_epoch_results_structure_compatibility(self):
         """Test that StateEpochResults structure is compatible with CSV generation."""
@@ -4135,16 +4143,16 @@ class TestCSVOutputValidation:
         results = StateEpochResults()
 
         # Test that it has the expected attributes for CSV generation
-        assert hasattr(
-            results, "combination_results"
-        ), "Should have combination_results attribute"
+        assert hasattr(results, "combination_results"), (
+            "Should have combination_results attribute"
+        )
         # Note: correlation_results and event_results are now part of combination_results
         # Test that the basic structure works
 
         # Test that results dictionaries are initialized properly
-        assert isinstance(
-            results.combination_results, dict
-        ), "combination_results should be a dictionary"
+        assert isinstance(results.combination_results, dict), (
+            "combination_results should be a dictionary"
+        )
         # In the new API, all results are stored in combination_results
 
         # Test that we can add data in the expected format
@@ -4161,14 +4169,14 @@ class TestCSVOutputValidation:
         )
 
         # Test that data was stored correctly
-        assert (
-            test_key in results.combination_results
-        ), "Should be able to store activity data by state-epoch key"
+        assert test_key in results.combination_results, (
+            "Should be able to store activity data by state-epoch key"
+        )
         stored_data = results.combination_results[test_key]
         assert "mean_activity" in stored_data, "Should store mean_activity"
-        assert (
-            len(stored_data["mean_activity"]) == 3
-        ), "Should store correct number of cells"
+        assert len(stored_data["mean_activity"]) == 3, (
+            "Should store correct number of cells"
+        )
 
     def test_csv_constants_match_actual_filenames(self):
         """Test that CSV constants in the tool match actual filenames used."""
@@ -4179,15 +4187,15 @@ class TestCSVOutputValidation:
         )
 
         # Test that constants are defined
-        assert (
-            ACTIVITY_PER_STATE_EPOCH_DATA_CSV is not None
-        ), "Activity CSV constant should be defined"
-        assert (
-            CORRELATIONS_PER_STATE_EPOCH_DATA_CSV is not None
-        ), "Correlation CSV constant should be defined"
-        assert (
-            MODULATION_VS_BASELINE_DATA_CSV is not None
-        ), "Modulation CSV constant should be defined"
+        assert ACTIVITY_PER_STATE_EPOCH_DATA_CSV is not None, (
+            "Activity CSV constant should be defined"
+        )
+        assert CORRELATIONS_PER_STATE_EPOCH_DATA_CSV is not None, (
+            "Correlation CSV constant should be defined"
+        )
+        assert MODULATION_VS_BASELINE_DATA_CSV is not None, (
+            "Modulation CSV constant should be defined"
+        )
 
         # Test that constants match expected filenames (with .csv extension)
         expected_filenames = [
@@ -4203,9 +4211,9 @@ class TestCSVOutputValidation:
         ]
 
         for expected, actual in zip(expected_filenames, actual_constants):
-            assert (
-                actual == expected
-            ), f"CSV constant mismatch: expected {expected}, got {actual}"
+            assert actual == expected, (
+                f"CSV constant mismatch: expected {expected}, got {actual}"
+            )
 
     def test_tool_imports_are_available(self):
         """Test that all required tool imports are available for consistency."""
@@ -4219,27 +4227,27 @@ class TestCSVOutputValidation:
             state_epoch_baseline_analysis,
         )
 
-        assert callable(
-            state_epoch_baseline_analysis
-        ), "state_epoch_baseline_analysis should be callable"
+        assert callable(state_epoch_baseline_analysis), (
+            "state_epoch_baseline_analysis should be callable"
+        )
 
         # Test that we can import key classes
         from analysis.state_epoch_baseline_analysis import (
             StateEpochDataManager,
-            StateEpochResults,
             StateEpochOutputGenerator,
+            StateEpochResults,
         )
 
         # Test that classes are actually classes
-        assert isinstance(
-            StateEpochDataManager, type
-        ), "StateEpochDataManager should be a class"
-        assert isinstance(
-            StateEpochResults, type
-        ), "StateEpochResults should be a class"
-        assert isinstance(
-            StateEpochOutputGenerator, type
-        ), "StateEpochOutputGenerator should be a class"
+        assert isinstance(StateEpochDataManager, type), (
+            "StateEpochDataManager should be a class"
+        )
+        assert isinstance(StateEpochResults, type), (
+            "StateEpochResults should be a class"
+        )
+        assert isinstance(StateEpochOutputGenerator, type), (
+            "StateEpochOutputGenerator should be a class"
+        )
 
     def test_configuration_parameter_validation(self):
         """Test that configuration parameters can be validated for consistency."""
@@ -4266,9 +4274,9 @@ class TestCSVOutputValidation:
         ], "trace_scale_method should be valid option"
         assert 0 < valid_config["alpha"] < 1, "alpha should be between 0 and 1"
         assert valid_config["n_shuffle"] > 0, "n_shuffle should be positive"
-        assert isinstance(
-            valid_config["concatenate"], bool
-        ), "concatenate should be boolean"
+        assert isinstance(valid_config["concatenate"], bool), (
+            "concatenate should be boolean"
+        )
 
     def test_single_epoch_mode_configuration(self):
         """Test that single epoch mode configuration produces expected behavior."""
@@ -4292,9 +4300,9 @@ class TestCSVOutputValidation:
         ), "In single epoch mode, epoch name should match baseline epoch"
 
         # Test that epoch covers full recording
-        assert (
-            single_epoch_config["epoch_names"] == "full_recording"
-        ), "Single epoch should be named 'full_recording'"
+        assert single_epoch_config["epoch_names"] == "full_recording", (
+            "Single epoch should be named 'full_recording'"
+        )
 
 
 class TestDataCompatibilityReporting:
@@ -4332,9 +4340,9 @@ class TestDataCompatibilityReporting:
             section_data = compatibility_report[section]
             compat_keys = [k for k in section_data.keys() if "compatible" in k]
             for key in compat_keys:
-                assert isinstance(
-                    section_data[key], bool
-                ), f"Compatibility flag {key} should be boolean"
+                assert isinstance(section_data[key], bool), (
+                    f"Compatibility flag {key} should be boolean"
+                )
 
     def test_validation_reporting_requirements(self):
         """Test requirements for validation reporting."""
@@ -4356,9 +4364,9 @@ class TestDataCompatibilityReporting:
         assert "issues" in validation_results, "Should list specific issues"
 
         # Test value ranges
-        assert (
-            0 <= validation_results["success_rate"] <= 1
-        ), "Success rate should be 0-1"
+        assert 0 <= validation_results["success_rate"] <= 1, (
+            "Success rate should be 0-1"
+        )
         assert (
             validation_results["files_generated"]
             <= validation_results["files_expected"]
@@ -4478,9 +4486,9 @@ class TestModulationFootprintVisualizationFix:
         expected_file = generator._get_output_path(
             "trace_modulation_footprint_preview.svg"
         )
-        assert os.path.exists(
-            expected_file
-        ), f"Expected plot file not created: {expected_file}"
+        assert os.path.exists(expected_file), (
+            f"Expected plot file not created: {expected_file}"
+        )
 
         # The simplified API no longer uses complex contour alignment
 
@@ -4734,17 +4742,17 @@ class TestModulationFootprintVisualizationFix:
 
         # Check that the output file was created
         output_file = Path(temp_output_dir) / "trace_modulation_footprint_preview.svg"
-        assert (
-            output_file.exists()
-        ), "Modulation footprint preview should be created even with no significant modulation"
+        assert output_file.exists(), (
+            "Modulation footprint preview should be created even with no significant modulation"
+        )
 
         # Verify this is informational, not an error
         error_messages = [
             record.message for record in caplog.records if record.levelname == "ERROR"
         ]
-        assert (
-            len(error_messages) == 0
-        ), f"Unexpected error messages found: {error_messages}"
+        assert len(error_messages) == 0, (
+            f"Unexpected error messages found: {error_messages}"
+        )
 
         # Verify the function completes successfully without exceptions
         # (The fact that we reach this point proves no exceptions were raised)
@@ -4833,9 +4841,9 @@ class TestModulationFootprintVisualizationFix:
         expected_file = generator._get_output_path(
             "trace_modulation_footprint_preview.svg"
         )
-        assert os.path.exists(
-            expected_file
-        ), "Modulation footprint plot should be created with detected modulation"
+        assert os.path.exists(expected_file), (
+            "Modulation footprint plot should be created with detected modulation"
+        )
 
     def test_modulation_calculation_detects_clear_modulation_patterns(
         self,
@@ -4973,47 +4981,47 @@ class TestModulationFootprintVisualizationFix:
         # Adjust expectations based on whether we have fold_change or modulation_index
         if "fold_change" in mod_data:
             # Cell 0: Should show upregulation (fold change > 1.5)
-            assert (
-                modulation_values[0] > 1.5
-            ), f"Cell 0 should show upregulation, got {modulation_values[0]}"
+            assert modulation_values[0] > 1.5, (
+                f"Cell 0 should show upregulation, got {modulation_values[0]}"
+            )
 
             # Cell 1: Should show downregulation (fold change < 0.8)
-            assert (
-                modulation_values[1] < 0.8
-            ), f"Cell 1 should show downregulation, got {modulation_values[1]}"
+            assert modulation_values[1] < 0.8, (
+                f"Cell 1 should show downregulation, got {modulation_values[1]}"
+            )
 
             # Cell 2: Should show upregulation (fold change > 1.2)
-            assert (
-                modulation_values[2] > 1.2
-            ), f"Cell 2 should show upregulation, got {modulation_values[2]}"
+            assert modulation_values[2] > 1.2, (
+                f"Cell 2 should show upregulation, got {modulation_values[2]}"
+            )
         else:
             # For modulation_index, values are typically between -1 and 1
             # Cell 0: Should show upregulation (modulation_index > 0.2)
-            assert (
-                modulation_values[0] > 0.2
-            ), f"Cell 0 should show upregulation, got {modulation_values[0]}"
+            assert modulation_values[0] > 0.2, (
+                f"Cell 0 should show upregulation, got {modulation_values[0]}"
+            )
 
             # Cell 1: Should show downregulation (modulation_index < -0.2)
-            assert (
-                modulation_values[1] < -0.2
-            ), f"Cell 1 should show downregulation, got {modulation_values[1]}"
+            assert modulation_values[1] < -0.2, (
+                f"Cell 1 should show downregulation, got {modulation_values[1]}"
+            )
 
             # Cell 2: Should show upregulation (modulation_index > 0.1)
-            assert (
-                modulation_values[2] > 0.1
-            ), f"Cell 2 should show upregulation, got {modulation_values[2]}"
+            assert modulation_values[2] > 0.1, (
+                f"Cell 2 should show upregulation, got {modulation_values[2]}"
+            )
 
         if "fold_change" in mod_data:
             # Cell 3: Should show downregulation (fold change < 0.9)
-            assert (
-                modulation_values[3] < 0.9
-            ), f"Cell 3 should show downregulation, got {modulation_values[3]}"
+            assert modulation_values[3] < 0.9, (
+                f"Cell 3 should show downregulation, got {modulation_values[3]}"
+            )
 
             # Cells 4-7: Should show minimal modulation (close to 1.0)
             for i in range(4, 8):
-                assert (
-                    0.9 < modulation_values[i] < 1.1
-                ), f"Cell {i} should show minimal modulation, got {modulation_values[i]}"
+                assert 0.9 < modulation_values[i] < 1.1, (
+                    f"Cell {i} should show minimal modulation, got {modulation_values[i]}"
+                )
 
             # Verify the algorithm can distinguish between up and down modulation
             up_modulated_indices = np.where(modulation_values > 1.05)[
@@ -5024,15 +5032,15 @@ class TestModulationFootprintVisualizationFix:
             ]  # Fold change < 0.95
         else:
             # Cell 3: Should show downregulation (modulation_index < -0.1)
-            assert (
-                modulation_values[3] < -0.1
-            ), f"Cell 3 should show downregulation, got {modulation_values[3]}"
+            assert modulation_values[3] < -0.1, (
+                f"Cell 3 should show downregulation, got {modulation_values[3]}"
+            )
 
             # Cells 4-7: Should show minimal modulation (close to 0.0)
             for i in range(4, 8):
-                assert (
-                    -0.1 < modulation_values[i] < 0.1
-                ), f"Cell {i} should show minimal modulation, got {modulation_values[i]}"
+                assert -0.1 < modulation_values[i] < 0.1, (
+                    f"Cell {i} should show minimal modulation, got {modulation_values[i]}"
+                )
 
             # Verify the algorithm can distinguish between up and down modulation
             up_modulated_indices = np.where(modulation_values > 0.05)[
@@ -5043,30 +5051,30 @@ class TestModulationFootprintVisualizationFix:
             ]  # Modulation index < -0.05
 
         # Should detect our designed up-modulated cells (0, 2)
-        assert (
-            0 in up_modulated_indices
-        ), f"Cell 0 should be detected as up-modulated, got indices: {up_modulated_indices}"
-        assert (
-            2 in up_modulated_indices
-        ), f"Cell 2 should be detected as up-modulated, got indices: {up_modulated_indices}"
+        assert 0 in up_modulated_indices, (
+            f"Cell 0 should be detected as up-modulated, got indices: {up_modulated_indices}"
+        )
+        assert 2 in up_modulated_indices, (
+            f"Cell 2 should be detected as up-modulated, got indices: {up_modulated_indices}"
+        )
 
         # Should detect our designed down-modulated cells (1, 3)
-        assert (
-            1 in down_modulated_indices
-        ), f"Cell 1 should be detected as down-modulated, got indices: {down_modulated_indices}"
-        assert (
-            3 in down_modulated_indices
-        ), f"Cell 3 should be detected as down-modulated, got indices: {down_modulated_indices}"
+        assert 1 in down_modulated_indices, (
+            f"Cell 1 should be detected as down-modulated, got indices: {down_modulated_indices}"
+        )
+        assert 3 in down_modulated_indices, (
+            f"Cell 3 should be detected as down-modulated, got indices: {down_modulated_indices}"
+        )
 
         # Verify non-modulated cells are not strongly modulated
         non_modulated_indices = list(range(4, 8))
         for i in non_modulated_indices:
-            assert (
-                i not in up_modulated_indices
-            ), f"Non-modulated cell {i} should not be strongly up-modulated"
-            assert (
-                i not in down_modulated_indices
-            ), f"Non-modulated cell {i} should not be strongly down-modulated"
+            assert i not in up_modulated_indices, (
+                f"Non-modulated cell {i} should not be strongly up-modulated"
+            )
+            assert i not in down_modulated_indices, (
+                f"Non-modulated cell {i} should not be strongly down-modulated"
+            )
 
         # Test completed successfully - modulation calculation works correctly
 
@@ -5169,9 +5177,9 @@ class TestModulationFootprintVisualizationFix:
         expected_file = generator._get_output_path(
             "trace_modulation_footprint_preview.svg"
         )
-        assert os.path.exists(
-            expected_file
-        ), "Modulation footprint plot should be created with detected modulation"
+        assert os.path.exists(expected_file), (
+            "Modulation footprint plot should be created with detected modulation"
+        )
 
 
 class TestCrossToolConsistency:
@@ -5179,11 +5187,12 @@ class TestCrossToolConsistency:
 
     def test_annotations_file_optional_like_correlations(self):
         """Test that annotations_file is optional like in correlations.py."""
+        import inspect
+
+        from analysis.correlations import correlation_tool
         from analysis.state_epoch_baseline_analysis import (
             state_epoch_baseline_analysis,
         )
-        from analysis.correlations import correlation_tool
-        import inspect
 
         # Check function signatures
         state_epoch_sig = inspect.signature(state_epoch_baseline_analysis)
@@ -5504,9 +5513,9 @@ class TestEpochToolCompatibility:
 
         # Should have 20 cells x 3 epochs = 60 rows
         expected_rows = 20 * 3
-        assert (
-            len(activity_df) == expected_rows
-        ), f"Should have {expected_rows} rows for cells x epochs"
+        assert len(activity_df) == expected_rows, (
+            f"Should have {expected_rows} rows for cells x epochs"
+        )
 
         # All rows should have the same state
         unique_states = activity_df["state"].unique()
@@ -5516,9 +5525,9 @@ class TestEpochToolCompatibility:
         # Should have proper epoch distribution
         epoch_counts = activity_df["epoch"].value_counts()
         assert len(epoch_counts) == 3, "Should have 3 epochs"
-        assert all(
-            count == 20 for count in epoch_counts
-        ), "Each epoch should have 20 cells"
+        assert all(count == 20 for count in epoch_counts), (
+            "Each epoch should have 20 cells"
+        )
 
     def test_epoch_activity_output_structure_similarity(self, temp_output_dir):
         """Test that output structure is similar to what epoch_activity tool would produce.
@@ -5572,9 +5581,9 @@ class TestEpochToolCompatibility:
             # Validate that we know what each file should contain
             assert "description" in info, f"Should document purpose of {filename}"
             assert "key_columns" in info, f"Should specify key columns for {filename}"
-            assert (
-                "epoch_activity_equivalent" in info
-            ), f"Should map to epoch_activity equivalent for {filename}"
+            assert "epoch_activity_equivalent" in info, (
+                f"Should map to epoch_activity equivalent for {filename}"
+            )
 
     @patch("pandas.read_parquet")
     @patch("utils.utils.isx.CellSet.read")
@@ -5772,9 +5781,9 @@ class TestEpochToolCompatibility:
         )
         baseline_means = baseline_df["mean_trace_activity"].tolist()
         for i, (actual, expected) in enumerate(zip(baseline_means, expected_epoch1)):
-            assert (
-                abs(actual - expected) < tolerance
-            ), f"Baseline epoch cell_{i}: expected {expected}, got {actual}"
+            assert abs(actual - expected) < tolerance, (
+                f"Baseline epoch cell_{i}: expected {expected}, got {actual}"
+            )
 
         # Training epoch
         training_df = activity_df[activity_df["epoch"] == "training"].sort_values(
@@ -5782,17 +5791,17 @@ class TestEpochToolCompatibility:
         )
         training_means = training_df["mean_trace_activity"].tolist()
         for i, (actual, expected) in enumerate(zip(training_means, expected_epoch2)):
-            assert (
-                abs(actual - expected) < tolerance
-            ), f"Training epoch cell_{i}: expected {expected}, got {actual}"
+            assert abs(actual - expected) < tolerance, (
+                f"Training epoch cell_{i}: expected {expected}, got {actual}"
+            )
 
         # Test epoch
         test_df = activity_df[activity_df["epoch"] == "test"].sort_values("name")
         test_means = test_df["mean_trace_activity"].tolist()
         for i, (actual, expected) in enumerate(zip(test_means, expected_epoch3)):
-            assert (
-                abs(actual - expected) < tolerance
-            ), f"Test epoch cell_{i}: expected {expected}, got {actual}"
+            assert abs(actual - expected) < tolerance, (
+                f"Test epoch cell_{i}: expected {expected}, got {actual}"
+            )
 
     def _verify_modulation_values_are_epoch_based(self, output_dir: str):
         """Verify that modulation analysis compares epochs (not states)."""
@@ -5816,15 +5825,15 @@ class TestEpochToolCompatibility:
                 "training",
                 "test",
             }  # No baseline vs baseline comparison
-            assert (
-                comparison_epochs == expected_comparisons
-            ), f"Expected comparisons {expected_comparisons}, got {comparison_epochs}"
+            assert comparison_epochs == expected_comparisons, (
+                f"Expected comparisons {expected_comparisons}, got {comparison_epochs}"
+            )
 
             # Each cell should have modulation values for both comparison epochs
             cells_per_epoch = modulation_df["epoch"].value_counts()
-            assert all(
-                count == 5 for count in cells_per_epoch
-            ), "Each comparison epoch should have 5 cells"
+            assert all(count == 5 for count in cells_per_epoch), (
+                "Each comparison epoch should have 5 cells"
+            )
 
     def _verify_correlation_values_are_reasonable(self, output_dir: str):
         """Verify that correlation values are reasonable and epoch-based."""
@@ -5838,16 +5847,16 @@ class TestEpochToolCompatibility:
         assert len(unique_epochs) == 3, "Should have correlation data for 3 epochs"
 
         expected_epochs = {"baseline", "training", "test"}
-        assert (
-            set(unique_epochs) == expected_epochs
-        ), f"Expected epochs {expected_epochs}, got {set(unique_epochs)}"
+        assert set(unique_epochs) == expected_epochs, (
+            f"Expected epochs {expected_epochs}, got {set(unique_epochs)}"
+        )
 
         # All correlation values should be reasonable (-1 to 1, not NaN)
         for _, row in correlation_df.iterrows():
             mean_corr = row["mean_trace_correlation"]
-            assert (
-                -1 <= mean_corr <= 1
-            ), f"Invalid correlation: {mean_corr} for epoch {row['epoch']}"
+            assert -1 <= mean_corr <= 1, (
+                f"Invalid correlation: {mean_corr} for epoch {row['epoch']}"
+            )
             assert not np.isnan(mean_corr), f"NaN correlation for epoch {row['epoch']}"
 
     def _compare_activity_values(self, state_epoch_dir: Path, epoch_activity_dir: Path):
@@ -5941,9 +5950,9 @@ class TestEpochToolCompatibility:
 
             # Verify that the dimensions make sense
             # epoch_timecourse should be [time_points, cells, epochs]
-            assert (
-                epoch_timecourse.ndim == 3
-            ), "Timecourse data should be 3D: [time, cells, epochs]"
+            assert epoch_timecourse.ndim == 3, (
+                "Timecourse data should be 3D: [time, cells, epochs]"
+            )
 
             n_timepoints, n_cells, n_epochs = epoch_timecourse.shape
 
@@ -5951,12 +5960,12 @@ class TestEpochToolCompatibility:
             unique_cells = len(state_epoch_filtered["cell_name"].unique())
             unique_epochs = len(state_epoch_filtered["epoch"].unique())
 
-            assert (
-                n_cells == unique_cells
-            ), f"Cell count mismatch: timecourse={n_cells}, summary={unique_cells}"
-            assert (
-                n_epochs == unique_epochs
-            ), f"Epoch count mismatch: timecourse={n_epochs}, summary={unique_epochs}"
+            assert n_cells == unique_cells, (
+                f"Cell count mismatch: timecourse={n_cells}, summary={unique_cells}"
+            )
+            assert n_epochs == unique_epochs, (
+                f"Epoch count mismatch: timecourse={n_epochs}, summary={unique_epochs}"
+            )
 
         except Exception as e:
             pytest.skip(f"Could not load or validate timecourse data: {e}")
@@ -5992,9 +6001,9 @@ class TestEpochToolCompatibility:
                     mean_corr = epoch_row["mean_trace_correlation"].iloc[0]
 
                     # Correlation should be between -1 and 1
-                    assert (
-                        -1 <= mean_corr <= 1
-                    ), f"Invalid correlation value: {mean_corr} for epoch {epoch}"
+                    assert -1 <= mean_corr <= 1, (
+                        f"Invalid correlation value: {mean_corr} for epoch {epoch}"
+                    )
 
                     # Should be a reasonable correlation value (not NaN)
                     assert not np.isnan(mean_corr), f"NaN correlation for epoch {epoch}"
@@ -6108,26 +6117,26 @@ class TestModulationPreviewFunctionality:
         # Verify that data alignment worked properly
         # The functions should not raise array size mismatch errors
         if not footprint_success:
-            assert (
-                "index" not in footprint_error.lower()
-            ), f"Index error in footprint preview: {footprint_error}"
-            assert (
-                "shape" not in footprint_error.lower()
-            ), f"Shape error in footprint preview: {footprint_error}"
+            assert "index" not in footprint_error.lower(), (
+                f"Index error in footprint preview: {footprint_error}"
+            )
+            assert "shape" not in footprint_error.lower(), (
+                f"Shape error in footprint preview: {footprint_error}"
+            )
 
         if not histogram_success:
-            assert (
-                "index" not in histogram_error.lower()
-            ), f"Index error in histogram preview: {histogram_error}"
-            assert (
-                "shape" not in histogram_error.lower()
-            ), f"Shape error in histogram preview: {histogram_error}"
+            assert "index" not in histogram_error.lower(), (
+                f"Index error in histogram preview: {histogram_error}"
+            )
+            assert "shape" not in histogram_error.lower(), (
+                f"Shape error in histogram preview: {histogram_error}"
+            )
 
         # Verify that the preview functions completed successfully
         # The main goal is ensuring no data alignment errors occur
-        assert (
-            footprint_success or histogram_success
-        ), "At least one preview function should succeed"
+        assert footprint_success or histogram_success, (
+            "At least one preview function should succeed"
+        )
 
         # Test passes if preview functions complete without data alignment errors
 
@@ -6249,9 +6258,9 @@ class TestPreviewDataValidation:
                 (activity_df["state"] == state) & (activity_df["epoch"] == epoch)
             ]
 
-            assert (
-                len(combination_rows) == 10
-            ), f"Should have 10 cells for {state}-{epoch}"
+            assert len(combination_rows) == 10, (
+                f"Should have 10 cells for {state}-{epoch}"
+            )
 
             # Check that mean activity values match expected data
             csv_mean_activities = combination_rows["mean_trace_activity"].values
@@ -6286,24 +6295,23 @@ class TestPreviewDataValidation:
 
         # Mock the figure's savefig method to avoid interference
         with patch("matplotlib.figure.Figure.savefig") as mock_savefig:
-
             generator._create_population_average_plot(
                 mock_results_with_known_data, cell_info
             )
 
             # Verify that essential plotting functions were called
-            assert (
-                mock_savefig.called
-            ), "Savefig should be called for trace population average preview"
+            assert mock_savefig.called, (
+                "Savefig should be called for trace population average preview"
+            )
 
             # Since the function succeeded, we can test that the correct data was processed
             # by checking that all state-epoch combinations were handled
             available_combinations = list(
                 mock_results_with_known_data.get_all_combinations()
             )
-            assert (
-                len(available_combinations) == 4
-            ), "Should have 4 state-epoch combinations"
+            assert len(available_combinations) == 4, (
+                "Should have 4 state-epoch combinations"
+            )
 
             # Check that the combinations match what we expect
             expected_combinations = [
@@ -6313,9 +6321,9 @@ class TestPreviewDataValidation:
                 ("active", "test"),
             ]
             for expected_combo in expected_combinations:
-                assert (
-                    expected_combo in available_combinations
-                ), f"Missing combination: {expected_combo}"
+                assert expected_combo in available_combinations, (
+                    f"Missing combination: {expected_combo}"
+                )
 
     def test_state_time_preview_passes_epoch_metadata(self, tmp_path):
         """Ensure the state-time preview receives epoch names and periods."""
@@ -6378,14 +6386,12 @@ class TestPreviewDataValidation:
         )
 
         # Mock correlation plotting to capture correlation matrices
-        with patch(
-            "analysis.correlations.plot_correlation_matrices"
-        ) as mock_plot_corr, patch("matplotlib.pyplot.savefig"), patch(
-            "os.getcwd"
-        ), patch(
-            "os.chdir"
+        with (
+            patch("analysis.correlations.plot_correlation_matrices") as mock_plot_corr,
+            patch("matplotlib.pyplot.savefig"),
+            patch("os.getcwd"),
+            patch("os.chdir"),
         ):
-
             generator._create_correlation_matrices_preview(mock_results_with_known_data)
 
             if mock_plot_corr.called:
@@ -6395,9 +6401,9 @@ class TestPreviewDataValidation:
                     correlation_matrices = call_args[0][0]  # First positional argument
 
                     # Verify that we have the expected number of combinations
-                    assert (
-                        len(correlation_matrices) == 4
-                    ), "Should have 4 correlation matrices"
+                    assert len(correlation_matrices) == 4, (
+                        "Should have 4 correlation matrices"
+                    )
 
                     # Check that matrix keys match expected combinations
                     expected_keys = [
@@ -6407,9 +6413,9 @@ class TestPreviewDataValidation:
                         "active-test",
                     ]
                     for key in expected_keys:
-                        assert (
-                            key in correlation_matrices
-                        ), f"Missing correlation matrix for {key}"
+                        assert key in correlation_matrices, (
+                            f"Missing correlation matrix for {key}"
+                        )
 
                     # Verify matrix shapes are correct
                     for key, matrix in correlation_matrices.items():
@@ -6434,8 +6440,7 @@ class TestPreviewDataValidation:
                 import logging
 
                 logging.getLogger(__name__).warning(
-                    "Correlation preview function was not called "
-                    "(no correlation data available)"
+                    "Correlation preview function was not called (no correlation data available)"
                 )
 
     def test_correlation_statistic_distribution_preview_uses_selected_statistic(
@@ -6526,17 +6531,17 @@ class TestPreviewDataValidation:
         ]
 
         for combination in expected_combinations:
-            assert (
-                combination in activity_modulation
-            ), f"Should have modulation data for {combination}"
+            assert combination in activity_modulation, (
+                f"Should have modulation data for {combination}"
+            )
 
             mod_data = activity_modulation[combination]
-            assert (
-                "modulation_index" in mod_data
-            ), f"Should have modulation index for {combination}"
-            assert (
-                len(mod_data["modulation_index"]) == 10
-            ), f"Should have modulation index for all 10 cells in {combination}"
+            assert "modulation_index" in mod_data, (
+                f"Should have modulation index for {combination}"
+            )
+            assert len(mod_data["modulation_index"]) == 10, (
+                f"Should have modulation index for all 10 cells in {combination}"
+            )
 
         # Baseline combination should not be in modulation results
         assert (
@@ -6590,9 +6595,9 @@ class TestPreviewDataValidation:
             "blue",
         ]  # Based on state order
 
-        assert (
-            state_colors == expected_state_colors
-        ), "State colors should be consistent"
+        assert state_colors == expected_state_colors, (
+            "State colors should be consistent"
+        )
 
         # Note: epoch_colors and combined_names are no longer tested since the
         # _create_two_layer_colors method was removed and logic was inlined
@@ -6608,12 +6613,12 @@ class TestPreviewDataValidation:
         rest_colors = [state_colors[i] for i in rest_indices]
         active_colors = [state_colors[i] for i in active_indices]
 
-        assert all(
-            color == "gray" for color in rest_colors
-        ), "Rest state should always be gray"
-        assert all(
-            color == "blue" for color in active_colors
-        ), "Active state should always be blue"
+        assert all(color == "gray" for color in rest_colors), (
+            "Rest state should always be gray"
+        )
+        assert all(color == "blue" for color in active_colors), (
+            "Active state should always be blue"
+        )
 
         # Note: Epoch color testing removed since epoch colors are no longer used
         # in the simplified implementation
@@ -6644,18 +6649,16 @@ class TestPreviewDataValidation:
         def track_savefig(filename, *args, **kwargs):
             preview_functions_called[filename] = True
 
-        with patch("matplotlib.pyplot.savefig", side_effect=track_savefig), patch(
-            "matplotlib.pyplot.figure"
-        ), patch("matplotlib.pyplot.subplot"), patch("matplotlib.pyplot.bar"), patch(
-            "matplotlib.pyplot.imshow"
-        ), patch(
-            "matplotlib.pyplot.scatter"
-        ), patch(
-            "analysis.correlations.plot_correlation_matrices"
-        ), patch(
-            "utils.plots.plot_modulated_neuron_footprints"
+        with (
+            patch("matplotlib.pyplot.savefig", side_effect=track_savefig),
+            patch("matplotlib.pyplot.figure"),
+            patch("matplotlib.pyplot.subplot"),
+            patch("matplotlib.pyplot.bar"),
+            patch("matplotlib.pyplot.imshow"),
+            patch("matplotlib.pyplot.scatter"),
+            patch("analysis.correlations.plot_correlation_matrices"),
+            patch("utils.plots.plot_modulated_neuron_footprints"),
         ):
-
             # Generate core previews (should not raise exceptions)
             try:
                 generator._generate_core_previews(
@@ -6840,12 +6843,12 @@ class TestCrossToolAnalysisLogic:
             err_msg="Total activity should match manual calculation",
         )
 
-        assert (
-            abs(results["population_mean"] - expected_pop_mean) < 1e-10
-        ), "Population mean should match"
-        assert (
-            abs(results["population_std"] - expected_pop_std) < 1e-10
-        ), "Population std should match"
+        assert abs(results["population_mean"] - expected_pop_mean) < 1e-10, (
+            "Population mean should match"
+        )
+        assert abs(results["population_std"] - expected_pop_std) < 1e-10, (
+            "Population std should match"
+        )
 
     def test_modulation_calculation_consistency_with_population_activity(self):
         """Test that modulation calculations match population_activity.py approach."""
@@ -6853,8 +6856,8 @@ class TestCrossToolAnalysisLogic:
             find_two_state_modulated_neurons,
         )
         from utils.state_epoch_results import (
-            calculate_baseline_modulation,
             StateEpochResults,
+            calculate_baseline_modulation,
         )
 
         # Create controlled test data
@@ -6943,9 +6946,9 @@ class TestCrossToolAnalysisLogic:
                 pop_activity_results["modulation_scores"],
                 state_epoch_mod_scores,
             )[0, 1]
-            assert (
-                correlation > 0.8
-            ), f"Modulation scores should be highly correlated (r={correlation:.3f})"
+            assert correlation > 0.8, (
+                f"Modulation scores should be highly correlated (r={correlation:.3f})"
+            )
 
             # Both should identify similar significantly modulated cells
             pop_sig_cells = set(pop_activity_results["up_modulated_neurons"]) | set(
@@ -6983,16 +6986,16 @@ class TestCrossToolAnalysisLogic:
         # Test file naming consistency
         for core_file in expected_core_files:
             if core_file.endswith(".csv"):
-                assert (
-                    "_data.csv" in core_file
-                ), f"CSV file {core_file} should follow naming pattern"
-                assert (
-                    core_file.count("_") >= 2
-                ), f"CSV file {core_file} should have descriptive naming"
+                assert "_data.csv" in core_file, (
+                    f"CSV file {core_file} should follow naming pattern"
+                )
+                assert core_file.count("_") >= 2, (
+                    f"CSV file {core_file} should have descriptive naming"
+                )
             elif core_file.endswith(".svg"):
-                assert (
-                    "_preview.svg" in core_file
-                ), f"Preview file {core_file} should follow naming pattern"
+                assert "_preview.svg" in core_file, (
+                    f"Preview file {core_file} should follow naming pattern"
+                )
 
         # Verify correlation file naming consistency
         correlation_files = [
@@ -7004,17 +7007,17 @@ class TestCrossToolAnalysisLogic:
         # Test correlation file naming patterns
         for corr_file in correlation_files:
             if corr_file.endswith(".csv"):
-                assert (
-                    "correlations" in corr_file
-                ), f"Correlation CSV should contain 'correlations': {corr_file}"
+                assert "correlations" in corr_file, (
+                    f"Correlation CSV should contain 'correlations': {corr_file}"
+                )
             elif corr_file.endswith(".h5"):
-                assert (
-                    "correlation" in corr_file
-                ), f"H5 file should contain 'correlation': {corr_file}"
+                assert "correlation" in corr_file, (
+                    f"H5 file should contain 'correlation': {corr_file}"
+                )
             elif corr_file.endswith(".zip"):
-                assert (
-                    "correlations" in corr_file
-                ), f"ZIP file should contain 'correlations': {corr_file}"
+                assert "correlations" in corr_file, (
+                    f"ZIP file should contain 'correlations': {corr_file}"
+                )
 
     def test_epoch_window_comparison_like_epoch_activity(self):
         """Test that epoch window comparison works like epoch_activity.py."""
@@ -7067,9 +7070,9 @@ class TestCrossToolAnalysisLogic:
         epoch1_mean = np.mean(epoch1_results["mean_activity"])
         epoch2_mean = np.mean(epoch2_results["mean_activity"])
 
-        assert (
-            epoch2_mean > epoch1_mean
-        ), f"Epoch2 mean ({epoch2_mean:.2f}) should be > Epoch1 mean ({epoch1_mean:.2f})"
+        assert epoch2_mean > epoch1_mean, (
+            f"Epoch2 mean ({epoch2_mean:.2f}) should be > Epoch1 mean ({epoch1_mean:.2f})"
+        )
 
         # Verify this works with epoch_activity dummy state pattern
         all_combinations = results.get_all_combinations()
@@ -7282,9 +7285,9 @@ class TestTraceEventModulationSeparation:
         event_modulation = event_result["test_test"]["modulation_scores"]
 
         # Should be different because they use different data sources
-        assert not np.array_equal(
-            trace_modulation, event_modulation
-        ), "Trace and event modulation should produce different results"
+        assert not np.array_equal(trace_modulation, event_modulation), (
+            "Trace and event modulation should produce different results"
+        )
 
         # Both should be bounded [-1, 1]
         assert np.all(trace_modulation >= -1.0) and np.all(trace_modulation <= 1.0)
@@ -7520,9 +7523,9 @@ class TestEventModulationPermutationPaths:
         )
         np.testing.assert_array_equal(event_entry["p_values"], expected_p)
         np.testing.assert_array_equal(event_entry["significant"], expected_p < 0.05)
-        assert (
-            event_entry["significance_method"] == "permutation_test"
-        ), "Permutation path should label significance source"
+        assert event_entry["significance_method"] == "permutation_test", (
+            "Permutation path should label significance source"
+        )
 
     def test_event_modulation_omitted_without_event_traces(self):
         """Event outputs should not be produced when event traces are unavailable."""
@@ -7564,9 +7567,9 @@ class TestEventModulationPermutationPaths:
             n_shuffle=10,
         )
 
-        assert (
-            "event_modulation" not in modulation_results
-        ), "Event modulation should be omitted without raw event traces"
+        assert "event_modulation" not in modulation_results, (
+            "Event modulation should be omitted without raw event traces"
+        )
 
 
 class TestModulationFormulaAccuracy:
@@ -7652,9 +7655,9 @@ class TestModulationFormulaAccuracy:
         assert np.all(actual_modulation <= 1.0), "Modulation scores should be <= 1"
 
         # Verify fallback p-values are conservative (all ones)
-        assert np.all(
-            result["test_test"]["p_val"] == 1.0
-        ), "Fallback p-values should be 1.0 (non-significant)"
+        assert np.all(result["test_test"]["p_val"] == 1.0), (
+            "Fallback p-values should be 1.0 (non-significant)"
+        )
 
     def test_extract_common_modulation_data_mean_activity_fix(self):
         """Test that mean_activity uses actual data, not abs(modulation_index).
@@ -7692,9 +7695,9 @@ class TestModulationFormulaAccuracy:
         )
 
         # Verify it's NOT using the wrong calculation
-        assert not np.array_equal(
-            actual_mean_activity, wrong_mean_activity
-        ), "mean_activity should NOT be calculated from abs(modulation_index)"
+        assert not np.array_equal(actual_mean_activity, wrong_mean_activity), (
+            "mean_activity should NOT be calculated from abs(modulation_index)"
+        )
 
     def test_alpha_parameter_consistency(self):
         """Test that alpha parameter is used consistently for significance."""
@@ -7783,9 +7786,9 @@ class TestModulationFormulaAccuracy:
 
         # Verify epsilon was used (result should be finite)
         modulation_scores = result["test_test"]["modulation_scores"]
-        assert np.all(
-            np.isfinite(modulation_scores)
-        ), "Modulation scores should be finite (epsilon protection)"
+        assert np.all(np.isfinite(modulation_scores)), (
+            "Modulation scores should be finite (epsilon protection)"
+        )
 
         # Verify calculation uses epsilon for bounded modulation
         expected = test_activity / (test_activity + DIVISION_SAFETY_EPSILON)
@@ -7827,11 +7830,14 @@ class TestEpochOnlyModeFeatureFlag:
         params["annotations_file"] = None
 
         with temporary_state_epoch_analysis_feature_flags(allow_epoch_only_mode=True):
-            with patch(
-                "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
-            ) as mock_dm_class, patch(
-                "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
-            ) as mock_validate:
+            with (
+                patch(
+                    "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
+                ) as mock_dm_class,
+                patch(
+                    "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
+                ) as mock_validate,
+            ):
                 mock_validate.return_value = None
                 mock_dm_instance = mock_dm_class.return_value
 
@@ -7874,11 +7880,14 @@ class TestEpochOnlyModeFeatureFlag:
         params["state_names"] = ""
 
         with temporary_state_epoch_analysis_feature_flags(allow_epoch_only_mode=True):
-            with patch(
-                "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
-            ) as mock_dm_class, patch(
-                "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
-            ) as mock_validate:
+            with (
+                patch(
+                    "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
+                ) as mock_dm_class,
+                patch(
+                    "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
+                ) as mock_validate,
+            ):
                 mock_validate.return_value = None
                 mock_dm_instance = mock_dm_class.return_value
 
@@ -7915,18 +7924,21 @@ class TestEpochOnlyModeFeatureFlag:
     def test_epoch_only_mode_vs_correlations_all_times(self):
         """Ensure epoch-only mode parity with correlations tool when flag enabled."""
         import tempfile
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import MagicMock, patch
 
         np.random.seed(42)
         n_timepoints, n_cells = 200, 5
         traces = np.random.randn(n_timepoints, n_cells)
 
         with temporary_state_epoch_analysis_feature_flags(allow_epoch_only_mode=True):
-            with patch(
-                "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
-            ) as mock_dm_class, patch(
-                "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
-            ) as mock_validate:
+            with (
+                patch(
+                    "analysis.state_epoch_baseline_analysis.StateEpochDataManager"
+                ) as mock_dm_class,
+                patch(
+                    "analysis.state_epoch_baseline_analysis.validate_input_files_exist"
+                ) as mock_validate,
+            ):
                 mock_validate.return_value = None
                 mock_dm_instance = MagicMock()
                 mock_dm_class.return_value = mock_dm_instance

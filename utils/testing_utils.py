@@ -1,10 +1,8 @@
-import os
 import copy
-import json
 import re
+
 # from jsonschema import validate
 import numpy as np
-import utils.config as config
 
 # from ideas_commons.constants import FileCategory
 
@@ -28,9 +26,7 @@ def compare_float_dataframes(df1, df2, atol=1e-08):
     # compare numeric values
     df1_num = df1.select_dtypes(include=np.number)
     df2_num = df2.select_dtypes(include=np.number)
-    if not np.allclose(
-        df1_num.values, df2_num.values, atol=atol, equal_nan=True
-    ):
+    if not np.allclose(df1_num.values, df2_num.values, atol=atol, equal_nan=True):
         return False
 
     # compare non-numeric values

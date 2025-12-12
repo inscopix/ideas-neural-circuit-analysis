@@ -36,18 +36,10 @@ OUTPUT_MANIFEST_FILE = "output_manifest.json"
 OUTPUT_METADATA_MANIFEST_FILE = "output_metadata.json"
 
 # schemas
-OUTPUT_MANIFEST_SCHEMA_FILE = (
-    "/ideas/toolbox/tests/schemas/output_manifest_schema.json"
-)
-OUTPUT_METADATA_SCHEMA_FILE = (
-    "/ideas/toolbox/tests/schemas/output_metadata_schema.json"
-)
-TOOLBOX_SPEC_SCHEMA_FILE = (
-    "/ideas/toolbox/tests/schemas/toolbox_spec_schema.json"
-)
-IDPS_METADATA_SCHEMA_FILE = (
-    "/ideas/toolbox/tests/schemas/idps_metadata_schema.json"
-)
+OUTPUT_MANIFEST_SCHEMA_FILE = "/ideas/toolbox/tests/schemas/output_manifest_schema.json"
+OUTPUT_METADATA_SCHEMA_FILE = "/ideas/toolbox/tests/schemas/output_metadata_schema.json"
+TOOLBOX_SPEC_SCHEMA_FILE = "/ideas/toolbox/tests/schemas/toolbox_spec_schema.json"
+IDPS_METADATA_SCHEMA_FILE = "/ideas/toolbox/tests/schemas/idps_metadata_schema.json"
 
 # tool versions file
 TOOL_VERSIONS_FILE = "/ideas/toolbox/tool_versions.json"

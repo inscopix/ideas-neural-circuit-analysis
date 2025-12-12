@@ -1,35 +1,34 @@
+import logging
 import os
 import shutil
 import unittest
-import json
-import logging
 from unittest.mock import patch
 
 # Import figure for patching
 import matplotlib.figure
-import pandas as pd
 import numpy as np
+import pandas as pd
+from ideas.exceptions import IdeasError
 
 from analysis.combine_compare_population_data import (
+    _combine_group_data_frames,
+    adjust_state_colors_for_state_comparison_type,
+    calculate_and_plot_stats,
     combine_compare_population_data,
-    reclassify_neurons,
+    combine_population_data,
     extract_combined_activity_data,
     extract_combined_modulation_data,
-    _combine_group_data_frames,
-    combine_population_data,
-    process_and_visualize_mod_his,
-    calculate_and_plot_stats,
-    adjust_state_colors_for_state_comparison_type,
     match_subjects,
+    process_and_visualize_mod_his,
+    reclassify_neurons,
 )
+from utils import config
 from utils.visualization_helpers import (
     plot_combined_modulation_data,
+    plot_group_anova_comparison,
     plot_modulation_distribution,
     plot_state_lmm_comparison,
-    plot_group_anova_comparison,
 )
-from ideas.exceptions import IdeasError
-from utils import config
 
 # Add logger for performance measurements
 logger = logging.getLogger(__name__)
@@ -44,27 +43,17 @@ class TestCombineComparePopulationData(unittest.TestCase):
     # define directories
     temporary_dir = "/tmp"
     input_dir = "toolbox/tests/data/combine_compare_population_activity_data"
-    output_dir = os.path.join(
-        temporary_dir, "tmp_combine_compare_population_data"
-    )
+    output_dir = os.path.join(temporary_dir, "tmp_combine_compare_population_data")
 
     # output manifest
-    output_manifest_json_schema = (
-        "toolbox/tests/schemas/output_manifest_schema.json"
-    )
+    output_manifest_json_schema = "toolbox/tests/schemas/output_manifest_schema.json"
     output_manifest_file_basename = "output_manifest.json"
-    output_manifest_file = os.path.join(
-        output_dir, output_manifest_file_basename
-    )
+    output_manifest_file = os.path.join(output_dir, output_manifest_file_basename)
 
     # output metadata
-    output_metadata_json_schema = (
-        "toolbox/tests/schemas/output_metadata_schema.json"
-    )
+    output_metadata_json_schema = "toolbox/tests/schemas/output_metadata_schema.json"
     output_metadata_file_basename = "output_metadata.json"
-    output_metadata_file = os.path.join(
-        output_dir, output_metadata_file_basename
-    )
+    output_metadata_file = os.path.join(output_dir, output_metadata_file_basename)
 
     def setUp(self):
         """Set up test environment before each test."""
@@ -96,9 +85,7 @@ class TestCombineComparePopulationData(unittest.TestCase):
                 "p-values in state1": np.random.uniform(0.001, 0.049, 10),
                 "modulation in state1": [1] * 10,
                 "mean activity in state1": np.random.uniform(0.7, 1.0, 10),
-                "modulation scores in state2": np.random.uniform(
-                    -0.9, -0.5, 10
-                ),
+                "modulation scores in state2": np.random.uniform(-0.9, -0.5, 10),
                 "p-values in state2": np.random.uniform(0.001, 0.049, 10),
                 "modulation in state2": [-1] * 10,
                 "mean activity in state2": np.random.uniform(0.1, 0.4, 10),
@@ -115,9 +102,7 @@ class TestCombineComparePopulationData(unittest.TestCase):
                 "p-values in state1": np.random.uniform(0.001, 0.049, 10),
                 "modulation in state1": [1] * 10,
                 "mean activity in state1": np.random.uniform(0.6, 0.9, 10),
-                "modulation scores in state2": np.random.uniform(
-                    -0.8, -0.4, 10
-                ),
+                "modulation scores in state2": np.random.uniform(-0.8, -0.4, 10),
                 "p-values in state2": np.random.uniform(0.001, 0.049, 10),
                 "modulation in state2": [-1] * 10,
                 "mean activity in state2": np.random.uniform(0.2, 0.5, 10),
@@ -164,23 +149,17 @@ class TestCombineComparePopulationData(unittest.TestCase):
         file5_data = pd.DataFrame(
             {
                 "name": [f"cell{i}_subj3" for i in range(10)],
-                "modulation scores in state1": np.random.uniform(
-                    -0.2, 0.2, 10
-                ),
+                "modulation scores in state1": np.random.uniform(-0.2, 0.2, 10),
                 "p-values in state1": np.random.uniform(0.1, 0.9, 10),
                 "modulation in state1": [0] * 10,
                 "mean activity in state1": np.random.uniform(0.4, 0.6, 10),
-                "modulation scores in state2": np.random.uniform(
-                    -0.2, 0.2, 10
-                ),
+                "modulation scores in state2": np.random.uniform(-0.2, 0.2, 10),
                 "p-values in state2": np.random.uniform(0.1, 0.9, 10),
                 "modulation in state2": [0] * 10,
                 "mean activity in state2": np.random.uniform(0.4, 0.6, 10),
             }
         )
-        file5_path = os.path.join(
-            self.synthetic_dir, "non_modulated_subj3_file.csv"
-        )
+        file5_path = os.path.join(self.synthetic_dir, "non_modulated_subj3_file.csv")
         file5_data.to_csv(file5_path, index=False)
 
         # Create a file with events data for testing combined analysis (Subject 1)
@@ -191,17 +170,13 @@ class TestCombineComparePopulationData(unittest.TestCase):
                 "p-values in state1": np.random.uniform(0.001, 0.049, 10),
                 "modulation in state1": [1] * 10,
                 "mean event rate in state1": np.random.uniform(5.0, 10.0, 10),
-                "modulation scores in state2": np.random.uniform(
-                    -0.9, -0.5, 10
-                ),
+                "modulation scores in state2": np.random.uniform(-0.9, -0.5, 10),
                 "p-values in state2": np.random.uniform(0.001, 0.049, 10),
                 "modulation in state2": [-1] * 10,
                 "mean event rate in state2": np.random.uniform(1.0, 4.0, 10),
             }
         )
-        file6_path = os.path.join(
-            self.synthetic_dir, "group1_subj1_events_file1.csv"
-        )
+        file6_path = os.path.join(self.synthetic_dir, "group1_subj1_events_file1.csv")
         file6_data.to_csv(file6_path, index=False)
 
         # File 7 (Subject 2, Group 1, Events)
@@ -212,17 +187,13 @@ class TestCombineComparePopulationData(unittest.TestCase):
                 "p-values in state1": np.random.uniform(0.001, 0.049, 10),
                 "modulation in state1": [1] * 10,
                 "mean event rate in state1": np.random.uniform(4.0, 9.0, 10),
-                "modulation scores in state2": np.random.uniform(
-                    -0.8, -0.4, 10
-                ),
+                "modulation scores in state2": np.random.uniform(-0.8, -0.4, 10),
                 "p-values in state2": np.random.uniform(0.001, 0.049, 10),
                 "modulation in state2": [-1] * 10,
                 "mean event rate in state2": np.random.uniform(1.5, 4.5, 10),
             }
         )
-        file7_path = os.path.join(
-            self.synthetic_dir, "group1_subj2_events_file2.csv"
-        )
+        file7_path = os.path.join(self.synthetic_dir, "group1_subj2_events_file2.csv")
         file7_data.to_csv(file7_path, index=False)
 
         # Store file paths for use in tests
@@ -458,9 +429,7 @@ class TestCombineComparePopulationData(unittest.TestCase):
         self.assertTrue(any(df["Comparison"] == "event_rate"))
 
         # Check stats files contain event comparisons
-        aov_df = pd.read_csv(
-            os.path.join(self.output_dir, "aov_comparisons.csv")
-        )
+        aov_df = pd.read_csv(os.path.join(self.output_dir, "aov_comparisons.csv"))
         pairwise_df = pd.read_csv(
             os.path.join(self.output_dir, "pairwise_comparisons.csv")
         )
@@ -487,9 +456,7 @@ class TestCombineComparePopulationData(unittest.TestCase):
 
         # Load the ANOVA and pairwise results
         aov_file = os.path.join(self.output_dir, "aov_comparisons.csv")
-        pairwise_file = os.path.join(
-            self.output_dir, "pairwise_comparisons.csv"
-        )
+        pairwise_file = os.path.join(self.output_dir, "pairwise_comparisons.csv")
 
         self.assertTrue(os.path.exists(aov_file))
         self.assertTrue(os.path.exists(pairwise_file))
@@ -597,9 +564,7 @@ class TestCombineComparePopulationData(unittest.TestCase):
     def test_combine_and_compare_identical_group_names(self):
         """Test error handling when group names are identical."""
         group_name = "SameGroup"
-        with self.assertRaisesRegex(
-            IdeasError, "Group names cannot be identical"
-        ):
+        with self.assertRaisesRegex(IdeasError, "Group names cannot be identical"):
             combine_compare_population_data(
                 group1_population_activity_files=self.group1_files,
                 group1_name=group_name,
@@ -659,12 +624,8 @@ class TestCombineComparePopulationData(unittest.TestCase):
     def test_error_with_too_few_states(self):
         """Test that single state analysis is now supported (previously was an error)."""
         # Create two different files with only one state each
-        single_state_file1 = os.path.join(
-            self.synthetic_dir, "single_state1.csv"
-        )
-        single_state_file2 = os.path.join(
-            self.synthetic_dir, "single_state2.csv"
-        )
+        single_state_file1 = os.path.join(self.synthetic_dir, "single_state1.csv")
+        single_state_file2 = os.path.join(self.synthetic_dir, "single_state2.csv")
         single_state_data1 = pd.DataFrame(
             {
                 "name": [f"cell{i}" for i in range(10)],
@@ -676,7 +637,7 @@ class TestCombineComparePopulationData(unittest.TestCase):
         )
         single_state_data2 = pd.DataFrame(
             {
-                "name": [f"cell{i+10}" for i in range(10)],
+                "name": [f"cell{i + 10}" for i in range(10)],
                 "modulation scores in state1": np.random.uniform(0.5, 0.9, 10),
                 "p-values in state1": np.random.uniform(0.001, 0.049, 10),
                 "modulation in state1": [1] * 10,
@@ -802,9 +763,7 @@ class TestCombineComparePopulationData(unittest.TestCase):
             }
         )
 
-        result_df = extract_combined_activity_data(
-            test_df, ["state1", "state2"]
-        )
+        result_df = extract_combined_activity_data(test_df, ["state1", "state2"])
 
         # Check that data is correctly reshaped and columns exist
         self.assertEqual(len(result_df), 4 * 2)
@@ -825,13 +784,9 @@ class TestCombineComparePopulationData(unittest.TestCase):
 
         # Check activity values are preserved
         state1_activities = (
-            result_df[result_df["state"] == "state1"]["activity"]
-            .sort_values()
-            .values
+            result_df[result_df["state"] == "state1"]["activity"].sort_values().values
         )
-        self.assertTrue(
-            np.allclose(state1_activities, sorted([0.7, 0.8, 0.6, 0.7]))
-        )
+        self.assertTrue(np.allclose(state1_activities, sorted([0.7, 0.8, 0.6, 0.7])))
 
         # Test error handling with empty dataframe
         with self.assertRaisesRegex(IdeasError, "Empty input dataframe"):
@@ -887,8 +842,7 @@ class TestCombineComparePopulationData(unittest.TestCase):
 
         # Count up-modulated cells in state1
         state1_up = mod_counts[
-            (mod_counts["state"] == "state1")
-            & (mod_counts["status"] == "up_modulated")
+            (mod_counts["state"] == "state1") & (mod_counts["status"] == "up_modulated")
         ]
         self.assertEqual(state1_up["num_cells"].sum(), 3)
 
@@ -934,8 +888,7 @@ class TestCombineComparePopulationData(unittest.TestCase):
                     "f2",
                 ],
                 "state": ["s1", "s1", "s1", "s2", "s2", "s2"] * 2,
-                "status": ["up_modulated", "down_modulated", "non_modulated"]
-                * 4,
+                "status": ["up_modulated", "down_modulated", "non_modulated"] * 4,
                 "num_cells": [5, 3, 2, 2, 6, 2] * 2,
                 "subject_id": ["subj1"] * 6 + ["subj2"] * 6,
                 "normalized_subject_id": ["subject_1"] * 6 + ["subject_2"] * 6,
@@ -1100,12 +1053,10 @@ class TestCombineComparePopulationData(unittest.TestCase):
         # Use specific parts for different plots
         pairwise_for_mod_plot = pairwise[pairwise["status"] == "up_modulated"]
         pairwise_for_act_plot = pairwise[
-            (pairwise["Comparison"] == "Activity")
-            & (pairwise["Contrast"] == "state")
+            (pairwise["Comparison"] == "Activity") & (pairwise["Contrast"] == "state")
         ]
         group_pairwise_for_group_plot = pairwise[
-            (pairwise["Comparison"] == "Modulation")
-            & (pairwise["Contrast"] != "state")
+            (pairwise["Comparison"] == "Modulation") & (pairwise["Contrast"] != "state")
         ]
 
         # Mock Figure.savefig to avoid actual file creation
@@ -1224,9 +1175,7 @@ class TestCombineComparePopulationData(unittest.TestCase):
                 )
             # Check for the actual warning message that gets logged
             self.assertTrue(
-                any(
-                    "No modulation data available" in msg for msg in log.output
-                ),
+                any("No modulation data available" in msg for msg in log.output),
                 f"Expected warning not found in: {log.output}",
             )
 
@@ -1307,35 +1256,23 @@ class TestCombineComparePopulationData(unittest.TestCase):
         for correction in ["bonf", "holm", "fdr_bh"]:
             with self.subTest(correction=correction):
                 # Create synthetic test data for this test - recreate for each correction method
-                test_dir = os.path.join(
-                    self.output_dir, "correction_test_data"
-                )
+                test_dir = os.path.join(self.output_dir, "correction_test_data")
                 os.makedirs(test_dir, exist_ok=True)
 
                 # Create test files
                 file1_data = pd.DataFrame(
                     {
                         "name": [f"cell{i}_subj1" for i in range(10)],
-                        "modulation scores in state1": np.random.uniform(
-                            0.5, 0.9, 10
-                        ),
-                        "p-values in state1": np.random.uniform(
-                            0.001, 0.049, 10
-                        ),
+                        "modulation scores in state1": np.random.uniform(0.5, 0.9, 10),
+                        "p-values in state1": np.random.uniform(0.001, 0.049, 10),
                         "modulation in state1": [1] * 10,
-                        "mean activity in state1": np.random.uniform(
-                            0.7, 1.0, 10
-                        ),
+                        "mean activity in state1": np.random.uniform(0.7, 1.0, 10),
                         "modulation scores in state2": np.random.uniform(
                             -0.9, -0.5, 10
                         ),
-                        "p-values in state2": np.random.uniform(
-                            0.001, 0.049, 10
-                        ),
+                        "p-values in state2": np.random.uniform(0.001, 0.049, 10),
                         "modulation in state2": [-1] * 10,
-                        "mean activity in state2": np.random.uniform(
-                            0.1, 0.4, 10
-                        ),
+                        "mean activity in state2": np.random.uniform(0.1, 0.4, 10),
                     }
                 )
                 file1_path = os.path.join(test_dir, "group1_subj1_file1.csv")
@@ -1344,26 +1281,16 @@ class TestCombineComparePopulationData(unittest.TestCase):
                 file2_data = pd.DataFrame(
                     {
                         "name": [f"cell{i}_subj2" for i in range(10)],
-                        "modulation scores in state1": np.random.uniform(
-                            0.4, 0.8, 10
-                        ),
-                        "p-values in state1": np.random.uniform(
-                            0.001, 0.049, 10
-                        ),
+                        "modulation scores in state1": np.random.uniform(0.4, 0.8, 10),
+                        "p-values in state1": np.random.uniform(0.001, 0.049, 10),
                         "modulation in state1": [1] * 10,
-                        "mean activity in state1": np.random.uniform(
-                            0.6, 0.9, 10
-                        ),
+                        "mean activity in state1": np.random.uniform(0.6, 0.9, 10),
                         "modulation scores in state2": np.random.uniform(
                             -0.8, -0.4, 10
                         ),
-                        "p-values in state2": np.random.uniform(
-                            0.001, 0.049, 10
-                        ),
+                        "p-values in state2": np.random.uniform(0.001, 0.049, 10),
                         "modulation in state2": [-1] * 10,
-                        "mean activity in state2": np.random.uniform(
-                            0.2, 0.5, 10
-                        ),
+                        "mean activity in state2": np.random.uniform(0.2, 0.5, 10),
                     }
                 )
                 file2_path = os.path.join(test_dir, "group1_subj2_file2.csv")
@@ -1372,26 +1299,14 @@ class TestCombineComparePopulationData(unittest.TestCase):
                 file3_data = pd.DataFrame(
                     {
                         "name": [f"cell{i}_subj1" for i in range(10)],
-                        "modulation scores in state1": np.random.uniform(
-                            0.2, 0.5, 10
-                        ),
-                        "p-values in state1": np.random.uniform(
-                            0.001, 0.049, 10
-                        ),
+                        "modulation scores in state1": np.random.uniform(0.2, 0.5, 10),
+                        "p-values in state1": np.random.uniform(0.001, 0.049, 10),
                         "modulation in state1": [1] * 10,
-                        "mean activity in state1": np.random.uniform(
-                            0.4, 0.7, 10
-                        ),
-                        "modulation scores in state2": np.random.uniform(
-                            0.4, 0.7, 10
-                        ),
-                        "p-values in state2": np.random.uniform(
-                            0.001, 0.049, 10
-                        ),
+                        "mean activity in state1": np.random.uniform(0.4, 0.7, 10),
+                        "modulation scores in state2": np.random.uniform(0.4, 0.7, 10),
+                        "p-values in state2": np.random.uniform(0.001, 0.049, 10),
                         "modulation in state2": [1] * 10,
-                        "mean activity in state2": np.random.uniform(
-                            0.5, 0.8, 10
-                        ),
+                        "mean activity in state2": np.random.uniform(0.5, 0.8, 10),
                     }
                 )
                 file3_path = os.path.join(test_dir, "group2_subj1_file1.csv")
@@ -1400,26 +1315,14 @@ class TestCombineComparePopulationData(unittest.TestCase):
                 file4_data = pd.DataFrame(
                     {
                         "name": [f"cell{i}_subj2" for i in range(10)],
-                        "modulation scores in state1": np.random.uniform(
-                            0.1, 0.4, 10
-                        ),
-                        "p-values in state1": np.random.uniform(
-                            0.001, 0.049, 10
-                        ),
+                        "modulation scores in state1": np.random.uniform(0.1, 0.4, 10),
+                        "p-values in state1": np.random.uniform(0.001, 0.049, 10),
                         "modulation in state1": [1] * 10,
-                        "mean activity in state1": np.random.uniform(
-                            0.3, 0.6, 10
-                        ),
-                        "modulation scores in state2": np.random.uniform(
-                            0.3, 0.6, 10
-                        ),
-                        "p-values in state2": np.random.uniform(
-                            0.001, 0.049, 10
-                        ),
+                        "mean activity in state1": np.random.uniform(0.3, 0.6, 10),
+                        "modulation scores in state2": np.random.uniform(0.3, 0.6, 10),
+                        "p-values in state2": np.random.uniform(0.001, 0.049, 10),
                         "modulation in state2": [1] * 10,
-                        "mean activity in state2": np.random.uniform(
-                            0.5, 0.8, 10
-                        ),
+                        "mean activity in state2": np.random.uniform(0.5, 0.8, 10),
                     }
                 )
                 file4_path = os.path.join(test_dir, "group2_subj2_file2.csv")
@@ -1547,12 +1450,8 @@ class TestCombineComparePopulationData(unittest.TestCase):
             output_files = os.listdir(self.output_dir)
             self.assertIn("aov_comparisons.csv", output_files)
             self.assertIn("pairwise_comparisons.csv", output_files)
-            self.assertIn(
-                "population_activity_data_SyntheticGroup1.csv", output_files
-            )
-            self.assertIn(
-                "population_activity_data_SyntheticGroup2.csv", output_files
-            )
+            self.assertIn("population_activity_data_SyntheticGroup1.csv", output_files)
+            self.assertIn("population_activity_data_SyntheticGroup2.csv", output_files)
 
             # # Verify output manifest structure
             # with open(
@@ -1665,9 +1564,7 @@ class TestCombineComparePopulationData(unittest.TestCase):
     def test_combine_population_data_basic(self):
         """Test basic functionality of combine_population_data."""
         # Create test files
-        test_files = [
-            os.path.join(self.synthetic_dir, "group1_subj1_file1.csv")
-        ]
+        test_files = [os.path.join(self.synthetic_dir, "group1_subj1_file1.csv")]
 
         # Test that the function runs without error
         try:
@@ -1688,19 +1585,11 @@ class TestCombineComparePopulationData(unittest.TestCase):
             self.assertEqual(len(result), 8)
             self.assertIsInstance(result, tuple)
         except Exception as e:
-            self.fail(
-                f"combine_population_data should not raise exception: {e}"
-            )
+            self.fail(f"combine_population_data should not raise exception: {e}")
 
-    @patch(
-        "analysis.combine_compare_population_data.plot_modulation_distribution"
-    )
-    @patch(
-        "analysis.combine_compare_population_data.plot_combined_modulation_data"
-    )
-    def test_process_and_visualize_mod_his(
-        self, mock_plot_combined, mock_plot_dist
-    ):
+    @patch("analysis.combine_compare_population_data.plot_modulation_distribution")
+    @patch("analysis.combine_compare_population_data.plot_combined_modulation_data")
+    def test_process_and_visualize_mod_his(self, mock_plot_combined, mock_plot_dist):
         """Test process_and_visualize_mod_his function."""
         # Create test modulation data
         mod_data = pd.DataFrame(
@@ -1744,15 +1633,9 @@ class TestCombineComparePopulationData(unittest.TestCase):
         mock_plot_dist.assert_called()
         # mock_plot_combined is not called by this function
 
-    @patch(
-        "analysis.combine_compare_population_data.calculate_state_lmm_stats"
-    )
-    @patch(
-        "analysis.combine_compare_population_data.calculate_group_anova_stats"
-    )
-    @patch(
-        "analysis.combine_compare_population_data.calculate_mod_stats_direct"
-    )
+    @patch("analysis.combine_compare_population_data.calculate_state_lmm_stats")
+    @patch("analysis.combine_compare_population_data.calculate_group_anova_stats")
+    @patch("analysis.combine_compare_population_data.calculate_mod_stats_direct")
     def test_calculate_and_plot_stats_basic(
         self, mock_mod_stats, mock_group_anova, mock_state_lmm
     ):
@@ -1912,17 +1795,12 @@ class TestCombineComparePopulationData(unittest.TestCase):
         result_names = match_subjects(group1_names, group2_names, "filename")
         self.assertIsInstance(result_names, list)
 
-
     # =============================================================================
     # INTEGRATION TESTS FOR COMPLEX WORKFLOWS
     # =============================================================================
 
-    @patch(
-        "analysis.combine_compare_population_data.plot_modulation_distribution"
-    )
-    @patch(
-        "analysis.combine_compare_population_data.plot_combined_modulation_data"
-    )
+    @patch("analysis.combine_compare_population_data.plot_modulation_distribution")
+    @patch("analysis.combine_compare_population_data.plot_combined_modulation_data")
     def test_modulation_visualization_workflow(
         self, mock_plot_combined, mock_plot_dist
     ):
@@ -1939,8 +1817,7 @@ class TestCombineComparePopulationData(unittest.TestCase):
                 ]
                 * 2,
                 "num_cells": [15, 8, 25, 12, 18, 6, 30, 10],
-                "normalized_subject_id": ["subj1", "subj1", "subj2", "subj2"]
-                * 2,
+                "normalized_subject_id": ["subj1", "subj1", "subj2", "subj2"] * 2,
                 "group": ["Group1"] * 8,
             }
         )
@@ -1948,12 +1825,8 @@ class TestCombineComparePopulationData(unittest.TestCase):
         raw_mod = pd.DataFrame(
             {
                 "name": [f"cell{i}" for i in range(20)],
-                "modulation scores in state1": np.random.uniform(
-                    -0.8, 0.8, 20
-                ),
-                "modulation scores in state2": np.random.uniform(
-                    -0.8, 0.8, 20
-                ),
+                "modulation scores in state1": np.random.uniform(-0.8, 0.8, 20),
+                "modulation scores in state2": np.random.uniform(-0.8, 0.8, 20),
                 "p-values in state1": np.random.uniform(0.001, 0.1, 20),
                 "p-values in state2": np.random.uniform(0.001, 0.1, 20),
             }
@@ -2054,9 +1927,7 @@ class TestCombineComparePopulationData(unittest.TestCase):
 
         for case in test_cases:
             with self.subTest(case=case):
-                matches = match_subjects(
-                    case["group1"], case["group2"], case["method"]
-                )
+                matches = match_subjects(case["group1"], case["group2"], case["method"])
                 self.assertEqual(len(matches), case["expected_matches"])
 
     def test_state_comparison_method_validation(self):
@@ -2096,10 +1967,11 @@ class TestCombineComparePopulationData(unittest.TestCase):
         )
 
         # Import the validation function
+        from ideas.exceptions import IdeasError
+
         from utils.combine_compare_population_data_utils import (
             validate_user_specified_comparison_method,
         )
-        from ideas.exceptions import IdeasError
 
         # Test 1: Auto-detection works correctly for state_vs_not_state
         result = validate_user_specified_comparison_method(
@@ -2186,9 +2058,7 @@ class TestCombineComparePopulationData(unittest.TestCase):
         # Test 9: Empty dataframe should raise exception
         empty_df = pd.DataFrame()
         with self.assertRaises(IdeasError) as context:
-            validate_user_specified_comparison_method(
-                empty_df, ["state1"], "auto"
-            )
+            validate_user_specified_comparison_method(empty_df, ["state1"], "auto")
         self.assertIn("empty", str(context.exception).lower())
 
         # Test 10: state_vs_not_state should reject pairwise data (corrected behavior)

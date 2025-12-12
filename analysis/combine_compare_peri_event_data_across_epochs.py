@@ -2,48 +2,18 @@ import json
 import os
 import warnings
 from typing import List
-from scipy import stats
+
 # from distutils.util import strtobool
 import matplotlib.pyplot as plt
-import pandas as pd
 import numpy as np
+import pandas as pd
 import pingouin as pg
-import utils.config as config
-from ideas.exceptions import IdeasError
-from analysis.combine_compare_peri_event_data import (
-    validate_combine_compare_peri_event_data_parameters,
-    validate_group_colors,
-    reclassify_neurons,
-    generate_subpopulation_activity_plot,
-    generate_modulation_pie_chart,
-    # generate_output_manifest,
-)
-from analysis.peri_event_workflow import (
-    validate_modulation_colors,
-    plot_population_mean_event_window,
-    plot_single_neurons_heatmap,
-)
 from ideas.analysis.utils import (
     get_file_size,
     # compute_sampling_rate,
 )
-from utils.stats_utils import (
-    is_normal,
-    statistically_compare_two_groups,
-    perform_paired_pairwise_comparisons,
-)
-from utils.plots import (
-    plot_event_aligned_activity_by_modulation_group_comparing_epochs,
-    plot_population_mean_event_window_across_epochs,
-    plot_number_of_modulated_cells_per_epoch,
-    plot_post_minus_pre_activity_differences_with_cell_map,
-    plot_post_minus_pre_per_epoch_bar_chart,
-    _plot_mixed_comparisons2,
-)
-from utils.utils import (
-    remove_unsupported_characters,
-    compute_sampling_rate
-)
+from ideas.exceptions import IdeasError
+
 # from toolbox.utils.data_model import IdeasFile, IdeasPreviewFile
 # from ideas_commons.constants import (
 #     FileFormat,
@@ -51,9 +21,38 @@ from utils.utils import (
 #     FileType,
 #     FileCategory,
 # )
-from ideas.tools import log
+from ideas.tools import log, outputs
 from ideas.tools.types import IdeasFile
-from ideas.tools import outputs
+from scipy import stats
+
+import utils.config as config
+from analysis.combine_compare_peri_event_data import (
+    generate_modulation_pie_chart,
+    # generate_output_manifest,
+    generate_subpopulation_activity_plot,
+    reclassify_neurons,
+    validate_combine_compare_peri_event_data_parameters,
+    validate_group_colors,
+)
+from analysis.peri_event_workflow import (
+    plot_population_mean_event_window,
+    plot_single_neurons_heatmap,
+    validate_modulation_colors,
+)
+from utils.plots import (
+    _plot_mixed_comparisons2,
+    plot_event_aligned_activity_by_modulation_group_comparing_epochs,
+    plot_number_of_modulated_cells_per_epoch,
+    plot_population_mean_event_window_across_epochs,
+    plot_post_minus_pre_activity_differences_with_cell_map,
+    plot_post_minus_pre_per_epoch_bar_chart,
+)
+from utils.stats_utils import (
+    is_normal,
+    perform_paired_pairwise_comparisons,
+    statistically_compare_two_groups,
+)
+from utils.utils import compute_sampling_rate, remove_unsupported_characters
 
 logger = log.get_logger()
 
@@ -62,14 +61,15 @@ DIVISION_THRESHOLD = 1e-10
 
 
 def strtobool(value: str) -> bool:
-  # this func has been deprecated in python 3.13
-  # implementation is easy to copy https://docs.python.org/3.9/distutils/apiref.html#distutils.util.strtobool
-  value = value.lower()
-  if value in ("y", "yes", "t", "true", "on", "1"):
-    return True
-  elif value in ["n", "no", "f", "false", "off", "0"]:
-      return False
-  raise ValueError("Failed to convert str to bool")
+    # this func has been deprecated in python 3.13
+    # implementation is easy to copy https://docs.python.org/3.9/distutils/apiref.html#distutils.util.strtobool
+    value = value.lower()
+    if value in ("y", "yes", "t", "true", "on", "1"):
+        return True
+    elif value in ["n", "no", "f", "false", "off", "0"]:
+        return False
+    raise ValueError("Failed to convert str to bool")
+
 
 def generate_activity_heatmap(
     traces_timeline: List[float],
@@ -182,9 +182,7 @@ def extract_modulation_group_data(
         )
 
         up_modulated_cell_names = (
-            stats_df[up_modulated_filter]["name"]
-            .apply(lambda x: x + "_mean")
-            .tolist()
+            stats_df[up_modulated_filter]["name"].apply(lambda x: x + "_mean").tolist()
         )
         down_modulated_cell_names = (
             stats_df[down_modulated_filter]["name"]
@@ -192,9 +190,7 @@ def extract_modulation_group_data(
             .tolist()
         )
         non_modulated_cell_names = (
-            stats_df[non_modulated_filter]["name"]
-            .apply(lambda x: x + "_mean")
-            .tolist()
+            stats_df[non_modulated_filter]["name"].apply(lambda x: x + "_mean").tolist()
         )
 
         # compute fractions of up/down/non modulated cells in each input recording
@@ -202,9 +198,7 @@ def extract_modulation_group_data(
         num_down_modulated_cells = len(down_modulated_cell_names)
         num_non_modulated_cells = len(non_modulated_cell_names)
         total_num_cells = (
-            num_up_modulated_cells
-            + num_down_modulated_cells
-            + num_non_modulated_cells
+            num_up_modulated_cells + num_down_modulated_cells + num_non_modulated_cells
         )
 
         if total_num_cells == 0:
@@ -215,12 +209,8 @@ def extract_modulation_group_data(
             continue
 
         up_modulated_fractions.append(num_up_modulated_cells / total_num_cells)
-        down_modulated_fractions.append(
-            num_down_modulated_cells / total_num_cells
-        )
-        non_modulated_fractions.append(
-            num_non_modulated_cells / total_num_cells
-        )
+        down_modulated_fractions.append(num_down_modulated_cells / total_num_cells)
+        non_modulated_fractions.append(num_non_modulated_cells / total_num_cells)
 
         # update cell counts
         total_num_up_modulated_cells += num_up_modulated_cells
@@ -238,9 +228,7 @@ def extract_modulation_group_data(
                     axis=1,
                 )
             else:
-                up_modulated_traces = traces_df[epoch_name][
-                    up_modulated_cell_names
-                ]
+                up_modulated_traces = traces_df[epoch_name][up_modulated_cell_names]
 
             if down_modulated_traces is not None:
                 down_modulated_traces = pd.concat(
@@ -251,9 +239,7 @@ def extract_modulation_group_data(
                     axis=1,
                 )
             else:
-                down_modulated_traces = traces_df[epoch_name][
-                    down_modulated_cell_names
-                ]
+                down_modulated_traces = traces_df[epoch_name][down_modulated_cell_names]
 
             if non_modulated_traces is not None:
                 non_modulated_traces = pd.concat(
@@ -264,9 +250,7 @@ def extract_modulation_group_data(
                     axis=1,
                 )
             else:
-                non_modulated_traces = traces_df[epoch_name][
-                    non_modulated_cell_names
-                ]
+                non_modulated_traces = traces_df[epoch_name][non_modulated_cell_names]
         else:
             # average method is recordings
             if up_modulated_traces is not None:
@@ -328,15 +312,9 @@ def extract_modulation_group_data(
         down_modulated_mean = np.nanmean(down_modulated_traces, axis=1)
         non_modulated_mean = np.nanmean(non_modulated_traces, axis=1)
 
-        up_modulated_sem = stats.sem(
-            up_modulated_traces, axis=1, nan_policy="omit"
-        )
-        down_modulated_sem = stats.sem(
-            down_modulated_traces, axis=1, nan_policy="omit"
-        )
-        non_modulated_sem = stats.sem(
-            non_modulated_traces, axis=1, nan_policy="omit"
-        )
+        up_modulated_sem = stats.sem(up_modulated_traces, axis=1, nan_policy="omit")
+        down_modulated_sem = stats.sem(down_modulated_traces, axis=1, nan_policy="omit")
+        non_modulated_sem = stats.sem(non_modulated_traces, axis=1, nan_policy="omit")
 
     modulated_cells_dict = {
         "up_modulated": {
@@ -415,12 +393,8 @@ def _run_ANOVA(
             logger.warning(
                 "Not enough valid groups for analysis. Returning empty results."
             )
-            empty_aov = pd.DataFrame(
-                {"Comparison": [metric], "p-unc": [np.nan]}
-            )
-            empty_pairwise = pd.DataFrame(
-                {"Comparison": [metric], "p-unc": [np.nan]}
-            )
+            empty_aov = pd.DataFrame({"Comparison": [metric], "p-unc": [np.nan]})
+            empty_pairwise = pd.DataFrame({"Comparison": [metric], "p-unc": [np.nan]})
             return empty_aov, empty_pairwise
 
         # Add tiny random noise to eliminate exact zeros in variance
@@ -436,9 +410,7 @@ def _run_ANOVA(
     except Exception as e:
         logger.warning(f"Error preprocessing data for ANOVA: {str(e)}")
         empty_aov = pd.DataFrame({"Comparison": [metric], "p-unc": [np.nan]})
-        empty_pairwise = pd.DataFrame(
-            {"Comparison": [metric], "p-unc": [np.nan]}
-        )
+        empty_pairwise = pd.DataFrame({"Comparison": [metric], "p-unc": [np.nan]})
         return empty_aov, empty_pairwise
 
     # Run the statistical tests with exception handling
@@ -455,9 +427,7 @@ def _run_ANOVA(
                     )
                     # Ensure Source column exists for compatibility with tests
                     if "Source" not in aov.columns and len(aov) > 0:
-                        aov["Source"] = ["epoch", "group", "epoch * group"][
-                            : len(aov)
-                        ]
+                        aov["Source"] = ["epoch", "group", "epoch * group"][: len(aov)]
                 except Exception as e:
                     # Create a dummy dataframe with expected columns for mixed ANOVA
                     logger.warning(
@@ -514,9 +484,7 @@ def _run_ANOVA(
     aov["Comparison"] = metric
 
     # Put the comparison column on the far left
-    aov = aov[
-        ["Comparison"] + [col for col in aov.columns if col != "Comparison"]
-    ]
+    aov = aov[["Comparison"] + [col for col in aov.columns if col != "Comparison"]]
     return aov
 
 
@@ -528,14 +496,10 @@ def _run_pairwise_epoch_comparisons(
     epoch_names = data["epoch"].unique().tolist()
     epoch_comparison_dfs = []
     for epoch_name in epoch_names:
-        logger.info(
-            f"Performing statistical comparison for epoch '{epoch_name}'"
-        )
+        logger.info(f"Performing statistical comparison for epoch '{epoch_name}'")
         epoch_data = data[data["epoch"] == epoch_name][cols]
         grouped_df = (
-            epoch_data.groupby(["group", "file"])
-            .mean(numeric_only=True)
-            .reset_index()
+            epoch_data.groupby(["group", "file"]).mean(numeric_only=True).reset_index()
         )
         group1_data = grouped_df[grouped_df["group"] == group1_name][
             "true_mean_post-pre"
@@ -765,12 +729,7 @@ def combine_peri_event_data(
                     .tolist()[0]
                 )
                 if (
-                    len(
-                        df[
-                            closest_index : closest_index
-                            + min_time_window_length
-                        ]
-                    )
+                    len(df[closest_index : closest_index + min_time_window_length])
                     == min_time_window_length
                 ):
                     traces_dataframes[i] = df.iloc[
@@ -779,15 +738,14 @@ def combine_peri_event_data(
                 else:
                     # if alignment based on closest time point fails (e.g. lack of data points),
                     # align based on first time point.
-                    traces_dataframes[i] = df.iloc[
-                        :min_time_window_length
-                    ].reset_index(drop=True)
+                    traces_dataframes[i] = df.iloc[:min_time_window_length].reset_index(
+                        drop=True
+                    )
 
                 # compute time shift between the time window in
                 # current file vs file with shortest time window
                 time_delta = abs(
-                    traces_dataframes[i].iloc[0]["Time"]
-                    - time_window_first_timepoint
+                    traces_dataframes[i].iloc[0]["Time"] - time_window_first_timepoint
                 )
                 logger.warning(
                     f"The time windows of the input traces files "
@@ -806,9 +764,7 @@ def combine_peri_event_data(
                     )
 
     # ensure timelines match across the input traces files
-    traces_timeline = traces_dataframes[0]["Time"][
-        "Unnamed: 0_level_1"
-    ].tolist()
+    traces_timeline = traces_dataframes[0]["Time"]["Unnamed: 0_level_1"].tolist()
     for i, df in enumerate(traces_dataframes[1:]):
         # time windows should have the same size in all input files
         if len(df["Time"]) != len(traces_timeline):
@@ -836,9 +792,7 @@ def combine_peri_event_data(
         # retain per-cell data only and drop the other columns
         cols_to_drop = [("Time", "Unnamed: 0_level_1")]
         for epoch_name in epoch_names:
-            cols_to_drop.extend(
-                [(epoch_name, c) for c in cols_to_drop_per_epoch]
-            )
+            cols_to_drop.extend([(epoch_name, c) for c in cols_to_drop_per_epoch])
 
         traces_dataframes[i].drop(
             columns=cols_to_drop, axis=1, inplace=True, errors="ignore"
@@ -887,9 +841,7 @@ def combine_peri_event_data(
     epoch_population_activity_preview_filenames = []
 
     # generate plots
-    all_epoch_data = (
-        {}
-    )  # dictionary that will hold all epoch data together for plotting purposes
+    all_epoch_data = {}  # dictionary that will hold all epoch data together for plotting purposes
     epoch_traces_dfs = []
     for epoch_name in epoch_names:
         # generate heatmap showing event-aligned activity modulation per neuron
@@ -901,9 +853,7 @@ def combine_peri_event_data(
         )
 
         # retain only data specific to the epoch being analyzed
-        cols_to_drop = [
-            (e, c) for e, c in df_traces.columns if e != epoch_name
-        ]
+        cols_to_drop = [(e, c) for e, c in df_traces.columns if e != epoch_name]
         df_traces_epoch = df_traces.drop(cols_to_drop, axis=1)
         df_stats_epoch = df_stats[df_stats["epoch"] == epoch_name]
 
@@ -931,9 +881,7 @@ def combine_peri_event_data(
         # generate population activity data
         if average_method == "neurons":
             population_mean = np.nanmean(df_traces_epoch, axis=1)
-            population_sem = stats.sem(
-                df_traces_epoch, axis=1, nan_policy="omit"
-            )
+            population_sem = stats.sem(df_traces_epoch, axis=1, nan_policy="omit")
         else:
             # drop cell sem columns from all recordings
             simplified_traces_dataframes = [
@@ -1022,24 +970,24 @@ def combine_peri_event_data(
         with warnings.catch_warnings():
             # ignore performance warnings that may occur when setting multi-level index
             warnings.simplefilter("ignore")
-            df_traces_epoch[
-                (epoch_name, "up_modulated_mean")
-            ] = combined_cell_data["up_modulated"]["mean"]
-            df_traces_epoch[
-                (epoch_name, "up_modulated_sem")
-            ] = combined_cell_data["up_modulated"]["sem"]
-            df_traces_epoch[
-                (epoch_name, "down_modulated_mean")
-            ] = combined_cell_data["down_modulated"]["mean"]
-            df_traces_epoch[
-                (epoch_name, "down_modulated_sem")
-            ] = combined_cell_data["down_modulated"]["sem"]
-            df_traces_epoch[
-                (epoch_name, "non_modulated_mean")
-            ] = combined_cell_data["non_modulated"]["mean"]
-            df_traces_epoch[
-                (epoch_name, "non_modulated_sem")
-            ] = combined_cell_data["non_modulated"]["sem"]
+            df_traces_epoch[(epoch_name, "up_modulated_mean")] = combined_cell_data[
+                "up_modulated"
+            ]["mean"]
+            df_traces_epoch[(epoch_name, "up_modulated_sem")] = combined_cell_data[
+                "up_modulated"
+            ]["sem"]
+            df_traces_epoch[(epoch_name, "down_modulated_mean")] = combined_cell_data[
+                "down_modulated"
+            ]["mean"]
+            df_traces_epoch[(epoch_name, "down_modulated_sem")] = combined_cell_data[
+                "down_modulated"
+            ]["sem"]
+            df_traces_epoch[(epoch_name, "non_modulated_mean")] = combined_cell_data[
+                "non_modulated"
+            ]["mean"]
+            df_traces_epoch[(epoch_name, "non_modulated_sem")] = combined_cell_data[
+                "non_modulated"
+            ]["sem"]
 
         # generate subpopulation activity plot
         subpopulation_activity_preview_filename = os.path.join(
@@ -1074,21 +1022,13 @@ def combine_peri_event_data(
         # generate pie chart showing fraction of up/down/non-modulated neurons
         pie_chart_modulation_preview_filename = os.path.join(
             output_dir,
-            f"fraction_of_modulated_neurons_{group_name}_{epoch_name}".replace(
-                " ", ""
-            )
+            f"fraction_of_modulated_neurons_{group_name}_{epoch_name}".replace(" ", "")
             + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION,
         )
         generate_modulation_pie_chart(
-            num_cells_up_modulated=combined_cell_data["up_modulated"][
-                "num_cells"
-            ],
-            num_cells_down_modulated=combined_cell_data["down_modulated"][
-                "num_cells"
-            ],
-            num_cells_non_modulated=combined_cell_data["non_modulated"][
-                "num_cells"
-            ],
+            num_cells_up_modulated=combined_cell_data["up_modulated"]["num_cells"],
+            num_cells_down_modulated=combined_cell_data["down_modulated"]["num_cells"],
+            num_cells_non_modulated=combined_cell_data["non_modulated"]["num_cells"],
             output_filename=pie_chart_modulation_preview_filename,
             modulation_colors=modulation_colors,
             epoch_name=epoch_name,
@@ -1139,9 +1079,9 @@ def combine_peri_event_data(
     for epoch_name in epoch_names:
         single_cell_data[epoch_name] = {
             "cell": {
-                "true_mean_post-pre": df_stats[
-                    df_stats["epoch"] == epoch_name
-                ]["true_mean_post-pre"]
+                "true_mean_post-pre": df_stats[df_stats["epoch"] == epoch_name][
+                    "true_mean_post-pre"
+                ]
             }
         }
 
@@ -1156,7 +1096,7 @@ def combine_peri_event_data(
         # (
         #     _,
         #     post_minus_pre_boxplot_preview_file,
-        # ) = 
+        # ) =
         plot_post_minus_pre_activity_differences_with_cell_map(
             cell_set_files=None,
             data={"single_cell": single_cell_data},
@@ -1198,15 +1138,9 @@ def combine_peri_event_data(
             "non_modulated",
         ]:
             modulation_group_plot_data[epoch_name][modulation_group] = {
-                "mean": combined_traces_df[epoch_name][
-                    f"{modulation_group}_mean"
-                ],
-                "sem": combined_traces_df[epoch_name][
-                    f"{modulation_group}_sem"
-                ],
-                "num_cells": all_epoch_data[epoch_name][modulation_group][
-                    "num_cells"
-                ],
+                "mean": combined_traces_df[epoch_name][f"{modulation_group}_mean"],
+                "sem": combined_traces_df[epoch_name][f"{modulation_group}_sem"],
+                "num_cells": all_epoch_data[epoch_name][modulation_group]["num_cells"],
             }
 
     # plot event-aligned activity by activity-modulation group
@@ -1260,9 +1194,7 @@ def combine_peri_event_data(
     # plot post-pre per epoch
     post_minus_pre_per_epoch_preview_filename = os.path.join(
         output_dir,
-        f"mean_post_minus_pre_activity_per_epoch_{group_name}.svg".replace(
-            " ", ""
-        ),
+        f"mean_post_minus_pre_activity_per_epoch_{group_name}.svg".replace(" ", ""),
     )
     plot_post_minus_pre_per_epoch_bar_chart(
         data=single_cell_data,
@@ -1311,12 +1243,10 @@ def combine_peri_event_data(
     num_down_modulated_cells_str = ""
     num_non_modulated_cells_str = ""
     for i, epoch_name in enumerate(epoch_names):
-        num_up_modulated_cells = all_epoch_data[epoch_name]["up_modulated"][
+        num_up_modulated_cells = all_epoch_data[epoch_name]["up_modulated"]["num_cells"]
+        num_down_modulated_cells = all_epoch_data[epoch_name]["down_modulated"][
             "num_cells"
         ]
-        num_down_modulated_cells = all_epoch_data[epoch_name][
-            "down_modulated"
-        ]["num_cells"]
         num_non_modulated_cells = all_epoch_data[epoch_name]["non_modulated"][
             "num_cells"
         ]
@@ -1346,22 +1276,22 @@ def combine_peri_event_data(
         {
             "key": "ideas.metrics.num_up_modulated_cells",
             "name": "Number of up-modulated cells",
-            "value": num_up_modulated_cells_str
+            "value": num_up_modulated_cells_str,
         },
         {
             "key": "ideas.metrics.num_down_modulated_cells",
             "name": "Number of down-modulated cells",
-            "value": num_down_modulated_cells_str
+            "value": num_down_modulated_cells_str,
         },
         {
             "key": "ideas.metrics.num_non_modulated_cells",
             "name": "Number of non-modulated cells",
-            "value": num_non_modulated_cells_str
+            "value": num_non_modulated_cells_str,
         },
         {
             "key": "ideas.timingInfo.numTimes",
             "name": "Number of timepoints",
-            "value": len(traces_timeline)
+            "value": len(traces_timeline),
         },
         {
             "key": "ideas.timingInfo.sampling_rate",
@@ -1370,7 +1300,7 @@ def combine_peri_event_data(
                 period_num=abs(traces_timeline[0] - traces_timeline[1]),
                 period_den=1,
             ),
-        }
+        },
     ]
 
     # event-aligned traces FILE
@@ -1428,9 +1358,9 @@ def combine_peri_event_data(
     #     epoch_comparison_file = None
 
     return df_stats, event_aligned_metadata
-        # event_aligned_traces_file,
-        # statistics_file,
-        # epoch_comparison_file,
+    # event_aligned_traces_file,
+    # statistics_file,
+    # epoch_comparison_file,
 
 
 def _validate_epoch_names_within_group(
@@ -1601,9 +1531,7 @@ def combine_compare_peri_event_data_across_epochs(
         group2_traces_files=group2_traces_files,
         group2_stats_files=group2_stats_files,
     )
-    logger.info(
-        f"Epochs found in the first group: {', '.join(group1_epoch_names)}"
-    )
+    logger.info(f"Epochs found in the first group: {', '.join(group1_epoch_names)}")
     if group2_epoch_names is not None:
         logger.info(
             f"Epochs found in the second group: {', '.join(group2_epoch_names)}"
@@ -1683,7 +1611,7 @@ def combine_compare_peri_event_data_across_epochs(
         #     group1_traces_manifest_file,
         #     group1_statistics_manifest_file,
         #     group1_epoch_comparison_file,
-        # ) = 
+        # ) =
         group1_data, group1_md = combine_peri_event_data(
             traces_files=group1_traces_files,
             stats_files=group1_stats_files,
@@ -1721,9 +1649,7 @@ def combine_compare_peri_event_data_across_epochs(
             # compare data within group 1
             group1_pairwise_comparisons_output_filename = os.path.join(
                 output_dir,
-                f"pairwise_epoch_comparisons_{group1_name}.csv".replace(
-                    " ", ""
-                ),
+                f"pairwise_epoch_comparisons_{group1_name}.csv".replace(" ", ""),
             )
             _compare_single_group(
                 data=group1_data,
@@ -1742,7 +1668,7 @@ def combine_compare_peri_event_data_across_epochs(
         #     group2_traces_manifest_file,
         #     group2_statistics_manifest_file,
         #     group2_epoch_comparison_file,
-        # ) = 
+        # ) =
         group2_data, group2_md = combine_peri_event_data(
             traces_files=group2_traces_files,
             stats_files=group2_stats_files,
@@ -1779,9 +1705,7 @@ def combine_compare_peri_event_data_across_epochs(
             # compare data within group 2
             group2_pairwise_comparisons_output_filename = os.path.join(
                 output_dir,
-                f"pairwise_epoch_comparisons_{group2_name}.csv".replace(
-                    " ", ""
-                ),
+                f"pairwise_epoch_comparisons_{group2_name}.csv".replace(" ", ""),
             )
             _compare_single_group(
                 data=group2_data,
@@ -1798,9 +1722,7 @@ def combine_compare_peri_event_data_across_epochs(
         # retain and compare epochs common to both groups
         group1_epoch_names = group1_data["epoch"].unique().tolist()
         group2_epoch_names = group2_data["epoch"].unique().tolist()
-        common_epochs = [
-            e for e in group1_epoch_names if e in group2_epoch_names
-        ]
+        common_epochs = [e for e in group1_epoch_names if e in group2_epoch_names]
 
         if len(common_epochs) == 0:
             logger.warning(
@@ -1814,12 +1736,8 @@ def combine_compare_peri_event_data_across_epochs(
                     f"do not match the epochs in the second group ({', '.join(group2_epoch_names)}). "
                     f"Only the epochs common to both groups ({', '.join(common_epochs)}) will be compared."
                 )
-                group1_data = group1_data[
-                    group1_data["epoch"].isin(common_epochs)
-                ]
-                group2_data = group2_data[
-                    group2_data["epoch"].isin(common_epochs)
-                ]
+                group1_data = group1_data[group1_data["epoch"].isin(common_epochs)]
+                group2_data = group2_data[group2_data["epoch"].isin(common_epochs)]
 
             # compare group 1 and group 2
             mixed_aov, mixed_pairwise = _compare_data(
@@ -1839,9 +1757,7 @@ def combine_compare_peri_event_data_across_epochs(
                 anova_comparisons_output_filename = os.path.join(
                     output_dir, "anova_group_comparisons.csv"
                 )
-                mixed_aov.to_csv(
-                    anova_comparisons_output_filename, index=False
-                )
+                mixed_aov.to_csv(anova_comparisons_output_filename, index=False)
                 logger.info(
                     f"Group ANOVA comparison data saved "
                     f"({os.path.basename(anova_comparisons_output_filename)}, "
@@ -1851,9 +1767,7 @@ def combine_compare_peri_event_data_across_epochs(
             pairwise_comparisons_output_filename = os.path.join(
                 output_dir, "pairwise_group_comparisons.csv"
             )
-            mixed_pairwise.to_csv(
-                pairwise_comparisons_output_filename, index=False
-            )
+            mixed_pairwise.to_csv(pairwise_comparisons_output_filename, index=False)
             logger.info(
                 f"Group pairwise comparison data saved "
                 f"({os.path.basename(pairwise_comparisons_output_filename)}, "
@@ -1879,12 +1793,11 @@ def combine_compare_peri_event_data_across_epochs(
             # ANOVA FILE
             if mixed_aov is not None:
                 output_metadata["anova_group_comparisons"] = [
-                    group1_md[3], group1_md[4]
+                    group1_md[3],
+                    group1_md[4],
                 ]
 
-            output_metadata["pairwise_group_comparisons"] = [
-                group1_md[3], group1_md[4]
-            ]
+            output_metadata["pairwise_group_comparisons"] = [group1_md[3], group1_md[4]]
             #     anova_preview_file = IdeasPreviewFile(
             #         name="Comparisons of post-pre activity between the two groups",
             #         help="Comparisons of post-pre activity between the two groups",
@@ -1959,9 +1872,7 @@ def combine_compare_peri_event_data_across_epochs(
     with open(os.path.join(output_dir, "output_metadata.json"), "w") as f:
         json.dump(output_metadata, f)
 
-    logger.info(
-        "Combination and comparison of peri-event data across epochs completed"
-    )
+    logger.info("Combination and comparison of peri-event data across epochs completed")
 
 
 def combine_compare_peri_event_data_across_epochs_ideas_wrapper(
@@ -2045,27 +1956,27 @@ def combine_compare_peri_event_data_across_epochs_ideas_wrapper(
             for group_name in [group1_name, group2_name]:
                 group_name = group_name.replace(" ", "")
                 subdir_base = "group1" if group_name == group1_name else "group2"
-                
+
                 output_file = output_data.register_file(
                     f"event_aligned_activity_{group_name}.csv",
                     subdir=f"{subdir_base}_event_aligned_traces",
                 ).register_preview(
                     f"event_aligned_population_activity_{group_name}.svg",
-                    caption="Comparison of event-aligned average population activity across the epochs."
+                    caption="Comparison of event-aligned average population activity across the epochs.",
                 )
                 for epoch_name in epoch_names:
                     output_file.register_preview(
                         f"event_aligned_population_activity_{group_name}_{epoch_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                        caption=f"Event-aligned average population activity line plot (epoch: {epoch_name})"
+                        caption=f"Event-aligned average population activity line plot (epoch: {epoch_name})",
                     )
                 for epoch_name in epoch_names:
                     output_file.register_preview(
                         f"event_aligned_activity_heatmap_{group_name}_{epoch_name}.svg",
-                        caption=f"Event-aligned single-cell activity heatmap (epoch: {epoch_name})"
+                        caption=f"Event-aligned single-cell activity heatmap (epoch: {epoch_name})",
                     )
                 for md in metadata.get(f"{subdir_base}_event_aligned_traces", {}):
-                    output_file.register_metadata(**md) 
-                
+                    output_file.register_metadata(**md)
+
                 output_file = output_data.register_file(
                     f"event_aligned_statistics_{group_name}.csv",
                     subdir=f"{subdir_base}_event_aligned_statistics",
@@ -2073,9 +1984,9 @@ def combine_compare_peri_event_data_across_epochs_ideas_wrapper(
                 for epoch_name in epoch_names:
                     output_file.register_preview(
                         f"event_aligned_activity_by_modulation_{group_name}_{epoch_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                        caption=f"Event-aligned average sub-population activity line plot (up-, down-, and non-modulated neurons) (epoch: {epoch_name})."
+                        caption=f"Event-aligned average sub-population activity line plot (up-, down-, and non-modulated neurons) (epoch: {epoch_name}).",
                     )
-                
+
                 mod_groups = ["up_modulated", "down_modulated", "non_modulated"]
                 for mod_group in mod_groups:
                     output_file.register_preview(
@@ -2088,30 +1999,30 @@ def combine_compare_peri_event_data_across_epochs_ideas_wrapper(
                         f"fraction_of_modulated_neurons_{group_name}_{epoch_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
                         caption=f"Pie chart depicting the fraction of neurons in each sub-population (up-, down-, and non-modulated neurons) (epoch: {epoch_name}).",
                     )
-                
+
                 output_file.register_preview(
                     f"num_modulated_cells_per_epoch_{group_name}.svg",
-                    caption="Number of up-, down-, and non-modulated neurons per epoch."
+                    caption="Number of up-, down-, and non-modulated neurons per epoch.",
                 )
-                
+
                 output_file.register_preview(
                     f"mean_post_minus_pre_activity_per_epoch_{group_name}.svg",
                     caption="Comparison of mean post-pre activity across the epochs. The error bars represent the standard error of the mean.",
                 )
-                
+
                 for md in metadata.get(f"{subdir_base}_event_aligned_statistics", {}):
-                    output_file.register_metadata(**md) 
-        
+                    output_file.register_metadata(**md)
+
                 output_file = output_data.register_file(
                     f"pairwise_epoch_comparisons_{group_name}.csv",
                     subdir=f"{subdir_base}_epoch_comparison_data",
                 ).register_preview(
                     f"post_minus_pre_boxplot_{group_name}.svg",
-                    caption="Distribution of post-pre activity across epochs displayed using a box plot. Lines connect the same cells together."
+                    caption="Distribution of post-pre activity across epochs displayed using a box plot. Lines connect the same cells together.",
                 )
                 for md in metadata.get(f"{subdir_base}_epoch_comparison_data", {}):
-                    output_file.register_metadata(**md) 
-            
+                    output_file.register_metadata(**md)
+
             output_file = output_data.register_file(
                 "anova_group_comparisons.csv"
             ).register_preview(
@@ -2119,7 +2030,7 @@ def combine_compare_peri_event_data_across_epochs_ideas_wrapper(
                 caption="Comparisons of post-pre activity between the two groups",
             )
             for md in metadata.get("anova_group_comparisons", {}):
-                output_file.register_metadata(**md) 
+                output_file.register_metadata(**md)
 
             output_file = output_data.register_file(
                 "pairwise_group_comparisons.csv"
@@ -2128,9 +2039,8 @@ def combine_compare_peri_event_data_across_epochs_ideas_wrapper(
                 caption="Comparisons of post-pre activity between the two groups",
             )
             for md in metadata.get("pairwise_group_comparisons", {}):
-                output_file.register_metadata(**md) 
+                output_file.register_metadata(**md)
 
         logger.info("Registered output data")
     except Exception:
         logger.exception("Failed to generate output data!")
-    

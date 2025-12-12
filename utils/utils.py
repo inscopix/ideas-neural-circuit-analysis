@@ -2,6 +2,7 @@ import ast
 import json
 import logging
 import os
+import warnings
 from enum import Enum
 from pathlib import Path
 
@@ -10,14 +11,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from beartype import beartype
-from beartype.typing import List, Union, Optional
+from beartype.typing import List, Optional, Union
 from ideas.analysis import io
+from ideas.analysis.utils import _sort_isxd_files_by_start_time
+from ideas.analysis.validation import event_set_series
 from ideas.exceptions import IdeasError
 from matplotlib.spines import Spine
-from ideas.analysis.validation import event_set_series
+
 from utils.metadata import read_isxd_metadata
-from ideas.analysis.utils import _sort_isxd_files_by_start_time
-import warnings
 
 logger = logging.getLogger()
 
@@ -43,6 +44,7 @@ def get_num_cells_by_status(cellset_filename: str):
             num_rejected_cells += 1
 
     return num_accepted_cells, num_undecided_cells, num_rejected_cells
+
 
 class Metric(Enum):
     """Metric is an enumeration that defines various types of metrics used in
@@ -431,17 +433,17 @@ def _process_files(
         cur_df = pd.read_csv(file)
 
         # Validate Epochs in data
-        assert (
-            "Epoch" in cur_df.columns
-        ), f"The {data_type} data does not contain an 'Epoch' column."
+        assert "Epoch" in cur_df.columns, (
+            f"The {data_type} data does not contain an 'Epoch' column."
+        )
 
         # Make sure epochs are strings even if they're numbers
         cur_df["Epoch"] = cur_df["Epoch"].astype(str)
 
         for epoch in epoch_names:
-            assert (
-                epoch in cur_df["Epoch"].unique()
-            ), f"The {data_type} data does not contain the epoch '{epoch}',"
+            assert epoch in cur_df["Epoch"].unique(), (
+                f"The {data_type} data does not contain the epoch '{epoch}',"
+            )
             f" available epochs are {cur_df['Epoch'].unique()}."
 
         # Add file identifier
@@ -472,13 +474,13 @@ def _process_files(
     else:
         # join the data
         # Check that the length of the data is the same
-        assert len(df) == len(
-            temp_df
-        ), "The number of rows for traces and events data is not the same for each file."
+        assert len(df) == len(temp_df), (
+            "The number of rows for traces and events data is not the same for each file."
+        )
 
-        assert (
-            df["Cell"].all() == temp_df["Cell"].all()
-        ), "The cell IDs for traces and events data are not the same for each file."
+        assert df["Cell"].all() == temp_df["Cell"].all(), (
+            "The cell IDs for traces and events data are not the same for each file."
+        )
 
         df[f"{data_type} Activity"] = temp_df[f"{data_type} Activity"]
         df[f"{data_type} file"] = temp_df[f"{data_type} file"]
@@ -578,12 +580,8 @@ def _combine_data(
                     pos_vals = vals[vals > 0]
                     neg_vals = vals[vals < 0]
 
-                    avg_pos_corr = (
-                        np.nanmean(pos_vals) if len(pos_vals) > 0 else np.nan
-                    )
-                    avg_neg_corr = (
-                        np.nanmean(neg_vals) if len(neg_vals) > 0 else np.nan
-                    )
+                    avg_pos_corr = np.nanmean(pos_vals) if len(pos_vals) > 0 else np.nan
+                    avg_neg_corr = np.nanmean(neg_vals) if len(neg_vals) > 0 else np.nan
 
                     temp_df = pd.DataFrame(
                         {
@@ -598,9 +596,7 @@ def _combine_data(
                     # drop columns with all-NA entries in corr_data
                     corr_data = corr_data.dropna(axis="columns", how="all")
                     # add the data to the dataframe
-                    corr_data = pd.concat(
-                        [corr_data, temp_df], ignore_index=True
-                    )
+                    corr_data = pd.concat([corr_data, temp_df], ignore_index=True)
             except Exception as e:
                 logger.warning(
                     f"Error processing correlation file {corr_file}: {str(e)}"
@@ -633,9 +629,7 @@ def _epoch_time_to_index(epochs, period):
     :Returns
     list: A list of indices corresponding to the converted epoch time.
     """
-    return [
-        (int((epoch[0] / period)), int(epoch[1] / period)) for epoch in epochs
-    ]
+    return [(int((epoch[0] / period)), int(epoch[1] / period)) for epoch in epochs]
 
 
 @beartype
@@ -687,9 +681,7 @@ def event_set_to_events(
                 all_offsets[i].extend(offsets.tolist())
                 all_amplitudes[i].extend(amplitudes.tolist())
         # update the time offset
-        time_offset += (
-            eventset.timing.num_samples * eventset.timing.period.secs_float
-        )
+        time_offset += eventset.timing.num_samples * eventset.timing.period.secs_float
 
     return all_offsets, all_amplitudes
 
@@ -712,7 +704,8 @@ def estimate_svg_size(fig) -> int:
     :returns: Estimated size in bytes
     """
     import logging
-    from matplotlib.collections import QuadMesh, LineCollection, PolyCollection
+
+    from matplotlib.collections import LineCollection, PolyCollection, QuadMesh
 
     logger = logging.getLogger()
     estimated_size = 0
@@ -720,9 +713,7 @@ def estimate_svg_size(fig) -> int:
     for ax in fig.get_axes():
         # Check for mesh/collection objects (used for correlation matrices)
         for collection in ax.collections:
-            if isinstance(collection, QuadMesh) and hasattr(
-                collection, "_coordinates"
-            ):
+            if isinstance(collection, QuadMesh) and hasattr(collection, "_coordinates"):
                 mesh_shape = collection._coordinates.shape
                 if len(mesh_shape) >= 3:
                     cell_count = (mesh_shape[0] - 1) * (mesh_shape[1] - 1)
@@ -734,13 +725,9 @@ def estimate_svg_size(fig) -> int:
                     num_segments = len(collection.get_segments())
                     # Each segment has a start and end point,
                     # but complexity might scale with segment count
-                    estimated_size += (
-                        num_segments * LINECOLLECTION_SEGMENT_FACTOR
-                    )
+                    estimated_size += num_segments * LINECOLLECTION_SEGMENT_FACTOR
                 except Exception as e:
-                    logger.warning(
-                        f"Could not get segments from LineCollection: {e}"
-                    )
+                    logger.warning(f"Could not get segments from LineCollection: {e}")
             elif isinstance(collection, PolyCollection):
                 # Estimate complexity for PolyCollection (e.g., hexbin plots, scatter plots)
                 try:
@@ -749,9 +736,7 @@ def estimate_svg_size(fig) -> int:
                     # Each polygon can have multiple vertices, complexity scales with polygon count
                     estimated_size += num_polygons * POLYCOLLECTION_FACTOR
                 except Exception as e:
-                    logger.warning(
-                        f"Could not get paths from PolyCollection: {e}"
-                    )
+                    logger.warning(f"Could not get paths from PolyCollection: {e}")
             elif hasattr(collection, "get_offsets"):
                 # PathCollection (scatter plots) - detect by presence of get_offsets method
                 try:
@@ -759,9 +744,7 @@ def estimate_svg_size(fig) -> int:
                     # Each scatter point becomes an SVG element, complexity scales with point count
                     estimated_size += num_points * SCATTER_POINT_FACTOR
                 except Exception as e:
-                    logger.warning(
-                        f"Could not get offsets from scatter plot: {e}"
-                    )
+                    logger.warning(f"Could not get offsets from scatter plot: {e}")
 
     return estimated_size
 
@@ -807,9 +790,7 @@ def save_optimized_svg(
             fig.set_layout_engine("constrained")
         except Exception:
             # If all layout options fail, proceed without layout optimization
-            logger.debug(
-                "Layout optimization skipped due to incompatible axes"
-            )
+            logger.debug("Layout optimization skipped due to incompatible axes")
             pass
 
     # Estimate the size using the extracted function
@@ -850,9 +831,7 @@ def save_optimized_svg(
                     continue
 
                 if hasattr(artist, "set_rasterized"):
-                    if isinstance(artist, Collection) or isinstance(
-                        artist, AxesImage
-                    ):
+                    if isinstance(artist, Collection) or isinstance(artist, AxesImage):
                         artist.set_rasterized(True)
 
         # Save with rasterization
@@ -937,8 +916,7 @@ def _redefine_epochs(
                 epochs += f"{boundaries[idx + 1]}), "
             epochs = epochs[:-2]
             logger.info(
-                "Automatically defined epochs based on input cell set files: "
-                f"{epochs}."
+                f"Automatically defined epochs based on input cell set files: {epochs}."
             )
 
         # add previous duration to each "local file time"-based epoch
@@ -968,9 +946,7 @@ def _get_cellset_boundaries(
     including 0 and last global time point, in seconds.
     """
     # get cellset lengths; cs stands for cellset
-    cs_length_list = [
-        isx.CellSet.read(x).timing.num_samples for x in cell_set_files
-    ]
+    cs_length_list = [isx.CellSet.read(x).timing.num_samples for x in cell_set_files]
 
     # get cumulative cellset lengths
     cumul_cs_length_list = np.cumsum([0] + cs_length_list)
@@ -999,6 +975,7 @@ def remove_unsupported_characters(
                 f"Invalid character '{c}' found and replaced with '{placeholder_char}'"
             )
     return output_string
+
 
 def compute_end_time(timing_info):
     """Compute end time of an isxd file.
@@ -1040,9 +1017,7 @@ def validate_cellset_series_compatibility(input_files):
     first_cell_set = isx.CellSet.read(input_files[0])
     first_cell_set_metadata = read_isxd_metadata(input_files[0])
     num_cells = first_cell_set.num_cells
-    cell_statuses = [
-        first_cell_set.get_cell_status(i) for i in range(num_cells)
-    ]
+    cell_statuses = [first_cell_set.get_cell_status(i) for i in range(num_cells)]
     del first_cell_set
 
     # ensure cell set contains at least 1 cell
@@ -1054,9 +1029,7 @@ def validate_cellset_series_compatibility(input_files):
     # initialize series timing and spacing info to those of first cell set
     series_spacing_info = first_cell_set_metadata["spacingInfo"]
     series_timing_info = first_cell_set_metadata["timingInfo"]
-    series_timing_info["end"] = compute_end_time(
-        first_cell_set_metadata["timingInfo"]
-    )
+    series_timing_info["end"] = compute_end_time(first_cell_set_metadata["timingInfo"])
 
     # loop over all other cell sets and ensure they can be combined into a series
     for f in input_files[1:]:
@@ -1072,8 +1045,7 @@ def validate_cellset_series_compatibility(input_files):
 
         # ensure cell statuses match across input files
         isxd_cell_statuses = [
-            isxd_cell_set.get_cell_status(i)
-            for i in range(isxd_cell_set.num_cells)
+            isxd_cell_set.get_cell_status(i) for i in range(isxd_cell_set.num_cells)
         ]
         if isxd_cell_statuses != cell_statuses:
             raise IdeasError(

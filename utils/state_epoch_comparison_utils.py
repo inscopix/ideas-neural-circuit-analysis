@@ -19,37 +19,36 @@ Key improvements:
 import logging
 import os
 import re
-import warnings
 import traceback
+import warnings
 from itertools import product
-from typing import Any, Dict, List, Optional, Set, Tuple, Union, Iterable
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pingouin as pg
+from ideas.exceptions import IdeasError
 from scipy import stats
 from statsmodels.regression.mixed_linear_model import MixedLM
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
 
-from ideas.exceptions import IdeasError
-
-from utils.statistical_validation import (
-    _suppress_pingouin_warnings,
-    _safe_anova,
-    _safe_pairwise_ttests,
-    _validate_measure_column_flexible,
-    DEFAULT_SIGNIFICANCE_THRESHOLD,
-)
-from utils.statistical_formatting import (
-    _standardize_anova_output,
-    _add_pairing_columns,
-    _finalize_statistical_output,
-)
 from utils.combine_compare_population_data_utils import (
     _choose_model_type,
     _fit_simple_poisson_glmm,
+)
+from utils.statistical_formatting import (
+    _add_pairing_columns,
+    _finalize_statistical_output,
+    _standardize_anova_output,
+)
+from utils.statistical_validation import (
+    DEFAULT_SIGNIFICANCE_THRESHOLD,
+    _safe_anova,
+    _safe_pairwise_ttests,
+    _suppress_pingouin_warnings,
+    _validate_measure_column_flexible,
 )
 
 logger = logging.getLogger(__name__)
@@ -118,9 +117,7 @@ def validate_modulation_colors(modulation_colors):
             )
 
         if len(modulation_colors) != 3:
-            raise IdeasError(
-                "modulation_colors must contain exactly three colors."
-            )
+            raise IdeasError("modulation_colors must contain exactly three colors.")
 
         for color in modulation_colors:
             if not isinstance(color, str) or not mcolors.is_color_like(color):
@@ -308,16 +305,12 @@ def _calculate_subject_averages_state_epoch(
 
     """
     if data is None or data.empty:
-        logger.warning(
-            f"Empty data provided for subject averaging in {context}"
-        )
+        logger.warning(f"Empty data provided for subject averaging in {context}")
         return pd.DataFrame()
 
     # Log input data structure for transparency
     n_total_cells = len(data)
-    n_subjects = (
-        data[subject_col].nunique() if subject_col in data.columns else 0
-    )
+    n_subjects = data[subject_col].nunique() if subject_col in data.columns else 0
 
     logger.debug(
         f"Subject averaging ({context}): {n_total_cells} cell-level observations "
@@ -328,9 +321,7 @@ def _calculate_subject_averages_state_epoch(
     agg_cols = [subject_col] + group_cols
 
     # Perform aggregation to subject level
-    grouped = (
-        data.groupby(agg_cols, observed=True)[measure_col].mean().reset_index()
-    )
+    grouped = data.groupby(agg_cols, observed=True)[measure_col].mean().reset_index()
 
     # Log data reduction for pseudoreplication prevention
     n_subject_obs = len(grouped)
@@ -403,8 +394,7 @@ def _filter_subjects_with_complete_levels(
         level_products = [cleaned_levels[factor] for factor in factor_order]
         if any(not levels for levels in level_products):
             logger.debug(
-                "Skipping repeated-measures filtering due to missing factor levels "
-                f"in {context}"
+                f"Skipping repeated-measures filtering due to missing factor levels in {context}"
             )
             return pd.DataFrame(), []
         expected_combos = set(product(*level_products))
@@ -443,9 +433,7 @@ def _filter_subjects_with_complete_levels(
         if subject_levels_ok and expected_combos is not None:
             subject_combos = set(
                 tuple(row[factor] for factor in factor_order)
-                for _, row in subject_df[factor_order]
-                .drop_duplicates()
-                .iterrows()
+                for _, row in subject_df[factor_order].drop_duplicates().iterrows()
             )
             if subject_combos != expected_combos:
                 subject_levels_ok = False
@@ -649,13 +637,10 @@ def calculate_state_epoch_comparison_stats(
             continue
 
         if comparison_values:
-            filtered_subset = subset[
-                subset[comp_col].isin(comparison_values)
-            ].copy()
+            filtered_subset = subset[subset[comp_col].isin(comparison_values)].copy()
             if filtered_subset.empty:
                 logger.debug(
-                    f"No data for requested {comp_col} values {comparison_values} "
-                    f"in {context}"
+                    f"No data for requested {comp_col} values {comparison_values} in {context}"
                 )
                 continue
 
@@ -666,8 +651,7 @@ def calculate_state_epoch_comparison_stats(
             ]
             if missing_levels:
                 logger.info(
-                    f"Missing {comp_col} levels {missing_levels} in {context}; "
-                    "they will be skipped"
+                    f"Missing {comp_col} levels {missing_levels} in {context}; they will be skipped"
                 )
 
             subset = filtered_subset
@@ -745,9 +729,7 @@ def calculate_state_epoch_comparison_stats(
 
     # Combine results
     combined_aov = (
-        pd.concat(aov_results, ignore_index=True)
-        if aov_results
-        else pd.DataFrame()
+        pd.concat(aov_results, ignore_index=True) if aov_results else pd.DataFrame()
     )
     combined_pairwise = (
         pd.concat(pairwise_results, ignore_index=True)
@@ -765,10 +747,7 @@ def calculate_state_epoch_comparison_stats(
             pairwise_df=combined_pairwise,
             correction_method=multiple_correction,
         )
-    elif (
-        not combined_pairwise.empty
-        and multiple_correction_scope == "within_stratum"
-    ):
+    elif not combined_pairwise.empty and multiple_correction_scope == "within_stratum":
         logger.info(
             f"Using within-stratum multiple comparison correction "
             f"(correction applied separately within each {other_dimension})"
@@ -838,10 +817,8 @@ def _perform_within_group_anova(
     """
     try:
         # Validate data first
-        is_valid, error_msg, validated_data = (
-            _validate_measure_column_flexible(
-                data, measure_col, f"within-group ANOVA ({context})"
-            )
+        is_valid, error_msg, validated_data = _validate_measure_column_flexible(
+            data, measure_col, f"within-group ANOVA ({context})"
         )
 
         if not is_valid:
@@ -877,8 +854,7 @@ def _perform_within_group_anova(
         )
         if grouped.empty:
             logger.warning(
-                "Insufficient complete repeated-measures data for within-group ANOVA "
-                "in %s",
+                "Insufficient complete repeated-measures data for within-group ANOVA in %s",
                 context,
             )
             return pd.DataFrame()
@@ -886,9 +862,7 @@ def _perform_within_group_anova(
         # Get unique comparison values after filtering
         comp_values = grouped[comparison_col].unique()
         if len(comp_values) < 2:
-            logger.warning(
-                f"Not enough {comparison_col} levels for ANOVA in {context}"
-            )
+            logger.warning(f"Not enough {comparison_col} levels for ANOVA in {context}")
             return pd.DataFrame()
 
         # Use pingouin for repeated measures ANOVA
@@ -924,9 +898,7 @@ def _perform_within_group_anova(
         standardized_result["Context"] = context
 
         # Apply final formatting
-        final_result = _finalize_statistical_output(
-            standardized_result, "anova"
-        )
+        final_result = _finalize_statistical_output(standardized_result, "anova")
 
         return final_result
 
@@ -991,10 +963,8 @@ def _perform_between_group_anova(
     """
     try:
         # Validate data first
-        is_valid, error_msg, validated_data = (
-            _validate_measure_column_flexible(
-                data, measure_col, f"between-group ANOVA ({context})"
-            )
+        is_valid, error_msg, validated_data = _validate_measure_column_flexible(
+            data, measure_col, f"between-group ANOVA ({context})"
         )
 
         if not is_valid:
@@ -1024,9 +994,7 @@ def _perform_between_group_anova(
         }
         require_full_cross = False
         if data_pairing == "paired":
-            factor_levels[group_col] = (
-                grouped[group_col].dropna().unique().tolist()
-            )
+            factor_levels[group_col] = grouped[group_col].dropna().unique().tolist()
             require_full_cross = True
 
         grouped, _ = _filter_subjects_with_complete_levels(
@@ -1038,8 +1006,7 @@ def _perform_between_group_anova(
         )
         if grouped.empty:
             logger.warning(
-                "Insufficient complete repeated-measures data for between-group ANOVA "
-                "in %s",
+                "Insufficient complete repeated-measures data for between-group ANOVA in %s",
                 context,
             )
             return pd.DataFrame()
@@ -1049,9 +1016,7 @@ def _perform_between_group_anova(
         comp_values = grouped[comparison_col].unique()
 
         if len(groups_list) < 2:
-            logger.warning(
-                f"Not enough groups for between-group ANOVA in {context}"
-            )
+            logger.warning(f"Not enough groups for between-group ANOVA in {context}")
             return pd.DataFrame()
 
         # ===================================================================
@@ -1144,9 +1109,7 @@ def _perform_between_group_anova(
         standardized_result["Context"] = context
 
         # Apply final formatting
-        final_result = _finalize_statistical_output(
-            standardized_result, "anova"
-        )
+        final_result = _finalize_statistical_output(standardized_result, "anova")
 
         return final_result
 
@@ -1187,11 +1150,7 @@ def _format_interaction_comparisons(
     df = pairwise_df.copy()
 
     # Check if we have the necessary columns
-    if (
-        "Contrast" not in df.columns
-        or "A" not in df.columns
-        or "B" not in df.columns
-    ):
+    if "Contrast" not in df.columns or "A" not in df.columns or "B" not in df.columns:
         return df
 
     # Identify interaction rows
@@ -1213,11 +1172,7 @@ def _format_interaction_comparisons(
         within_level = df.at[idx, comparison_col]
 
         # Only format if we have a valid within-subject factor level
-        if (
-            pd.notna(within_level)
-            and within_level != ""
-            and within_level != "-"
-        ):
+        if pd.notna(within_level) and within_level != "" and within_level != "-":
             current_a = str(df.at[idx, "A"])
             current_b = str(df.at[idx, "B"])
 
@@ -1253,16 +1208,12 @@ def _perform_pairwise_tests(
     """Perform pairwise t-tests with multiple comparison correction using pingouin."""
     try:
         # Validate data first
-        is_valid, error_msg, validated_data = (
-            _validate_measure_column_flexible(
-                data, measure_col, f"pairwise tests ({context})"
-            )
+        is_valid, error_msg, validated_data = _validate_measure_column_flexible(
+            data, measure_col, f"pairwise tests ({context})"
         )
 
         if not is_valid:
-            logger.debug(
-                f"Pairwise tests validation failed for {context}: {error_msg}"
-            )
+            logger.debug(f"Pairwise tests validation failed for {context}: {error_msg}")
             return pd.DataFrame()
 
         # ===================================================================
@@ -1292,9 +1243,7 @@ def _perform_pairwise_tests(
             )
 
         if comparison_values:
-            grouped = grouped[
-                grouped[comparison_col].isin(comparison_values)
-            ].copy()
+            grouped = grouped[grouped[comparison_col].isin(comparison_values)].copy()
             if grouped.empty:
                 logger.debug(
                     f"No data available for requested {comparison_col} values "
@@ -1307,9 +1256,7 @@ def _perform_pairwise_tests(
         }
         require_full_cross = bool(group_col) and data_pairing == "paired"
         if require_full_cross and group_col in grouped.columns:
-            factor_levels[group_col] = (
-                grouped[group_col].dropna().unique().tolist()
-            )
+            factor_levels[group_col] = grouped[group_col].dropna().unique().tolist()
 
         grouped, coverage_subjects = _filter_subjects_with_complete_levels(
             grouped,
@@ -1372,11 +1319,7 @@ def _perform_pairwise_tests(
 
         if isinstance(within_factors, list):
             potential_within = next(
-                (
-                    factor
-                    for factor in within_factors
-                    if isinstance(factor, str)
-                ),
+                (factor for factor in within_factors if isinstance(factor, str)),
                 None,
             )
         else:
@@ -1413,9 +1356,7 @@ def _perform_pairwise_tests(
 
         pairwise_result = _safe_pairwise_ttests(**pairwise_kwargs)
 
-        missing_pairwise_results = (
-            pairwise_result is None or pairwise_result.empty
-        )
+        missing_pairwise_results = pairwise_result is None or pairwise_result.empty
 
         if missing_pairwise_results:
             n_subjects = (
@@ -1431,9 +1372,7 @@ def _perform_pairwise_tests(
 
             subjects_per_group = None
             if group_col and group_col in grouped.columns:
-                subjects_per_group = grouped.groupby(group_col)[
-                    subject_col
-                ].nunique()
+                subjects_per_group = grouped.groupby(group_col)[subject_col].nunique()
 
             has_min_subjects = n_subjects >= 2
             has_multiple_conditions = n_conditions >= 2
@@ -1498,9 +1437,7 @@ def _perform_pairwise_tests(
         # Add context and standardize columns
         pairwise_result["Context"] = context
         pairwise_result["Measure"] = measure_col
-        pairwise_result["Comparison"] = (
-            f"{comparison_col.capitalize()} Comparison"
-        )
+        pairwise_result["Comparison"] = f"{comparison_col.capitalize()} Comparison"
 
         # Add pairing columns for consistency with standard-python toolbox
         state_comparison_type = "group" if group_col else comparison_col
@@ -1511,9 +1448,7 @@ def _perform_pairwise_tests(
         )
 
         # Apply final formatting
-        final_result = _finalize_statistical_output(
-            pairwise_result, "pairwise"
-        )
+        final_result = _finalize_statistical_output(pairwise_result, "pairwise")
 
         return final_result
 
@@ -1600,14 +1535,10 @@ def _apply_global_multiple_comparison_correction(
         return pairwise_df
 
     # Normalize correction method to canonical form
-    correction_method = _require_supported_multiple_correction_method(
-        correction_method
-    )
+    correction_method = _require_supported_multiple_correction_method(correction_method)
 
     if correction_method == "none":
-        logger.info(
-            "Global correction set to 'none'; returning unadjusted p-values"
-        )
+        logger.info("Global correction set to 'none'; returning unadjusted p-values")
         result = pairwise_df.copy()
         result = result.drop(
             columns=[
@@ -1645,9 +1576,7 @@ def _apply_global_multiple_comparison_correction(
     p_uncorrected = p_series.to_numpy()
 
     invalid_mask = (
-        ~np.isfinite(p_uncorrected)
-        | (p_uncorrected < 0.0)
-        | (p_uncorrected > 1.0)
+        ~np.isfinite(p_uncorrected) | (p_uncorrected < 0.0) | (p_uncorrected > 1.0)
     )
     if invalid_mask.any():
         n_invalid = int(invalid_mask.sum())
@@ -1822,9 +1751,7 @@ def _merge_text_column_with_message(
     if message:
         df_local[column] = df_local[column].apply(
             lambda existing: (
-                message
-                if existing in {"NA", "nan", ""}
-                else f"{existing}; {message}"
+                message if existing in {"NA", "nan", ""} else f"{existing}; {message}"
             )
         )
 
@@ -1859,9 +1786,7 @@ def match_subjects(
 
     """
     if not group1_files or not group2_files:
-        raise ValueError(
-            "Both group1_files and group2_files must be non-empty lists"
-        )
+        raise ValueError("Both group1_files and group2_files must be non-empty lists")
 
     normalized_method = (match_method or "").strip().lower()
     if normalized_method == "name":
@@ -1887,9 +1812,7 @@ def match_subjects(
 
         return int(all_digits)
 
-    def create_lookup_dict(
-        files: List[str], method: str
-    ) -> Dict[Union[int, str], str]:
+    def create_lookup_dict(files: List[str], method: str) -> Dict[Union[int, str], str]:
         """Create a lookup dictionary based on the matching method."""
         lookup = {}
         for file in files:
@@ -1937,8 +1860,7 @@ def match_subjects(
                 return match_subjects(group1_files, group2_files, "number")
 
             matched_pairs = [
-                (group1_dict[name], group2_dict[name])
-                for name in common_filenames
+                (group1_dict[name], group2_dict[name]) for name in common_filenames
             ]
             matched_pairs.sort(key=lambda x: os.path.basename(x[0]))
 
@@ -2013,14 +1935,10 @@ def _validate_statistical_power_state_epoch(
     """
     warnings_list = []
     n_subjects = df[subject_column].nunique()
-    n_conditions = (
-        df[comparison_dim].nunique() if comparison_dim in df.columns else 1
-    )
+    n_conditions = df[comparison_dim].nunique() if comparison_dim in df.columns else 1
 
     if n_subjects < MIN_SUBJECTS_REQUIRED:
-        warnings_list.append(
-            f"Insufficient subjects ({n_subjects}) for analysis"
-        )
+        warnings_list.append(f"Insufficient subjects ({n_subjects}) for analysis")
         return True, "; ".join(warnings_list)
     elif n_subjects < MIN_SUBJECTS_CAUTIOUS:
         warnings_list.append(
@@ -2052,8 +1970,7 @@ def _validate_statistical_power_state_epoch(
 
     if max_obs / min_obs > IMBALANCED_DESIGN_RATIO_THRESHOLD:
         warnings_list.append(
-            f"Highly imbalanced design (ratio: {max_obs/min_obs:.1f}) - "
-            f"results may be unreliable"
+            f"Highly imbalanced design (ratio: {max_obs / min_obs:.1f}) - results may be unreliable"
         )
 
     return len(warnings_list) > 0, "; ".join(warnings_list)
@@ -2143,7 +2060,9 @@ def _perform_state_epoch_lmm_analysis(
         n_observations = len(df)
 
         # Use module-level deduplication for LMM data structure
-        structure_key = f"lmm_structure_{n_subjects}_{n_observations}_{has_nested_structure}"
+        structure_key = (
+            f"lmm_structure_{n_subjects}_{n_observations}_{has_nested_structure}"
+        )
         if structure_key not in _global_lmm_structure_logged:
             logger.info(
                 f"LMM data structure: {n_subjects} subjects, {n_observations} observations"
@@ -2220,16 +2139,13 @@ def _perform_state_epoch_lmm_analysis(
 
         if len(df) < MIN_OBSERVATIONS_LMM:
             logger.warning(
-                f"Insufficient {measure_name} data after cleaning dependent "
-                f"variable"
+                f"Insufficient {measure_name} data after cleaning dependent variable"
             )
             return pd.DataFrame(), False, lmm_warning_messages
 
         # Check for sufficient variation in the data
         if df[dv].std() == 0:
-            logger.warning(
-                f"No variation in {measure_name} dependent variable"
-            )
+            logger.warning(f"No variation in {measure_name} dependent variable")
             return pd.DataFrame(), False, lmm_warning_messages
 
         # Check for minimum observations per subject - relaxed for single group analysis
@@ -2237,9 +2153,7 @@ def _perform_state_epoch_lmm_analysis(
         min_obs_per_subject = obs_per_subject.min()
 
         if min_obs_per_subject < 1:
-            logger.warning(
-                f"No valid {measure_name} observations for some subjects"
-            )
+            logger.warning(f"No valid {measure_name} observations for some subjects")
             return pd.DataFrame(), False, lmm_warning_messages
         elif min_obs_per_subject == 1 and has_single_group:
             logger.warning(
@@ -2386,9 +2300,7 @@ def _perform_state_epoch_lmm_analysis(
                             logger.debug(
                                 f"Attempting LMM fit for {measure_name} using {method} optimizer"
                             )
-                            result = model.fit(
-                                method=method, maxiter=1000, reml=True
-                            )
+                            result = model.fit(method=method, maxiter=1000, reml=True)
                             if result.converged:
                                 logger.info(
                                     f"LMM converged successfully using {method}"
@@ -2413,17 +2325,12 @@ def _perform_state_epoch_lmm_analysis(
 
             # Store caught warnings relevant to statsmodels LMM
             fit_warnings.extend(
-                [
-                    w
-                    for w in caught_warnings
-                    if "statsmodels" in str(w.filename)
-                ]
+                [w for w in caught_warnings if "statsmodels" in str(w.filename)]
             )
 
         # Enhanced warning detection and reporting
         singular_cov_warn = any(
-            "covariance is singular" in str(w.message).lower()
-            for w in fit_warnings
+            "covariance is singular" in str(w.message).lower() for w in fit_warnings
         )
         boundary_warn = any(
             "on the boundary" in str(w.message).lower() for w in fit_warnings
@@ -2448,9 +2355,7 @@ def _perform_state_epoch_lmm_analysis(
                 ):
                     cond_num = np.linalg.cond(result.cov_params)
                     # More sensitive detection: use 1e8 instead of 1e12
-                    has_singular_covariance = (
-                        has_singular_covariance or cond_num > 1e8
-                    )
+                    has_singular_covariance = has_singular_covariance or cond_num > 1e8
 
                     # Additional checks for singular covariance
                     # Check for near-zero determinant
@@ -2472,9 +2377,7 @@ def _perform_state_epoch_lmm_analysis(
                         if has_invalid_se:
                             has_singular_covariance = True
             except Exception as e:
-                logger.debug(
-                    f"Could not fully check covariance properties: {str(e)}"
-                )
+                logger.debug(f"Could not fully check covariance properties: {str(e)}")
 
         # Overall reliability check
         has_reliability_concerns = (
@@ -2605,9 +2508,7 @@ def calculate_state_epoch_lmm_stats(
         if comparison_values:
             available_values = df[comparison_dim].dropna().unique().tolist()
             filtered_values = [
-                value
-                for value in comparison_values
-                if value in available_values
+                value for value in comparison_values if value in available_values
             ]
             if not filtered_values:
                 logger.warning(
@@ -2633,9 +2534,7 @@ def calculate_state_epoch_lmm_stats(
             return pd.DataFrame(), pd.DataFrame()
 
         if "normalized_subject_id" not in df.columns:
-            logger.error(
-                f"Missing normalized_subject_id column for {measure_name}"
-            )
+            logger.error(f"Missing normalized_subject_id column for {measure_name}")
             return pd.DataFrame(), pd.DataFrame()
 
         if comparison_dim not in df.columns:
@@ -2659,13 +2558,11 @@ def calculate_state_epoch_lmm_stats(
             if value_cols:
                 dv_column = value_cols[0]
                 logger.info(
-                    f"Auto-detected dependent variable for {measure_name}: "
-                    f"{dv_column}"
+                    f"Auto-detected dependent variable for {measure_name}: {dv_column}"
                 )
             else:
                 logger.error(
-                    f"Could not determine dependent variable column for "
-                    f"{measure_name}"
+                    f"Could not determine dependent variable column for {measure_name}"
                 )
                 return pd.DataFrame(), pd.DataFrame()
 
@@ -2702,10 +2599,7 @@ def calculate_state_epoch_lmm_stats(
 
         reliability_note = ""
         if has_reliability_concerns:
-            reliability_note = (
-                "LMM flagged potential reliability concerns; "
-                "interpret results with caution."
-            )
+            reliability_note = "LMM flagged potential reliability concerns; interpret results with caution."
 
         # Use existing ANOVA-based pairwise comparison function for consistency
         # LMM gives us overall fixed effects, but pairwise comparisons are still
@@ -3129,9 +3023,9 @@ def plot_state_epoch_comparison(
 
                     # Calculate subject-level means first to avoid pseudoreplication
                     if "normalized_subject_id" in comp_data.columns:
-                        subject_means = comp_data.groupby(
-                            "normalized_subject_id"
-                        )[measure_column].mean()
+                        subject_means = comp_data.groupby("normalized_subject_id")[
+                            measure_column
+                        ].mean()
                         values = subject_means.values
                     else:
                         values = comp_data[measure_column].values
