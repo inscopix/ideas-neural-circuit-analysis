@@ -3,24 +3,14 @@ import os
 import warnings
 from typing import List
 
-# from distutils.util import strtobool
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pingouin as pg
 from ideas.analysis.utils import (
     get_file_size,
-    # compute_sampling_rate,
 )
 from ideas.exceptions import IdeasError
-
-# from toolbox.utils.data_model import IdeasFile, IdeasPreviewFile
-# from ideas_commons.constants import (
-#     FileFormat,
-#     FileStructure,
-#     FileType,
-#     FileCategory,
-# )
 from ideas.tools import log, outputs
 from ideas.tools.types import IdeasFile
 from scipy import stats
@@ -28,7 +18,6 @@ from scipy import stats
 import utils.config as config
 from analysis.combine_compare_peri_event_data import (
     generate_modulation_pie_chart,
-    # generate_output_manifest,
     generate_subpopulation_activity_plot,
     reclassify_neurons,
     validate_combine_compare_peri_event_data_parameters,
@@ -810,10 +799,10 @@ def combine_peri_event_data(
         stats_dataframes[i]["file"] = os.path.basename(stats_files[i])
 
         # drop (population, up_modulated, down_modulated, non_modulated) to retain per-cell data only
-        filter = ~stats_dataframes[i]["name"].isin(
+        cell_filter = ~stats_dataframes[i]["name"].isin(
             ["population", "up_modulated", "down_modulated", "non_modulated"]
         )
-        stats_dataframes[i] = stats_dataframes[i][filter]
+        stats_dataframes[i] = stats_dataframes[i][cell_filter]
 
         # reclassify neurons based on significance threshold supplied
         if significance_threshold is not None and significance_threshold > 0:
@@ -835,9 +824,6 @@ def combine_peri_event_data(
     )
 
     # initialize list of file entries for the output manifest
-    activity_heatmap_preview_files = []
-    activity_by_modulation_preview_files = []
-    fraction_neurons_per_subpopulation_preview_files = []
     epoch_population_activity_preview_filenames = []
 
     # generate plots
@@ -1007,18 +993,6 @@ def combine_peri_event_data(
             activity_by_modulation_plot_limits=activity_by_modulation_plot_limits,
         )
 
-        # activity_by_modulation_preview_files.append(
-        #     IdeasPreviewFile(
-        #         name="Event-aligned sub-population activity figure",
-        #         help="Event-aligned average sub-population activity line plot "
-        #         f"(up-, down-, and non-modulated neurons) (epoch: {epoch_name}).",
-        #         file_path=os.path.abspath(
-        #             subpopulation_activity_preview_filename
-        #         ),
-        #         file_format=FileFormat.SVG_FILE.value[1],
-        #     )
-        # )
-
         # generate pie chart showing fraction of up/down/non-modulated neurons
         pie_chart_modulation_preview_filename = os.path.join(
             output_dir,
@@ -1033,18 +1007,6 @@ def combine_peri_event_data(
             modulation_colors=modulation_colors,
             epoch_name=epoch_name,
         )
-
-        # fraction_neurons_per_subpopulation_preview_files.append(
-        #     IdeasPreviewFile(
-        #         name="Fraction of neurons in each sub-population",
-        #         help="Pie chart depicting the fraction of neurons in each sub-population "
-        #         f"(up-, down-, and non-modulated neurons) (epoch: {epoch_name}).",
-        #         file_path=os.path.abspath(
-        #             pie_chart_modulation_preview_filename
-        #         ),
-        #         file_format=FileFormat.SVG_FILE.value[1],
-        #     )
-        # )
 
         # reorder columns
         df_traces_epoch = pd.concat(
@@ -1089,14 +1051,6 @@ def combine_peri_event_data(
     num_epochs = len(epoch_names)
     if num_epochs > 1:
         # plot post-pre activity differences between a pair of epochs along with color-coded cell map
-        output_epoch_comparison_csv_filename = os.path.join(
-            output_dir,
-            f"pairwise_epoch_comparisons_{group_name}.csv".replace(" ", ""),
-        )
-        # (
-        #     _,
-        #     post_minus_pre_boxplot_preview_file,
-        # ) =
         plot_post_minus_pre_activity_differences_with_cell_map(
             cell_set_files=None,
             data={"single_cell": single_cell_data},
@@ -1144,32 +1098,16 @@ def combine_peri_event_data(
             }
 
     # plot event-aligned activity by activity-modulation group
-    event_aligned_modulation_groups_across_epoch_files = (
-        plot_event_aligned_activity_by_modulation_group_comparing_epochs(
-            x=traces_timeline,
-            x_limits=(traces_timeline[0], traces_timeline[-1]),
-            data=modulation_group_plot_data,
-            event_type=None,
-            epoch_data=epoch_data,
-            output_dir=output_dir,
-            group_name=group_name,
-            plot_limits=activity_by_modulation_plot_limits,
-        )
+    _ = plot_event_aligned_activity_by_modulation_group_comparing_epochs(
+        x=traces_timeline,
+        x_limits=(traces_timeline[0], traces_timeline[-1]),
+        data=modulation_group_plot_data,
+        event_type=None,
+        epoch_data=epoch_data,
+        output_dir=output_dir,
+        group_name=group_name,
+        plot_limits=activity_by_modulation_plot_limits,
     )
-
-    # event_aligned_by_modulation_across_epochs_preview_files = []
-    # for (
-    #     group_title,
-    #     output_filename,
-    # ) in event_aligned_modulation_groups_across_epoch_files:
-    #     event_aligned_by_modulation_across_epochs_preview_files.append(
-    #         IdeasPreviewFile(
-    #             name=f"Event-aligned activity of {group_title.lower()} cells",
-    #             help=f"Comparison of event-aligned activity of {group_title.lower()} cells across epochs.",
-    #             file_path=os.path.abspath(output_filename),
-    #             file_format=FileFormat.SVG_FILE.value[1],
-    #         )
-    #     )
 
     # plot the number of modulated cells per epoch
     num_modulated_cells_per_epoch_preview_filename = os.path.join(
@@ -1182,15 +1120,6 @@ def combine_peri_event_data(
         output_filename=num_modulated_cells_per_epoch_preview_filename,
     )
 
-    # num_modulated_cells_per_epoch_preview_file = IdeasPreviewFile(
-    #     name="Number of modulated cells per epoch",
-    #     help="Number of up-, down-, and non-modulated neurons per epoch.",
-    #     file_path=os.path.abspath(
-    #         num_modulated_cells_per_epoch_preview_filename
-    #     ),
-    #     file_format=FileFormat.SVG_FILE.value[1],
-    # )
-
     # plot post-pre per epoch
     post_minus_pre_per_epoch_preview_filename = os.path.join(
         output_dir,
@@ -1201,42 +1130,6 @@ def combine_peri_event_data(
         epoch_data=epoch_data,
         output_filename=post_minus_pre_per_epoch_preview_filename,
     )
-    # post_minus_pre_per_epoch_preview_file = IdeasPreviewFile(
-    #     name="Mean post-pre activity per epoch",
-    #     help="Comparison of mean post-pre activity across the epochs. The error bars represent the standard error of the mean.",
-    #     file_path=os.path.abspath(post_minus_pre_per_epoch_preview_filename),
-    #     file_format=FileFormat.SVG_FILE.value[1],
-    # )
-
-    # construct output manifest entries for the combined data
-
-    # event-aligned population activity figures
-    event_aligned_population_activity_preview_files = []
-
-    # population activity across epochs on one figure
-    # event_aligned_population_activity_preview_files.append(
-    #     IdeasPreviewFile(
-    #         name="Event-aligned population activity across epochs",
-    #         help="Comparison of event-aligned average population activity across the epochs.",
-    #         file_path=os.path.abspath(
-    #             pop_act_comparison_plot_preview_filename
-    #         ),
-    #         file_format=FileFormat.SVG_FILE.value[1],
-    #     )
-    # )
-    # individual plot showing population activity for each epoch
-    # for (
-    #     epoch_name,
-    #     preview_filename,
-    # ) in epoch_population_activity_preview_filenames:
-    #     event_aligned_population_activity_preview_files.append(
-    #         IdeasPreviewFile(
-    #             name="Event-aligned population activity",
-    #             help=f"Event-aligned average population activity line plot (epoch: {epoch_name}).",
-    #             file_path=os.path.abspath(preview_filename),
-    #             file_format=FileFormat.SVG_FILE.value[1],
-    #         )
-    #     )
 
     # construct modulated cells metadata (number of up/down/non modulated cells per epoch)
     num_up_modulated_cells_str = ""
@@ -1255,23 +1148,6 @@ def combine_peri_event_data(
         num_down_modulated_cells_str += f"{epoch_name}: {num_down_modulated_cells}{', ' if i < num_epochs - 1 else ''}"
         num_non_modulated_cells_str += f"{epoch_name}: {num_non_modulated_cells}{', ' if i < num_epochs - 1 else ''}"
 
-    # define event-aligned metadata
-    # event_aligned_metadata = {
-    #     config.IDEAS_METADATA_KEY: {
-    #         "metrics": {
-    #             "num_up_modulated_cells": num_up_modulated_cells_str,
-    #             "num_down_modulated_cells": num_down_modulated_cells_str,
-    #             "num_non_modulated_cells": num_non_modulated_cells_str,
-    #         },
-    #         "timingInfo": {
-    #             "numTimes": len(traces_timeline),
-    #             "sampling_rate": compute_sampling_rate(
-    #                 period_num=abs(traces_timeline[0] - traces_timeline[1]),
-    #                 period_den=1,
-    #             ),
-    #         },
-    #     }
-    # }
     event_aligned_metadata = [
         {
             "key": "ideas.metrics.num_up_modulated_cells",
@@ -1303,64 +1179,7 @@ def combine_peri_event_data(
         },
     ]
 
-    # event-aligned traces FILE
-    # event_aligned_traces_file = IdeasFile(
-    #     file_key=f"group{group_id}_event_aligned_traces",
-    #     file_path=os.path.abspath(output_traces_filename),
-    #     file_type=FileType.COMBINED_PERI_EVENT_TRACES.value[1],
-    #     file_format=FileFormat.CSV_FILE.value[1],
-    #     file_structure=FileStructure.TIME_SERIES.value[1],
-    #     file_category=FileCategory.RESULT.value[1],
-    #     preview_files=[
-    #         *event_aligned_population_activity_preview_files,
-    #         *activity_heatmap_preview_files,
-    #     ],
-    #     add_metadata=event_aligned_metadata,
-    # )
-
-    # statistics FILE
-    # statistics_file = IdeasFile(
-    #     file_key=f"group{group_id}_event_aligned_statistics",
-    #     file_path=os.path.abspath(output_stats_filename),
-    #     file_type=FileType.COMBINED_PERI_EVENT_STATISTICS.value[1],
-    #     file_format=FileFormat.CSV_FILE.value[1],
-    #     file_structure=FileStructure.TABLE.value[1],
-    #     file_category=FileCategory.RESULT.value[1],
-    #     preview_files=[
-    #         *activity_by_modulation_preview_files,
-    #         *event_aligned_by_modulation_across_epochs_preview_files,
-    #         *fraction_neurons_per_subpopulation_preview_files,
-    #         num_modulated_cells_per_epoch_preview_file,
-    #         post_minus_pre_per_epoch_preview_file,
-    #     ],
-    #     add_metadata=event_aligned_metadata,
-    # )
-
-    # pairwise comparison FILE
-    # if num_epochs > 1:
-    #     epoch_comparison_file = IdeasFile(
-    #         file_key=f"group{group_id}_epoch_comparison_data",
-    #         file_path=os.path.abspath(output_epoch_comparison_csv_filename),
-    #         file_type=FileType.PERI_EVENT_COMPARISON_DATA.value[1],
-    #         file_format=FileFormat.CSV_FILE.value[1],
-    #         file_structure=FileStructure.TABLE.value[1],
-    #         file_category=FileCategory.RESULT.value[1],
-    #         parent_ids=[
-    #             event_aligned_traces_file.file_id,
-    #             statistics_file.file_id,
-    #         ],
-    #         preview_files=[
-    #             post_minus_pre_boxplot_preview_file,
-    #         ],
-    #         add_metadata=event_aligned_metadata,
-    #     )
-    # else:
-    #     epoch_comparison_file = None
-
     return df_stats, event_aligned_metadata
-    # event_aligned_traces_file,
-    # statistics_file,
-    # epoch_comparison_file,
 
 
 def _validate_epoch_names_within_group(
@@ -1599,7 +1418,6 @@ def combine_compare_peri_event_data_across_epochs(
         output_dir = os.getcwd()
 
     # define list of files to include in the output manifest
-    output_files = []
     output_metadata = {}
 
     # combine data from group 1

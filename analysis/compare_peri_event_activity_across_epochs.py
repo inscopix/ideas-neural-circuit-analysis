@@ -12,20 +12,10 @@ import pandas as pd
 from ideas.analysis.utils import (
     get_file_size,
 )
-
-# from toolbox.utils.data_model import IdeasFile, IdeasGroup, IdeasPreviewFile
 from ideas.exceptions import IdeasError
 from ideas.tools import outputs
 from ideas.tools.log import get_logger
 from ideas.tools.types import IdeasFile
-
-# from ideas_commons.constants import (
-#     FileCategory,
-#     FileFormat,
-#     FileStructure,
-#     FileType,
-#     GroupType,
-# )
 from scipy import stats
 
 import utils.config as config
@@ -993,15 +983,7 @@ def peri_event_analysis_for_single_event_type(
 
     # run the peri-event analysis at the SINGLE-CELL level
     logger.info("Single-cell activity analysis started")
-    (
-        output_data["single_cell"],
-        # single_cell_activity_heatmap_preview_files,
-        # activity_by_modulation_preview_files,
-        # cell_map_preview_files,
-        # num_modulated_cells_per_epoch_preview_file,
-        # event_aligned_by_modulation_across_epochs_preview_files,
-        # post_minus_pre_per_epoch_preview_file,
-    ) = peri_event_single_cell_analysis(
+    (output_data["single_cell"],) = peri_event_single_cell_analysis(
         traces_df=traces_df,
         footprints=footprints,
         visual_window=visual_window,
@@ -1036,11 +1018,6 @@ def peri_event_analysis_for_single_event_type(
         )
         logger.info("Comparison of post-pre data across epochs completed")
 
-        # plot post-pre activity differences between a pair of epochs along with color-coded cell map
-        # (
-        #     post_minus_pre_activity_differences_preview_files,
-        #     post_minus_pre_boxplot_preview_file,
-        # ) =
         plot_post_minus_pre_activity_differences_with_cell_map(
             cell_set_files=input_cellset_files,
             data=output_data,
@@ -1199,95 +1176,6 @@ def peri_event_analysis_for_single_event_type(
             ),
         },
     ]
-
-    # # event-aligned traces FILE
-    # event_aligned_traces_file = IdeasFile(
-    #     file_key="event_aligned_traces",
-    #     file_path=os.path.abspath(output_traces_csv_filename),
-    #     file_type=FileType.EVENT_ALIGNED_NEURAL_DATA.value[1],
-    #     file_format=FileFormat.CSV_FILE.value[1],
-    #     file_structure=FileStructure.TIME_SERIES.value[1],
-    #     file_category=FileCategory.RESULT.value[1],
-    #     parent_ids=[f.file_id for f in source_cellset_files],
-    #     preview_files=[
-    #         population_activity_preview_file,
-    #         *event_aligned_population_activity_preview_files,
-    #         *single_cell_activity_heatmap_preview_files,
-    #     ],
-    #     add_metadata=aligned_traces_metadata,
-    # )
-
-    # # statistics METADATA
-    # stats_metadata = copy.deepcopy(aligned_traces_metadata)
-    # del stats_metadata["ideas"]["dataset"]["signal"]
-
-    # # statistics FILE
-    # statistics_file = IdeasFile(
-    #     file_key="event_aligned_statistics",
-    #     file_path=os.path.abspath(output_stats_csv_filename),
-    #     file_type=FileType.STATISTICS.value[1],
-    #     file_format=FileFormat.CSV_FILE.value[1],
-    #     file_structure=FileStructure.TABLE.value[1],
-    #     file_category=FileCategory.RESULT.value[1],
-    #     parent_ids=[
-    #         source_cellset_files[
-    #             0
-    #         ].file_id,  # footprints retrieved from first cell set file
-    #         event_aligned_traces_file.file_id,
-    #     ],
-    #     preview_files=[
-    #         *activity_by_modulation_preview_files,
-    #         *cell_map_preview_files,
-    #         *event_aligned_by_modulation_across_epochs_preview_files,
-    #         num_modulated_cells_per_epoch_preview_file,
-    #         num_events_per_epoch_preview_file,
-    #         post_minus_pre_per_epoch_preview_file,
-    #     ],
-    #     add_metadata=stats_metadata,
-    # )
-
-    # # gather output files to bundle under a single output group
-    # output_files = [
-    #     *source_cellset_files,
-    #     source_events_file,
-    #     event_aligned_traces_file,
-    #     statistics_file,
-    # ]
-
-    # # epoch comparison METADATA
-    # if num_epochs > 1:
-    #     epoch_comparison_metadata = copy.deepcopy(stats_metadata)
-
-    #     # epoch comparison FILE
-    #     epoch_comparison_file = IdeasFile(
-    #         file_key="event_aligned_epoch_comparison_data",
-    #         file_path=os.path.abspath(output_epoch_comparison_csv_filename),
-    #         file_type=FileType.PERI_EVENT_COMPARISON_DATA.value[1],
-    #         file_format=FileFormat.CSV_FILE.value[1],
-    #         file_structure=FileStructure.TABLE.value[1],
-    #         file_category=FileCategory.RESULT.value[1],
-    #         parent_ids=[
-    #             source_cellset_files[
-    #                 0
-    #             ].file_id,  # footprints retrieved from first cell set file
-    #             event_aligned_traces_file.file_id,
-    #             statistics_file.file_id,
-    #         ],
-    #         preview_files=[
-    #             *post_minus_pre_activity_differences_preview_files,
-    #             post_minus_pre_boxplot_preview_file,
-    #         ],
-    #         add_metadata=epoch_comparison_metadata,
-    #     )
-    #     output_files.append(epoch_comparison_file)
-
-    # # peri-event analysis across epochs GROUP
-    # peri_event_analysis_group = IdeasGroup(
-    #     group_key="compare_peri_event_activity_across_epochs_output",
-    #     group_type=GroupType.TOOL_OUTPUT.value[1],
-    #     files=output_files,
-    # )
-    # return peri_event_analysis_group
 
     output_metadata = {
         "event_aligned_traces": metadata,
@@ -1625,11 +1513,6 @@ def peri_event_single_cell_analysis(
             or "coolwarm"
         )
     )
-
-    # initialize output preview file lists
-    # activity_heatmap_preview_files = []
-    # activity_by_modulation_preview_files = []
-    # cell_map_preview_files = []
 
     # perform population analysis for each epoch
     output_data = {}
@@ -2033,65 +1916,16 @@ def peri_event_single_cell_analysis(
             },
         }
 
-        # create preview entries for output manifest
-
-        # # create preview file for single-cell activity heatmap
-        # activity_heatmap_preview_files.append(
-        #     IdeasPreviewFile(
-        #         name="Event-aligned single-cell activity figure",
-        #         help=f"Event-aligned single-cell activity heatmap (epoch: {epoch_name})",
-        #         file_path=os.path.abspath(heatmap_preview_filename),
-        #         file_format=FileFormat.SVG_FILE.value[1],
-        #     )
-        # )
-
-        # # create preview for event-aligned activity by modulation group
-        # activity_by_modulation_preview_files.append(
-        #     IdeasPreviewFile(
-        #         name="Event-aligned sub-population activity figure",
-        #         help="Event-aligned average sub-population activity line plot "
-        #         f"(up-, down-, and non-modulated neurons) (epoch: {epoch_name}).",
-        #         file_path=os.path.abspath(modulation_plot_preview_filename),
-        #         file_format=FileFormat.SVG_FILE.value[1],
-        #     )
-        # )
-
-        # # cell map
-        # cell_map_preview_files.append(
-        #     IdeasPreviewFile(
-        #         name="Spatial organization of modulation",
-        #         help=f"Cell map visualizing spatial organization of modulation (epoch: {epoch_name}).",
-        #         file_path=os.path.abspath(cell_map_preview_filename),
-        #         file_format=FileFormat.SVG_FILE.value[1],
-        #     )
-        # )
-
     # plot mean event-aligned activity of up/down/non modulated cells in each epoch together
-    event_aligned_modulation_groups_across_epoch_files = (
-        plot_event_aligned_activity_by_modulation_group_comparing_epochs(
-            x=x_values,
-            x_limits=x_limits,
-            data=output_data,
-            event_type=event_type,
-            epoch_data=epoch_data,
-            output_dir=output_dir,
-            plot_limits=activity_by_modulation_plot_limits,
-        )
+    _ = plot_event_aligned_activity_by_modulation_group_comparing_epochs(
+        x=x_values,
+        x_limits=x_limits,
+        data=output_data,
+        event_type=event_type,
+        epoch_data=epoch_data,
+        output_dir=output_dir,
+        plot_limits=activity_by_modulation_plot_limits,
     )
-
-    # event_aligned_by_modulation_across_epochs_preview_files = []
-    # for (
-    #     group_title,
-    #     output_filename,
-    # ) in event_aligned_modulation_groups_across_epoch_files:
-    #     event_aligned_by_modulation_across_epochs_preview_files.append(
-    #         IdeasPreviewFile(
-    #             name=f"Event-aligned activity of {group_title.lower()} cells",
-    #             help=f"Comparison of event-aligned activity of {group_title.lower()} cells across epochs.",
-    #             file_path=os.path.abspath(output_filename),
-    #             file_format=FileFormat.SVG_FILE.value[1],
-    #         )
-    #     )
 
     # plot post-pre per epoch
     post_minus_pre_per_epoch_preview_filename = os.path.join(
@@ -2102,12 +1936,6 @@ def peri_event_single_cell_analysis(
         epoch_data=epoch_data,
         output_filename=post_minus_pre_per_epoch_preview_filename,
     )
-    # post_minus_pre_per_epoch_preview_file = IdeasPreviewFile(
-    #     name="Mean post-pre activity per epoch",
-    #     help="Comparison of mean post-pre activity across the epochs. The error bars represent the standard error of the mean.",
-    #     file_path=os.path.abspath(post_minus_pre_per_epoch_preview_filename),
-    #     file_format=FileFormat.SVG_FILE.value[1],
-    # )
 
     # plot the number of modulated cells per epoch
     num_modulated_cells_per_epoch_preview_filename = os.path.join(
@@ -2118,24 +1946,8 @@ def peri_event_single_cell_analysis(
         epoch_data=epoch_data,
         output_filename=num_modulated_cells_per_epoch_preview_filename,
     )
-    # num_modulated_cells_per_epoch_preview_file = IdeasPreviewFile(
-    #     name="Number of modulated cells per epoch",
-    #     help="Number of up-, down-, and non-modulated neurons per epoch.",
-    #     file_path=os.path.abspath(
-    #         num_modulated_cells_per_epoch_preview_filename
-    #     ),
-    #     file_format=FileFormat.SVG_FILE.value[1],
-    # )
 
-    return (
-        output_data,
-        # activity_heatmap_preview_files,
-        # activity_by_modulation_preview_files,
-        # cell_map_preview_files,
-        # num_modulated_cells_per_epoch_preview_file,
-        # event_aligned_by_modulation_across_epochs_preview_files,
-        # post_minus_pre_per_epoch_preview_file,
-    )
+    return (output_data,)
 
 
 def save_event_aligned_traces_to_csv(

@@ -3390,12 +3390,6 @@ def _generate_combined_outputs_csv(
         group_names
     )  # ["group1", "group2"] for files/dirs
 
-    # Create sanitized group name prefixes for human-readable preview filenames
-    group_preview_prefixes = [
-        _sanitize_filename_component(name, f"group{i + 1}")
-        for i, name in enumerate(group_names)
-    ]
-
     default_selection: Dict[str, List[str]] = {
         "activity": [],
         "correlation": [],
@@ -3607,8 +3601,6 @@ def _generate_combined_outputs_csv(
     event_activity_selected = "event" in selected_source_sets["activity"]
     trace_correlation_selected = "trace" in selected_source_sets["correlation"]
     event_correlation_selected = "event" in selected_source_sets["correlation"]
-    trace_modulation_selected = "trace" in selected_source_sets["modulation"]
-    event_modulation_selected = "event" in selected_source_sets["modulation"]
 
     # ========================================================================
     # GENERATE PER-GROUP PREVIEW PLOTS (matching standard-python toolbox)
@@ -5505,7 +5497,6 @@ def _save_output_metadata(
         )
 
     group_file_prefixes = _resolve_group_file_prefixes(group_names)
-    normalized_dimension_suffix = (comparison_dimension or "").strip().lower() or None
 
     def _group_filename(idx: int, suffix: str) -> str:
         return _group_output_filename(

@@ -11,23 +11,9 @@ import seaborn as sns
 from ideas.analysis.utils import (
     get_file_size,
 )
-
-# from toolbox.utils.data_model import (
-#     IdeasFile,
-#     IdeasGroup,
-#     IdeasPreviewFile,
-# )
 from ideas.exceptions import IdeasError
 from ideas.tools import log, outputs
 from ideas.tools.types import IdeasFile
-
-# from ideas_commons.constants import (
-#     FileCategory,
-#     FileFormat,
-#     FileStructure,
-#     FileType,
-#     GroupType,
-# )
 from scipy import stats
 
 import utils.config as config
@@ -37,8 +23,6 @@ from analysis.peri_event_workflow import (
     plot_single_neurons_heatmap,
     validate_modulation_colors,
 )
-
-# from toolbox.utils.output_manifest import save_output_manifest
 from utils.stats_utils import ttest
 from utils.utils import compute_sampling_rate
 
@@ -1797,7 +1781,6 @@ def combine_compare_peri_event_data(
         output_dir = os.getcwd()
 
     # define list of files to include in the output manifest
-    output_files = []
     output_metadata = {}
 
     # combine data from group 1

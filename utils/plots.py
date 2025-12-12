@@ -718,12 +718,6 @@ def _plot_box_and_strip(
     )
 
 
-def _clean_ax(ax):
-    """Remove spines from an axis."""
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-
-
 def _plot_difference_cellmap(
     epoch_names,
     epoch_colors,
@@ -2932,12 +2926,11 @@ def plot_post_minus_pre_activity_differences_with_cell_map(
             "No cell set files available, skipping the post-pre activity "
             "differences histogram and cell map preview"
         )
-        post_minus_pre_activity_differences_preview_files = None
     else:
         (
             num_accepted_cells,
             num_undecided_cells,
-            num_rejected_cells,
+            _,
         ) = get_num_cells_by_status(cell_set_files[0])
         status = io.cell_set_to_status(cell_set_files)
 
@@ -2960,7 +2953,6 @@ def plot_post_minus_pre_activity_differences_with_cell_map(
         num_cells = len(x)
 
         # plot difference distribution and cell map
-        # post_minus_pre_activity_differences_preview_files = (
         _plot_difference_cellmap2(
             epoch_names=list(epoch_data.keys()),
             x=x,
@@ -2968,7 +2960,6 @@ def plot_post_minus_pre_activity_differences_with_cell_map(
             df=df,
             output_dir=output_dir,
         )
-        # )
 
     # plot data using box plot
     epoch_colors = []
@@ -2992,21 +2983,6 @@ def plot_post_minus_pre_activity_differences_with_cell_map(
         ylabel="Post-Pre",
         output_filename=post_minus_pre_boxplot_preview_filename,
     )
-
-    # post_minus_pre_boxplot_preview_file = IdeasPreviewFile(
-    #     name="Post-pre distribution across the epochs",
-    #     help=(
-    #         "Distribution of post-pre activity across epochs displayed using a "
-    #         "box plot. Lines connect the same cells together."
-    #     ),
-    #     file_path=os.path.abspath(post_minus_pre_boxplot_preview_filename),
-    #     file_format=FileFormat.SVG_FILE.value[1],
-    # )
-
-    # return (
-    #     post_minus_pre_activity_differences_preview_files,
-    #     # post_minus_pre_boxplot_preview_file,
-    # )
 
 
 def _clean_ax(ax):
@@ -3116,7 +3092,6 @@ def _plot_difference_cellmap2(
         df (DataFrame): DataFrame containing the activity data with an 'Epoch' column.
         output_dir (str): Path to the output directory.
     """
-    # post_minus_pre_activity_differences_preview_files = []
     for i in range(len(epoch_names)):
         for j in range(i, len(epoch_names) - 1):
             epoch_name1 = epoch_names[i]
@@ -3137,23 +3112,6 @@ def _plot_difference_cellmap2(
                 df=df,
                 save_name=output_filename,
             )
-
-            # post_minus_pre_activity_differences_preview_files.append(
-            #     IdeasPreviewFile(
-            #         name=f"Post-pre differences between {epoch_name1} and {epoch_name2}",
-            #         help=(
-            #             f"Pairwise difference of post-pre activity between epochs "
-            #             f"{epoch_name1} and {epoch_name2}. The left panel presents "
-            #             f"the data as a histogram. The right panel contains a cell "
-            #             f"map colored by the magnitude of the difference in "
-            #             f"post-pre activity between the epochs."
-            #         ),
-            #         file_path=os.path.abspath(output_filename),
-            #         file_format=FileFormat.SVG_FILE.value[1],
-            #     )
-            # )
-
-    # return post_minus_pre_activity_differences_preview_files
 
 
 def _plot_mixed_comparisons2(

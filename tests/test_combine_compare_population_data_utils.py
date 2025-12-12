@@ -1825,7 +1825,7 @@ class TestCombineComparePopulationDataUtils(unittest.TestCase):
             mock_model.fit.return_value = mock_result
             mock_lmm.from_formula.return_value = mock_model
 
-            lmm_result, has_concerns, warning_messages = _perform_lmm_analysis(
+            _perform_lmm_analysis(
                 df=test_data,
                 dv="activity",
                 within_factors=["state"],

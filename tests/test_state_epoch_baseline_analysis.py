@@ -25,6 +25,7 @@ from ideas.exceptions import IdeasError
 
 import analysis.state_epoch_baseline_analysis as seb_module
 import utils.state_epoch_output as seo_module
+from analysis.epoch_activity import run as epoch_activity_run
 from analysis.state_epoch_baseline_analysis import (
     StateEpochDataManager,
     StateEpochOutputGenerator,
@@ -37,11 +38,6 @@ from analysis.state_epoch_baseline_analysis import (
     state_epoch_baseline_analysis_ideas_wrapper,
     temporary_state_epoch_analysis_feature_flags,
 )
-
-try:
-    from analysis.epoch_activity import run as epoch_activity_run
-except Exception:  # pragma: no cover - optional dependency
-    epoch_activity_run = None
 
 
 # Test data fixtures

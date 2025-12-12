@@ -7,29 +7,13 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
-
-# from toolbox.utils.data_model import (
-#     IdeasFile,
-#     IdeasGroup,
-#     IdeasPreviewFile,
-# )
 from ideas.exceptions import IdeasError
 from ideas.tools import outputs
 from ideas.tools.log import get_logger
 from ideas.tools.types import IdeasFile
 
-# from ideas_commons.constants import (
-#     FileCategory,
-#     FileFormat,
-#     FileStructure,
-#     FileType,
-#     GroupType,
-# )
 import utils.config as config
 from analysis.combine_compare_peri_event_data import assign_modulation
-
-# from toolbox.utils.output_manifest import save_output_manifest
-# Import utilities for this tool
 from utils.combine_compare_population_data_utils import (
     calculate_group_anova_stats,
     calculate_mod_stats_direct,
@@ -165,9 +149,6 @@ def combine_compare_population_data(
         if output_dir is None:
             output_dir = os.getcwd()
         os.makedirs(output_dir, exist_ok=True)
-
-        # Initialize lists for output files
-        output_files = []
 
         # Set default group names first
         group1_name = group1_name or "Group 1"
@@ -758,7 +739,7 @@ def combine_compare_population_data(
             )
             # Get actual component states from the data
             component_states = sorted(act_group1["state"].unique())
-            barplot_success = create_boxplot_preview(
+            create_boxplot_preview(
                 data_df=act_group1,
                 col_name="activity",
                 group_name=group1_name,
@@ -770,18 +751,7 @@ def combine_compare_population_data(
                 data_type="activity",
                 y_limits=None,
             )
-            # if barplot_success:
-            #     barplot_preview = IdeasPreviewFile(
-            #         name=f"{group1_name} Mean Activity Barplot",
-            #         help=(
-            #             f"Box and whisker plot displaying the distribution of mean neural activity "
-            #             f"across experimental states for {group1_name}. The plot shows "
-            #             f"median values, quartiles, and outliers for each state."
-            #         ),
-            #         file_path=os.path.abspath(barplot_filename),
-            #         file_format=FileFormat.SVG_FILE.value[1],
-            #     )
-            #     group1_preview_files.append(barplot_preview)
+
         # Group 1: Event-rate
         if ev_group1 is not None and not ev_group1.empty:
             barplot_filename = os.path.join(
@@ -790,7 +760,7 @@ def combine_compare_population_data(
             )
             # Get actual component states from the data
             component_states = sorted(ev_group1["state"].unique())
-            barplot_success = create_boxplot_preview(
+            create_boxplot_preview(
                 data_df=ev_group1,
                 col_name="activity",
                 group_name=group1_name,
@@ -802,18 +772,7 @@ def combine_compare_population_data(
                 data_type="event_rate",
                 y_limits=None,
             )
-            # if barplot_success:
-            #     barplot_preview = IdeasPreviewFile(
-            #         name=f"{group1_name} Mean Event Rate Barplot",
-            #         help=(
-            #             f"Box and whisker plot displaying the distribution of mean neural event "
-            #             f"rates across experimental states for {group1_name}. The plot "
-            #             f"shows median values, quartiles, and outliers for each state."
-            #         ),
-            #         file_path=os.path.abspath(barplot_filename),
-            #         file_format=FileFormat.SVG_FILE.value[1],
-            #     )
-            #     group1_preview_files.append(barplot_preview)
+
         # Group 2: Activity
         if act_group2 is not None and not act_group2.empty:
             barplot_filename = os.path.join(
@@ -822,7 +781,7 @@ def combine_compare_population_data(
             )
             # Get actual component states from the data
             component_states = sorted(act_group2["state"].unique())
-            barplot_success = create_boxplot_preview(
+            create_boxplot_preview(
                 data_df=act_group2,
                 col_name="activity",
                 group_name=group2_name,
@@ -834,18 +793,7 @@ def combine_compare_population_data(
                 data_type="activity",
                 y_limits=None,
             )
-            # if barplot_success:
-            #     barplot_preview = IdeasPreviewFile(
-            #         name=f"{group2_name} Mean Activity Barplot",
-            #         help=(
-            #             f"Box and whisker plot displaying the distribution of mean neural activity "
-            #             f"across experimental states for {group2_name}. The plot shows "
-            #             f"median values, quartiles, and outliers for each state."
-            #         ),
-            #         file_path=os.path.abspath(barplot_filename),
-            #         file_format=FileFormat.SVG_FILE.value[1],
-            #     )
-            #     group2_preview_files.append(barplot_preview)
+
         # Group 2: Event-rate
         if ev_group2 is not None and not ev_group2.empty:
             barplot_filename = os.path.join(
@@ -854,7 +802,7 @@ def combine_compare_population_data(
             )
             # Get actual component states from the data
             component_states = sorted(ev_group2["state"].unique())
-            barplot_success = create_boxplot_preview(
+            create_boxplot_preview(
                 data_df=ev_group2,
                 col_name="activity",
                 group_name=group2_name,
@@ -866,25 +814,6 @@ def combine_compare_population_data(
                 data_type="event_rate",
                 y_limits=None,
             )
-            # if barplot_success:
-            #     barplot_preview = IdeasPreviewFile(
-            #         name=f"{group2_name} Mean Event Rate Barplot",
-            #         help=(
-            #             f"Box and whisker plot displaying the distribution of mean neural event "
-            #             f"rates across experimental states for {group2_name}. The plot "
-            #             f"shows median values, quartiles, and outliers for each state."
-            #         ),
-            #         file_path=os.path.abspath(barplot_filename),
-            #         file_format=FileFormat.SVG_FILE.value[1],
-            #     )
-            #     group2_preview_files.append(barplot_preview)
-
-        # generate_output_manifest(
-        #     group1_population_files=group1_population_activity_files,
-        #     group2_population_files=group2_population_activity_files,
-        #     output_files=output_files,
-        #     output_dir=output_dir,
-        # )
 
         output_metadata = {
             f"population_activity_data_{group1_name}": group1_population_md,

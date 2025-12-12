@@ -4,66 +4,16 @@ This module tests functionality for combining and comparing state/epoch data,
 with a focus on the new modulation count columns feature.
 """
 
-import sys
-import types
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 import pytest
+from ideas.exceptions import IdeasError
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-# Provide lightweight stubs for optional ideas.* dependencies used by analysis code.
-# Only register stubs when the real package (or submodule) is unavailable.
-try:
-    import ideas as ideas_module  # type: ignore
-except ImportError:  # pragma: no cover - executed only when ideas pkg missing
-    ideas_module = types.ModuleType("ideas")
-    sys.modules["ideas"] = ideas_module
-
-try:
-    from ideas import outputs as _ideas_outputs  # type: ignore
-except ImportError:  # pragma: no cover - executed only when outputs missing
-    outputs_module = types.ModuleType("ideas.outputs")
-
-    class OutputData:  # pragma: no cover - simple stub
-        pass
-
-    outputs_module.OutputData = OutputData
-    ideas_module.outputs = outputs_module
-    sys.modules["ideas.outputs"] = outputs_module
-
-try:
-    from ideas import plots as _ideas_plots  # type: ignore
-except ImportError:  # pragma: no cover - executed only when plots missing
-    plots_module = types.ModuleType("ideas.plots")
-
-    def plot_shaded_hist(*_args, **_kwargs):  # pragma: no cover - simple stub
-        return None
-
-    plots_module.plot_shaded_hist = plot_shaded_hist
-    ideas_module.plots = plots_module
-    sys.modules["ideas.plots"] = plots_module
-
-try:
-    from ideas.exceptions import IdeasError  # type: ignore
-except ImportError:  # pragma: no cover - executed only when exceptions missing
-
-    class IdeasError(Exception):  # simple stub
-        pass
-
-    exceptions_module = types.ModuleType("ideas.exceptions")
-    exceptions_module.IdeasError = IdeasError
-    ideas_module.exceptions = exceptions_module
-    sys.modules["ideas.exceptions"] = exceptions_module
-
-from analysis.combine_compare_state_epoch_data import (  # noqa: E402
+from analysis.combine_compare_state_epoch_data import (
     _add_modulation_count_columns,
     _add_modulation_counts_to_statistical_output,
 )
-from utils.state_epoch_comparison_utils import _detect_measure_column  # noqa: E402
+from utils.state_epoch_comparison_utils import _detect_measure_column
 
 
 class TestAddModulationCountColumns:

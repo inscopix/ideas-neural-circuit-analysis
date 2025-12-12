@@ -98,7 +98,7 @@ class Comp(Enum):
     BASELINE = "state vs baseline"
 
 
-def _parse_string_to_tuples(s):
+def _parse_string_to_tuples(val):
     """Parse a string representation of tuples into a list of tuples.
 
     :Args
@@ -111,17 +111,17 @@ def _parse_string_to_tuples(s):
         ("Example 1" , "ExaMple 2" ) , ( "example 1","Example 3")
     """
     # Make it agnostic to any spaces
-    s = s.replace(" ", "").split("),(")
-    s = [str.strip("()") for str in s]
-    return [ast.literal_eval(f"({pair})") for pair in s]
+    val = val.replace(" ", "").split("),(")
+    val = [s.strip("()") for s in val]
+    return [ast.literal_eval(f"({pair})") for pair in val]
 
 
-def _parse_string_to_list_of_tuples(s):
+def _parse_string_to_list_of_tuples(val):
     """Parse a string representation of lists of tuples into a list of several tuples."""
     # Make it agnostic to any spaces
-    s = s.replace(" ", "").split("],[")
-    s = [str.strip("[]") for str in s]
-    return s
+    val = val.replace(" ", "").split("],[")
+    val = [s.strip("[]") for s in val]
+    return val
 
 
 @beartype

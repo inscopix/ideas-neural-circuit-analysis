@@ -6,30 +6,14 @@ import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
-# from toolbox.utils.output_manifest import save_output_manifest
 from ideas.analysis.utils import (
     get_file_size,
 )
-
-# from toolbox.utils.data_model import (
-#     IdeasFile,
-#     IdeasGroup,
-#     IdeasPreviewFile,
-# )
-# from toolbox.utils.exceptions import ExitStatus, ToolException
 from ideas.exceptions import IdeasError
 from ideas.tools import outputs
 from ideas.tools.log import get_logger
 from ideas.tools.types import IdeasFile
 
-# from ideas_commons.constants import (
-#     FileCategory,
-#     FileFormat,
-#     FileStructure,
-#     FileType,
-#     GroupType,
-# )
 import utils.config as config
 from analysis.combine_compare_population_data import (
     match_subjects,
@@ -166,7 +150,6 @@ def combine_compare_correlation_data(
         output_dir = os.getcwd()
 
     # define list of files to include in the output manifest
-    output_files = []
     output_metadata = {}
     # Apply subject matching if doing paired analysis with two groups
     if data_pairing == "paired" and group2_correlation_files:
@@ -340,7 +323,6 @@ def combine_compare_correlation_data(
     # --- Save Combined Data ---
     # Save group 1 combined average correlation data
     group1_avg_df = combined_avg[combined_avg["group_name"] == group1_name]
-    group1_avg_previews = []
     if not group1_avg_df.empty:
         group1_combined_avg_file_path = os.path.join(
             output_dir,
@@ -392,7 +374,7 @@ def combine_compare_correlation_data(
             output_dir,
             f"{group1_name}_avg_positive_correlation_boxplot.svg",
         )
-        pos_avg_success = create_boxplot_preview(
+        create_boxplot_preview(
             data_df=group1_avg_df,
             col_name="positive_correlation",
             group_name=group1_name,
@@ -404,24 +386,12 @@ def combine_compare_correlation_data(
             data_type="correlation",
             y_limits=positive_y_limits,
         )
-        # if pos_avg_success:
-        #     pos_avg_preview = IdeasPreviewFile(
-        #         name=f"{group1_name} Avg Positive Correlation Boxplot",
-        #         help=(
-        #             f"Box and whisker plot displaying the distribution of average positive "
-        #             f"correlations across experimental states for {group1_name}. "
-        #             f"The plot shows median values, quartiles, and outliers."
-        #         ),
-        #         file_path=os.path.abspath(pos_avg_filename),
-        #         file_format=FileFormat.SVG_FILE.value[1],
-        #     )
-        #     group1_avg_previews.append(pos_avg_preview)
 
         neg_avg_filename = os.path.join(
             output_dir,
             f"{group1_name}_avg_negative_correlation_boxplot.svg",
         )
-        neg_avg_success = create_boxplot_preview(
+        create_boxplot_preview(
             data_df=group1_avg_df,
             col_name="negative_correlation",
             group_name=group1_name,
@@ -433,18 +403,6 @@ def combine_compare_correlation_data(
             data_type="correlation",
             y_limits=negative_y_limits,
         )
-        # if neg_avg_success:
-        #     neg_avg_preview = IdeasPreviewFile(
-        #         name=f"{group1_name} Avg Negative Correlation Boxplot",
-        #         help=(
-        #             f"Box and whisker plot displaying the distribution of average negative "
-        #             f"correlations across experimental states for {group1_name}. "
-        #             f"The plot shows median values, quartiles, and outliers."
-        #         ),
-        #         file_path=os.path.abspath(neg_avg_filename),
-        #         file_format=FileFormat.SVG_FILE.value[1],
-        #     )
-        #     group1_avg_previews.append(neg_avg_preview)
 
         output_metadata[f"{group1_name}_combined_average_correlation"] = [
             {
@@ -464,32 +422,8 @@ def combine_compare_correlation_data(
             },
         ]
 
-        # {
-        #     config.IDEAS_METADATA_KEY: {
-        #         "dataset": {
-        #             "states": list(group1_avg_df.state.unique()),
-        #             "group_name": group1_name,
-        #         },
-        #         "metrics": {
-        #             "num_recordings": len(group1_avg_df.file.unique())
-        #         },
-        #     }
-        # }
-        # group1_combined_avg_file = IdeasFile(
-        #     file_key="group1_combined_avg_correlation_data",
-        #     file_path=os.path.abspath(group1_combined_avg_file_path),
-        #     file_type=FileType.COMBINED_CORRELATION_DATA.value[1],
-        #     file_format=FileFormat.CSV_FILE.value[1],
-        #     file_structure=FileStructure.TABLE.value[1],
-        #     file_category=FileCategory.RESULT.value[1],
-        #     preview_files=group1_avg_previews,
-        #     add_metadata=avg_metadata_g1,
-        # )
-        # output_files.append(group1_combined_avg_file)
-
     # Save group 1 combined statistic correlation data
     group1_stat_df = combined_stat[combined_stat["group_name"] == group1_name]
-    group1_stat_previews = []
     if not group1_stat_df.empty:
         group1_combined_stat_file_path = os.path.join(
             output_dir,
@@ -510,7 +444,7 @@ def combine_compare_correlation_data(
             output_dir,
             f"{group1_name}_{statistic}_correlation_cdf.svg",
         )
-        stat_cdf_success = create_cdf_preview(
+        create_cdf_preview(
             data_df=group1_stat_df,
             col_name=f"{statistic}_correlation",
             group_name=group1_name,
@@ -521,26 +455,13 @@ def combine_compare_correlation_data(
             filter_state_names=filter_state_names,
             data_type="correlation",
         )
-        # if stat_cdf_success:
-        #     stat_preview = IdeasPreviewFile(
-        #         name=f"{group1_name} {statistic.capitalize()} Correlation CDF",
-        #         help=(
-        #             f"Cumulative distribution function (CDF) displaying "
-        #             f"{statistic} correlations across experimental states for "
-        #             f"{group1_name}. The CDF plot shows the probability "
-        #             f"distribution of correlation values."
-        #         ),
-        #         file_path=os.path.abspath(stat_cdf_filename),
-        #         file_format=FileFormat.SVG_FILE.value[1],
-        #     )
-        #     group1_stat_previews.append(stat_preview)
 
         # Add an additional boxplot with individual data points for better visualization
         stat_boxplot_filename = os.path.join(
             output_dir,
             f"{group1_name}_{statistic}_correlation_boxplot.svg",
         )
-        stat_boxplot_success = create_boxplot_preview(
+        create_boxplot_preview(
             data_df=group1_stat_df,
             col_name=f"{statistic}_correlation",
             group_name=group1_name,
@@ -552,20 +473,6 @@ def combine_compare_correlation_data(
             data_type="correlation",
             include_points=True,
         )
-        # if stat_boxplot_success:
-        #     stat_detailed_preview = IdeasPreviewFile(
-        #         name=f"{group1_name} {statistic.capitalize()} Correlation Boxplot",
-        #         help=(
-        #             f"Box and whisker plot with individual data points "
-        #             f"displaying the distribution of {statistic} correlations across "
-        #             f"experimental states for {group1_name}. The plot shows "
-        #             f"median values, quartiles, outliers, and individual data "
-        #             f"points."
-        #         ),
-        #         file_path=os.path.abspath(stat_boxplot_filename),
-        #         file_format=FileFormat.SVG_FILE.value[1],
-        #     )
-        #     group1_stat_previews.append(stat_detailed_preview)
 
         total_cells_group1 = (
             group1_stat_df.groupby("file")["cell"].nunique().sum()
@@ -601,37 +508,10 @@ def combine_compare_correlation_data(
             },
         ]
 
-        # stat_metadata_g1 = {
-        #     config.IDEAS_METADATA_KEY: {
-        #         "dataset": {
-        #             "states": list(group1_stat_df.state.unique()),
-        #             "group_name": group1_name,
-        #         },
-        #         "metrics": {
-        #             "total_num_cells": int(total_cells_group1),
-        #             "num_recordings": len(group1_stat_df.file.unique()),
-        #             "statistic_type": statistic,
-        #         },
-        #     }
-        # }
-
-        # group1_combined_stat_file = IdeasFile(
-        #     file_key="group1_combined_cell_correlation_data",
-        #     file_path=os.path.abspath(group1_combined_stat_file_path),
-        #     file_type=FileType.COMBINED_CORRELATION_DATA.value[1],
-        #     file_format=FileFormat.CSV_FILE.value[1],
-        #     file_structure=FileStructure.TABLE.value[1],
-        #     file_category=FileCategory.RESULT.value[1],
-        #     preview_files=group1_stat_previews,
-        #     add_metadata=stat_metadata_g1,
-        # )
-        # output_files.append(group1_combined_stat_file)
-
     # Save group 2 data if it exists
     if group2_correlation_files and group2_name:
         # Save group 2 combined average correlation data
         group2_avg_df = combined_avg[combined_avg["group_name"] == group2_name]
-        group2_avg_previews = []
         if not group2_avg_df.empty:
             group2_combined_avg_file_path = os.path.join(
                 output_dir,
@@ -677,7 +557,7 @@ def combine_compare_correlation_data(
                 output_dir,
                 f"{group2_name}_avg_positive_correlation_boxplot.svg",
             )
-            pos_avg_success_g2 = create_boxplot_preview(
+            create_boxplot_preview(
                 data_df=group2_avg_df,
                 col_name="positive_correlation",
                 group_name=group2_name,
@@ -689,25 +569,12 @@ def combine_compare_correlation_data(
                 data_type="correlation",
                 y_limits=positive_y_limits,
             )
-            # if pos_avg_success_g2:
-            #     pos_avg_preview_g2 = IdeasPreviewFile(
-            #         name=f"{group2_name} Avg Positive Correlation Boxplot",
-            #         help=(
-            #             f"Box and whisker plot displaying the distribution of average "
-            #             f"positive correlations across experimental states for "
-            #             f"{group2_name}. The plot shows median values, quartiles, "
-            #             f"and outliers."
-            #         ),
-            #         file_path=os.path.abspath(pos_avg_filename_g2),
-            #         file_format=FileFormat.SVG_FILE.value[1],
-            #     )
-            #     group2_avg_previews.append(pos_avg_preview_g2)
 
             neg_avg_filename_g2 = os.path.join(
                 output_dir,
                 f"{group2_name}_avg_negative_correlation_boxplot.svg",
             )
-            neg_avg_success_g2 = create_boxplot_preview(
+            create_boxplot_preview(
                 data_df=group2_avg_df,
                 col_name="negative_correlation",
                 group_name=group2_name,
@@ -719,19 +586,6 @@ def combine_compare_correlation_data(
                 data_type="correlation",
                 y_limits=negative_y_limits,
             )
-            # if neg_avg_success_g2:
-            #     neg_avg_preview_g2 = IdeasPreviewFile(
-            #         name=f"{group2_name} Avg Negative Correlation Boxplot",
-            #         help=(
-            #             f"Box and whisker plot displaying the distribution of average "
-            #             f"negative correlations across experimental states for "
-            #             f"{group2_name}. The plot shows median values, quartiles, "
-            #             f"and outliers."
-            #         ),
-            #         file_path=os.path.abspath(neg_avg_filename_g2),
-            #         file_format=FileFormat.SVG_FILE.value[1],
-            #     )
-            #     group2_avg_previews.append(neg_avg_preview_g2)
 
             output_metadata[f"{group2_name}_combined_average_correlation"] = [
                 {
@@ -760,32 +614,9 @@ def combine_compare_correlation_data(
                     "value": statistic,
                 },
             ]
-            # avg_metadata_g2 = {
-            #     config.IDEAS_METADATA_KEY: {
-            #         "dataset": {
-            #             "states": list(group2_avg_df.state.unique()),
-            #             "group_name": group2_name,
-            #         },
-            #         "metrics": {
-            #             "num_recordings": len(group2_avg_df.file.unique())
-            #         },
-            #     }
-            # }
-            # group2_combined_avg_file = IdeasFile(
-            #     file_key="group2_combined_avg_correlation_data",
-            #     file_path=os.path.abspath(group2_combined_avg_file_path),
-            #     file_type=FileType.COMBINED_CORRELATION_DATA.value[1],
-            #     file_format=FileFormat.CSV_FILE.value[1],
-            #     file_structure=FileStructure.TABLE.value[1],
-            #     file_category=FileCategory.RESULT.value[1],
-            #     preview_files=group2_avg_previews,
-            #     add_metadata=avg_metadata_g2,
-            # )
-            # output_files.append(group2_combined_avg_file)
 
         # Save group 2 combined statistic correlation data
         group2_stat_df = combined_stat[combined_stat["group_name"] == group2_name]
-        group2_stat_previews = []
         if not group2_stat_df.empty:
             group2_combined_stat_file_path = os.path.join(
                 output_dir,
@@ -806,7 +637,7 @@ def combine_compare_correlation_data(
                 output_dir,
                 f"{group2_name}_{statistic}_correlation_cdf.svg",
             )
-            stat_cdf_success_g2 = create_cdf_preview(
+            create_cdf_preview(
                 data_df=group2_stat_df,
                 col_name=f"{statistic}_correlation",
                 group_name=group2_name,
@@ -817,26 +648,13 @@ def combine_compare_correlation_data(
                 filter_state_names=filter_state_names,
                 data_type="correlation",
             )
-            # if stat_cdf_success_g2:
-            #     stat_preview_g2 = IdeasPreviewFile(
-            #         name=f"{group2_name} {statistic.capitalize()} Correlation CDF",
-            #         help=(
-            #             f"Cumulative distribution function (CDF) displaying "
-            #             f"{statistic} correlations across experimental states for "
-            #             f"{group2_name}. The CDF plot shows the probability "
-            #             f"distribution of correlation values."
-            #         ),
-            #         file_path=os.path.abspath(stat_cdf_filename_g2),
-            #         file_format=FileFormat.SVG_FILE.value[1],
-            #     )
-            #     group2_stat_previews.append(stat_preview_g2)
 
             # Add a boxplot with individual data points for additional visualization
             stat_boxplot_filename_g2 = os.path.join(
                 output_dir,
                 f"{group2_name}_{statistic}_correlation_boxplot.svg",
             )
-            stat_boxplot_success_g2 = create_boxplot_preview(
+            create_boxplot_preview(
                 data_df=group2_stat_df,
                 col_name=f"{statistic}_correlation",
                 group_name=group2_name,
@@ -848,20 +666,6 @@ def combine_compare_correlation_data(
                 data_type="correlation",
                 include_points=True,
             )
-            # if stat_boxplot_success_g2:
-            #     stat_detailed_preview_g2 = IdeasPreviewFile(
-            #         name=f"{group2_name} {statistic.capitalize()} Correlation Boxplot",
-            #         help=(
-            #             f"Box and whisker plot with individual data points "
-            #             f"displaying the distribution of {statistic} correlations "
-            #             f"across experimental states for {group2_name}. The plot "
-            #             f"shows median values, quartiles, outliers, and "
-            #             f"individual data points."
-            #         ),
-            #         file_path=os.path.abspath(stat_boxplot_filename_g2),
-            #         file_format=FileFormat.SVG_FILE.value[1],
-            #     )
-            #     group2_stat_previews.append(stat_detailed_preview_g2)
 
             total_cells_group2 = (
                 group2_stat_df.groupby("file")["cell"].nunique().sum()
@@ -896,30 +700,7 @@ def combine_compare_correlation_data(
                     "value": statistic,
                 },
             ]
-            # stat_metadata_g2 = {
-            #     config.IDEAS_METADATA_KEY: {
-            #         "dataset": {
-            #             "states": list(group2_stat_df.state.unique()),
-            #             "group_name": group2_name,
-            #         },
-            #         "metrics": {
-            #             "total_num_cells": int(total_cells_group2),
-            #             "num_recordings": len(group2_stat_df.file.unique()),
-            #             "statistic_type": statistic,
-            #         },
-            #     }
-            # }
-            # group2_combined_stat_file = IdeasFile(
-            #     file_key="group2_combined_cell_correlation_data",
-            #     file_path=os.path.abspath(group2_combined_stat_file_path),
-            #     file_type=FileType.COMBINED_CORRELATION_DATA.value[1],
-            #     file_format=FileFormat.CSV_FILE.value[1],
-            #     file_structure=FileStructure.TABLE.value[1],
-            #     file_category=FileCategory.RESULT.value[1],
-            #     preview_files=group2_stat_previews,
-            #     add_metadata=stat_metadata_g2,
-            # )
-            # output_files.append(group2_combined_stat_file)
+
     # --- End Save Combined Data ---
 
     has_single_group = not group2_correlation_files
@@ -932,7 +713,7 @@ def combine_compare_correlation_data(
         group_names.append(group2_name)
         group_colors.append(group2_color)
 
-    aov, pairwise, all_preview_files = calculate_and_plot_stats(
+    aov, pairwise, _ = calculate_and_plot_stats(
         avg_data=combined_avg,
         stat_data=combined_stat,
         statistic_name=statistic,
@@ -1004,15 +785,6 @@ def combine_compare_correlation_data(
                 "value": int(total_cells_group2),
             },
         ]
-        # comparison_metadata = {
-        #     config.IDEAS_METADATA_KEY: {
-        #         "dataset": {"states": filter_state_names},
-        #         "metrics": {
-        #             "total_num_cells_group1": int(total_cells_group1),
-        #             "total_num_cells_group2": int(total_cells_group2),
-        #         },
-        #     }
-        # }
     else:
         # Define comparison metadata for a single group
         comparison_metadata = [
@@ -1027,48 +799,9 @@ def combine_compare_correlation_data(
                 "value": int(total_cells_group1),
             },
         ]
-        # comparison_metadata = {
-        #     config.IDEAS_METADATA_KEY: {
-        #         "dataset": {"states": filter_state_names},
-        #         "metrics": {
-        #             "total_num_cells_group1": int(total_cells_group1),
-        #         },
-        #     }
-        # }
 
     output_metadata["ANOVA_comparisons.csv"] = comparison_metadata
     output_metadata["pairwise_comparisons.csv"] = comparison_metadata
-    # aov_file = IdeasFile(
-    #     file_key="aov_comparison_data",
-    #     file_path=os.path.abspath(aov_comparison_csv_file),
-    #     file_type=FileType.CORRELATION_COMPARISON_DATA.value[1],
-    #     file_format=FileFormat.CSV_FILE.value[1],
-    #     file_structure=FileStructure.TABLE.value[1],
-    #     file_category=FileCategory.RESULT.value[1],
-    #     preview_files=all_preview_files,
-    #     add_metadata=comparison_metadata,
-    # )
-    # output_files.append(aov_file)
-
-    # pairwise_file = IdeasFile(
-    #     file_key="pairwise_comparison_data",
-    #     file_path=os.path.abspath(pairwise_comparison_csv_file),
-    #     file_type=FileType.CORRELATION_COMPARISON_DATA.value[1],
-    #     file_format=FileFormat.CSV_FILE.value[1],
-    #     file_structure=FileStructure.TABLE.value[1],
-    #     file_category=FileCategory.RESULT.value[1],
-    #     preview_files=all_preview_files,
-    #     add_metadata=comparison_metadata,
-    # )
-    # output_files.append(pairwise_file)
-
-    # logger.info("Combination and comparison of correlation data completed")
-    # generate_output_manifest(
-    #     group1_correlation_files=group1_correlation_files,
-    #     group2_correlation_files=group2_correlation_files,
-    #     output_files=output_files,
-    #     output_dir=output_dir,
-    # )
 
     with open(os.path.join(output_dir, "output_metadata.json"), "w") as f:
         json.dump(output_metadata, f, indent=4)
@@ -1263,22 +996,6 @@ def calculate_and_plot_stats(
                     f"average_correlation_distribution{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
                 )
 
-                # mod_preview_file = IdeasPreviewFile(
-                #     name="Average Correlation Distribution",
-                #     help=(
-                #         "Figure displaying box and whisker plots of average positive and "
-                #         "negative correlations across experimental states. The plot shows "
-                #         "individual data points, median values, quartiles, and "
-                #         "statistical significance indicators for both positive and "
-                #         "negative correlation components. This analysis reveals how "
-                #         "neural correlation patterns differ between experimental "
-                #         "conditions, providing insights into functional connectivity "
-                #         "changes across states."
-                #     ),
-                #     file_path=os.path.abspath(mod_preview_filename),
-                #     file_format=FileFormat.SVG_FILE.value[1],
-                # )
-
                 # Create visualization using specialized function
                 plot_average_correlation_data(
                     mod_data=mod_data_long,
@@ -1375,22 +1092,6 @@ def calculate_and_plot_stats(
                     f"{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
                 )
 
-                # state_lmm_preview_file = IdeasPreviewFile(
-                #     name=f"{statistic_name.capitalize()} Correlation State LMM Comparison",
-                #     help=(
-                #         f"Figure presenting linear mixed model (LMM) analysis "
-                #         f"results for {statistic_name} correlation data across "
-                #         f"experimental states. The plot displays mean correlation "
-                #         f"values with error bars, individual data points, and "
-                #         f"statistical significance markers. LMM analysis accounts for "
-                #         f"nested cell structure within subjects and provides robust "
-                #         f"statistical comparison between states while controlling for "
-                #         f"subject-level variability in correlation patterns."
-                #     ),
-                #     file_path=os.path.abspath(state_lmm_filename),
-                #     file_format=FileFormat.SVG_FILE.value[1],
-                # )
-
                 # Generate visualization
                 plot_state_lmm_comparison(
                     df=act_data_processed,
@@ -1404,8 +1105,6 @@ def calculate_and_plot_stats(
                     state_pairwise=act_pairwise,
                     output_filename=state_lmm_filename,
                 )
-
-                # preview_files.append(state_lmm_preview_file)
 
                 # Combine results
                 if not act_aov.empty:
@@ -1426,7 +1125,7 @@ def calculate_and_plot_stats(
                 if not has_single_group:
                     (
                         group_aov,
-                        group_pairwise,
+                        _,
                         group_df,
                     ) = calculate_group_anova_stats(
                         df=act_data_processed,
@@ -1465,24 +1164,6 @@ def calculate_and_plot_stats(
                             f"{statistic_name.lower()}_correlation_group_"
                             f"{anova_type}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
                         )
-
-                        # group_anova_preview_file = IdeasPreviewFile(
-                        #     name=f"{statistic_name.capitalize()} "
-                        #     "Correlation Group ANOVA Comparison",
-                        #     help=(
-                        #         f"Figure displaying analysis of variance (ANOVA) "
-                        #         f"results comparing {statistic_name} correlation data "
-                        #         f"between experimental groups across different states. "
-                        #         f"The plot illustrates group differences with mean "
-                        #         f"correlation values, error bars, individual data "
-                        #         f"points, and significance indicators. ANOVA provides "
-                        #         f"complementary global variance detection to LMM "
-                        #         f"analysis, revealing main effects of group and "
-                        #         f"state factors on correlation patterns."
-                        #     ),
-                        #     file_path=os.path.abspath(group_anova_filename),
-                        #     file_format=FileFormat.SVG_FILE.value[1],
-                        # )
 
                         # Generate group comparison visualization using LMM pairwise for plotting
                         plot_group_anova_comparison(
@@ -2402,72 +2083,6 @@ def measure_cells(data: List[dict], correlation_type: str) -> pd.DataFrame:
     if output_df.empty:
         logger.warning("Error: No valid correlation data found after processing.")
     return output_df
-
-
-def _clean_ax(ax: plt.Axes) -> None:
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-
-
-def generate_output_manifest(
-    group1_correlation_files: List[str],
-    group2_correlation_files: List[str],
-    output_files: List,
-    output_dir: str,
-) -> None:
-    """Construct and save output manifest and metadata to disk.
-
-    :param group1_correlation_files: correlation data files from the first group
-    :param group2_correlation_files: correlation data files from the second group,
-    :param output_files: list of IdeasFile to include in the output manifest
-    :param output_dir: path to the output directory
-    """
-    pass
-    # # GROUP 1
-    # # source correlation FILES (group 1)
-    # source_correlation_files_group1 = [
-    #     IdeasFile(
-    #         file_key="group1_correlation_files",
-    #         file_path=os.path.abspath(f),
-    #         file_type=FileType.CORRELATION_DATA.value[1],
-    #         file_format=FileFormat.H5_FILE.value[1],
-    #         file_structure=FileStructure.TABLE.value[1],
-    #         file_category=FileCategory.SOURCE.value[1],
-    #     )
-    #     for f in group1_correlation_files
-    # ]
-
-    # # initialize files to list of files in group 1
-    # files = source_correlation_files_group1
-
-    # # GROUP 2
-    # if len(group2_correlation_files) > 0:
-    #     # source correlation FILES (group 2)
-    #     source_correlation_files_group2 = [
-    #         IdeasFile(
-    #             file_key="group2_correlation_files",
-    #             file_path=os.path.abspath(f),
-    #             file_type=FileType.CORRELATION_DATA.value[1],
-    #             file_format=FileFormat.H5_FILE.value[1],
-    #             file_structure=FileStructure.TABLE.value[1],
-    #             file_category=FileCategory.SOURCE.value[1],
-    #         )
-    #         for f in group2_correlation_files
-    #     ]
-    #     # add group 2 files to list of output files
-    #     files.extend(source_correlation_files_group2)
-
-    # # add output files to the list of files
-    # files.extend(output_files)
-
-    # # combine-and-compare correlation GROUP
-    # combine_compare_correlation_group = IdeasGroup(
-    #     group_key="combine_compare_correlation_output",
-    #     group_type=GroupType.TOOL_OUTPUT.value[1],
-    #     files=files,
-    # )
-    # # save output manifest & metadata to disk
-    # save_output_manifest(combine_compare_correlation_group, output_dir)
 
 
 def combine_compare_correlation_data_ideas_wrapper(

@@ -246,39 +246,6 @@ class TestCombineComparePopulationData(unittest.TestCase):
         }
         self.assertEqual(actual_files - {"synthetic_data"}, expected_files)
 
-        # Verify the output manifest structure
-        # with open(
-        #     os.path.join(self.output_dir, "output_manifest.json"), "r"
-        # ) as f:
-        #     manifest = json.load(f)
-        # self.assertIn("groups", manifest)
-        # self.assertTrue(isinstance(manifest["groups"], list))
-        # self.assertTrue(len(manifest["groups"]) > 0)
-        # first_group_data = manifest["groups"][0]
-        # self.assertIn("group_key", first_group_data)
-        # self.assertIn("files", first_group_data)
-        # # Check if specific file keys exist
-        # file_keys = [f["file_key"] for f in first_group_data["files"]]
-        # self.assertIn("group1_population_activity_csv_file", file_keys)
-        # self.assertIn("aov_comparison_data", file_keys)
-        # self.assertIn("pairwise_comparison_data", file_keys)
-
-        # # Check pairwise preview files
-        # pairwise_file_entry = next(
-        #     (
-        #         f
-        #         for f in first_group_data["files"]
-        #         if f["file_key"] == "pairwise_comparison_data"
-        #     ),
-        #     None,
-        # )
-        # self.assertIsNotNone(pairwise_file_entry)
-        # self.assertIn("preview", pairwise_file_entry)
-        # self.assertTrue(len(pairwise_file_entry["preview"]) > 0)
-        # preview_names = [p["name"] for p in pairwise_file_entry["preview"]]
-        # self.assertIn("Activity Modulation Distribution", preview_names)
-        # self.assertIn("Activity State LMM Comparison", preview_names)
-
     def test_combine_and_compare_two_multi_file_groups(self):
         """Test combining and comparing data from two multi-file groups using synthetic data."""
         # define input files using synthetic data
@@ -336,43 +303,6 @@ class TestCombineComparePopulationData(unittest.TestCase):
             f"{group2_name}_mean_activity_barplot{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
         }
         self.assertEqual(actual_files - {"synthetic_data"}, expected_files)
-
-        # Verify manifest structure for two groups
-        # with open(
-        #     os.path.join(self.output_dir, "output_manifest.json"), "r"
-        # ) as f:
-        #     manifest = json.load(f)
-        # self.assertIn("groups", manifest)
-        # self.assertTrue(isinstance(manifest["groups"], list))
-        # # Expecting output files grouped under a single tool output group
-        # self.assertEqual(len(manifest["groups"]), 1)
-        # output_group = manifest["groups"][0]
-        # self.assertEqual(
-        #     output_group["group_key"],
-        #     "combine_compare_population_activity_output",
-        # )
-        # file_keys = [f["file_key"] for f in output_group["files"]]
-        # # Check for both group's data files
-        # self.assertIn("group1_population_activity_csv_file", file_keys)
-        # self.assertIn("group2_population_activity_csv_file", file_keys)
-        # self.assertIn("aov_comparison_data", file_keys)
-        # self.assertIn("pairwise_comparison_data", file_keys)
-
-        # # Check preview files associated with pairwise data
-        # pairwise_file_entry = next(
-        #     (
-        #         f
-        #         for f in output_group["files"]
-        #         if f["file_key"] == "pairwise_comparison_data"
-        #     ),
-        #     None,
-        # )
-        # self.assertIsNotNone(pairwise_file_entry)
-        # self.assertIn("preview", pairwise_file_entry)
-        # preview_names = [p["name"] for p in pairwise_file_entry["preview"]]
-        # self.assertIn("Activity Modulation Distribution", preview_names)
-        # self.assertIn("Activity State LMM Comparison", preview_names)
-        # self.assertIn("Activity Group ANOVA Comparison", preview_names)
 
     def test_combine_with_event_data(self):
         """Test combining and comparing data with events files using synthetic data."""
@@ -1439,42 +1369,12 @@ class TestCombineComparePopulationData(unittest.TestCase):
                 output_dir=self.output_dir,
             )
 
-            # # Check for output manifest
-            # self.assertTrue(
-            #     os.path.exists(
-            #         os.path.join(self.output_dir, "output_manifest.json")
-            #     )
-            # )
-
             # Check for expected result files
             output_files = os.listdir(self.output_dir)
             self.assertIn("aov_comparisons.csv", output_files)
             self.assertIn("pairwise_comparisons.csv", output_files)
             self.assertIn("population_activity_data_SyntheticGroup1.csv", output_files)
             self.assertIn("population_activity_data_SyntheticGroup2.csv", output_files)
-
-            # # Verify output manifest structure
-            # with open(
-            #     os.path.join(self.output_dir, "output_manifest.json"), "r"
-            # ) as f:
-            #     manifest = json.load(f)
-
-            # # Check for "groups" key and single output group
-            # self.assertIn("groups", manifest)
-            # self.assertTrue(isinstance(manifest["groups"], list))
-            # self.assertEqual(len(manifest["groups"]), 1)
-            # output_group = manifest["groups"][0]
-            # self.assertEqual(
-            #     output_group["group_key"],
-            #     "combine_compare_population_activity_output",
-            # )
-
-            # # Verify the first group has the expected keys and files
-            # file_keys = [f["file_key"] for f in output_group["files"]]
-            # self.assertIn("group1_population_activity_csv_file", file_keys)
-            # self.assertIn("group2_population_activity_csv_file", file_keys)
-            # self.assertIn("aov_comparison_data", file_keys)
-            # self.assertIn("pairwise_comparison_data", file_keys)
 
         except Exception as e:
             self.fail(f"End-to-end test failed with exception: {str(e)}")

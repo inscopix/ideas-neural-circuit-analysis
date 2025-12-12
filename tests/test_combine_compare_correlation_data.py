@@ -18,7 +18,6 @@ from ideas.exceptions import (
 
 # Import necessary functions and classes from the updated tool
 from analysis.combine_compare_correlation_data import (
-    _clean_ax,
     average_correlations,
     calculate_and_plot_stats,
     combine_compare_correlation_data,
@@ -28,7 +27,7 @@ from analysis.combine_compare_correlation_data import (
     validate_combine_compare_correlation_data_parameters,
 )
 from utils import config
-from utils.visualization_helpers import create_cdf_preview
+from utils.plots import _cl`from utils.visualization_helpers import create_cdf_preview
 
 # import utils.config as config  # Import config for file extensions
 

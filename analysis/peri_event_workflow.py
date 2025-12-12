@@ -12,19 +12,10 @@ import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
-# from toolbox.utils.output_manifest import (
-#     save_metadata_manifest,
-#     save_output_manifest,
-# )
 from ideas.analysis.utils import (
-    # read_isxd_metadata,
     _sort_isxd_files_by_start_time,
-    # compute_sampling_rate,
     get_file_size,
 )
-
-# from toolbox.utils.data_model import IdeasFile, IdeasGroup, IdeasPreviewFile
 from ideas.exceptions import IdeasError
 from ideas.tools import log, outputs
 from ideas.tools.types import IdeasFile
