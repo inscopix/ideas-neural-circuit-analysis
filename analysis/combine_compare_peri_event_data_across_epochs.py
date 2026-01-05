@@ -2042,8 +2042,8 @@ def combine_compare_peri_event_data_across_epochs_ideas_wrapper(
         metadata = outputs._load_and_remove_output_metadata()
         epoch_names = [e.strip().replace(" ", "") for e in epoch_names.split(",")]
         with outputs.register(raise_missing_file=False) as output_data:
-            for group_name in [group1_name, group2_name]:
-                group_name = group_name.replace(" ", "")
+            group_names = [g.replace(" ", "") for g in [group1_name, group2_name] if g]
+            for group_name in group_names:
                 subdir_base = "group1" if group_name == group1_name else "group2"
                 
                 output_file = output_data.register_file(
@@ -2112,23 +2112,24 @@ def combine_compare_peri_event_data_across_epochs_ideas_wrapper(
                 for md in metadata.get(f"{subdir_base}_epoch_comparison_data", {}):
                     output_file.register_metadata(**md) 
             
-            output_file = output_data.register_file(
-                "anova_group_comparisons.csv"
-            ).register_preview(
-                "population_post_minus_pre_comparison.svg",
-                caption="Comparisons of post-pre activity between the two groups",
-            )
-            for md in metadata.get("anova_group_comparisons", {}):
-                output_file.register_metadata(**md) 
+            if group2_name:
+                output_file = output_data.register_file(
+                    "anova_group_comparisons.csv"
+                ).register_preview(
+                    "population_post_minus_pre_comparison.svg",
+                    caption="Comparisons of post-pre activity between the two groups",
+                )
+                for md in metadata.get("anova_group_comparisons", {}):
+                    output_file.register_metadata(**md) 
 
-            output_file = output_data.register_file(
-                "pairwise_group_comparisons.csv"
-            ).register_preview(
-                "population_post_minus_pre_comparison.svg",
-                caption="Comparisons of post-pre activity between the two groups",
-            )
-            for md in metadata.get("pairwise_group_comparisons", {}):
-                output_file.register_metadata(**md) 
+                output_file = output_data.register_file(
+                    "pairwise_group_comparisons.csv"
+                ).register_preview(
+                    "population_post_minus_pre_comparison.svg",
+                    caption="Comparisons of post-pre activity between the two groups",
+                )
+                for md in metadata.get("pairwise_group_comparisons", {}):
+                    output_file.register_metadata(**md) 
 
         logger.info("Registered output data")
     except Exception:

@@ -786,7 +786,7 @@ def combine_compare_population_data(
         if act_group1 is not None and not act_group1.empty:
             barplot_filename = os.path.join(
                 output_dir,
-                f"{group1_name}_mean_activity_barplot{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                f"{group1_name.replace(' ', '_')}_mean_activity_barplot{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
             )
             # Get actual component states from the data
             component_states = sorted(act_group1["state"].unique())
@@ -818,7 +818,7 @@ def combine_compare_population_data(
         if ev_group1 is not None and not ev_group1.empty:
             barplot_filename = os.path.join(
                 output_dir,
-                f"{group1_name}_mean_event_rate_barplot{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                f"{group1_name.replace(' ', '_')}_mean_event_rate_barplot{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
             )
             # Get actual component states from the data
             component_states = sorted(ev_group1["state"].unique())
@@ -850,7 +850,7 @@ def combine_compare_population_data(
         if act_group2 is not None and not act_group2.empty:
             barplot_filename = os.path.join(
                 output_dir,
-                f"{group2_name}_mean_activity_barplot{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                f"{group2_name.replace(' ', '_')}_mean_activity_barplot{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
             )
             # Get actual component states from the data
             component_states = sorted(act_group2["state"].unique())
@@ -882,7 +882,7 @@ def combine_compare_population_data(
         if ev_group2 is not None and not ev_group2.empty:
             barplot_filename = os.path.join(
                 output_dir,
-                f"{group2_name}_mean_event_rate_barplot{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                f"{group2_name.replace(' ', '_')}_mean_event_rate_barplot{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
             )
             # Get actual component states from the data
             component_states = sorted(ev_group2["state"].unique())
@@ -919,12 +919,12 @@ def combine_compare_population_data(
         # )
 
         output_metadata = {
-            f"population_activity_data_{group1_name}": group1_population_md,
+            f"population_activity_data_{group1_name.replace(' ', '_')}": group1_population_md,
             "aov_comparisons.csv": comparison_metadata,
             "pairwise_comparisons.csv": comparison_metadata,
         }
         if group2_name:
-            output_metadata[f"population_activity_data_{group2_name}"] = group2_population_md
+            output_metadata[f"population_activity_data_{group2_name.replace(' ', '_')}"] = group2_population_md
         
         with open(os.path.join(output_dir, "output_metadata.json"), "w") as f:
             json.dump(output_metadata, f, indent=4)
@@ -2704,18 +2704,19 @@ def combine_compare_population_data_ideas_wrapper(
             anova_type = (
                 "rm_anova" if data_pairing == "paired" else "mixed_anova"
             )
-            for group_name in [group1_name, group2_name]:
+            group_names = [g.replace(" ", "_") for g in [group1_name, group2_name] if g]
+            for group_name in group_names:
                 subdir_base = "group1" if group_name == group1_name else "group2"
-                data_types = ["activity", "events"]
-                
+
                 output_file = output_data.register_file(
                     f"population_activity_data_{group_name}.csv",
                     subdir=f"{subdir_base}_population_activity_data",
                 )
+
                 for md in metadata.get(f"population_activity_data_{group_name}", {}):
                     output_file.register_metadata(**md) 
 
-                for data_type in data_types:
+                for data_type in ["activity", "events"]:
                     output_file.register_preview(
                         f"{data_type}_modulation_distribution_{group_name}.preview.svg",
                         caption=(
@@ -2723,11 +2724,14 @@ def combine_compare_population_data_ideas_wrapper(
                             f"increased, decreased, and unchanged {data_type} for each "
                             f"experimental state in the {group_name} group."
                         ),
-                    ).register_preview(
+                    )
+                    
+                for data_type in ["activity", "event_rate"]:
+                    output_file.register_preview(
                         f"{group_name}_mean_{data_type}_barplot{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
                         caption=(
                             f"Box and whisker plot displaying the distribution of mean neural {data_type} "
-                            f"across experimental states for {group1_name}. The plot shows "
+                            f"across experimental states for {group_name}. The plot shows "
                             f"median values, quartiles, and outliers for each state."
                         ),
                     )
@@ -2740,7 +2744,7 @@ def combine_compare_population_data_ideas_wrapper(
                 for md in metadata.get(output_name, {}):
                     output_file.register_metadata(**md)
                 
-                for data_type in data_types:
+                for data_type in ["activity", "events"]:
                     output_file.register_preview(
                         f"{data_type}_modulation_distribution{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
                         caption=(
