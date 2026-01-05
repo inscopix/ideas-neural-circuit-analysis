@@ -2096,7 +2096,7 @@ def combine_compare_peri_event_data_ideas_wrapper(
         with outputs.register(raise_missing_file=False) as output_data:
             group_names = [g.replace(" ", "_") for g in [group1_name, group2_name] if g]
             for group_name in group_names:
-                subdir_base = "group1" if group_name == group1_name else "group2"
+                subdir_base = "group1" if group_name == group_names[0] else "group2"
                 
                 output_file = output_data.register_file(
                     f"event_aligned_activity_{group_name}.csv",

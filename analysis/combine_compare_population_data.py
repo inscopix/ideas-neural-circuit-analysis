@@ -2706,7 +2706,7 @@ def combine_compare_population_data_ideas_wrapper(
             )
             group_names = [g.replace(" ", "_") for g in [group1_name, group2_name] if g]
             for group_name in group_names:
-                subdir_base = "group1" if group_name == group1_name else "group2"
+                subdir_base = "group1" if group_name == group_names[0] else "group2"
 
                 output_file = output_data.register_file(
                     f"population_activity_data_{group_name}.csv",
