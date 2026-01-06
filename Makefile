@@ -38,6 +38,7 @@ build-test: build
 
 # Runs unit tests in docker image
 # Used in automated pr checks on github
+test: IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:${LABEL}-test
 test: clean build-test
 	@echo "Running tests..."
 	docker run \
