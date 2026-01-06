@@ -62,6 +62,7 @@ ruff: build
 # Used in automated pr checks on github
 # Does not actually apply any linter changes on the source code,
 # only checks if all files are formatted correctly
+ruff-check: IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:${LABEL}-test
 ruff-check: build-test
 	docker run \
 		--platform ${PLATFORM} \
