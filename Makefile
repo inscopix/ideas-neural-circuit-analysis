@@ -37,7 +37,7 @@ test: clean build
 		${IMAGE_TAG} \
 		python -m pytest ${TEST_ARGS}
 
-ruff:
+ruff: build
 	@echo "Running tests..."
 	docker run \
 		--platform ${PLATFORM} \
@@ -46,7 +46,7 @@ ruff:
 		${IMAGE_TAG} \
 		bash -c "python -m ruff format /ideas/code $(ARGS) && python -m ruff check --fix /ideas/code $(ARGS)"
 
-ruff-check:
+ruff-check: build
 	docker run \
 		--platform ${PLATFORM} \
 		--rm \
