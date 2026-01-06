@@ -1995,16 +1995,20 @@ def combine_compare_peri_event_data_ideas_wrapper(
             group_names = [g.replace(" ", "_") for g in [group1_name, group2_name] if g]
             for group_name in group_names:
                 subdir_base = "group1" if group_name == group_names[0] else "group2"
-                
-                output_file = output_data.register_file(
-                    f"event_aligned_activity_{group_name}.csv",
-                    subdir=f"{subdir_base}_event_aligned_activity_traces",
-                ).register_preview(
-                    f"event_aligned_population_activity_{group_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                    caption="Event-aligned average population activity line plot"
-                ).register_preview(
-                    f"event_aligned_single_cell_activity_heatmap_{group_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                    caption="Event-aligned single-cell activity heatmap"
+
+                output_file = (
+                    output_data.register_file(
+                        f"event_aligned_activity_{group_name}.csv",
+                        subdir=f"{subdir_base}_event_aligned_activity_traces",
+                    )
+                    .register_preview(
+                        f"event_aligned_population_activity_{group_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                        caption="Event-aligned average population activity line plot",
+                    )
+                    .register_preview(
+                        f"event_aligned_single_cell_activity_heatmap_{group_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                        caption="Event-aligned single-cell activity heatmap",
+                    )
                 )
                 for md in metadata.get(
                     f"{subdir_base}_event_aligned_activity_traces", {}

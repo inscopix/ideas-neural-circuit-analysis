@@ -1774,7 +1774,7 @@ def combine_compare_peri_event_data_across_epochs_ideas_wrapper(
             group_names = [g.replace(" ", "") for g in [group1_name, group2_name] if g]
             for group_name in group_names:
                 subdir_base = "group1" if group_name == group_names[0] else "group2"
-                
+
                 output_file = output_data.register_file(
                     f"event_aligned_activity_{group_name}.csv",
                     subdir=f"{subdir_base}_event_aligned_traces",
@@ -1839,8 +1839,8 @@ def combine_compare_peri_event_data_across_epochs_ideas_wrapper(
                     caption="Distribution of post-pre activity across epochs displayed using a box plot. Lines connect the same cells together.",
                 )
                 for md in metadata.get(f"{subdir_base}_epoch_comparison_data", {}):
-                    output_file.register_metadata(**md) 
-            
+                    output_file.register_metadata(**md)
+
             if group2_name:
                 # Prevents warnings from being printed about non-existent output files
                 # The Group 2 requirement applies only to the Across Epochs tool, as other tools like the Population tool
@@ -1852,7 +1852,7 @@ def combine_compare_peri_event_data_across_epochs_ideas_wrapper(
                     caption="Comparisons of post-pre activity between the two groups",
                 )
                 for md in metadata.get("anova_group_comparisons", {}):
-                    output_file.register_metadata(**md) 
+                    output_file.register_metadata(**md)
 
                 output_file = output_data.register_file(
                     "pairwise_group_comparisons.csv"
@@ -1861,7 +1861,7 @@ def combine_compare_peri_event_data_across_epochs_ideas_wrapper(
                     caption="Comparisons of post-pre activity between the two groups",
                 )
                 for md in metadata.get("pairwise_group_comparisons", {}):
-                    output_file.register_metadata(**md) 
+                    output_file.register_metadata(**md)
 
         logger.info("Registered output data")
     except Exception:

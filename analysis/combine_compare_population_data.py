@@ -821,8 +821,10 @@ def combine_compare_population_data(
             "pairwise_comparisons.csv": comparison_metadata,
         }
         if group2_name:
-            output_metadata[f"population_activity_data_{group2_name.replace(' ', '_')}"] = group2_population_md
-        
+            output_metadata[
+                f"population_activity_data_{group2_name.replace(' ', '_')}"
+            ] = group2_population_md
+
         with open(os.path.join(output_dir, "output_metadata.json"), "w") as f:
             json.dump(output_metadata, f, indent=4)
 
@@ -2534,9 +2536,7 @@ def combine_compare_population_data_ideas_wrapper(
         logger.info("Registering output data")
         metadata = outputs._load_and_remove_output_metadata()
         with outputs.register(raise_missing_file=False) as output_data:
-            anova_type = (
-                "rm_anova" if data_pairing == "paired" else "mixed_anova"
-            )
+            anova_type = "rm_anova" if data_pairing == "paired" else "mixed_anova"
             group_names = [g.replace(" ", "_") for g in [group1_name, group2_name] if g]
             for group_name in group_names:
                 subdir_base = "group1" if group_name == group_names[0] else "group2"
@@ -2558,7 +2558,7 @@ def combine_compare_population_data_ideas_wrapper(
                             f"experimental state in the {group_name} group."
                         ),
                     )
-                    
+
                 for data_type in ["activity", "event_rate"]:
                     output_file.register_preview(
                         f"{group_name}_mean_{data_type}_barplot{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
@@ -2576,7 +2576,7 @@ def combine_compare_population_data_ideas_wrapper(
                 )
                 for md in metadata.get(output_name, {}):
                     output_file.register_metadata(**md)
-                
+
                 for data_type in ["activity", "events"]:
                     output_file.register_preview(
                         f"{data_type}_modulation_distribution{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",

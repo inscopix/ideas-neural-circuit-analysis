@@ -27,7 +27,8 @@ from analysis.combine_compare_correlation_data import (
     validate_combine_compare_correlation_data_parameters,
 )
 from utils import config
-from utils.plots import _cl`from utils.visualization_helpers import create_cdf_preview
+from utils.plots import _clean_ax
+from utils.visualization_helpers import create_cdf_preview
 
 # import utils.config as config  # Import config for file extensions
 
