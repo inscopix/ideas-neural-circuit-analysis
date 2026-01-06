@@ -34,7 +34,7 @@ build:
 build-test: TARGET=test
 build-test: IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:${LABEL}-test
 build-test: LATEST_IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:latest-test
-build-test: test
+build-test: build
 
 # Runs unit tests in docker image
 # Used in automated pr checks on github
