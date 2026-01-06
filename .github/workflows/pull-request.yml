@@ -10,4 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - run: make test
+    - name: Check unit tests
+      run: make test
+    - name: Check code formatting
+      run: make ruff
