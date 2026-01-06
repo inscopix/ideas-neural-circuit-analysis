@@ -2113,6 +2113,9 @@ def combine_compare_peri_event_data_across_epochs_ideas_wrapper(
                     output_file.register_metadata(**md) 
             
             if group2_name:
+                # Prevents warnings from being printed about non-existent output files
+                # The Group 2 requirement applies only to the Across Epochs tool, as other tools like the Population tool
+                # can still generate ANOVA and pairwise results from single-group state comparisons.
                 output_file = output_data.register_file(
                     "anova_group_comparisons.csv"
                 ).register_preview(
