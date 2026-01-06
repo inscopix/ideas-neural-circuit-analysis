@@ -11,6 +11,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Check code formatting
-      run: make ruff
+      run: make ruff-check
     - name: Check unit tests
       run: make test
