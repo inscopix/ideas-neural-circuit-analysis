@@ -2150,8 +2150,9 @@ def combine_compare_correlation_data_ideas_wrapper(
         logger.info("Registering output data")
         metadata = outputs._load_and_remove_output_metadata()
         with outputs.register(raise_missing_file=False) as output_data:
-            for group_name in [group1_name, group2_name]:
-                subdir_base = "group1" if group_name == group1_name else "group2"
+            group_names = [g.replace(" ", "_") for g in [group1_name, group2_name] if g]
+            for group_name in group_names:
+                subdir_base = "group1" if group_name == group_names[0] else "group2"
                 output_file = (
                     output_data.register_file(
                         f"{group_name}_combined_average_correlation.csv",
