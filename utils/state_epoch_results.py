@@ -838,7 +838,10 @@ def calculate_baseline_modulation(
                 n_shuffle=n_shuffle,
             )
 
-            modulation_index = modulation_results_detailed["modulation_scores"]
+            modulation_index = np.asarray(
+                modulation_results_detailed["modulation_scores"], dtype=float
+            )
+            modulation_index = np.clip(modulation_index, -1.0, 1.0)
             p_values = modulation_results_detailed["p_val"]
             # Note: find_two_state_modulated_neurons already applies multiple comparisons correction
             p_values_corrected = p_values
@@ -958,7 +961,10 @@ def calculate_baseline_modulation(
                     n_shuffle=n_shuffle,
                 )
 
-                event_modulation_index = event_modulation_results["modulation_scores"]
+                event_modulation_index = np.asarray(
+                    event_modulation_results["modulation_scores"], dtype=float
+                )
+                event_modulation_index = np.clip(event_modulation_index, -1.0, 1.0)
                 event_p_values = event_modulation_results["p_val"]
                 event_up = event_modulation_results["up_modulated_neurons"]
                 event_down = event_modulation_results["down_modulated_neurons"]
