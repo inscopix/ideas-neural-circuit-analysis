@@ -6,20 +6,22 @@ neural data across behavioral states and time epochs.
 
 import logging
 import os
-
-import numpy as np
 import pandas as pd
+import numpy as np
 from beartype import beartype
-from beartype.typing import Any, Dict, List, Optional, Tuple
+from beartype.typing import List, Optional, Dict, Any, Tuple
 from ideas.exceptions import IdeasError
-
 from utils.utils import (
     _epoch_time_to_index,
     _get_cellset_data,
-    _parse_string_to_tuples,
-    _redefine_epochs,
-    _validate_epochs_param,
     event_set_to_events,
+    _parse_string_to_tuples,
+    _validate_epochs_param,
+    _redefine_epochs,
+    _fractional_change_2D_array,
+    _standardize_to_epoch,
+    _norm_2D_array,
+    _standardize_2D_array,
 )
 from utils.validation import _validate_events
 
@@ -27,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 def load_and_filter_cell_contours(
-    cell_info: Dict[str, Any],
+    cell_info: Dict[str, Any]
 ) -> Tuple[List[np.ndarray], List[np.ndarray]]:
     """Load cell contours and apply intelligent status filtering.
 
@@ -110,7 +112,8 @@ def load_and_filter_cell_contours(
     # Validate filtered results
     if len(x) == 0 or len(y) == 0:
         raise IdeasError(
-            f"No cells found with status '{cell_status_filter}'. Available statuses: {set(status)}"
+            f"No cells found with status '{cell_status_filter}'. "
+            f"Available statuses: {set(status)}"
         )
 
     logger.info(f"Filtered to {len(x)} cells with status '{cell_status_filter}'")
@@ -132,18 +135,32 @@ def scale_data(
     behavior: Optional[pd.DataFrame] = None,
     column_name: str = "state",
     baseline_state: Optional[str] = None,
+    epochs: Optional[List[Tuple[float | int, float | int]]] = None,
+    period: Optional[float | int] = None,
+    baseline_epoch: Optional[str] = None,
+    epoch_names: Optional[List[str]] = None,
 ) -> np.ndarray:
     """Scale data using specified method.
 
     Args
     ----
         data: Input data array
-        method: Scaling method ("none", "normalize", "standardize",
-            "fractional_change", "standardize_baseline")
+        method: Scaling method.
+            Supported:
+            - "none", "normalize", "standardize"
+            - "fractional_change": state-based (requires behavior+baseline_state) OR
+              epoch-based (requires epochs+period)
+            - "standardize_baseline": state-based (requires behavior+baseline_state)
+            - "standardize_epoch": epoch-based (requires epochs+period).
+              If baseline_epoch and epoch_names are provided, standardizes to that epoch.
         behavior: Optional behavioral data DataFrame (required for baseline methods)
         column_name: Column name in behavior containing state information
             (required for baseline methods)
         baseline_state: State to use as baseline (required for baseline methods)
+        epochs: Epoch periods (seconds) for epoch-based scaling
+        period: Sampling period (seconds) for epoch-based scaling
+        baseline_epoch: Name of baseline epoch (optional, for standardize_epoch)
+        epoch_names: List of all epoch names (optional, for standardize_epoch)
 
     Returns
     -------
@@ -154,21 +171,49 @@ def scale_data(
         IdeasError: If method is unknown or required parameters are missing
 
     """
+
+    def _resolve_epoch_index() -> int:
+        epoch_idx = 0
+        if baseline_epoch is not None and epoch_names is not None:
+            try:
+                return epoch_names.index(baseline_epoch)
+            except ValueError:
+                logger.warning(
+                    f"Baseline epoch '{baseline_epoch}' not found in epoch names. "
+                    "Defaulting to first epoch."
+                )
+        return epoch_idx
+
     if method == "none":
         return data
     elif method == "normalize":
-        return (data - np.nanmin(data)) / (np.nanmax(data) - np.nanmin(data))
+        # Match other tools: normalize per cell (column-wise).
+        return _norm_2D_array(data)
     elif method == "standardize":
-        return (data - np.nanmean(data)) / np.nanstd(data)
+        # Match other tools: standardize per cell (column-wise).
+        return _standardize_2D_array(data)
     elif method == "fractional_change":
-        if behavior is None or baseline_state is None:
-            raise IdeasError(
-                "Behavior data and baseline_state must be specified for fractional change scaling"
-            )
-        # Import the helper function from utils
-        from utils.utils import _fractional_change_states
+        # State-based fractional change (default for state-epoch tools)
+        if behavior is not None and baseline_state is not None:
+            # Import the helper function from utils
+            from utils.utils import _fractional_change_states
 
-        return _fractional_change_states(data, behavior, column_name, baseline_state)
+            return _fractional_change_states(
+                data, behavior, column_name, baseline_state
+            )
+
+        # Epoch-based fractional change (used by epoch-only tools)
+        if epochs is not None and period is not None:
+            epoch_idx = _resolve_epoch_index()
+            return _fractional_change_2D_array(
+                data, epochs, period, epoch_index=epoch_idx
+            )
+
+        raise IdeasError(
+            "fractional_change scaling requires either "
+            "(behavior + baseline_state) for state-based scaling or "
+            "(epochs + period) for epoch-based scaling."
+        )
     elif method == "standardize_baseline":
         if behavior is None or baseline_state is None:
             raise IdeasError(
@@ -179,6 +224,15 @@ def scale_data(
         from utils.utils import _standardize_baseline
 
         return _standardize_baseline(data, behavior, column_name, baseline_state)
+    elif method == "standardize_epoch":
+        if epochs is None or period is None:
+            raise IdeasError(
+                "epochs and period must be specified for standardize_epoch scaling"
+            )
+
+        # Determine baseline epoch index
+        epoch_idx = _resolve_epoch_index()
+        return _standardize_to_epoch(data, epochs, period, epoch_index=epoch_idx)
     else:
         raise IdeasError(f"Unknown scaling method: {method}")
 
@@ -220,7 +274,8 @@ def check_epochs_valid_state_epoch(
 
         if epoch[0] < 0 or epoch[1] < 0:
             raise IdeasError(
-                f"Epoch '{epoch_name}' times must be positive. Got start={epoch[0]}, end={epoch[1]}"
+                f"Epoch '{epoch_name}' times must be positive. "
+                f"Got start={epoch[0]}, end={epoch[1]}"
             )
 
         if epoch[0] > num_samples:
@@ -271,10 +326,8 @@ class StateEpochDataManager:
         event_set_files: Optional[List[str]],
         annotations_file: Optional[List[str]],
         concatenate: bool,
-        use_registered_cellsets: bool,
-        registration_method: str,
         # Validation parameters (for built-in validation)
-        epochs: str,
+        epochs: Optional[str],
         epoch_names: List[str],
         epoch_colors: List[str],
         state_names: List[str],
@@ -298,12 +351,9 @@ class StateEpochDataManager:
             List of annotation file paths. Only the first file is used when provided.
         concatenate : bool
             Whether to concatenate multiple files
-        use_registered_cellsets : bool
-            Whether to use registered cellsets
-        registration_method : str
-            Method for cell registration
-        epochs : str
-            Epoch time periods as string representation of tuples
+        epochs : Optional[str]
+            Epoch time periods as string representation of tuples. If None, epochs will be
+            inferred based on define_epochs_by and cellset boundaries (IDEAS conventions).
         epoch_names : List[str]
             List of epoch names
         epoch_colors : List[str]
@@ -331,8 +381,6 @@ class StateEpochDataManager:
         self.event_set_files = event_set_files
         self.annotations_file = annotations_file
         self.concatenate = concatenate
-        self.use_registered_cellsets = use_registered_cellsets
-        self.registration_method = registration_method
         self.tolerance = tolerance
         self.sort_by_time = sort_by_time
         self.allow_epoch_only_mode = allow_epoch_only_mode
@@ -467,7 +515,6 @@ class StateEpochDataManager:
             "boundaries": boundaries,
             "period": period,
             "cell_set_files": self.cell_set_files,
-            "is_registered": self.use_registered_cellsets,
         }
 
         # 5. Store cellset metadata for event processing
@@ -571,7 +618,7 @@ class StateEpochDataManager:
 
         try:
             offsets, amplitudes = event_set_to_events(self.event_set_files)
-        except IdeasError as err:
+        except (IdeasError, AttributeError) as err:
             logger.info("Error processing event set files.")
             logger.error(err)
             logger.warning("Proceeding without events due to loading error.")
