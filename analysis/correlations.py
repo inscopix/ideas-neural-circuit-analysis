@@ -1430,7 +1430,11 @@ def plot_correlation_spatial_map(
     )
 
     # Add title using suptitle with dynamic positioning based on number of states
-    title_y = 1.0 - (0.01 + 0.005 * n_states)
+    # Use a fixed offset in inches converted to figure fraction
+    safe_state_count = max(n_states, 1)
+    total_height = 4.5 * safe_state_count
+    # Place title centered near the top
+    title_y = 1.0 - (0.2 / total_height)
     plt.suptitle(
         "Spatial Map of Neural Correlations\n"
         f"Showing correlations with |r| ≥ {correlation_threshold}",
@@ -1563,7 +1567,8 @@ def plot_correlation_spatial_map(
         cax.set_xlabel("Correlation", fontdict=LABEL_FONT)
 
     # Adjust layout for better spacing with dynamic top margin based on number of states
-    top_margin = 0.95 - (0.01 + 0.005 * n_states)
+    # Reserve fixed physical space (approx 1.0 inches) for the title area to prevent overlap
+    top_margin = 1.0 - (1.0 / total_height)
     fig.subplots_adjust(bottom=0.15, top=top_margin, left=0.20, right=0.80)
 
     # Save figure using optimized SVG function
