@@ -2080,8 +2080,19 @@ class StateEpochOutputGenerator:
             color_map: Dict[str, str] = {}
 
             for state, epoch in combination_order:
-                dict_key = self._format_state_epoch_identifier(state, epoch, "_")
-                if dict_key not in correlation_matrices:
+                dict_key_candidates: List[str] = []
+                if self.hide_state_prefix or self.epoch_only_mode:
+                    dict_key_candidates.append(epoch)
+                dict_key_candidates.append(
+                    self._format_state_epoch_identifier(state, epoch, "_")
+                )
+
+                dict_key: Optional[str] = None
+                for candidate in dict_key_candidates:
+                    if candidate in correlation_matrices:
+                        dict_key = candidate
+                        break
+                if dict_key is None:
                     continue
                 display_label = self._format_state_epoch_label(state, epoch, "-")
                 labeled_matrices.append(
