@@ -158,7 +158,7 @@ def _save_experiment_annotations_preview_and_metadata(
     ax.bar_label(ax.containers[0], label_type="edge")
     ax.margins(y=0.1)
 
-    plt.setp(ax.xaxis.get_majorticklabels(), rotation=90)
+    plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
     plt.tight_layout()
 
     fig.savefig(
@@ -343,25 +343,32 @@ def _norm_2D_array(array):
     """Normalize a 2D array to the range [0, 1]."""
     min_vals = np.nanmin(array, axis=0)
     max_vals = np.nanmax(array, axis=0)
-    return (array - min_vals) / (max_vals - min_vals)
+    denom = max_vals - min_vals
+    denom = np.where((denom == 0) | np.isnan(denom), 1, denom)
+    return (array - min_vals) / denom
 
 
 def _standardize_2D_array(array):
     """Standardize a 2D array to have a mean of 0 and a standard deviation of
     1.
     """
-    return (array - np.nanmean(array, axis=0)) / np.nanstd(array, axis=0)
+    mean_vals = np.nanmean(array, axis=0)
+    std_vals = np.nanstd(array, axis=0)
+    std_vals = np.where((std_vals == 0) | np.isnan(std_vals), 1, std_vals)
+    return (array - mean_vals) / std_vals
 
 
-def _fractional_change_2D_array(array, epochs, period):
-    """Calculate the fractional change in the array compared to the first epoch
-    defined.
-    """
+def _fractional_change_2D_array(array, epochs, period, epoch_index=0):
+    """Calculate the fractional change in the array compared to a reference epoch."""
     # Convert the period to an
     # make the array non-negative by adding the minimum value
     array += np.abs(np.nanmin(array))
     epoch_idx = _epoch_time_to_index(epochs, period)
-    start, end = epoch_idx[0]
+    if epoch_index < 0 or epoch_index >= len(epoch_idx):
+        raise IndexError(
+            f"Epoch index {epoch_index} out of range for {len(epoch_idx)} epochs"
+        )
+    start, end = epoch_idx[epoch_index]
     # get the baseline average value
 
     baseline = np.nanmean(array[start:end], axis=0)
@@ -385,11 +392,15 @@ def _fractional_change_states(traces, behavior, column_name, baseline_state):
     return traces / baseline
 
 
-def _standardize_to_first_epoch(array, epochs, period):
-    """Standardize the array to the first epoch defined."""
+def _standardize_to_epoch(array, epochs, period, epoch_index=0):
+    """Standardize the array to the specified epoch (default: first epoch)."""
     epoch_idx = _epoch_time_to_index(epochs, period)
-    start, end = epoch_idx[0]
+    if epoch_index < 0 or epoch_index >= len(epoch_idx):
+        raise IndexError(f"Epoch index {epoch_index} out of range for {len(epoch_idx)} epochs")
+
+    start, end = epoch_idx[epoch_index]
     # Compute mean and std for the first epoch
+    # Compute mean and std for the reference epoch
     mean_val = np.nanmean(array[start:end], axis=0)
     std_val = np.nanstd(array[start:end], axis=0)
     # Avoid division by zero
@@ -884,7 +895,11 @@ def _validate_epochs_param(
 
         epochs = str(all_epochs_list)
 
-    if epochs is None and define_epochs_by == "files":
+    if epochs is None and define_epochs_by in {
+        "files",
+        "global file time",
+        "local file time",
+    }:
         epochs = ""
 
     if not isinstance(epochs, str):
@@ -900,39 +915,90 @@ def _validate_epochs_param(
 def _redefine_epochs(
     *,
     define_epochs_by: str,
-    epochs: str,
+    epochs: Optional[str],
     boundaries: List[int],
 ) -> str:
     """Redefine epochs, either by setting one epoch per input cell set, or by
     adding elapsed global time to epochs defined in local file time.
     """
-    if define_epochs_by in ["files", "local file time"]:
-        # map epochs to cellsets
-        if define_epochs_by == "files":
-            n_epochs = len(boundaries) - 1
-            epochs = ""
-            for idx in range(n_epochs):
-                epochs += f"({boundaries[idx]}, "
-                epochs += f"{boundaries[idx + 1]}), "
-            epochs = epochs[:-2]
-            logger.info(
-                f"Automatically defined epochs based on input cell set files: {epochs}."
-            )
+    # Boundaries are expected to be non-decreasing global times (seconds) returned by
+    # `_get_cellset_boundaries()` (which floors to integer seconds). Note this can lead
+    # to zero-duration epochs when a file is shorter than 1 second (or due to flooring).
+    if any(b2 < b1 for b1, b2 in zip(boundaries, boundaries[1:])):
+        raise IdeasError(
+            "Cell set boundaries must be non-decreasing. "
+            f"Got boundaries={boundaries}."
+        )
+    if any(b2 == b1 for b1, b2 in zip(boundaries, boundaries[1:])):
+        logger.warning(
+            "Some adjacent cell set boundaries are equal (0-second duration). "
+            "This can happen due to integer-second flooring; inferred epochs may have "
+            "zero duration. boundaries=%s",
+            boundaries,
+        )
 
+    # map epochs to cellsets
+    def _infer_global_epochs_from_boundaries() -> str:
+        if len(boundaries) < 2:
+            raise IdeasError(
+                "At least one cell set file is required to infer epoch boundaries."
+            )
+        inferred = ", ".join(
+            f"({boundaries[idx]}, {boundaries[idx + 1]})"
+            for idx in range(len(boundaries) - 1)
+        )
+        logger.info(
+            "Automatically defined epochs based on input cell set files: %s.",
+            inferred,
+        )
+        return inferred
+
+    def _infer_local_epochs_from_boundaries() -> str:
+        if len(boundaries) < 2:
+            raise IdeasError(
+                "At least one cell set file is required to infer epoch boundaries."
+            )
+        inferred = ", ".join(
+            f"[(0, {boundaries[idx + 1] - boundaries[idx]})]"
+            for idx in range(len(boundaries) - 1)
+        )
+        logger.info(
+            "Automatically defined local epochs per cell set: %s.",
+            inferred,
+        )
+        return inferred
+
+    if define_epochs_by == "files":
+        epochs = _infer_global_epochs_from_boundaries()
+
+    elif define_epochs_by == "local file time":
+        if not epochs:
+            epochs = _infer_local_epochs_from_boundaries()
+
+        epochs_local_str = epochs
+        epochs_local_list = _parse_string_to_list_of_tuples(epochs)
+        epochs_global = []
         # add previous duration to each "local file time"-based epoch
-        else:
-            epochs_local_str = epochs
-            epochs_local_list = _parse_string_to_list_of_tuples(epochs)
-            epochs_global = []
-            for epochs_local, offset in zip(epochs_local_list, boundaries):
-                epochs_local = _parse_string_to_tuples(epochs_local)
-                for epoch in epochs_local:
-                    epoch_global = tuple([x + offset for x in epoch])
-                    epochs_global.append(epoch_global)
-            epochs = str(epochs_global).strip("[]")
-            logger.info(
-                "Automatically converted local epochs into global epochs: "
-                f"{epochs_local_str} -> {epochs}."
+        for epochs_local, offset in zip(epochs_local_list, boundaries):
+            epochs_local = _parse_string_to_tuples(epochs_local)
+            for epoch in epochs_local:
+                epoch_global = tuple([x + offset for x in epoch])
+                epochs_global.append(epoch_global)
+        epochs = str(epochs_global).strip("[]")
+        logger.info(
+            "Automatically converted local epochs into global epochs: "
+            f"{epochs_local_str} -> {epochs}."
+        )
+
+    elif define_epochs_by == "global file time":
+        if not epochs:
+            epochs = _infer_global_epochs_from_boundaries()
+
+    else:
+        if epochs is None:
+            raise IdeasError(
+                "epochs must be specified when define_epochs_by "
+                f"is set to '{define_epochs_by}'."
             )
 
     return epochs
