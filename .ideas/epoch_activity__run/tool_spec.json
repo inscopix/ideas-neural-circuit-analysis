@@ -82,6 +82,34 @@
             "group": ""
         },
         {
+            "key": "baseline_epoch",
+            "name": "Baseline Epoch",
+            "required": false,
+            "description": "Epoch name to use as baseline for modulation calculations. Must match one of the provided epoch names. If set to Auto or left blank, the first epoch is used.",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "Auto"
+            },
+            "group": ""
+        },
+        {
+            "key": "epoch_comparison_method",
+            "name": "Epoch Comparison Method",
+            "required": false,
+            "description": "How epochs are compared for modulation calculations. Currently only epoch_vs_baseline is supported (future: pairwise).",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "choices": [
+                    "epoch_vs_baseline"
+                ],
+                "display_options": [
+                    "epoch vs baseline"
+                ],
+                "default": "epoch_vs_baseline"
+            },
+            "group": ""
+        },
+        {
             "key": "epoch_colors",
             "name": "Epoch Colors",
             "required": true,
@@ -177,55 +205,90 @@
             "group": ""
         },
         {
-            "key": "heatmap",
-            "name": "Activity heatmap (colormap range)",
+            "key": "modulation_colormap",
+            "name": "Modulation colormap",
             "required": false,
-            "description": "Input min and max value separated by a comma to define the range of the colormap for the trace activity heatmap",
+            "description": "Comma-separated colors used for modulation visualizations in the order (up, down, non). Example: `red, blue, gray`.",
             "type": {
                 "param_type": "ToolStringParam",
-                "default": "Auto"
-            }
+                "default": "red, blue, gray"
+            },
+            "group": ""
+        },
+        {
+            "key": "alpha",
+            "name": "Significance Level",
+            "required": false,
+            "description": "Significance level for statistical tests",
+            "type": {
+                "param_type": "ToolFloatRangeParam",
+                "default": 0.05,
+                "min": 0.001,
+                "max": 0.1
+            },
+            "group": ""
+        },
+        {
+            "key": "n_shuffle",
+            "name": "Number of Shuffles",
+            "required": false,
+            "description": "Number of shuffles for permutation tests",
+            "type": {
+                "param_type": "ToolIntRangeParam",
+                "default": 1000,
+                "min": 100,
+                "max": 10000
+            },
+            "group": ""
         }
     ],
     "results": [
         {
-            "key": "Traces_timecourse_data",
-            "name": "Traces Timecourse Data",
-            "description": "Time course data of calcium traces",
+            "key": "activity_per_epoch_data",
+            "name": "Activity Per Epoch Data",
+            "description": "Calcium activity per cell for each epoch",
             "file_patterns": [
-                "Traces_timecourse_data/**/*"
+                "activity_per_epoch_data/**/*"
             ]
         },
         {
-            "key": "Traces_activity_data",
-            "name": "Traces Activity Data",
-            "description": "Calcium activity in each epoch averaged by cell",
+            "key": "correlations_per_epoch_data",
+            "name": "Correlations Per Epoch Data",
+            "description": "Correlation statistics per cell for each epoch",
             "file_patterns": [
-                "Traces_activity_data/**/*"
+                "correlations_per_epoch_data/**/*"
             ]
         },
         {
-            "key": "Population_Traces_Correlation",
-            "name": "Population Traces Correlation",
-            "description": "Raw Correlation data before clustering for each cell-cell pair in each epoch",
+            "key": "modulation_vs_baseline_data",
+            "name": "Modulation vs Baseline Data",
+            "description": "Trace and event modulation relative to the baseline epoch",
             "file_patterns": [
-                "Population_Traces_Correlation/**/*"
+                "modulation_vs_baseline_data/**/*"
             ]
         },
         {
-            "key": "Eventrate_timecourse_data",
-            "name": "Eventrate Timecourse Data",
-            "description": "Time course data of event rate",
+            "key": "average_correlations",
+            "name": "Average Correlations Summary",
+            "description": "Average positive and negative correlations per epoch",
             "file_patterns": [
-                "Eventrate_timecourse_data/**/*"
+                "average_correlations/**/*"
             ]
         },
         {
-            "key": "Eventrate_activity_data",
-            "name": "Eventrate Activity Data",
-            "description": "Event rate in each epoch averaged by cell",
+            "key": "pairwise_correlation_heatmaps",
+            "name": "Pairwise Correlation Heatmaps",
+            "description": "Raw correlation matrices stored in HDF5 format",
             "file_patterns": [
-                "Eventrate_activity_data/**/*"
+                "pairwise_correlation_heatmaps/**/*"
+            ]
+        },
+        {
+            "key": "spatial_analysis_pairwise_correlations",
+            "name": "Spatial Correlation Archive",
+            "description": "Spatial correlation matrices and cell pairs packaged as ZIP",
+            "file_patterns": [
+                "spatial_analysis_pairwise_correlations/**/*"
             ]
         }
     ],
@@ -236,7 +299,7 @@
     },
     "description": "Calculate change in activity during user defined continuous epochs",
     "visibility": "public",
-    "version": "5.0.3",
+    "version": "5.1.0",
     "docs": "https://inscopix.github.io/ideas-docs/tools/epochs/epoch_activity__run/epoch_activity__run.html",
     "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis",
     "tags": [
