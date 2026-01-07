@@ -178,3 +178,4 @@ cython_debug/
 .pypirc
 TAGS
 venv*
+Data/testing*
