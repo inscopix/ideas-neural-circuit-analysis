@@ -7,49 +7,52 @@ output files from state-epoch baseline analysis results.
 import json
 import logging
 import os
-from dataclasses import dataclass
-
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from beartype.typing import Any, Dict, List, Optional, Set, Tuple
+import matplotlib
+import matplotlib.pyplot as plt
 from matplotlib import colors as mcolors
+from beartype.typing import List, Optional, Dict, Any, Tuple, Set
+from dataclasses import dataclass
 
-# Import existing functions from correlations.py to avoid duplication
-from analysis.correlations import (
-    _correlations_to_csv,
-)
+from utils.state_epoch_results import StateEpochResults
 
 # Consolidated imports to reduce redundancy in functions
 from utils.plots import (
-    _plot_population_average,
-    _plot_raster,
-    _plot_raster_with_epochs,
-    _plot_state_epoch_time,
-    _plot_state_time,
-    _plot_traces,
-    _plot_traces_with_epochs,
     plot_modulated_neuron_footprints,
+    _plot_population_average,
+    _plot_state_time,
+    _plot_state_epoch_time,
+    _plot_traces,
+    _plot_raster,
+    _plot_traces_with_epochs,
+    _plot_raster_with_epochs,
 )
-
-# Plotting utilities imports
-from utils.plotting_utils import (
-    save_figure_with_cleanup,
-    validate_data_availability,
-)
+from utils.utils import Comp
 
 # Data preparation imports from appropriate modules
 from utils.state_epoch_data import (
     load_and_filter_cell_contours,
 )
 from utils.state_epoch_results import (
-    DEFAULT_ALPHA,
-    StateEpochResults,
     extract_common_modulation_data,
     prepare_event_modulation_data,
+    DEFAULT_ALPHA,
 )
-from utils.utils import Comp
+
+# Plotting utilities imports
+from utils.plotting_utils import (
+    create_dual_panel_plot_with_epoch_overlays,
+    plot_events_bottom_panel,
+    plot_traces_bottom_panel,
+    save_figure_with_cleanup,
+    validate_data_availability,
+)
+
+# Import existing functions from correlations.py to avoid duplication
+from analysis.correlations import (
+    _correlations_to_csv,
+)
 
 
 @dataclass
@@ -70,7 +73,9 @@ class ColorScheme:
                 self.modulation_colors[2],
             )
         else:
-            up_color = self.modulation_colors[0] if self.modulation_colors else "red"
+            up_color = (
+                self.modulation_colors[0] if self.modulation_colors else "red"
+            )
             down_color = (
                 self.modulation_colors[1]
                 if self.modulation_colors and len(self.modulation_colors) > 1
@@ -90,6 +95,14 @@ class ColorScheme:
             return self.state_colors[state_idx]
         except (ValueError, IndexError):
             return "gray"
+
+    def get_epoch_color(self, epoch: str, epochs: List[str]) -> str:
+        """Get color for a specific epoch."""
+        try:
+            epoch_idx = epochs.index(epoch)
+            return self.epoch_colors[epoch_idx]
+        except (ValueError, IndexError):
+            return "#9e9e9e"
 
 
 # Configure matplotlib to reduce memory warnings
@@ -154,11 +167,17 @@ class StateEpochOutputGenerator:
         epoch_colors: List[str],
         baseline_state: str,
         baseline_epoch: str,
+        epoch_comparison_method: str = "epoch_vs_baseline",
         alpha: float = DEFAULT_ALPHA,
         n_shuffle: int = 1000,
         epoch_periods: Optional[List[tuple]] = None,
         correlation_statistic: str = "max",
         include_event_correlation_preview: bool = False,
+        trace_scale_method: Optional[str] = None,
+        event_scale_method: Optional[str] = None,
+        filename_overrides: Optional[Dict[str, str]] = None,
+        hide_state_prefix: bool = False,
+        epoch_only_mode: bool = False,
     ):
         """Initialize output generator.
 
@@ -171,6 +190,8 @@ class StateEpochOutputGenerator:
             epoch_colors: Colors for epochs.
             baseline_state: Baseline state name.
             baseline_epoch: Baseline epoch name.
+            epoch_comparison_method: Comparison strategy across epochs (currently
+                "epoch_vs_baseline").
             alpha: Significance level.
             n_shuffle: Number of permutations for resampling-based tests.
             epoch_periods: Optional list of epoch time periods as tuples.
@@ -178,6 +199,13 @@ class StateEpochOutputGenerator:
                 "min", or "mean") used for distribution previews.
             include_event_correlation_preview: Whether to generate event-based correlation
                 outputs in addition to trace outputs.
+            trace_scale_method: Method used for trace scaling (for metadata/labels).
+            event_scale_method: Method used for event scaling (for metadata/labels).
+            filename_overrides: Dictionary mapping default filenames to overridden names.
+            hide_state_prefix: Whether to hide the state name in output labels.
+                Useful for epoch-only analysis where the state is a dummy value.
+            epoch_only_mode: Whether the generator is running in epoch-only mode.
+                Enables legacy-style previews that emphasize epoch coloring.
 
         """
         self.output_dir = output_dir
@@ -185,6 +213,7 @@ class StateEpochOutputGenerator:
         self.epochs = epochs
         self.baseline_state = baseline_state
         self.baseline_epoch = baseline_epoch
+        self.epoch_comparison_method = epoch_comparison_method
         self.alpha = alpha
         self.n_shuffle = n_shuffle
         self.epoch_periods = epoch_periods
@@ -192,6 +221,11 @@ class StateEpochOutputGenerator:
             correlation_statistic
         )
         self.include_event_correlation_preview = include_event_correlation_preview
+        self.trace_scale_method = trace_scale_method
+        self.event_scale_method = event_scale_method
+        self.filename_overrides = filename_overrides or {}
+        self.hide_state_prefix = hide_state_prefix
+        self.epoch_only_mode = epoch_only_mode
 
         # Create centralized color scheme
         self.color_scheme = ColorScheme(
@@ -204,9 +238,77 @@ class StateEpochOutputGenerator:
 
     def _get_output_path(self, filename: str) -> str:
         """Get full output path for a filename."""
+        resolved = self.filename_overrides.get(filename, filename)
         if self.output_dir:
-            return os.path.join(self.output_dir, filename)
-        return filename
+            return os.path.join(self.output_dir, resolved)
+        return resolved
+
+    def _get_epoch_color_sequence(self, count: int) -> List[str]:
+        """Return a color list sized to the number of epochs."""
+        if count <= 0:
+            return []
+        base_colors = self.color_scheme.epoch_colors or ["#9e9e9e"]
+        if len(base_colors) >= count:
+            return list(base_colors[:count])
+        return [base_colors[i % len(base_colors)] for i in range(count)]
+
+    def _resolve_epoch_overlay_params(
+        self,
+        epochs: List[Tuple[float, float]],
+        epoch_names: Optional[List[str]],
+        epoch_colors: Optional[List[str]],
+    ) -> Tuple[List[str], List[str]]:
+        """Return epoch names/colors sized to the provided epoch list."""
+        count = len(epochs)
+        if count == 0:
+            return [], []
+
+        resolved_names: List[str]
+        if epoch_names:
+            resolved_names = list(epoch_names[:count])
+        else:
+            resolved_names = []
+
+        if len(resolved_names) < count:
+            start_idx = len(resolved_names)
+            resolved_names.extend(
+                f"epoch_{idx + 1}" for idx in range(start_idx, count)
+            )
+
+        if epoch_colors and len(epoch_colors) >= count:
+            resolved_colors = list(epoch_colors[:count])
+        else:
+            resolved_colors = self._get_epoch_color_sequence(count)
+
+        return resolved_names, resolved_colors
+
+    @staticmethod
+    def _move_generated_preview(src: str, dst: str) -> None:
+        """Move a generated preview file to the desired destination if it exists."""
+        if not src or not dst:
+            return
+        try:
+            if os.path.abspath(src) == os.path.abspath(dst):
+                return
+            if os.path.exists(src):
+                os.replace(src, dst)
+        except OSError as exc:
+            logger.warning(f"Could not move preview from {src} to {dst}: {exc}")
+
+    def _format_state_epoch_label(
+        self, state: str, epoch: str, separator: str = "-"
+    ) -> str:
+        """Format state-epoch label, optionally hiding state prefix."""
+        if self.hide_state_prefix:
+            return epoch
+        return f"{state}{separator}{epoch}"
+
+    @staticmethod
+    def _format_state_epoch_identifier(
+        state: str, epoch: str, separator: str = "-"
+    ) -> str:
+        """Return a canonical state-epoch identifier that always includes the state."""
+        return f"{state}{separator}{epoch}"
 
     @staticmethod
     def _normalize_correlation_statistic(
@@ -214,7 +316,9 @@ class StateEpochOutputGenerator:
     ) -> str:
         """Normalize correlation statistic selection."""
         if correlation_statistic is None:
-            logger.warning("No correlation_statistic provided; defaulting to 'max'.")
+            logger.warning(
+                "No correlation_statistic provided; defaulting to 'max'."
+            )
             return "max"
 
         normalized = str(correlation_statistic).strip().lower()
@@ -237,6 +341,18 @@ class StateEpochOutputGenerator:
                 return True
         return False
 
+    @staticmethod
+    def _format_trace_activity_label(scale_method: Optional[str]) -> str:
+        """Return a user-friendly label for trace activity previews."""
+        method = (scale_method or "none").lower()
+        if method == "normalize":
+            return "Normalized Trace Activity"
+        if method in {"standardize", "standardize_epoch"}:
+            return "Standardized Trace Activity"
+        if method == "fractional_change":
+            return "Fractional Change in Trace Activity"
+        return "Trace Activity"
+
     def generate_all_outputs(
         self,
         results: StateEpochResults,
@@ -246,6 +362,8 @@ class StateEpochOutputGenerator:
         events: Optional[np.ndarray] = None,
         annotations_df: Optional["pd.DataFrame"] = None,
         column_name: str = "state",
+        modulation_colors: Optional[List[str]] = None,
+        correlation_colors: Optional[List[str]] = None,
     ) -> None:
         """Generate all output files.
 
@@ -276,13 +394,19 @@ class StateEpochOutputGenerator:
         self._save_correlation_summary_csv(results, cell_info)
         self._save_modulation_results_csv(modulation_results, cell_info)
 
-        self._save_average_correlations_csv(results)  # Correlations.py style format
+        self._save_average_correlations_csv(
+            results
+        )  # Correlations.py style format
         self._save_raw_correlations_h5(results)  # Raw correlation matrices in H5 format
-        self._save_raw_correlations_zip(
-            results, cell_info
-        )  # Raw correlation data in ZIP
+        self._save_raw_correlations_zip(results, cell_info)  # Raw correlation data in ZIP
 
         # Generate preview plots
+        # Update color scheme with optional colors
+        if modulation_colors:
+            self.color_scheme.modulation_colors = modulation_colors
+        if correlation_colors:
+            self.color_scheme.correlation_colors = correlation_colors
+
         correlation_colors = self.color_scheme.correlation_colors
         self._generate_core_previews(
             results,
@@ -292,6 +416,8 @@ class StateEpochOutputGenerator:
             events,
             annotations_df,
             column_name,
+            modulation_colors=self.color_scheme.modulation_colors,
+            correlation_colors=self.color_scheme.correlation_colors,
         )
 
         if event_corr_outputs_enabled:
@@ -330,24 +456,36 @@ class StateEpochOutputGenerator:
             # Get additional activity metrics and event data
             combination_data = results.get_combination_results(state, epoch)
             std_activity = (
-                combination_data.get("std_activity") if combination_data else None
+                combination_data.get("std_activity")
+                if combination_data
+                else None
             )
             median_activity = (
-                combination_data.get("median_activity") if combination_data else None
+                combination_data.get("median_activity")
+                if combination_data
+                else None
             )
             activity_cv = (
-                combination_data.get("activity_cv") if combination_data else None
+                combination_data.get("activity_cv")
+                if combination_data
+                else None
             )
 
             # Get event-based metrics (matching trace statistics)
             event_rates = results.get_event_rates(state, epoch)
 
             # Get additional event statistics to match trace statistics
-            event_std = combination_data.get("event_std") if combination_data else None
-            event_median = (
-                combination_data.get("event_median") if combination_data else None
+            event_std = (
+                combination_data.get("event_std") if combination_data else None
             )
-            event_cv = combination_data.get("event_cv") if combination_data else None
+            event_median = (
+                combination_data.get("event_median")
+                if combination_data
+                else None
+            )
+            event_cv = (
+                combination_data.get("event_cv") if combination_data else None
+            )
 
             for cell_idx, activity in enumerate(mean_activity):
                 cell_name = (
@@ -369,7 +507,8 @@ class StateEpochOutputGenerator:
                 )
                 cell_event_median = (
                     event_median[cell_idx]
-                    if event_median is not None and cell_idx < len(event_median)
+                    if event_median is not None
+                    and cell_idx < len(event_median)
                     else np.nan
                 )
                 cell_event_cv = (
@@ -388,7 +527,8 @@ class StateEpochOutputGenerator:
                         "mean_trace_activity": activity,
                         "std_trace_activity": (
                             std_activity[cell_idx]
-                            if std_activity is not None and cell_idx < len(std_activity)
+                            if std_activity is not None
+                            and cell_idx < len(std_activity)
                             else np.nan
                         ),
                         "median_trace_activity": (
@@ -399,7 +539,8 @@ class StateEpochOutputGenerator:
                         ),
                         "trace_activity_cv": (
                             activity_cv[cell_idx]
-                            if activity_cv is not None and cell_idx < len(activity_cv)
+                            if activity_cv is not None
+                            and cell_idx < len(activity_cv)
                             else np.nan
                         ),
                         # Event-based activity metrics (matching trace structure)
@@ -412,7 +553,9 @@ class StateEpochOutputGenerator:
 
         if data_rows:
             df = pd.DataFrame(data_rows)
-            output_path = self._get_output_path(ACTIVITY_PER_STATE_EPOCH_DATA_CSV)
+            output_path = self._get_output_path(
+                ACTIVITY_PER_STATE_EPOCH_DATA_CSV
+            )
             df.to_csv(output_path, index=False)
             logger.info(
                 f"Saved activity summary with trace and event data to {output_path}"
@@ -443,30 +586,36 @@ class StateEpochOutputGenerator:
 
             # Get trace correlation matrix to calculate positive/negative averages
             corr_matrix = results.get_correlation_matrix(state, epoch)
-            pos_corr_trace, neg_corr_trace = self._calculate_pos_neg_correlations(
-                corr_matrix
+            pos_corr_trace, neg_corr_trace = (
+                self._calculate_pos_neg_correlations(corr_matrix)
             )
 
             # Try to get event correlation matrix (if events were analyzed)
             combination_data = results.get_combination_results(state, epoch)
             event_corr_matrix = None
             if combination_data:
-                event_corr_matrix = combination_data.get("event_correlation_matrix")
+                event_corr_matrix = combination_data.get(
+                    "event_correlation_matrix"
+                )
 
             # Calculate event correlation statistics if available
             if event_corr_matrix is not None and event_corr_matrix.size > 0:
-                event_corr_stats = self._calculate_correlation_stats(event_corr_matrix)
+                event_corr_stats = self._calculate_correlation_stats(
+                    event_corr_matrix
+                )
                 max_event_correlations = event_corr_stats["max_per_cell"]
                 min_event_correlations = event_corr_stats["min_per_cell"]
                 mean_event_correlations = event_corr_stats["mean_per_cell"]
-                pos_corr_event, neg_corr_event = self._calculate_pos_neg_correlations(
-                    event_corr_matrix
+                pos_corr_event, neg_corr_event = (
+                    self._calculate_pos_neg_correlations(event_corr_matrix)
                 )
             else:
                 # No event correlations available - use NaN
                 max_event_correlations = np.full(len(max_correlations), np.nan)
                 min_event_correlations = np.full(len(max_correlations), np.nan)
-                mean_event_correlations = np.full(len(max_correlations), np.nan)
+                mean_event_correlations = np.full(
+                    len(max_correlations), np.nan
+                )
                 pos_corr_event = np.nan
                 neg_corr_event = np.nan
 
@@ -487,9 +636,15 @@ class StateEpochOutputGenerator:
                         "min_trace_correlation": min_correlations[cell_idx],
                         "mean_trace_correlation": mean_correlations[cell_idx],
                         # Per-cell event correlation statistics
-                        "max_event_correlation": max_event_correlations[cell_idx],
-                        "min_event_correlation": min_event_correlations[cell_idx],
-                        "mean_event_correlation": mean_event_correlations[cell_idx],
+                        "max_event_correlation": max_event_correlations[
+                            cell_idx
+                        ],
+                        "min_event_correlation": min_event_correlations[
+                            cell_idx
+                        ],
+                        "mean_event_correlation": mean_event_correlations[
+                            cell_idx
+                        ],
                         # Population-level trace correlations
                         "positive_trace_correlation": pos_corr_trace,
                         "negative_trace_correlation": neg_corr_trace,
@@ -501,7 +656,9 @@ class StateEpochOutputGenerator:
 
         if data_rows:
             df = pd.DataFrame(data_rows)
-            output_path = self._get_output_path(CORRELATIONS_PER_STATE_EPOCH_DATA_CSV)
+            output_path = self._get_output_path(
+                CORRELATIONS_PER_STATE_EPOCH_DATA_CSV
+            )
             df.to_csv(output_path, index=False)
             logger.info(
                 f"Saved correlation summary with trace and event data to {output_path}"
@@ -552,7 +709,9 @@ class StateEpochOutputGenerator:
             # Calculate mean of all off-diagonal correlations (population-level)
             upper_triangle = np.triu(corr_matrix, k=1)
             valid_corrs = upper_triangle[~np.isnan(upper_triangle)]
-            mean_corr = np.mean(valid_corrs) if len(valid_corrs) > 0 else np.nan
+            mean_corr = (
+                np.mean(valid_corrs) if len(valid_corrs) > 0 else np.nan
+            )
 
         except Exception as e:
             logger.warning(f"Failed to calculate correlation stats: {e}")
@@ -658,9 +817,13 @@ class StateEpochOutputGenerator:
             trace_p_values = trace_mod_data.get("p_values", [])
             trace_significant = trace_mod_data.get("significant", [])
             trace_index_len = (
-                len(trace_modulation_index) if trace_modulation_index is not None else 0
+                len(trace_modulation_index)
+                if trace_modulation_index is not None
+                else 0
             )
-            trace_p_len = len(trace_p_values) if trace_p_values is not None else 0
+            trace_p_len = (
+                len(trace_p_values) if trace_p_values is not None else 0
+            )
             trace_significant_len = (
                 len(trace_significant) if trace_significant is not None else 0
             )
@@ -671,9 +834,13 @@ class StateEpochOutputGenerator:
             event_p_values = event_mod_data.get("p_values", [])
             event_significant = event_mod_data.get("significant", [])
             event_index_len = (
-                len(event_modulation_index) if event_modulation_index is not None else 0
+                len(event_modulation_index)
+                if event_modulation_index is not None
+                else 0
             )
-            event_p_len = len(event_p_values) if event_p_values is not None else 0
+            event_p_len = (
+                len(event_p_values) if event_p_values is not None else 0
+            )
             event_significant_len = (
                 len(event_significant) if event_significant is not None else 0
             )
@@ -694,7 +861,8 @@ class StateEpochOutputGenerator:
                 # Create trace modulation categorical indicator
                 trace_value = (
                     trace_modulation_index[cell_idx]
-                    if trace_modulation_index is not None and trace_index_len > cell_idx
+                    if trace_modulation_index is not None
+                    and trace_index_len > cell_idx
                     else None
                 )
                 trace_modulation_categorical = 0  # Default: non-modulated
@@ -712,7 +880,8 @@ class StateEpochOutputGenerator:
                 # Create event modulation categorical indicator
                 event_value = (
                     event_modulation_index[cell_idx]
-                    if event_modulation_index is not None and event_index_len > cell_idx
+                    if event_modulation_index is not None
+                    and event_index_len > cell_idx
                     else None
                 )
                 event_modulation_categorical = 0  # Default: non-modulated
@@ -767,7 +936,9 @@ class StateEpochOutputGenerator:
             f"Saved modulation results with trace and event data to {output_path}"
         )
 
-    def _save_average_correlations_csv(self, results: StateEpochResults) -> None:
+    def _save_average_correlations_csv(
+        self, results: StateEpochResults
+    ) -> None:
         """Save average correlations CSV file with both trace and event data."""
         data_rows = []
 
@@ -778,7 +949,7 @@ class StateEpochOutputGenerator:
 
             # Initialize row with state-epoch identifier
             row_data = {
-                "state": f"{state}-{epoch}",
+                "state": self._format_state_epoch_label(state, epoch, "-"),
             }
 
             # Process trace correlations
@@ -792,12 +963,16 @@ class StateEpochOutputGenerator:
                 # Handle empty arrays to avoid warnings
                 pos_trace_data = trace_corr_data[trace_corr_data > 0]
                 pos_trace_corr = (
-                    np.nanmean(pos_trace_data) if len(pos_trace_data) > 0 else np.nan
+                    np.nanmean(pos_trace_data)
+                    if len(pos_trace_data) > 0
+                    else np.nan
                 )
 
                 neg_trace_data = trace_corr_data[trace_corr_data < 0]
                 neg_trace_corr = (
-                    np.nanmean(neg_trace_data) if len(neg_trace_data) > 0 else np.nan
+                    np.nanmean(neg_trace_data)
+                    if len(neg_trace_data) > 0
+                    else np.nan
                 )
 
                 row_data["positive_trace_correlation"] = pos_trace_corr
@@ -821,14 +996,18 @@ class StateEpochOutputGenerator:
                     (event_corr_data > 0) & ~np.isnan(event_corr_data)
                 ]
                 pos_event_corr = (
-                    np.nanmean(pos_event_data) if len(pos_event_data) > 0 else np.nan
+                    np.nanmean(pos_event_data)
+                    if len(pos_event_data) > 0
+                    else np.nan
                 )
 
                 neg_event_data = event_corr_data[
                     (event_corr_data < 0) & ~np.isnan(event_corr_data)
                 ]
                 neg_event_corr = (
-                    np.nanmean(neg_event_data) if len(neg_event_data) > 0 else np.nan
+                    np.nanmean(neg_event_data)
+                    if len(neg_event_data) > 0
+                    else np.nan
                 )
 
                 row_data["positive_event_correlation"] = pos_event_corr
@@ -865,16 +1044,21 @@ class StateEpochOutputGenerator:
         event_correlation_matrices = {}
 
         for state, epoch in results.get_all_combinations():
-            key = f"{state}-{epoch}"
             corr_matrix = results.get_correlation_matrix(state, epoch)
             if corr_matrix is not None:
-                trace_correlation_matrices[key] = corr_matrix
+                trace_correlation_matrices[
+                    self._format_state_epoch_identifier(state, epoch, "-")
+                ] = corr_matrix
 
             combination_results = results.get_combination_results(state, epoch)
             if combination_results:
-                event_corr_matrix = combination_results.get("event_correlation_matrix")
+                event_corr_matrix = combination_results.get(
+                    "event_correlation_matrix"
+                )
                 if event_corr_matrix is not None:
-                    event_correlation_matrices[key] = event_corr_matrix
+                    event_correlation_matrices[
+                        self._format_state_epoch_identifier(state, epoch, "-")
+                    ] = event_corr_matrix
 
         if trace_correlation_matrices or event_correlation_matrices:
             output_path = self._get_output_path(RAW_CORRELATIONS_H5_NAME)
@@ -903,6 +1087,7 @@ class StateEpochOutputGenerator:
         self, results: StateEpochResults, cell_info: Dict[str, Any]
     ) -> None:
         """Save raw correlation matrices and cell name pairs to ZIP file."""
+        from analysis import correlations as correlations_module
 
         correlation_matrices = {}
         cell_names = cell_info.get("cell_names", [])
@@ -910,7 +1095,7 @@ class StateEpochOutputGenerator:
         for state, epoch in results.get_all_combinations():
             corr_matrix = results.get_correlation_matrix(state, epoch)
             if corr_matrix is not None:
-                key = f"{state}-{epoch}"
+                key = self._format_state_epoch_identifier(state, epoch, "-")
                 correlation_matrices[key] = corr_matrix
 
         if correlation_matrices:
@@ -930,7 +1115,9 @@ class StateEpochOutputGenerator:
                     sort_indices=sort_indices,
                     positions=None,
                 )
-                logger.info("Saved raw correlations ZIP using correlations.py function")
+                logger.info(
+                    "Saved raw correlations ZIP using correlations.py function"
+                )
             finally:
                 os.chdir(current_dir)
         else:
@@ -962,6 +1149,8 @@ class StateEpochOutputGenerator:
             "epoch_colors": self.color_scheme.epoch_colors,
             "baseline_state": self.baseline_state,
             "baseline_epoch": self.baseline_epoch,
+            "epoch_comparison_method": self.epoch_comparison_method,
+            "modulation_colormap": self.color_scheme.modulation_colors,
             "alpha": self.alpha,
             "n_shuffle": self.n_shuffle,
         }
@@ -971,7 +1160,8 @@ class StateEpochOutputGenerator:
         def _add_metadata_entry(filename: str, entry: Dict[str, Any]) -> None:
             file_path = self._get_output_path(filename)
             if os.path.exists(file_path):
-                metadata[Path(filename).stem] = entry
+                # Use resolved filename stem for metadata key to match file on disk
+                metadata[Path(file_path).stem] = entry
             else:
                 logger.debug(
                     "Skipping metadata entry for %s because %s does not exist.",
@@ -1158,6 +1348,7 @@ class StateEpochOutputGenerator:
             self._create_correlation_statistic_distribution_preview,
             "correlation statistic distribution preview",
             results,
+            correlation_colors=correlation_colors,
         )
 
         # Modulation previews
@@ -1278,6 +1469,7 @@ class StateEpochOutputGenerator:
             results,
             matrix_key="event_correlation_matrix",
             preview_filename=EVENT_CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
+            correlation_colors=correlation_colors,
         )
 
     def _safe_execute_preview(
@@ -1324,7 +1516,9 @@ class StateEpochOutputGenerator:
                 self._get_output_path(preview_filename),
                 f"{title} placeholder",
             )
-            logger.info(f"Created placeholder preview for {preview_filename}: {title}")
+            logger.info(
+                f"Created placeholder preview for {preview_filename}: {title}"
+            )
         except Exception as exc:
             logger.warning(
                 f"Could not create placeholder preview for {preview_filename}: {exc}"
@@ -1348,7 +1542,7 @@ class StateEpochOutputGenerator:
 
         """
         # Use results object's built-in iteration and data access
-        data_structure = {}
+        data_structure: Dict[Tuple[str, str], Dict[str, Any]] = {}
 
         for state, epoch in results.get_all_combinations():
             combination_results = results.get_combination_results(state, epoch)
@@ -1358,8 +1552,8 @@ class StateEpochOutputGenerator:
                 if data_values is not None and (
                     data_key != "mean_activity" or len(data_values) > 0
                 ):
-                    combination_label = f"{state}_{epoch}"
-                    data_structure[combination_label] = {
+                    combination_key = (state, epoch)
+                    data_structure[combination_key] = {
                         "mean_activity": data_values  # Standard key for plotting
                     }
 
@@ -1368,7 +1562,7 @@ class StateEpochOutputGenerator:
     def _plot_population_data_with_colors(
         self,
         results: StateEpochResults,
-        data_structure: Dict[str, Dict[str, Any]],
+        data_structure: Dict[Tuple[str, str], Dict[str, Any]],
         filename_constant: str,
         ylabel: str,
     ) -> None:
@@ -1385,21 +1579,70 @@ class StateEpochOutputGenerator:
         if not data_structure:
             return
 
-        # Create consistent state colors for each combination
-        state_colors = [
-            self.color_scheme.get_state_color(state, self.states)
-            for state, epoch in results.get_all_combinations()
-            if f"{state}_{epoch}" in data_structure  # Only colors for data that exists
-        ]
+        combination_info: List[Tuple[Tuple[str, str], str, str]] = []
+        for state, epoch in results.get_all_combinations():
+            key = (state, epoch)
+            if key not in data_structure:
+                continue
+            combination_info.append((key, state, epoch))
+
+        if not combination_info:
+            return
+
+        if self.epoch_only_mode:
+            epoch_colors = self._get_epoch_color_sequence(len(combination_info))
+            color_lookup = {
+                combo[0]: color
+                for combo, color in zip(combination_info, epoch_colors)
+            }
+        else:
+            color_lookup = {
+                combo[0]: self.color_scheme.get_state_color(combo[1], self.states)
+                for combo in combination_info
+            }
+
+        display_data: Dict[str, Dict[str, Any]] = {}
+        ordered_colors: List[str] = []
+        used_labels: set[str] = set()
+
+        for key, state, epoch in combination_info:
+            display_label = self._format_state_epoch_label(state, epoch, "_")
+            if display_label in used_labels:
+                display_label = self._format_state_epoch_identifier(state, epoch, "_")
+            used_labels.add(display_label)
+            display_data[display_label] = data_structure[key]
+            ordered_colors.append(color_lookup.get(key, "gray"))
 
         # Use population activity tool's function with consistent state colors
         _plot_population_average(
-            data=data_structure,
+            data=display_data,
             filename=str(self._get_output_path(filename_constant)),
-            state_colors=state_colors[: len(data_structure)],  # Ensure correct length
+            state_colors=ordered_colors,
             ylabel=ylabel,
-            xlabel="State-Epoch",
+            xlabel="Epoch"
+            if self.hide_state_prefix or self.epoch_only_mode
+            else "State-Epoch",
         )
+
+    def _remap_combination_dict_for_display(
+        self,
+        data: Dict[Tuple[str, str], Any],
+        separator: str = "_",
+    ) -> Tuple[Dict[str, Any], Dict[Tuple[str, str], str]]:
+        """Convert tuple-keyed dicts to display-friendly keys without losing entries."""
+        display_data: Dict[str, Any] = {}
+        key_map: Dict[Tuple[str, str], str] = {}
+        used_labels: Set[str] = set()
+
+        for (state, epoch), value in data.items():
+            label = self._format_state_epoch_label(state, epoch, separator)
+            if label in used_labels:
+                label = self._format_state_epoch_identifier(state, epoch, separator)
+            used_labels.add(label)
+            display_data[label] = value
+            key_map[(state, epoch)] = label
+
+        return display_data, key_map
 
     def _create_population_average_plot(
         self, results: StateEpochResults, cell_info: Dict[str, Any]
@@ -1412,7 +1655,9 @@ class StateEpochOutputGenerator:
             )
 
             if not activity_data:
-                logger.warning("No activity data available for population average plot")
+                logger.warning(
+                    "No activity data available for population average plot"
+                )
                 return
 
             # Plot with consistent colors
@@ -1436,7 +1681,9 @@ class StateEpochOutputGenerator:
             if combination_results and matrix_key in combination_results:
                 matrix = combination_results.get(matrix_key)
                 if matrix is not None:
-                    matrices[f"{state}_{epoch}"] = matrix
+                    matrices[
+                        self._format_state_epoch_identifier(state, epoch, "_")
+                    ] = matrix
         return matrices
 
     def _create_state_time_preview(
@@ -1447,27 +1694,46 @@ class StateEpochOutputGenerator:
     ) -> None:
         """Create state-epoch time summary plots mirroring population activity tool."""
         if annotations_df is None:
-            logger.info("Annotations unavailable for state time preview; skipping.")
+            logger.info(
+                "Annotations unavailable for state time preview; skipping."
+            )
             return
 
         period = cell_info.get("period", 1.0)
         try:
+            output_path = self._get_output_path(STATE_EPOCH_TIME_PREVIEW)
             plot_func = (
-                _plot_state_epoch_time if self.epoch_periods else _plot_state_time
+                _plot_state_epoch_time
+                if self.epoch_periods
+                else _plot_state_time
             )
 
-            plot_func(
-                annotations_df,
-                column_name,
-                self.states,
-                self.color_scheme.state_colors[: len(self.states)],
-                period,
-                filename=self._get_output_path(STATE_EPOCH_TIME_PREVIEW),
-                epoch_names=self.epochs,
-                epoch_periods=self.epoch_periods,
-            )
+            if plot_func is _plot_state_epoch_time:
+                plot_func(
+                    annotations_df,
+                    column_name,
+                    self.states,
+                    self.color_scheme.state_colors[: len(self.states)],
+                    period,
+                    filename=output_path,
+                    epoch_names=self.epochs,
+                    epoch_periods=self.epoch_periods,
+                    epoch_colors=self.color_scheme.epoch_colors,
+                    epoch_only_mode=self.epoch_only_mode,
+                )
+            else:
+                plot_func(
+                    annotations_df,
+                    column_name,
+                    self.states,
+                    self.color_scheme.state_colors[: len(self.states)],
+                    period,
+                    filename=output_path,
+                )
         except Exception as exc:
-            raise RuntimeError(f"Failed to create state time preview: {exc}") from exc
+            raise RuntimeError(
+                f"Failed to create state time preview: {exc}"
+            ) from exc
 
     def _create_trace_preview(
         self,
@@ -1516,9 +1782,22 @@ class StateEpochOutputGenerator:
                 else None
             )
 
+            if self.epoch_only_mode:
+                self._create_epoch_only_trace_preview(
+                    traces=traces,
+                    epochs=epochs,
+                    boundaries=boundaries,
+                    period=period,
+                    epoch_names=epoch_names,
+                    epoch_colors=epoch_color_list,
+                )
+                return
+
             # Create separate overlay previews
             if annotations_df is not None:
-                logger.info("Creating trace preview with state overlays")
+                logger.info(
+                    "Creating trace preview with state overlays"
+                )
 
                 # 1. Create state overlay preview (like population_activity.py)
                 self._plot_trace_preview_with_state_overlays(
@@ -1542,10 +1821,31 @@ class StateEpochOutputGenerator:
                 #     epoch_names=epoch_names[: len(epochs)],
                 # )
 
-            logger.info(f"Created trace state overlay preview: {TRACE_STATE_OVERLAY}")
+            logger.info(
+                f"Created trace state overlay preview: {TRACE_STATE_OVERLAY}"
+            )
 
         except Exception as e:
             logger.warning(f"Could not create trace preview: {e}")
+
+    def _create_epoch_only_trace_preview(
+        self,
+        traces: np.ndarray,
+        epochs: List[Tuple[float, float]],
+        boundaries: List[float],
+        period: float,
+        epoch_names: List[str],
+        epoch_colors: Optional[List[str]],
+    ) -> None:
+        """Create trace preview for epoch-only mode using the shared helper."""
+        self._plot_trace_preview_with_epoch_overlays(
+            traces=traces,
+            epochs=epochs,
+            boundaries=boundaries or [],
+            period=period,
+            epoch_names=epoch_names,
+            epoch_colors=epoch_colors,
+        )
 
     def _create_correlation_matrices_preview(
         self,
@@ -1556,7 +1856,9 @@ class StateEpochOutputGenerator:
     ) -> None:
         """Create correlation matrices preview plot."""
         # Collect correlation matrices from all combinations
-        correlation_matrices = self._collect_correlation_matrices(results, matrix_key)
+        correlation_matrices = self._collect_correlation_matrices(
+            results, matrix_key
+        )
 
         if correlation_matrices:
             from analysis.correlations import plot_correlation_matrices
@@ -1621,12 +1923,14 @@ class StateEpochOutputGenerator:
 
             # Use the plot_spatial_correlations function from correlations tool
             from analysis.correlations import (
-                _extract_triu_data_for_spatial_analysis,
                 plot_spatial_correlations,
+                _extract_triu_data_for_spatial_analysis,
             )
 
             # Extract correlation matrices from results
-            correlation_matrix = self._collect_correlation_matrices(results, matrix_key)
+            correlation_matrix = self._collect_correlation_matrices(
+                results, matrix_key
+            )
 
             if not correlation_matrix:
                 logger.warning(
@@ -1662,12 +1966,16 @@ class StateEpochOutputGenerator:
                     triu_data=shortened_triu_data,
                     out_file_name=str(output_path),
                 )
-                logger.info(f"Created spatial correlation preview: {output_path}")
+                logger.info(
+                    f"Created spatial correlation preview: {output_path}"
+                )
             else:
                 logger.warning("No spatial correlation data available")
 
         except Exception as e:
-            logger.warning(f"Could not create spatial correlation preview: {e}")
+            logger.warning(
+                f"Could not create spatial correlation preview: {e}"
+            )
 
     def _create_spatial_correlation_map_preview(
         self,
@@ -1704,14 +2012,17 @@ class StateEpochOutputGenerator:
                 self._create_placeholder_preview(
                     preview_filename,
                     title,
-                    "Spatial correlation map unavailable because cell positions were not provided.",
+                    "Spatial correlation map unavailable because cell positions were "
+                    "not provided.",
                 )
                 return
 
             # Use the plot_correlation_spatial_map function from correlations tool
             from analysis.correlations import plot_correlation_spatial_map
 
-            correlation_matrix = self._collect_correlation_matrices(results, matrix_key)
+            correlation_matrix = self._collect_correlation_matrices(
+                results, matrix_key
+            )
 
             if not correlation_matrix:
                 logger.warning(
@@ -1735,10 +2046,14 @@ class StateEpochOutputGenerator:
                 max_lines=500,
                 out_file_name=str(output_path),
             )
-            logger.info(f"Created spatial correlation map preview: {output_path}")
+            logger.info(
+                f"Created spatial correlation map preview: {output_path}"
+            )
 
         except Exception as e:
-            logger.warning(f"Could not create spatial correlation map preview: {e}")
+            logger.warning(
+                f"Could not create spatial correlation map preview: {e}"
+            )
 
     def _create_average_correlations_preview(
         self,
@@ -1760,24 +2075,42 @@ class StateEpochOutputGenerator:
                 )
                 return
 
-            # Generate enough colors for all state-epoch combinations
-            num_combinations = len(correlation_matrices)
-            if num_combinations == 0:
+            combination_order = self._determine_combination_order(results)
+            labeled_matrices: List[Tuple[str, np.ndarray]] = []
+            color_map: Dict[str, str] = {}
+
+            for state, epoch in combination_order:
+                dict_key = self._format_state_epoch_identifier(state, epoch, "_")
+                if dict_key not in correlation_matrices:
+                    continue
+                display_label = self._format_state_epoch_label(state, epoch, "-")
+                labeled_matrices.append(
+                    (display_label, correlation_matrices[dict_key])
+                )
+                color_map[display_label] = self.color_scheme.get_epoch_color(
+                    epoch, self.epochs
+                )
+
+            if not labeled_matrices:
+                logger.warning("No ordered correlation matrices available for preview")
                 return
 
-            # Create consistent colors for each state-epoch combination using state colors
-            colors_for_avg_corr = [
-                self.color_scheme.get_state_color(state, self.states)
-                for state, _epoch in results.get_all_combinations()
-            ]
+            if correlation_colors and len(correlation_colors) >= len(
+                labeled_matrices
+            ):
+                color_map = {
+                    label: correlation_colors[idx]
+                    for idx, (label, _matrix) in enumerate(labeled_matrices)
+                }
 
-            # Create our own version of average correlations plot with better spacing
             self._plot_average_correlations_with_state_epoch_labels(
-                correlation_matrices, colors_for_avg_corr, preview_filename
+                labeled_matrices, color_map, preview_filename
             )
 
         except Exception as e:
-            logger.warning(f"Could not create average correlations preview: {e}")
+            logger.warning(
+                f"Could not create average correlations preview: {e}"
+            )
 
     def _determine_combination_order(
         self,
@@ -1789,14 +2122,14 @@ class StateEpochOutputGenerator:
 
         for state in self.states:
             for epoch in self.epochs:
-                label = f"{state}-{epoch}"
+                label = self._format_state_epoch_label(state, epoch, "-")
                 if valid_labels is not None and label not in valid_labels:
                     continue
                 if results.has_combination(state, epoch):
                     ordered.append((state, epoch))
 
         for state, epoch in results.get_all_combinations():
-            label = f"{state}-{epoch}"
+            label = self._format_state_epoch_label(state, epoch, "-")
             if valid_labels is not None and label not in valid_labels:
                 continue
             if (state, epoch) not in ordered:
@@ -1846,7 +2179,7 @@ class StateEpochOutputGenerator:
             if valid_values.size == 0:
                 continue
 
-            label = f"{state}-{epoch}"
+            label = self._format_state_epoch_label(state, epoch, "-")
             for value in valid_values:
                 rows.append(
                     {
@@ -1884,27 +2217,41 @@ class StateEpochOutputGenerator:
             Mapping of state-epoch labels to their configured state colors for box plots.
         """
 
-        state_palette = {
-            label: self.color_scheme.get_state_color(state, self.states)
-            for (state, _), label in zip(combination_order, labels)
+        # Create consistent state colors for each combination
+        # Generate enough colors for all state-epoch combinations
+        # Create consistent colors for each state-epoch combination using state colors
+        # Create our own version of average correlations plot with better spacing
+        # Create clean state-epoch label with no extra text
+        # Get all unique state-epoch combinations for color mapping
+        epoch_palette = {
+            label: self.color_scheme.get_epoch_color(epoch, self.epochs)
+            for (state, epoch), label in zip(combination_order, labels)
         }
 
-        ecdf_palette = state_palette
-        if len(set(state_palette.values())) != len(labels):
-            import seaborn as sns
+        # Use epoch colors for both ECDF and box plots; fall back to distinct palette
+        # if all epoch colors are missing.
+        non_default_colors = [
+            color for color in epoch_palette.values() if color is not None
+        ]
+        if non_default_colors and any(
+            color != "#9e9e9e" for color in non_default_colors
+        ):
+            return epoch_palette, epoch_palette
 
-            distinct_colors = sns.color_palette("husl", len(labels))
-            ecdf_palette = dict(
-                zip(labels, [mcolors.to_hex(color) for color in distinct_colors])
-            )
+        import seaborn as sns
 
-        return ecdf_palette, state_palette
+        distinct_colors = sns.color_palette("husl", len(labels))
+        ecdf_palette = dict(
+            zip(labels, [mcolors.to_hex(color) for color in distinct_colors])
+        )
+        return ecdf_palette, ecdf_palette
 
     def _create_correlation_statistic_distribution_preview(
         self,
         results: StateEpochResults,
         matrix_key: str = "correlation_matrix",
         preview_filename: str = CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
+        correlation_colors: Optional[List[str]] = None,
     ) -> None:
         """Create CDF and box plot for the selected per-cell correlation statistic."""
         correlation_df = self._collect_correlation_statistic_values(
@@ -1918,7 +2265,9 @@ class StateEpochOutputGenerator:
             return
 
         valid_labels = set(correlation_df["state_epoch"].unique())
-        combination_order = self._determine_combination_order(results, valid_labels)
+        combination_order = self._determine_combination_order(
+            results, valid_labels
+        )
 
         if not combination_order:
             logger.warning(
@@ -1926,10 +2275,18 @@ class StateEpochOutputGenerator:
             )
             return
 
-        labels = [f"{state}-{epoch}" for state, epoch in combination_order]
-        palette_map, box_palette = self._build_state_epoch_palette(
-            combination_order, labels
-        )
+        labels = [
+            self._format_state_epoch_label(state, epoch, "-")
+            for state, epoch in combination_order
+        ]
+
+        if correlation_colors and len(correlation_colors) >= len(labels):
+            box_palette = dict(zip(labels, correlation_colors[:len(labels)]))
+            palette_map = box_palette
+        else:
+            palette_map, box_palette = self._build_state_epoch_palette(
+                combination_order, labels
+            )
 
         import seaborn as sns
 
@@ -1962,7 +2319,9 @@ class StateEpochOutputGenerator:
             axis="both", which="major", labelsize=LABEL_FONT["fontsize"]
         )
         if len(labels) > 1:
-            axes[0].legend(loc="upper left", fontsize=LABEL_FONT["fontsize"] - 2)
+            axes[0].legend(
+                loc="upper left", fontsize=LABEL_FONT["fontsize"] - 2
+            )
 
         # Box plot
         sns.boxplot(
@@ -1988,7 +2347,9 @@ class StateEpochOutputGenerator:
             alpha=0.2,
             jitter=0.05,
         )
-        axes[1].set_xlabel("State-Epoch", fontdict=LABEL_FONT)
+        axes[1].set_xlabel(
+            "Epoch" if self.hide_state_prefix else "State-Epoch", fontdict=LABEL_FONT
+        )
         axes[1].set_ylabel(
             f"Per-cell {statistic_label} correlation", fontdict=LABEL_FONT
         )
@@ -2044,31 +2405,51 @@ class StateEpochOutputGenerator:
             if "activity_modulation" in modulation_results:
                 modulation_source = modulation_results["activity_modulation"]
             else:
-                logger.warning(f"No activity_modulation data available for {title}")
+                logger.warning(
+                    f"No activity_modulation data available for {title}"
+                )
                 modulation_source = None
 
-            if not validate_data_availability(modulation_source, "modulation source"):
+            if not validate_data_availability(
+                modulation_source, "modulation source"
+            ):
                 return
 
             # Extract and process modulation data using helper
-            modulation_data = extract_common_modulation_data(
+            raw_modulation_data = extract_common_modulation_data(
                 modulation_source, len(x), alpha=self.alpha
             )
 
+            # Remap keys using canonical identifiers
+            modulation_data: Dict[Tuple[str, str], Dict[str, Any]] = {}
+            for key_tuple in modulation_source.keys():
+                if isinstance(key_tuple, tuple):
+                    state, epoch = key_tuple
+                    old_key = f"{state}_{epoch}"
+                    if old_key in raw_modulation_data:
+                        modulation_data[(state, epoch)] = raw_modulation_data[old_key]
+                else:
+                    label = str(key_tuple)
+                    if label in raw_modulation_data:
+                        modulation_data[(label, label)] = raw_modulation_data[label]
+
             # Add baseline entry with real baseline activity data
-            baseline_key = f"{self.baseline_state}_{self.baseline_epoch}"
+            baseline_key = (self.baseline_state, self.baseline_epoch)
             if baseline_key not in modulation_data and len(x) > 0:
                 try:
                     if (
                         "baseline_mean_activity" in modulation_results
-                        and modulation_results["baseline_mean_activity"] is not None
+                        and modulation_results["baseline_mean_activity"]
+                        is not None
                     ):
-                        baseline_activity = modulation_results["baseline_mean_activity"]
+                        baseline_activity = modulation_results[
+                            "baseline_mean_activity"
+                        ]
                         # Ensure baseline_activity is an array and get its length safely
                         baseline_activity = np.atleast_1d(baseline_activity)
                         activity_size = len(baseline_activity)
 
-                        modulation_data[baseline_key] = {
+                        modulation_data[(self.baseline_state, self.baseline_epoch)] = {
                             "mean_activity": baseline_activity,
                             "modulation_scores": np.zeros(activity_size),
                             "p_val": np.ones(activity_size),
@@ -2097,8 +2478,18 @@ class StateEpochOutputGenerator:
                     self.color_scheme.get_modulation_colors()
                 )
 
+                plot_ready_data, key_map = self._remap_combination_dict_for_display(
+                    modulation_data
+                )
+                baseline_label = key_map.get(
+                    baseline_key,
+                    self._format_state_epoch_identifier(
+                        self.baseline_state, self.baseline_epoch, "_"
+                    ),
+                )
+
                 plot_modulated_neuron_footprints(
-                    data=modulation_data,
+                    data=plot_ready_data,
                     x=x,
                     y=y,
                     filename=str(output_path),
@@ -2107,7 +2498,7 @@ class StateEpochOutputGenerator:
                     down_modulation_color=down_color,
                     non_modulation_color=non_color,
                     method=Comp.BASELINE.value,
-                    baseline_state=baseline_key,
+                    baseline_state=baseline_label,
                 )
                 logger.info(f"Created {title}: {output_path}")
             else:
@@ -2118,8 +2509,8 @@ class StateEpochOutputGenerator:
 
     def _plot_average_correlations_with_state_epoch_labels(
         self,
-        correlation_matrices: Dict[str, np.ndarray],
-        colors: List[str],
+        labeled_matrices: List[Tuple[str, np.ndarray]],
+        color_map: Dict[str, str],
         output_filename: str,
     ) -> None:
         """Create average correlations plot with proper state-epoch labels and spacing."""
@@ -2130,12 +2521,8 @@ class StateEpochOutputGenerator:
         pos_data = []
         neg_data = []
 
-        for state_epoch in correlation_matrices.keys():
-            corr_matrix = correlation_matrices[state_epoch]
+        for display_label, corr_matrix in labeled_matrices:
             corr_data = corr_matrix[np.triu_indices(corr_matrix.shape[0], k=1)]
-
-            # Create clean state-epoch label with no extra text
-            display_label = state_epoch.replace("_", "-")
 
             # Separate positive and negative correlations
             pos_values = corr_data[corr_data > 0]
@@ -2162,9 +2549,8 @@ class StateEpochOutputGenerator:
             else pd.DataFrame(columns=["state", "negative"])
         )
 
-        # Get all unique state-epoch combinations for color mapping
-        all_states = list(correlation_matrices.keys())
-        colors = colors[: len(all_states)]
+        ordered_labels = [label for label, _matrix in labeled_matrices]
+        palette = {label: color_map.get(label, "#9e9e9e") for label in ordered_labels}
 
         # Create figure with more space for labels and rotated text
         fig, ax = plt.subplots(figsize=(12, 10), nrows=2)
@@ -2178,7 +2564,7 @@ class StateEpochOutputGenerator:
                 x="state",
                 y="positive",
                 ax=ax[0],
-                palette=colors,
+                palette=palette,
                 hue="state",
                 linewidth=3,
                 fliersize=0,
@@ -2203,7 +2589,7 @@ class StateEpochOutputGenerator:
                 x="state",
                 y="negative",
                 ax=ax[1],
-                palette=colors,
+                palette=palette,
                 hue="state",
                 linewidth=3,
                 fliersize=0,
@@ -2221,10 +2607,11 @@ class StateEpochOutputGenerator:
                 legend=False,
             )
 
+        xlabel = "Epoch" if self.hide_state_prefix else "State-Epoch"
         ax[0].set_ylabel("Average Positive Correlation", fontdict=LABEL_FONT)
-        ax[0].set_xlabel("State-Epoch", fontdict=LABEL_FONT)
+        ax[0].set_xlabel(xlabel, fontdict=LABEL_FONT)
         ax[1].set_ylabel("Average Negative Correlation", fontdict=LABEL_FONT)
-        ax[1].set_xlabel("State-Epoch", fontdict=LABEL_FONT)
+        ax[1].set_xlabel(xlabel, fontdict=LABEL_FONT)
 
         # Remove spines
         ax[0].spines["top"].set_visible(False)
@@ -2234,9 +2621,8 @@ class StateEpochOutputGenerator:
 
         # Rotate x-axis labels to prevent overlap and add padding
         for axis in [ax[0], ax[1]]:
-            labels = [item.get_text() for item in axis.get_xticklabels()]
-            axis.set_xticks(range(len(labels)))
-            axis.set_xticklabels(labels, rotation=45, ha="right")
+            axis.set_xticks(range(len(ordered_labels)))
+            axis.set_xticklabels(ordered_labels, rotation=45, ha="right")
             axis.tick_params(axis="x", pad=5)
 
         # Adjust layout with more space for rotated labels
@@ -2269,23 +2655,49 @@ class StateEpochOutputGenerator:
             boundaries = cell_info.get("boundaries", [])
 
             # For event preview, use actual temporal epochs, not state combinations
-            epoch_names = self.epochs
+            epoch_names = list(self.epochs) if self.epochs else []
 
             # Use epoch periods - must be provided by caller
             epochs = self.epoch_periods
             if epochs is None:
                 # Create default epochs if none provided
-                total_time = events.shape[0] * period
+                total_time = float(events.shape[0]) * float(period)
                 num_epochs = len(epoch_names)
                 if num_epochs > 0:
-                    epoch_duration = total_time / num_epochs
+                    epoch_len = total_time / num_epochs
                     epochs = [
-                        (i * epoch_duration, (i + 1) * epoch_duration)
+                        (i * epoch_len, (i + 1) * epoch_len)
                         for i in range(num_epochs)
                     ]
                 else:
-                    epochs = [(0, total_time)]
+                    # Avoid division-by-zero if epoch_names is empty.
+                    epochs = [(0.0, total_time)]
                     epoch_names = ["full_recording"]
+            else:
+                # Ensure epoch_names are present and consistent with epoch periods.
+                if not epoch_names:
+                    if len(epochs) == 1:
+                        epoch_names = ["full_recording"]
+                    else:
+                        epoch_names = [
+                            f"epoch_{i + 1}" for i in range(len(epochs))
+                        ]
+
+                if len(epoch_names) < len(epochs):
+                    epoch_names = epoch_names + [
+                        f"epoch_{i + 1}"
+                        for i in range(len(epoch_names), len(epochs))
+                    ]
+                elif len(epoch_names) > len(epochs):
+                    epoch_names = epoch_names[: len(epochs)]
+
+            # If we don't have annotations, we can't render the state overlay
+            # previews (utils.plots requires behavior + column_name).
+            if annotations_df is None and not self.epoch_only_mode:
+                logger.warning(
+                    "No annotations_df provided; skipping event preview."
+                )
+                return
 
             epoch_color_list = (
                 self.color_scheme.epoch_colors[: len(epochs)]
@@ -2294,42 +2706,30 @@ class StateEpochOutputGenerator:
             )
 
             # Convert event data to offsets format (time indices where events occurred)
+            # Find timepoints where events occurred for this cell
+            # Convert indices to time offsets in seconds
+            # Convert event raster to offsets format (time offsets in seconds).
+            # Matplotlib eventplot expects a list of event-time arrays per cell.
             offsets = []
             for cell_idx in range(events.shape[1]):
-                # Find timepoints where events occurred for this cell
                 event_indices = np.where(events[:, cell_idx] > 0)[0]
-                # Convert indices to time offsets in seconds
-                event_times = event_indices * period
-                offsets.append(event_times)
+                offsets.append(event_indices * period)
 
-            # Create separate overlay previews
-            if annotations_df is not None:
-                logger.info("Creating event preview with state overlays")
-
-                # 1. Create state overlay event preview (like population_activity.py)
-                self._plot_event_preview_with_state_overlays(
-                    events=offsets,  # Use offset data for raster plot
-                    event_timeseries=events,
-                    behavior=annotations_df,
-                    column_name=column_name,
-                    boundaries=boundaries,
-                    period=period,
-                    epochs=epochs,
-                    epoch_names=epoch_names,
-                    epoch_colors=epoch_color_list,
-                )
-
-                # 2. Epoch overlay event preview removed (not needed for state-epoch analysis)
-                # self._plot_event_preview_with_epoch_overlays(
-                #     events=offsets,
-                #     event_timeseries=events,
-                #     epochs=epochs,
-                #     boundaries=boundaries,
-                #     period=period,
-                #     epoch_colors=epoch_colors[: len(epochs)],
-                #     epoch_names=epoch_names[: len(epochs)],
-                # )
-            logger.info(f"Created event state overlay preview: {EVENT_STATE_OVERLAY}")
+            logger.info("Creating event preview with state overlays")
+            self._plot_event_preview_with_state_overlays(
+                events=offsets,
+                event_timeseries=events,
+                annotations_df=annotations_df,
+                column_name=column_name,
+                boundaries=boundaries,
+                period=period,
+                epochs=epochs,
+                epoch_names=epoch_names,
+                epoch_colors=epoch_color_list,
+            )
+            logger.info(
+                f"Created event state overlay preview: {EVENT_STATE_OVERLAY}"
+            )
 
         except Exception as e:
             logger.warning(f"Could not create event preview: {e}")
@@ -2343,10 +2743,14 @@ class StateEpochOutputGenerator:
         """Create event average preview leveraging existing StateEpochResults data."""
         try:
             # Get data directly from results object (no re-extraction needed)
-            event_data = self._get_population_data_from_results(results, "event_rates")
+            event_data = self._get_population_data_from_results(
+                results, "event_rates"
+            )
 
             if not event_data:
-                logger.warning("No event data available for event average preview")
+                logger.warning(
+                    "No event data available for event average preview"
+                )
                 return
 
             # Plot with consistent colors
@@ -2373,7 +2777,7 @@ class StateEpochOutputGenerator:
         """Unified event modulation plotting function."""
         try:
             # Prepare event modulation data using helper
-            event_data = prepare_event_modulation_data(
+            raw_event_data = prepare_event_modulation_data(
                 results,
                 modulation_results,
                 cell_info,
@@ -2381,6 +2785,15 @@ class StateEpochOutputGenerator:
                 self.baseline_epoch,
                 alpha=self.alpha,
             )
+
+            # Remap keys
+            event_data: Dict[Tuple[str, str], Dict[str, Any]] = {}
+            if raw_event_data:
+                for state, epoch in results.get_all_combinations():
+                    old_key = f"{state}_{epoch}"
+                    if old_key in raw_event_data:
+                        event_data[(state, epoch)] = raw_event_data[old_key]
+
             if not validate_data_availability(
                 event_data, "event data", "No baseline activity data available"
             ):
@@ -2401,10 +2814,22 @@ class StateEpochOutputGenerator:
             # Get modulation colors via centralized color scheme
             if modulation_colors:
                 self.color_scheme.modulation_colors = modulation_colors
-            up_color, down_color, non_color = self.color_scheme.get_modulation_colors()
+            up_color, down_color, non_color = (
+                self.color_scheme.get_modulation_colors()
+            )
+
+            plot_event_data, key_map = self._remap_combination_dict_for_display(
+                event_data
+            )
+            baseline_label = key_map.get(
+                (self.baseline_state, self.baseline_epoch),
+                self._format_state_epoch_identifier(
+                    self.baseline_state, self.baseline_epoch, "_"
+                ),
+            )
 
             plot_modulated_neuron_footprints(
-                data=event_data,
+                data=plot_event_data,
                 x=x,
                 y=y,
                 filename=str(self._get_output_path(filename)),
@@ -2413,13 +2838,115 @@ class StateEpochOutputGenerator:
                 down_modulation_color=down_color,
                 non_modulation_color=non_color,
                 method=Comp.BASELINE.value,
-                baseline_state=f"{self.baseline_state}_{self.baseline_epoch}",
+                baseline_state=baseline_label,
             )
 
         except Exception as e:
             logger.warning(
                 f"Could not create event modulation {plot_type} preview: {e}"
             )
+
+    def _plot_trace_preview_with_epoch_overlays(
+        self,
+        traces: np.ndarray,
+        epochs: List[Tuple[float, float]],
+        boundaries: Optional[List[float]],
+        period: float,
+        epoch_names: Optional[List[str]] = None,
+        epoch_colors: Optional[List[str]] = None,
+    ) -> None:
+        """Render epoch-only trace preview with shared dual-panel layout."""
+        if not validate_data_availability(
+            traces,
+            "trace data",
+            "No trace data available for epoch overlay preview",
+        ):
+            return
+        if not epochs:
+            logger.warning(
+                "Epoch overlay preview skipped because no epoch definitions were provided."
+            )
+            return
+
+        resolved_names, resolved_colors = self._resolve_epoch_overlay_params(
+            epochs, epoch_names, epoch_colors
+        )
+
+        output_path = self._get_output_path(TRACE_STATE_OVERLAY)
+        create_dual_panel_plot_with_epoch_overlays(
+            data=traces,
+            epochs=epochs,
+            boundaries=boundaries or [],
+            period=period,
+            epoch_colors=resolved_colors,
+            epoch_names=resolved_names,
+            output_path=output_path,
+            bottom_panel_callback=plot_traces_bottom_panel,
+        )
+        logger.info(
+            f"Created epoch trace overlay preview: {output_path}"
+        )
+
+    def _plot_event_preview_with_epoch_overlays(
+        self,
+        events: List[np.ndarray],
+        event_timeseries: np.ndarray,
+        epochs: List[Tuple[float, float]],
+        boundaries: Optional[List[float]],
+        period: float,
+        epoch_names: Optional[List[str]] = None,
+        epoch_colors: Optional[List[str]] = None,
+    ) -> None:
+        """Render epoch-only event preview with the shared dual-panel layout."""
+        if not events:
+            logger.warning(
+                "Event overlay preview skipped because no event raster data was provided."
+            )
+            return
+        if not validate_data_availability(
+            event_timeseries,
+            "event data",
+            "No event timeseries available for epoch overlay preview",
+        ):
+            return
+        if not epochs:
+            logger.warning(
+                "Event overlay preview skipped because no epoch definitions were provided."
+            )
+            return
+
+        resolved_names, resolved_colors = self._resolve_epoch_overlay_params(
+            epochs, epoch_names, epoch_colors
+        )
+
+        mean_activity = np.nanmean(event_timeseries, axis=1)
+        if period is None or period <= 0:
+            window = 1
+        else:
+            window = max(int(round(1.0 / period)), 1)
+        if window > 1:
+            kernel = np.ones(window, dtype=float) / float(window)
+            smoothed_activity = np.convolve(mean_activity, kernel, mode="same")
+        else:
+            smoothed_activity = mean_activity
+
+        output_path = self._get_output_path(EVENT_STATE_OVERLAY)
+        create_dual_panel_plot_with_epoch_overlays(
+            data=event_timeseries,
+            epochs=epochs,
+            boundaries=boundaries or [],
+            period=period,
+            epoch_colors=resolved_colors,
+            epoch_names=resolved_names,
+            output_path=output_path,
+            bottom_panel_callback=plot_events_bottom_panel,
+            top_panel_ylabel="Mean Event Rate (Hz)",
+            events=events,
+            smoothed_activity=smoothed_activity,
+        )
+        logger.info(
+            f"Created epoch event overlay preview: {output_path}"
+        )
 
     def _plot_trace_preview_with_state_overlays(
         self,
@@ -2442,7 +2969,7 @@ class StateEpochOutputGenerator:
                 behavior=behavior,
                 data=None,
                 column_name=column_name,
-                filename=TRACE_STATE_OVERLAY,
+                filename=self._get_output_path(TRACE_STATE_OVERLAY),
                 state_colors=self.color_scheme.state_colors,
                 state_names=self.states,
                 period=period,
@@ -2457,7 +2984,7 @@ class StateEpochOutputGenerator:
                 behavior=behavior,
                 data=None,
                 column_name=column_name,
-                filename=TRACE_STATE_OVERLAY,
+                filename=self._get_output_path(TRACE_STATE_OVERLAY),
                 state_colors=self.color_scheme.state_colors,
                 state_names=self.states,
                 period=period,
@@ -2468,7 +2995,7 @@ class StateEpochOutputGenerator:
         self,
         events: List[np.ndarray],
         event_timeseries: np.ndarray,
-        behavior: "pd.DataFrame",
+        annotations_df: "pd.DataFrame",
         column_name: str,
         boundaries: List[float],
         period: float,
@@ -2480,16 +3007,28 @@ class StateEpochOutputGenerator:
 
         Uses population_activity.py pattern with optional epoch overlay bar.
         """
+        if self.epoch_only_mode:
+            self._plot_event_preview_with_epoch_overlays(
+                events=events,
+                event_timeseries=event_timeseries,
+                epochs=epochs,
+                boundaries=boundaries,
+                period=period,
+                epoch_names=epoch_names,
+                epoch_colors=epoch_colors,
+            )
+            return
+
         if epochs and len(epochs) > 0:
             _plot_raster_with_epochs(
                 events=events,
                 event_timeseries=event_timeseries,
-                behavior=behavior,
+                behavior=annotations_df,
                 column_name=column_name,
                 period=period,
                 state_colors=self.color_scheme.state_colors,
                 state_names=self.states,
-                filename=EVENT_STATE_OVERLAY,
+                filename=self._get_output_path(EVENT_STATE_OVERLAY),
                 boundaries=boundaries,
                 epoch_periods=epochs,
                 epoch_names=epoch_names,
@@ -2499,11 +3038,25 @@ class StateEpochOutputGenerator:
             _plot_raster(
                 events=events,
                 event_timeseries=event_timeseries,
-                behavior=behavior,
+                behavior=annotations_df,
                 column_name=column_name,
                 period=period,
                 state_colors=self.color_scheme.state_colors,
                 state_names=self.states,
-                filename=EVENT_STATE_OVERLAY,
+                filename=self._get_output_path(EVENT_STATE_OVERLAY),
                 boundaries=boundaries,
             )
+
+        # Create separate overlay previews
+        # 1. Create state overlay event preview (like population_activity.py)
+        # 2. Epoch overlay event preview removed (not needed for state-epoch analysis)
+        # self._plot_event_preview_with_epoch_overlays(
+        #     events=offsets,
+        #     event_timeseries=events,
+        #     epochs=epochs,
+        #     boundaries=boundaries,
+        #     period=period,
+        #     epoch_colors=epoch_colors[: len(epochs)],
+        #     epoch_names=epoch_names[: len(epochs)],
+        # )
+

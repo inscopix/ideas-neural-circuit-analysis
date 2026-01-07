@@ -5,15 +5,17 @@ from math import ceil
 from typing import List, Optional, Tuple
 
 import matplotlib.pyplot as plt
+from matplotlib import colors as mcolors
 import numpy as np
 import pandas as pd
 import scipy
 import seaborn as sns
+import warnings
 from beartype import beartype
+
 from ideas.analysis import io, plots
 from ideas.exceptions import IdeasError
-from matplotlib import colors as mcolors
-from matplotlib.ticker import FixedFormatter, FixedLocator
+from matplotlib.ticker import FixedLocator, FixedFormatter
 from scipy import stats
 
 from utils import config
@@ -47,8 +49,12 @@ def plot_trace_preview(
     epoch_colors,
     epoch_names,
     spacing: float = 5.01,
+    filename: str = "Trace_Preview.svg",
 ):
-    """Plot the first 10 cells and highlight the epochs."""
+    """Plot the first 10 cells and highlight the epochs.
+
+    :param filename: Output SVG path. Defaults to Trace_Preview.svg.
+    """
     time = np.arange(0, traces.shape[0] * period, period)
     num_cells = min(traces.shape[1], 50)
 
@@ -73,7 +79,9 @@ def plot_trace_preview(
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
         ax.set_xlabel("Time (s)", fontdict=LABEL_FONT)
-    ax.set_title(f"Traces of the first {num_cells} cells ", fontdict=TITLE_FONT)
+    ax.set_title(
+        f"Traces of the first {num_cells} cells ", fontdict=TITLE_FONT
+    )
 
     # add cellset boundaries as vertical dashed lines if several cellsets;
     # "boundaries" is a list of temporal boundaries between cellsets,
@@ -103,7 +111,7 @@ def plot_trace_preview(
     )
     fig.tight_layout()
     fig.savefig(
-        "Trace_Preview.svg",
+        filename,
         dpi=300,
         format="svg",
         bbox_inches="tight",
@@ -167,7 +175,9 @@ def _draw_epoch_color_bar(
     ax.tick_params(axis="x", which="both", direction="out", length=5)
 
 
-def _create_group_preview(df, metric, epoch_names, epoch_colors, group_name, save_name):
+def _create_group_preview(
+    df, metric, epoch_names, epoch_colors, group_name, save_name
+):
     """Create a group preview plot comparing different epochs based on a
     specified metric.
 
@@ -199,7 +209,9 @@ def _create_group_preview(df, metric, epoch_names, epoch_colors, group_name, sav
     )
     ax[0].set_ylabel(f"{metric} Activity", fontdict=LABEL_FONT)
     ax[0].set_xlabel("Epoch", fontdict=LABEL_FONT)
-    ax[0].set_title(f"{group_name} {metric} Activity Comparison", fontdict=TITLE_FONT)
+    ax[0].set_title(
+        f"{group_name} {metric} Activity Comparison", fontdict=TITLE_FONT
+    )
     counter = 1
     for i in range(len(epoch_names)):
         for j in range(i, len(epoch_names) - 1):
@@ -289,7 +301,9 @@ def _plot_combined_data(
         )
         ax[0].set_ylabel("Average Positive Correlation", fontdict=LABEL_FONT)
         ax[0].set_xlabel("Epoch", fontdict=LABEL_FONT)
-        ax[0].set_ylim(0, np.max(corr_data["Average Positive Correlation"]) * 1.1)
+        ax[0].set_ylim(
+            0, np.max(corr_data["Average Positive Correlation"]) * 1.1
+        )
         ax[0].set_xticklabels([])
         ax[0].set_xlabel("")
         sns.boxplot(
@@ -303,7 +317,9 @@ def _plot_combined_data(
         )
         ax[1].set_ylabel("Average Negative Correlation")
         ax[1].set_xlabel("Epoch")
-        ax[1].set_ylim(np.min(corr_data["Average Negative Correlation"]) * 1.1, 0)
+        ax[1].set_ylim(
+            np.min(corr_data["Average Negative Correlation"]) * 1.1, 0
+        )
         ax[1].set_ylabel("Average Negative Correlation", fontdict=LABEL_FONT)
         ax[1].set_xlabel("Epoch", fontdict=LABEL_FONT)
         fig.tight_layout()
@@ -360,7 +376,9 @@ def _plot_average_timecourse(
                 label = None
             ax.axvline(boundary, linestyle="--", color="k", label=label)
 
-    ax.set_ylabel(f"Average {data_name}\nPopulation Activity", fontdict=LABEL_FONT)
+    ax.set_ylabel(
+        f"Average {data_name}\nPopulation Activity", fontdict=LABEL_FONT
+    )
     # ax.set_xticks([])
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -390,7 +408,9 @@ def _plot_timecourse(
     avg_data = np.nanmean(data, axis=1)
 
     # Plotting average timecourse
-    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 4), width_ratios=[10, 1])
+    fig, ax = plt.subplots(
+        nrows=1, ncols=2, figsize=(10, 4), width_ratios=[10, 1]
+    )
     # convert bin values from frames to seconds
     time = np.arange(0, data.shape[0]) * period
     # create single time course trace
@@ -405,7 +425,10 @@ def _plot_timecourse(
         epoch_names=epoch_names,
         data_name=data_name,
     )
-    if scale_method == Rescale.FRACTIONAL_CHANGE.value and data_name == "Traces":
+    if (
+        scale_method == Rescale.FRACTIONAL_CHANGE.value
+        and data_name == "Traces"
+    ):
         ax[0].axhline(1, color="grey", linestyle="--")
     elif scale_method == Rescale.STANDARDIZE_EPOCH.value:
         ax[0].axhline(0, color="grey", linestyle="--")
@@ -458,7 +481,8 @@ def _plot_timecourse(
     ax[1].spines["top"].set_visible(False)
     ax[1].spines["right"].set_visible(False)
     for tick in ax[1].get_xticklabels():
-        tick.set_rotation(90)
+        tick.set_rotation(45)
+        tick.set_ha("right")
 
     fig.tight_layout()
     fig.savefig(
@@ -541,7 +565,9 @@ def _plot_timecourse(
 
         ax[1].set_xlabel("Time (s)", fontdict=LABEL_FONT)
         ax[1].set_xticks(np.linspace(0, len(time), 5))
-        ax[1].set_xticklabels([int(label) for label in np.linspace(0, time[-1], 5)])
+        ax[1].set_xticklabels(
+            [int(label) for label in np.linspace(0, time[-1], 5)]
+        )
         ax[1].tick_params(axis="x", rotation=0)
 
         # converting boundaries from seconds to samples, to enable proper x-axis location on heatmap
@@ -563,7 +589,9 @@ def _plot_timecourse(
             e_events = []
             for cell in raw_data:
                 e_cell_events = [
-                    event for event in cell if event >= epoch[0] and event <= epoch[1]
+                    event
+                    for event in cell
+                    if event >= epoch[0] and event <= epoch[1]
                 ]
                 e_events.append(e_cell_events)
 
@@ -718,6 +746,12 @@ def _plot_box_and_strip(
     )
 
 
+def _clean_ax(ax):
+    """Remove spines from an axis."""
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+
 def _plot_difference_cellmap(
     epoch_names,
     epoch_colors,
@@ -848,7 +882,9 @@ def _plot_difference_cellmap(
     )
 
 
-def _plot_comparison(data, epoch_colors, aov, pairwise, metric, group_name, save_name):
+def _plot_comparison(
+    data, epoch_colors, aov, pairwise, metric, group_name, save_name
+):
     """Plot a comparison of a single ANOVA of activity data across epochs for
     two groups using a boxplot.
 
@@ -1006,7 +1042,9 @@ def _format_labels(keys, p_values, ax, limit=0.001):
 
     handles, labels = ax.get_legend_handles_labels()
 
-    handles = handles + [plt.Line2D([0], [0], color="white", lw=0)] * len(new_label)
+    handles = handles + [plt.Line2D([0], [0], color="white", lw=0)] * len(
+        new_label
+    )
     labels = labels + new_label
 
     ax.legend(
@@ -1196,11 +1234,15 @@ def _plot_mixed_corr_comparisons(
     # Pairwise figure
     # Positive Correlation
     if "Contrast" in pos_pairwise.columns:
-        reduced_pos_pairwise = pos_pairwise[pos_pairwise["Contrast"] == "Epoch * Group"]
+        reduced_pos_pairwise = pos_pairwise[
+            pos_pairwise["Contrast"] == "Epoch * Group"
+        ]
         _create_pairwise_legend(reduced_pos_pairwise, ax[0])
 
         # Negative Correlation
-        reduced_neg_pairwise = neg_pairwise[neg_pairwise["Contrast"] == "Epoch * Group"]
+        reduced_neg_pairwise = neg_pairwise[
+            neg_pairwise["Contrast"] == "Epoch * Group"
+        ]
         _create_pairwise_legend(reduced_neg_pairwise, ax[1])
     else:
         logger.warning(
@@ -1252,7 +1294,9 @@ def _plot_state_time(
     # Set consistent font size
     plt.rcParams.update({"font.size": 12})
 
-    include_state_epoch = bool(epoch_periods and epoch_names and len(epoch_periods) > 0)
+    include_state_epoch = bool(
+        epoch_periods and epoch_names and len(epoch_periods) > 0
+    )
     sanitized_epoch_names: List[str] = []
     if include_state_epoch:
         sanitized_epoch_names = [
@@ -1333,7 +1377,9 @@ def _plot_state_time(
         )
 
         state_epoch_counts = (
-            behavior.groupby([column_name, "_plot_epoch"]).size().unstack(fill_value=0)
+            behavior.groupby([column_name, "_plot_epoch"])
+            .size()
+            .unstack(fill_value=0)
         )
         state_epoch_counts = state_epoch_counts.reindex(
             index=state_names, columns=ordered_epochs, fill_value=0
@@ -1374,6 +1420,8 @@ def _plot_state_epoch_time(
     filename: str = "time_in_state_epoch_preview.svg",
     epoch_names: Optional[List[str]] = None,
     epoch_periods: Optional[List[tuple]] = None,
+    epoch_colors: Optional[List[str]] = None,
+    epoch_only_mode: bool = False,
 ):
     """Plot state-epoch time distributions with stacked bars and heatmap."""
     plt.rcParams.update({"font.size": 12})
@@ -1401,107 +1449,177 @@ def _plot_state_epoch_time(
         for i in range(len(epoch_periods))
     ]
 
-    width_ratios = [5, 5, 4]
-    fig, ax = plt.subplots(
-        nrows=1,
-        ncols=3,
-        figsize=(10, 5),
-        width_ratios=width_ratios,
-    )
-    axes = np.atleast_1d(ax)
-    ax_time = axes[0]
-    ax_fraction = axes[1]
-    ax_dist = axes[2]
-
+    base_colors = epoch_colors or []
+    tableau_colors = list(mcolors.TABLEAU_COLORS.values())
+    epoch_color_lookup = {}
+    for idx, name in enumerate(sanitized_epoch_names):
+        if idx < len(base_colors) and base_colors[idx]:
+            epoch_color_lookup[name] = base_colors[idx]
+        else:
+            epoch_color_lookup[name] = tableau_colors[idx % len(tableau_colors)]
     outside_label = "outside_epoch"
+    epoch_color_lookup[outside_label] = "#dcdcdc"
+
+    if epoch_only_mode:
+        fig, axes = plt.subplots(
+            nrows=1,
+            ncols=2,
+            figsize=(8, 5),
+            width_ratios=[5, 1],
+        )
+        ax_time, ax_fraction = axes
+        ax_heatmap = None
+    else:
+        fig = plt.figure(figsize=(10, 7))
+        grid = fig.add_gridspec(
+            nrows=3,
+            ncols=1,
+            height_ratios=[6, 4, 0.6],
+            hspace=0.15,
+        )
+        ax_time = fig.add_subplot(grid[0])
+        ax_fraction = fig.add_subplot(grid[1])
+        ax_heatmap = fig.add_subplot(grid[2])
     time_axis = np.arange(len(behavior)) * period
     epoch_labels = np.full(len(behavior), outside_label, dtype=object)
     for idx, (start, end) in enumerate(epoch_periods):
         mask = (time_axis >= start) & (time_axis < end)
         epoch_labels[mask] = sanitized_epoch_names[idx]
 
-    behavior = behavior.copy()
-    behavior["_plot_epoch"] = epoch_labels
+    if epoch_only_mode:
+        ordered_epochs = sanitized_epoch_names
+        durations = [
+            max(float(end) - float(start), 0.0) for start, end in epoch_periods
+        ]
+        total_duration = sum(durations) or 1.0
 
-    include_outside = np.any(epoch_labels == outside_label)
-    ordered_epochs = sanitized_epoch_names + (
-        [outside_label] if include_outside else []
-    )
+        epoch_positions = np.arange(len(ordered_epochs))
+        bar_colors = [epoch_color_lookup[name] for name in ordered_epochs]
+        ax_time.bar(epoch_positions, durations, color=bar_colors)
+        for pos, duration in zip(epoch_positions, durations):
+            ax_time.text(
+                pos,
+                duration,
+                f"{duration:.1f}s",
+                ha="center",
+                va="bottom",
+                fontsize=10,
+            )
+        ax_time.set_xticks(epoch_positions)
+        ax_time.set_xticklabels(ordered_epochs, rotation=45, ha="right")
+        ax_time.set_ylabel("Time (s)", fontdict=LABEL_FONT)
+        ax_time.set_title("Time per epoch", fontdict=TITLE_FONT)
+        ax_time.spines["top"].set_visible(False)
+        ax_time.spines["right"].set_visible(False)
 
-    state_epoch_counts = (
-        behavior.groupby([column_name, "_plot_epoch"]).size().unstack(fill_value=0)
-    )
-    state_epoch_counts = state_epoch_counts.reindex(
-        index=state_names, columns=ordered_epochs, fill_value=0
-    )
-    state_epoch_seconds = state_epoch_counts * period
-
-    tableau_colors = list(mcolors.TABLEAU_COLORS.values())
-    epoch_positions = np.arange(len(ordered_epochs))
-    bottom = np.zeros(len(ordered_epochs))
-    for idx, state in enumerate(state_names):
-        values = state_epoch_seconds.loc[state].to_numpy(dtype=float)
-        if not np.any(values):
-            continue
-        color = (
-            state_colors[idx]
-            if idx < len(state_colors)
-            else tableau_colors[idx % len(tableau_colors)]
+        fractions = [duration / total_duration for duration in durations]
+        colors = dict(zip(ordered_epochs, bar_colors))
+        plot_neuron_fractions(
+            fractions=dict(zip(ordered_epochs, fractions)),
+            label="epochs",
+            bottom=0,
+            colors=colors,
+            xlabel="",
+            ylabel="Fraction of recording",
+            ax=ax_fraction,
+            plot_legend=False,
         )
-        ax_time.bar(
-            epoch_positions,
-            values,
-            bottom=bottom,
-            color=color,
-            label=state,
-        )
-        bottom += values
-    ax_time.set_xticks(epoch_positions)
-    ax_time.set_xticklabels(ordered_epochs, rotation=45, ha="right")
-    ax_time.set_ylabel("Time (s)", fontdict=LABEL_FONT)
-    ax_time.set_title("Time per state-epoch", fontdict=TITLE_FONT)
+        ax_fraction.set_ylim([0, max(sum(fractions) * 1.1, 0.1)])
+        ax_fraction.spines["left"].set_visible(True)
+        ax_fraction.set_xticklabels([])
+    else:
+        behavior = behavior.copy()
+        behavior["_plot_epoch"] = epoch_labels
 
-    epoch_totals = np.maximum(state_epoch_seconds.sum(axis=0).to_numpy(), 1e-9)
-    bottom_fraction = np.zeros(len(ordered_epochs))
-    for idx, state in enumerate(state_names):
-        values = state_epoch_seconds.loc[state].to_numpy(dtype=float)
-        if not np.any(values):
-            continue
-        fractions = values / epoch_totals
-        color = (
-            state_colors[idx]
-            if idx < len(state_colors)
-            else tableau_colors[idx % len(tableau_colors)]
+        include_outside = np.any(epoch_labels == outside_label)
+        ordered_epochs = sanitized_epoch_names + (
+            [outside_label] if include_outside else []
         )
-        ax_fraction.bar(
-            epoch_positions,
-            fractions,
-            bottom=bottom_fraction,
-            color=color,
-        )
-        bottom_fraction += fractions
-    ax_fraction.set_xticks(epoch_positions)
-    ax_fraction.set_xticklabels(ordered_epochs, rotation=45, ha="right")
-    ax_fraction.set_ylim(0, 1)
-    ax_fraction.set_ylabel("Fraction of epoch time", fontdict=LABEL_FONT)
-    ax_fraction.set_title("Fractional time per state-epoch", fontdict=TITLE_FONT)
 
-    sns.heatmap(
-        state_epoch_seconds,
-        ax=ax_dist,
-        cmap="Blues",
-        cbar_kws={"label": "Time (s)"},
-        annot=state_epoch_seconds.shape[0] <= 10 and state_epoch_seconds.shape[1] <= 8,
-        fmt=".1f",
-    )
-    ax_dist.set_title("State-Epoch Duration", fontdict=TITLE_FONT)
-    ax_dist.set_xlabel("Epoch", fontdict=LABEL_FONT)
-    ax_dist.set_ylabel("State", fontdict=LABEL_FONT)
-    ax_dist.set_xticklabels(
-        [label.get_text().strip() for label in ax_dist.get_xticklabels()],
-        rotation=45,
-        ha="right",
-    )
+        state_epoch_counts = (
+            behavior.groupby([column_name, "_plot_epoch"])
+            .size()
+            .unstack(fill_value=0)
+        )
+        state_epoch_counts = state_epoch_counts.reindex(
+            index=state_names, columns=ordered_epochs, fill_value=0
+        )
+        state_epoch_seconds = state_epoch_counts * period
+
+        epoch_positions = np.arange(len(ordered_epochs))
+        bottom = np.zeros(len(ordered_epochs))
+        for idx, state in enumerate(state_names):
+            values = state_epoch_seconds.loc[state].to_numpy(dtype=float)
+            if not np.any(values):
+                continue
+            color = (
+                state_colors[idx]
+                if idx < len(state_colors)
+                else tableau_colors[idx % len(tableau_colors)]
+            )
+            ax_time.bar(
+                epoch_positions,
+                values,
+                bottom=bottom,
+                color=color,
+                label=state,
+            )
+            bottom += values
+        ax_time.set_xticks(epoch_positions)
+        ax_time.set_xticklabels(ordered_epochs, rotation=45, ha="right")
+        ax_time.set_ylabel("Time (s)", fontdict=LABEL_FONT)
+        ax_time.set_title("Time per state-epoch", fontdict=TITLE_FONT)
+        ax_time.spines["top"].set_visible(False)
+        ax_time.spines["right"].set_visible(False)
+
+        epoch_totals = np.maximum(state_epoch_seconds.sum(axis=0).to_numpy(), 1e-9)
+        bottom_fraction = np.zeros(len(ordered_epochs))
+        for idx, state in enumerate(state_names):
+            values = state_epoch_seconds.loc[state].to_numpy(dtype=float)
+            if not np.any(values):
+                continue
+            fractions = values / epoch_totals
+            color = (
+                state_colors[idx]
+                if idx < len(state_colors)
+                else tableau_colors[idx % len(tableau_colors)]
+            )
+            ax_fraction.bar(
+                epoch_positions,
+                fractions,
+                bottom=bottom_fraction,
+                color=color,
+            )
+            bottom_fraction += fractions
+        ax_fraction.set_xticks(epoch_positions)
+        ax_fraction.set_xticklabels(ordered_epochs, rotation=45, ha="right")
+        ax_fraction.set_ylim(0, 1)
+        ax_fraction.set_ylabel("Fraction of epoch time", fontdict=LABEL_FONT)
+        ax_fraction.set_title("Fractional time per state-epoch", fontdict=TITLE_FONT)
+        ax_fraction.spines["top"].set_visible(False)
+        ax_fraction.spines["right"].set_visible(False)
+
+        if ax_heatmap is not None:
+            sns.heatmap(
+                state_epoch_seconds,
+                ax=ax_heatmap,
+                cmap="Blues",
+                cbar_kws={"label": "Time (s)"},
+                annot=state_epoch_seconds.shape[0] <= 10
+                and state_epoch_seconds.shape[1] <= 8,
+                fmt=".1f",
+            )
+            ax_heatmap.set_title("State-Epoch Duration", fontdict=TITLE_FONT)
+            ax_heatmap.set_xlabel("Epoch", fontdict=LABEL_FONT)
+            ax_heatmap.set_ylabel("State", fontdict=LABEL_FONT)
+            ax_heatmap.set_xticks(np.arange(len(ordered_epochs)) + 0.5)
+            ax_heatmap.set_xticklabels(
+                [epoch.strip() for epoch in ordered_epochs],
+                rotation=45,
+                ha="right",
+            )
+            ax_heatmap.set_yticks(np.arange(len(state_names)) + 0.5)
+            ax_heatmap.set_yticklabels(state_names)
 
     handles, labels = ax_time.get_legend_handles_labels()
     layout_rect = [0, 0, 1, 0.95]
@@ -1516,8 +1634,11 @@ def _plot_state_epoch_time(
             bbox_transform=fig.transFigure,
         )
 
-    fig.tight_layout(rect=layout_rect)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        fig.tight_layout(rect=layout_rect)
     fig.savefig(filename, dpi=300, transparent=True)
+    plt.close(fig)
 
 
 def _plot_traces_with_epochs(
@@ -1632,7 +1753,9 @@ def _plot_traces_with_epochs(
     ax_trace.spines.right.set_visible(False)
     ax_trace.spines.top.set_visible(False)
 
-    ax_trace.set_title(f"Traces of the first {num_to_plot} cells", fontdict=TITLE_FONT)
+    ax_trace.set_title(
+        f"Traces of the first {num_to_plot} cells", fontdict=TITLE_FONT
+    )
 
     # Calculate mean activity of population and plot
     mean_activity = np.nanmean(traces, axis=1)
@@ -1652,8 +1775,12 @@ def _plot_traces_with_epochs(
                 label = "cellset boundary"
             else:
                 label = None
-            ax_mean.axvline(boundary, linestyle="--", color="k", label=label)
-            ax_trace.axvline(boundary, linestyle="--", color="k", label=label)
+            ax_mean.axvline(
+                boundary, linestyle="--", color="k", label=label
+            )
+            ax_trace.axvline(
+                boundary, linestyle="--", color="k", label=label
+            )
 
     # Create manual handles for the legend
     handles = []
@@ -1830,7 +1957,9 @@ def _plot_raster_with_epochs(
     mean_activity = np.nanmean(event_timeseries, axis=1)
     # Smooth the mean activity with a rolling window of 1 second
     window = int(1 / period)
-    mean_activity = np.convolve(mean_activity, np.ones(window) / window, mode="same")
+    mean_activity = np.convolve(
+        mean_activity, np.ones(window) / window, mode="same"
+    )
     # Create time axis for mean activity
     time_axis = np.arange(event_timeseries.shape[0]) * period
     ax_mean.plot(time_axis, mean_activity, color="black")
@@ -1934,14 +2063,18 @@ def _plot_traces(
                 plot_end,
                 color=state_colors[idx],
                 alpha=0.4,
-                label=(state_names[idx] if start == starts[0] else ""),
+                label=(
+                    state_names[idx] if start == starts[0] else ""
+                ),
             )
             ax_traces[1].axvspan(
                 plot_start,
                 plot_end,
                 color=state_colors[idx],
                 alpha=0.4,
-                label=(state_names[idx] if start == starts[0] else ""),
+                label=(
+                    state_names[idx] if start == starts[0] else ""
+                ),
             )
 
     ax_traces[1].set_xlim([0, traces.shape[0] * period])
@@ -1971,8 +2104,12 @@ def _plot_traces(
                 label = "cellset boundary"
             else:
                 label = None
-            ax_traces[0].axvline(boundary, linestyle="--", color="k", label=label)
-            ax_traces[1].axvline(boundary, linestyle="--", color="k", label=label)
+            ax_traces[0].axvline(
+                boundary, linestyle="--", color="k", label=label
+            )
+            ax_traces[1].axvline(
+                boundary, linestyle="--", color="k", label=label
+            )
 
     handles = []
     for state, color in zip(state_names, state_colors):
@@ -2007,7 +2144,9 @@ def _plot_raster(
     trace_fig, ax = plt.subplots(
         nrows=2, ncols=1, figsize=(15, 10), height_ratios=[1, 8]
     )
-    ax[1].eventplot(events, color="black", linelengths=0.5, linewidths=0.8, alpha=0.5)
+    ax[1].eventplot(
+        events, color="black", linelengths=0.5, linewidths=0.8, alpha=0.5
+    )
 
     ax[1].set_ylabel("Cell index", fontdict=LABEL_FONT)
     ax[1].set_xlabel("Time (s)", fontdict=LABEL_FONT)
@@ -2037,14 +2176,18 @@ def _plot_raster(
                 plot_end,
                 color=state_colors[idx],
                 alpha=0.4,
-                label=(state_names[idx] if start == starts[0] else ""),
+                label=(
+                    state_names[idx] if start == starts[0] else ""
+                ),
             )
             ax[1].axvspan(
                 plot_start,
                 plot_end,
                 color=state_colors[idx],
                 alpha=0.4,
-                label=(state_names[idx] if start == starts[0] else ""),
+                label=(
+                    state_names[idx] if start == starts[0] else ""
+                ),
             )
     ax[1].set_ylim([0, len(events)])
     ax[1].set_xlim([0, event_timeseries.shape[0] * period])
@@ -2055,7 +2198,9 @@ def _plot_raster(
 
     mean_activity = np.nanmean(event_timeseries, axis=1)
     window = int(1 / period)
-    mean_activity = np.convolve(mean_activity, np.ones(window) / window, mode="same")
+    mean_activity = np.convolve(
+        mean_activity, np.ones(window) / window, mode="same"
+    )
     time_axis = np.arange(event_timeseries.shape[0]) * period
     ax[0].plot(time_axis, mean_activity, color="black")
     ax[0].set_xlim([0, event_timeseries.shape[0] * period])
@@ -2173,7 +2318,7 @@ def _plot_population_average(
     # Set ticks at proper positions
     ax_box.set_xticks(range(len(labels)))
     # Then set ticklabels with rotation - add extra padding for rotated labels
-    ax_box.set_xticklabels(labels, rotation=90)
+    ax_box.set_xticklabels(labels, rotation=45, ha="right")
     ax_box.tick_params(axis="x", pad=10)
 
     fig.savefig(filename, dpi=300, transparent=True, bbox_inches="tight")
@@ -2230,7 +2375,9 @@ def plot_modulated_neuron_footprints(
         for s1 in data.keys():
             first_state = data[s1]
             # Get the comparisons for this state
-            comparisons = [c for c in first_state.keys() if c != "mean_activity"]
+            comparisons = [
+                c for c in first_state.keys() if c != "mean_activity"
+            ]
             for s2 in comparisons:
                 counter = plot_comparison_row(
                     fig,
@@ -2442,8 +2589,8 @@ def plot_comparison_row(
 
     return counter
 
-
 #### COMPARE PERI-EVENT ACROSS EPOCHS
+
 
 
 def plot_population_mean_event_window_across_epochs(
@@ -2514,8 +2661,12 @@ def plot_population_mean_event_window_across_epochs(
 
     ax.set_title(plot_title, fontsize=config.PLOT_TITLE_FONT_SIZE)
 
-    ax.set_xlabel("Time from Event (seconds)", fontsize=config.PLOT_LABEL_FONT_SIZE)
-    ax.set_ylabel("Neural Activity (z-score)", fontsize=config.PLOT_LABEL_FONT_SIZE)
+    ax.set_xlabel(
+        "Time from Event (seconds)", fontsize=config.PLOT_LABEL_FONT_SIZE
+    )
+    ax.set_ylabel(
+        "Neural Activity (z-score)", fontsize=config.PLOT_LABEL_FONT_SIZE
+    )
 
     # adjust plot limits
     if plot_limits not in [None, "auto"]:
@@ -2739,9 +2890,13 @@ def plot_population_activity(
     # adjust figure settings
     ax.margins(x=0)
     ax.legend()
-    ax.set_title("Mean Population Activity", fontsize=config.PLOT_TITLE_FONT_SIZE)
+    ax.set_title(
+        "Mean Population Activity", fontsize=config.PLOT_TITLE_FONT_SIZE
+    )
     ax.set_xlabel("Time (seconds)", fontsize=config.PLOT_LABEL_FONT_SIZE)
-    ax.set_ylabel("Neural Activity (z-score)", fontsize=config.PLOT_LABEL_FONT_SIZE)
+    ax.set_ylabel(
+        "Neural Activity (z-score)", fontsize=config.PLOT_LABEL_FONT_SIZE
+    )
 
     if plot_limits not in [None, "auto"]:
         y_limits = [float(lim) for lim in plot_limits.split(",")]
@@ -2841,7 +2996,9 @@ def plot_post_minus_pre_per_epoch_bar_chart(data, epoch_data, output_filename):
     plt.close(fig)
 
 
-def plot_number_of_modulated_cells_per_epoch(data, epoch_data, output_filename):
+def plot_number_of_modulated_cells_per_epoch(
+    data, epoch_data, output_filename
+):
     """Plot the number of modulated cells per epoch as a bar chart.
 
     :param data: dictionary containing population data and individual cell data
@@ -2869,12 +3026,16 @@ def plot_number_of_modulated_cells_per_epoch(data, epoch_data, output_filename):
         measurements = item["measurements"]
         color = item["color"]
         offset = width * multiplier
-        rects = ax.bar(x + offset, measurements, width, label=label, color=color)
+        rects = ax.bar(
+            x + offset, measurements, width, label=label, color=color
+        )
         ax.bar_label(rects, padding=3)
         multiplier += 1
 
     # adjust figure settings
-    ax.set_xticks(x + width, ["Up-Modulated", "Down-Modulated", "Non-Modulated"])
+    ax.set_xticks(
+        x + width, ["Up-Modulated", "Down-Modulated", "Non-Modulated"]
+    )
     plt.ylabel("Number of Cells")
     plt.title("Number of Modulated Cells Per Epoch")
     ax.legend()
@@ -2984,14 +3145,6 @@ def plot_post_minus_pre_activity_differences_with_cell_map(
         output_filename=post_minus_pre_boxplot_preview_filename,
     )
 
-
-def _clean_ax(ax):
-    """Remove spines from an axis.
-
-    :param ax: matplotlib axis
-    """
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
 
 
 def _plot_difference_cellmap_single_epoch_pair(
