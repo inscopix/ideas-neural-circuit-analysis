@@ -69,6 +69,7 @@ test: clean build
 
 # Applies linter on source code
 ruff: venv
+	@echo "Running ruff..."
 	$(PYTHON) -m ruff format . $(ARGS)
 	$(PYTHON) -m ruff check --fix . $(ARGS)
 
@@ -76,6 +77,7 @@ ruff: venv
 # Used in automated pr checks on github
 # Does not actually apply any linter changes on the source code,
 ruff-check: venv
+	@echo "Running lint..."
 	$(PYTHON) -m ruff format --check . $(ARGS)
 	$(PYTHON) -m ruff check --no-fix . $(ARGS)
 
