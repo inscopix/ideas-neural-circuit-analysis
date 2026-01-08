@@ -1,11 +1,19 @@
 [project]
 name = "ideas-neural-circuit-analysis"
 description = "IDEAS Neural Circuit Analysis Toolkit"
-requires-python = "==3.13.9"
+requires-python = ">=3.13"
 classifiers = [
     "Programming Language :: Python :: 3"
 ]
-dependencies = [
+dependencies = []
+
+dynamic = ["version"]
+
+[tool.setuptools.packages.find]
+exclude = ["data", "inputs", "resources"]
+
+[project.optional-dependencies]
+analysis = [
     "ideas-python[analysis]==1.1.1",
     "numpy==2.2.6",
     "pandas==2.3.3",
@@ -30,10 +38,6 @@ dependencies = [
     "pynapple==0.10.1",
     "beartype==0.22.6",
 ]
-
-dynamic = ["version"]
-
-[project.optional-dependencies]
 dev = [
     "pre-commit",
     "pytest",

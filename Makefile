@@ -11,6 +11,22 @@ ifndef TARGET
 	TARGET=base
 endif
 
+# Define envs for virtualenv
+VENV = venv
+
+ifndef PYTHON_VERSION
+	PYTHON_VERSION=python3.13
+endif
+
+# Detect OS to know how to call python in venv
+ifeq ($(OS), Windows_NT)
+	PYTHON = $(VENV)/Scripts/python
+	PRECOMMIT = $(VENV)/Scripts/pre-commit
+else
+	PYTHON = $(VENV)/bin/python
+	PRECOMMIT = $(VENV)/bin/pre-commit
+endif
+
 # Update the tool specs whenever a new version of a container image is created
 TOOL_SPECS=${shell ls -d .ideas/*/tool_spec.json}
 
@@ -19,6 +35,15 @@ TOOL_SPECS=${shell ls -d .ideas/*/tool_spec.json}
 clean:
 	@echo "Cleaning up"
 	-docker rmi ${IMAGE_TAG}
+	-rm -rf venv
+
+venv: pyproject.toml
+	@echo "Creating virtualenv and installing dependencies"
+	test -d venv || $(PYTHON_VERSION) -m venv venv
+	$(PYTHON) -m pip install pip --upgrade
+	$(PYTHON) -m pip install '.[dev]'
+	# Let make know the venv is up-to-date
+	touch venv
 
 # Builds docker image
 # Installs necessary software dependencies for source code
@@ -29,17 +54,12 @@ build:
 	docker tag ${LATEST_IMAGE_TAG} ${IMAGE_TAG}
 	@$(foreach f, $(TOOL_SPECS), jq --indent 4 '.container_image.label = "${LABEL}"' $(f) > tmp.json && mv tmp.json ${f};)\
 
-# Builds docker image
-# Copies the source code into the docker container for isolated testing environment
-build-test: TARGET=test
-build-test: IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:${LABEL}-test
-build-test: LATEST_IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:latest-test
-build-test: build
-
 # Runs unit tests in docker image
 # Used in automated pr checks on github
+test: TARGET=test
 test: IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:${LABEL}-test
-test: clean build-test
+test: LATEST_IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:latest-test
+test: clean build
 	@echo "Running tests..."
 	docker run \
 		--platform ${PLATFORM} \
@@ -48,27 +68,15 @@ test: clean build-test
 		python -m pytest ${TEST_ARGS}
 
 # Applies linter on source code
-# The source code is volume mounted instead of copied into the docker image
-# so that the formatting changes are made on the local files instead of just in the docker image
-ruff: build
-	@echo "Running tests..."
-	docker run \
-		--platform ${PLATFORM} \
-		--rm \
-		-v $(PWD):/ideas/${REPO_NAME} \
-		${IMAGE_TAG} \
-		bash -c "python -m ruff format /ideas/${REPO_NAME} $(ARGS) && python -m ruff check --fix /ideas/${REPO_NAME} $(ARGS)"
+ruff: venv
+	$(PYTHON) -m ruff format . $(ARGS)
+	$(PYTHON) -m ruff check --fix . $(ARGS)
 
 # Checks code formatting of source code
 # Used in automated pr checks on github
 # Does not actually apply any linter changes on the source code,
-# only checks if all files are formatted correctly
-ruff-check: IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:${LABEL}-test
-ruff-check: build-test
-	docker run \
-		--platform ${PLATFORM} \
-		--rm \
-		${IMAGE_TAG} \
-		bash -c "python -m ruff format --check /ideas $(ARGS) && python -m ruff check --no-fix /ideas $(ARGS)"
+ruff-check: venv
+	$(PYTHON) -m ruff format --check . $(ARGS)
+	$(PYTHON) -m ruff check --no-fix . $(ARGS)
 
 lint: ruff
