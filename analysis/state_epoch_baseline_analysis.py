@@ -4,55 +4,56 @@ Analyzes neural activity patterns across behavioral states and time epochs,
 integrating correlation and population activity analysis with baseline comparisons.
 """
 
-from beartype import beartype
-from pathlib import Path
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
+from pathlib import Path
+
+from beartype import beartype
 from beartype.typing import List, Optional, Union
 from ideas.exceptions import IdeasError
+from ideas.tools import outputs
+from ideas.tools.log import get_logger
+from ideas.tools.types import IdeasFile
+
 from utils.state_epoch_data import (
     StateEpochDataManager,
-    validate_input_files_exist,
     scale_data,
+    validate_input_files_exist,
+)
+from utils.state_epoch_output import (
+    ACTIVITY_PER_STATE_EPOCH_DATA_CSV,
+    AVERAGE_CORRELATIONS_CSV,
+    AVERAGE_CORRELATIONS_PREVIEW,
+    CORRELATION_MATRICES_PREVIEW,
+    CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
+    CORRELATIONS_PER_STATE_EPOCH_DATA_CSV,
+    EVENT_AVERAGE_CORRELATIONS_PREVIEW,
+    EVENT_CORRELATION_MATRICES_PREVIEW,
+    EVENT_CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
+    EVENT_MODULATION_HISTOGRAM_PREVIEW,
+    EVENT_MODULATION_PREVIEW,
+    EVENT_POPULATION_AVERAGE_PREVIEW,
+    EVENT_SPATIAL_CORRELATION_MAP_PREVIEW,
+    EVENT_SPATIAL_CORRELATION_PREVIEW,
+    EVENT_STATE_OVERLAY,
+    MODULATION_VS_BASELINE_DATA_CSV,
+    RAW_CORRELATIONS_H5_NAME,
+    RAW_CORRELATIONS_ZIP_NAME,
+    SPATIAL_CORRELATION_MAP_PREVIEW,
+    SPATIAL_CORRELATION_PREVIEW,
+    STATE_EPOCH_TIME_PREVIEW,
+    TRACE_MODULATION_FOOTPRINT_PREVIEW,
+    TRACE_MODULATION_HISTOGRAM_PREVIEW,
+    TRACE_POPULATION_AVERAGE_PREVIEW,
+    TRACE_STATE_OVERLAY,
+    StateEpochOutputGenerator,
 )
 from utils.state_epoch_results import (
     StateEpochResults,
     analyze_state_epoch_combination,
     calculate_baseline_modulation,
 )
-from utils.state_epoch_output import (
-    StateEpochOutputGenerator,
-    ACTIVITY_PER_STATE_EPOCH_DATA_CSV,
-    MODULATION_VS_BASELINE_DATA_CSV,
-    STATE_EPOCH_TIME_PREVIEW,
-    TRACE_POPULATION_AVERAGE_PREVIEW,
-    TRACE_STATE_OVERLAY,
-    EVENT_POPULATION_AVERAGE_PREVIEW,
-    EVENT_STATE_OVERLAY,
-    TRACE_MODULATION_FOOTPRINT_PREVIEW,
-    TRACE_MODULATION_HISTOGRAM_PREVIEW,
-    EVENT_MODULATION_PREVIEW,
-    EVENT_MODULATION_HISTOGRAM_PREVIEW,
-    CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
-    EVENT_CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
-    AVERAGE_CORRELATIONS_PREVIEW,
-    EVENT_AVERAGE_CORRELATIONS_PREVIEW,
-    CORRELATION_MATRICES_PREVIEW,
-    EVENT_CORRELATION_MATRICES_PREVIEW,
-    SPATIAL_CORRELATION_PREVIEW,
-    SPATIAL_CORRELATION_MAP_PREVIEW,
-    EVENT_SPATIAL_CORRELATION_PREVIEW,
-    EVENT_SPATIAL_CORRELATION_MAP_PREVIEW,
-    CORRELATIONS_PER_STATE_EPOCH_DATA_CSV,
-    AVERAGE_CORRELATIONS_CSV,
-    RAW_CORRELATIONS_H5_NAME,
-    RAW_CORRELATIONS_ZIP_NAME,
-)
 from utils.utils import Comp
-from ideas.tools.log import get_logger
-from ideas.tools import outputs
-from ideas.tools.types import IdeasFile
-
 
 logger = get_logger()
 
