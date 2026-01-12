@@ -6,22 +6,24 @@ neural data across behavioral states and time epochs.
 
 import logging
 import os
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 from beartype import beartype
-from beartype.typing import List, Optional, Dict, Any, Tuple
+from beartype.typing import Any, Dict, List, Optional, Tuple
 from ideas.exceptions import IdeasError
+
 from utils.utils import (
     _epoch_time_to_index,
-    _get_cellset_data,
-    event_set_to_events,
-    _parse_string_to_tuples,
-    _validate_epochs_param,
-    _redefine_epochs,
     _fractional_change_2D_array,
-    _standardize_to_epoch,
+    _get_cellset_data,
     _norm_2D_array,
+    _parse_string_to_tuples,
+    _redefine_epochs,
     _standardize_2D_array,
+    _standardize_to_epoch,
+    _validate_epochs_param,
+    event_set_to_events,
 )
 from utils.validation import _validate_events
 
@@ -29,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 def load_and_filter_cell_contours(
-    cell_info: Dict[str, Any]
+    cell_info: Dict[str, Any],
 ) -> Tuple[List[np.ndarray], List[np.ndarray]]:
     """Load cell contours and apply intelligent status filtering.
 

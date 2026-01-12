@@ -60,9 +60,7 @@ def epoch_activity_reference():
 
     data_manager = StateEpochDataManager(
         cell_set_files=[str(p) for p in DEFAULT_PARAMS["cell_set_files"]],
-        event_set_files=[
-            str(p) for p in DEFAULT_PARAMS["event_set_files"]
-        ]
+        event_set_files=[str(p) for p in DEFAULT_PARAMS["event_set_files"]]
         if DEFAULT_PARAMS["event_set_files"]
         else None,
         annotations_file=None,
@@ -206,9 +204,7 @@ def test_activity_csv_matches_state_epoch_results(
 ):
     """Ensure long-form activity CSV mirrors the underlying combination results."""
     actual_df = _sort_activity_df(
-        pd.read_csv(
-            Path(epoch_activity_output_dir) / "activity_per_epoch_data.csv"
-        )
+        pd.read_csv(Path(epoch_activity_output_dir) / "activity_per_epoch_data.csv")
     )
 
     results = epoch_activity_reference["results"]
@@ -305,9 +301,7 @@ def test_correlations_csv_matches_state_epoch_results(
 ):
     """Ensure correlations CSV matches correlation matrices in the results."""
     actual_df = _sort_correlation_df(
-        pd.read_csv(
-            Path(epoch_activity_output_dir) / "correlations_per_epoch_data.csv"
-        )
+        pd.read_csv(Path(epoch_activity_output_dir) / "correlations_per_epoch_data.csv")
     )
 
     results: StateEpochResults = epoch_activity_reference["results"]
@@ -416,9 +410,9 @@ def test_modulation_vs_baseline_csv_matches_modulation_results(
     assert len(all_keys) > 0
 
     # Basic invariants on schema and value ranges
-    assert set(["name", "cell_index", "state", "epoch", "baseline_state", "baseline_epoch"]).issubset(
-        df.columns
-    )
+    assert set(
+        ["name", "cell_index", "state", "epoch", "baseline_state", "baseline_epoch"]
+    ).issubset(df.columns)
     assert (df["baseline_state"] == baseline_state).all()
     assert (df["baseline_epoch"] == baseline_epoch).all()
 
@@ -437,7 +431,14 @@ def test_modulation_vs_baseline_csv_matches_modulation_results(
         event_p_col = f"event_p_values in {state}-{epoch}"
         event_cat_col = f"event_modulation in {state}-{epoch}"
 
-        for c in [trace_col, trace_p_col, trace_cat_col, event_col, event_p_col, event_cat_col]:
+        for c in [
+            trace_col,
+            trace_p_col,
+            trace_cat_col,
+            event_col,
+            event_p_col,
+            event_cat_col,
+        ]:
             assert c in df.columns
 
         trace_data = activity_mod.get((state, epoch), {})

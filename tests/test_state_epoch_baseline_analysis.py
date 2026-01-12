@@ -2436,7 +2436,6 @@ class TestMainAnalysisFunction:
         assert hasattr(analyze, "__doc__")
 
 
-
 class TestEdgeCasesAndErrorConditions:
     """Test edge cases and error conditions."""
 

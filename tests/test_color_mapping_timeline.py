@@ -15,9 +15,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from utils.state_epoch_output import StateEpochOutputGenerator
-from utils.plotting_utils import plot_events_bottom_panel
 from utils.plots import _plot_state_epoch_time
+from utils.plotting_utils import plot_events_bottom_panel
+from utils.state_epoch_output import StateEpochOutputGenerator
 from utils.state_epoch_results import StateEpochResults
 
 
@@ -311,7 +311,9 @@ class TestColorMappingFunctionality:
             hide_state_prefix=True,
         )
 
-        annotations = pd.DataFrame({"state": ["epoch_activity"] * 10, "time": np.arange(10)})
+        annotations = pd.DataFrame(
+            {"state": ["epoch_activity"] * 10, "time": np.arange(10)}
+        )
         generator._create_state_time_preview(
             annotations_df=annotations,
             column_name="state",

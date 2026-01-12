@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
+from ideas.exceptions import IdeasError
 
 from analysis.epoch_activity import run
-from ideas.exceptions import IdeasError
 from utils.utils import (
     _get_cellset_boundaries,
     _redefine_epochs,

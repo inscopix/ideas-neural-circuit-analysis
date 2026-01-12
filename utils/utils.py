@@ -396,7 +396,9 @@ def _standardize_to_epoch(array, epochs, period, epoch_index=0):
     """Standardize the array to the specified epoch (default: first epoch)."""
     epoch_idx = _epoch_time_to_index(epochs, period)
     if epoch_index < 0 or epoch_index >= len(epoch_idx):
-        raise IndexError(f"Epoch index {epoch_index} out of range for {len(epoch_idx)} epochs")
+        raise IndexError(
+            f"Epoch index {epoch_index} out of range for {len(epoch_idx)} epochs"
+        )
 
     start, end = epoch_idx[epoch_index]
     # Compute mean and std for the first epoch
@@ -926,8 +928,7 @@ def _redefine_epochs(
     # to zero-duration epochs when a file is shorter than 1 second (or due to flooring).
     if any(b2 < b1 for b1, b2 in zip(boundaries, boundaries[1:])):
         raise IdeasError(
-            "Cell set boundaries must be non-decreasing. "
-            f"Got boundaries={boundaries}."
+            f"Cell set boundaries must be non-decreasing. Got boundaries={boundaries}."
         )
     if any(b2 == b1 for b1, b2 in zip(boundaries, boundaries[1:])):
         logger.warning(

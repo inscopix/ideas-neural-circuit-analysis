@@ -17,49 +17,47 @@ import pandas as pd
 from beartype import beartype
 from beartype.typing import List, Optional, Union
 from ideas.exceptions import IdeasError
+from ideas.tools import log, outputs
+from ideas.tools.types import IdeasFile
 
 from utils.state_epoch_data import StateEpochDataManager, scale_data
+from utils.state_epoch_output import (
+    ACTIVITY_PER_STATE_EPOCH_DATA_CSV,
+    AVERAGE_CORRELATIONS_CSV,
+    AVERAGE_CORRELATIONS_PREVIEW,
+    CORRELATION_MATRICES_PREVIEW,
+    CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
+    CORRELATIONS_PER_STATE_EPOCH_DATA_CSV,
+    EVENT_AVERAGE_CORRELATIONS_PREVIEW,
+    EVENT_CORRELATION_MATRICES_PREVIEW,
+    EVENT_CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
+    EVENT_MODULATION_HISTOGRAM_PREVIEW,
+    EVENT_MODULATION_PREVIEW,
+    EVENT_POPULATION_AVERAGE_PREVIEW,
+    EVENT_SPATIAL_CORRELATION_MAP_PREVIEW,
+    EVENT_SPATIAL_CORRELATION_PREVIEW,
+    EVENT_STATE_OVERLAY,
+    MODULATION_VS_BASELINE_DATA_CSV,
+    RAW_CORRELATIONS_H5_NAME,
+    RAW_CORRELATIONS_ZIP_NAME,
+    SPATIAL_CORRELATION_MAP_PREVIEW,
+    SPATIAL_CORRELATION_PREVIEW,
+    STATE_EPOCH_TIME_PREVIEW,
+    TRACE_MODULATION_FOOTPRINT_PREVIEW,
+    TRACE_MODULATION_HISTOGRAM_PREVIEW,
+    TRACE_POPULATION_AVERAGE_PREVIEW,
+    TRACE_STATE_OVERLAY,
+    StateEpochOutputGenerator,
+)
 from utils.state_epoch_results import (
     StateEpochResults,
     analyze_state_epoch_combination,
     calculate_baseline_modulation,
 )
-from utils.state_epoch_output import (
-    StateEpochOutputGenerator,
-    ACTIVITY_PER_STATE_EPOCH_DATA_CSV,
-    CORRELATIONS_PER_STATE_EPOCH_DATA_CSV,
-    MODULATION_VS_BASELINE_DATA_CSV,
-    AVERAGE_CORRELATIONS_CSV,
-    RAW_CORRELATIONS_H5_NAME,
-    RAW_CORRELATIONS_ZIP_NAME,
-    STATE_EPOCH_TIME_PREVIEW,
-    TRACE_POPULATION_AVERAGE_PREVIEW,
-    TRACE_STATE_OVERLAY,
-    EVENT_POPULATION_AVERAGE_PREVIEW,
-    EVENT_STATE_OVERLAY,
-    TRACE_MODULATION_FOOTPRINT_PREVIEW,
-    TRACE_MODULATION_HISTOGRAM_PREVIEW,
-    EVENT_MODULATION_PREVIEW,
-    EVENT_MODULATION_HISTOGRAM_PREVIEW,
-    CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
-    EVENT_CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
-    AVERAGE_CORRELATIONS_PREVIEW,
-    EVENT_AVERAGE_CORRELATIONS_PREVIEW,
-    CORRELATION_MATRICES_PREVIEW,
-    EVENT_CORRELATION_MATRICES_PREVIEW,
-    SPATIAL_CORRELATION_PREVIEW,
-    SPATIAL_CORRELATION_MAP_PREVIEW,
-    EVENT_SPATIAL_CORRELATION_PREVIEW,
-    EVENT_SPATIAL_CORRELATION_MAP_PREVIEW,
-)
 from utils.utils import (
     _bin_data,
 )
 from utils.validation import _validate_epoch_name_strings
-
-from ideas.tools.types import IdeasFile
-from ideas.tools import log
-from ideas.tools import outputs
 
 logger = log.get_logger()
 
@@ -112,12 +110,6 @@ def _parse_csv_list(value: str) -> List[str]:
     if isinstance(value, list):
         return [str(v).strip() for v in value]
     return [v.strip() for v in str(value).split(",")]
-
-
-
-
-
-
 
 
 @beartype
@@ -307,8 +299,12 @@ def run(
 
     # Bin data (epoch_activity behavior) and update effective sampling period.
     traces = _bin_data(traces, bin_size, original_period)
-    events = _bin_data(events, bin_size, original_period) if events is not None else None
-    functional_period = float(bin_size) if (bin_size is not None and bin_size > 0) else original_period
+    events = (
+        _bin_data(events, bin_size, original_period) if events is not None else None
+    )
+    functional_period = (
+        float(bin_size) if (bin_size is not None and bin_size > 0) else original_period
+    )
 
     # Create epoch-only annotations aligned to the processed (binned) data length.
     num_timepoints = traces.shape[0]
@@ -387,7 +383,9 @@ def run(
             alpha=alpha,
             n_shuffle=n_shuffle,
         )
-        results.add_combination_results(_EPOCH_ONLY_STATE_NAME, epoch_name, combination_results)
+        results.add_combination_results(
+            _EPOCH_ONLY_STATE_NAME, epoch_name, combination_results
+        )
 
     # Baseline modulation (baseline epoch is the first epoch by default).
     modulation_results = calculate_baseline_modulation(
@@ -480,19 +478,24 @@ def epoch_activity_ideas_wrapper(
         has_event_data = bool(event_set_files)
 
         with outputs.register(raise_missing_file=False) as output_data:
-            activity_registration = output_data.register_file(
-                ACTIVITY_PER_EPOCH_DATA_CSV,
-                subdir=Path(ACTIVITY_PER_EPOCH_DATA_CSV).stem,
-                prefix=output_prefix,
-            ).register_preview(
-                TIME_IN_EPOCH_PREVIEW,
-                caption="Time spent in each epoch.",
-            ).register_preview(
-                TRACE_POPULATION_AVERAGE_PREVIEW,
-                caption="Average trace activity across epochs.",
-            ).register_preview(
-                TRACE_EPOCH_OVERLAY,
-                caption="Trace preview with epoch overlay.",
+            activity_registration = (
+                output_data.register_file(
+                    ACTIVITY_PER_EPOCH_DATA_CSV,
+                    subdir=Path(ACTIVITY_PER_EPOCH_DATA_CSV).stem,
+                    prefix=output_prefix,
+                )
+                .register_preview(
+                    TIME_IN_EPOCH_PREVIEW,
+                    caption="Time spent in each epoch.",
+                )
+                .register_preview(
+                    TRACE_POPULATION_AVERAGE_PREVIEW,
+                    caption="Average trace activity across epochs.",
+                )
+                .register_preview(
+                    TRACE_EPOCH_OVERLAY,
+                    caption="Trace preview with epoch overlay.",
+                )
             )
             if has_event_data:
                 activity_registration = activity_registration.register_preview(
@@ -527,16 +530,20 @@ def epoch_activity_ideas_wrapper(
                 )
             )
 
-            modulation_registration = output_data.register_file(
-                MODULATION_VS_BASELINE_DATA_CSV,
-                subdir=Path(MODULATION_VS_BASELINE_DATA_CSV).stem,
-                prefix=output_prefix,
-            ).register_preview(
-                TRACE_MODULATION_HISTOGRAM_PREVIEW,
-                caption="Distribution of trace modulation scores relative to baseline epoch.",
-            ).register_preview(
-                TRACE_MODULATION_FOOTPRINT_PREVIEW,
-                caption="Spatial distribution of trace-modulated neurons relative to baseline epoch.",
+            modulation_registration = (
+                output_data.register_file(
+                    MODULATION_VS_BASELINE_DATA_CSV,
+                    subdir=Path(MODULATION_VS_BASELINE_DATA_CSV).stem,
+                    prefix=output_prefix,
+                )
+                .register_preview(
+                    TRACE_MODULATION_HISTOGRAM_PREVIEW,
+                    caption="Distribution of trace modulation scores relative to baseline epoch.",
+                )
+                .register_preview(
+                    TRACE_MODULATION_FOOTPRINT_PREVIEW,
+                    caption="Spatial distribution of trace-modulated neurons relative to baseline epoch.",
+                )
             )
             if has_event_data:
                 modulation_registration = modulation_registration.register_preview(
@@ -590,16 +597,20 @@ def epoch_activity_ideas_wrapper(
                 )
             )
 
-            raw_zip_registration = output_data.register_file(
-                RAW_CORRELATIONS_ZIP_NAME,
-                subdir=Path(RAW_CORRELATIONS_ZIP_NAME).stem,
-                prefix=output_prefix,
-            ).register_preview(
-                SPATIAL_CORRELATION_PREVIEW,
-                caption="Spatial distance vs correlation relationships per epoch (trace).",
-            ).register_preview(
-                SPATIAL_CORRELATION_MAP_PREVIEW,
-                caption="Spatial map of correlations per epoch (trace).",
+            raw_zip_registration = (
+                output_data.register_file(
+                    RAW_CORRELATIONS_ZIP_NAME,
+                    subdir=Path(RAW_CORRELATIONS_ZIP_NAME).stem,
+                    prefix=output_prefix,
+                )
+                .register_preview(
+                    SPATIAL_CORRELATION_PREVIEW,
+                    caption="Spatial distance vs correlation relationships per epoch (trace).",
+                )
+                .register_preview(
+                    SPATIAL_CORRELATION_MAP_PREVIEW,
+                    caption="Spatial map of correlations per epoch (trace).",
+                )
             )
             if has_event_data:
                 raw_zip_registration = raw_zip_registration.register_preview(
