@@ -146,79 +146,6 @@ def run(
     - `pairwise_correlation_heatmaps.h5`
     - `spatial_analysis_pairwise_correlations.zip`
     """
-    # --- Preserved debug comments (do not delete; used for debugging) ---
-    # automatically create or modify epochs
-    # get the epochs from the input string
-    # make sure it is not already a list
-    # Unify
-    # preview the traces
-    # Start processing the data
-    # bin the data
-    # now rescale the data if appropriate
-    # get contours for non-rejected neurons
-    # plot average activity between epochs using single cell metrics
-    # plot time course of activity for the population.
-    # Create metadata for trace output
-    # PROCESS EVENTS IF PROVIDED
-    # Keep a copy of the original offsets
-    # --- Attempt 1: Validate with unfiltered offsets ---
-    # valid_events remains False
-    # --- Attempt 2: Validate with filtered offsets (if Attempt 1 failed) ---
-    # Filter the original offsets based on status
-    # Recalculate indices using the filtered offsets
-    # valid_events remains False
-    # --- Final Check ---
-    # Use the successfully validated offsets and indices for further processing
-    # convert the indices to timeseries
-    # Check event rate for nans and replace with 0
-    # Bin the data
-    # now rescale the event_timeseries if appropriate
-    # Changed: update event_timeseries instead of traces
-    # Changed: update event_timeseries instead of traces
-    # check event rate for nans and replace with 0
-    # plot average event rate between epochs
-    # plot time course of activity
-    # Save metadata
-
-    # Normalize parameter strings/lists
-    if False:
-        # make sure it is not already a list
-        # Unify
-        pass
-
-    if False:
-        # plot average activity between epochs using single cell metrics
-        # plot time course of activity for the population.
-        # Create metadata for trace output
-        # PROCESS EVENTS IF PROVIDED
-        # Save metadata
-        if False:
-            # Keep a copy of the original offsets
-            # --- Attempt 1: Validate with unfiltered offsets ---
-            if False:
-                # valid_events remains False
-                pass
-            # --- Attempt 2: Validate with filtered offsets (if Attempt 1 failed) ---
-            if False:
-                # Filter the original offsets based on status
-                # Recalculate indices using the filtered offsets
-                # valid_events remains False
-                pass
-            # --- Final Check ---
-            # Use the successfully validated offsets and indices for further processing
-            # convert the indices to timeseries
-            # Check event rate for nans and replace with 0
-            # Bin the data
-            # now rescale the event_timeseries if appropriate
-            if False:
-                # Changed: update event_timeseries instead of traces
-                # Changed: update event_timeseries instead of traces
-                pass
-            # check event rate for nans and replace with 0
-            # plot average event rate between epochs
-            # plot time course of activity
-            pass
-
     parsed_epoch_names = _validate_epoch_name_strings(epoch_names)
     parsed_epoch_colors = _parse_csv_list(epoch_colors)
 
@@ -468,8 +395,8 @@ def epoch_activity_ideas_wrapper(
         n_shuffle=n_shuffle,
     )
 
+    logger.info("Registering output data")
     try:
-        logger.info("Registering output data")
         output_metadata = outputs._load_and_remove_output_metadata()
         prefix_args = [cell_set_files]
         if event_set_files:
@@ -478,153 +405,156 @@ def epoch_activity_ideas_wrapper(
         has_event_data = bool(event_set_files)
 
         with outputs.register(raise_missing_file=False) as output_data:
-            activity_registration = (
-                output_data.register_file(
-                    ACTIVITY_PER_EPOCH_DATA_CSV,
-                    subdir=Path(ACTIVITY_PER_EPOCH_DATA_CSV).stem,
-                    prefix=output_prefix,
-                )
-                .register_preview(
+            activity_reg = output_data.register_file(
+                ACTIVITY_PER_EPOCH_DATA_CSV,
+                subdir=Path(ACTIVITY_PER_EPOCH_DATA_CSV).stem,
+                prefix=output_prefix,
+            )
+            if activity_reg:
+                activity_reg.register_preview(
                     TIME_IN_EPOCH_PREVIEW,
                     caption="Time spent in each epoch.",
-                )
-                .register_preview(
+                ).register_preview(
                     TRACE_POPULATION_AVERAGE_PREVIEW,
                     caption="Average trace activity across epochs.",
-                )
-                .register_preview(
+                ).register_preview(
                     TRACE_EPOCH_OVERLAY,
                     caption="Trace preview with epoch overlay.",
                 )
-            )
-            if has_event_data:
-                activity_registration = activity_registration.register_preview(
-                    EVENT_POPULATION_AVERAGE_PREVIEW,
-                    caption="Average event rates across epochs (when event data is available).",
-                ).register_preview(
-                    EVENT_EPOCH_OVERLAY,
-                    caption="Event raster plot with epoch overlay (when event data is available).",
+                if has_event_data:
+                    activity_reg.register_preview(
+                        EVENT_POPULATION_AVERAGE_PREVIEW,
+                        caption="Average event rates across epochs (when event data is available).",
+                    ).register_preview(
+                        EVENT_EPOCH_OVERLAY,
+                        caption="Event raster plot with epoch overlay (when event data is available).",
+                    )
+                activity_reg.register_metadata_dict(
+                    **_extract_useful_metadata(
+                        output_metadata.get(Path(ACTIVITY_PER_EPOCH_DATA_CSV).stem, {})
+                    )
                 )
-            activity_registration.register_metadata_dict(
-                **_extract_useful_metadata(
-                    output_metadata.get(Path(ACTIVITY_PER_EPOCH_DATA_CSV).stem, {})
-                )
-            )
 
-            correlation_registration = output_data.register_file(
+            corr_reg = output_data.register_file(
                 CORRELATIONS_PER_EPOCH_DATA_CSV,
                 subdir=Path(CORRELATIONS_PER_EPOCH_DATA_CSV).stem,
                 prefix=output_prefix,
-            ).register_preview(
-                CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
-                caption="Distribution of per-cell correlation statistic across epochs (epoch-only mode).",
             )
-            if has_event_data:
-                correlation_registration = correlation_registration.register_preview(
-                    EVENT_CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
-                    caption="Distribution of per-cell event correlation statistic across epochs (when event data is available).",
+            if corr_reg:
+                corr_reg.register_preview(
+                    CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
+                    caption="Distribution of per-cell correlation statistic across epochs.",
                 )
-            correlation_registration.register_metadata_dict(
-                **_extract_useful_metadata(
-                    output_metadata.get(Path(CORRELATIONS_PER_EPOCH_DATA_CSV).stem, {})
+                if has_event_data:
+                    corr_reg.register_preview(
+                        EVENT_CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
+                        caption="Distribution of per-cell event correlation statistic across epochs (when event data is available).",
+                    )
+                corr_reg.register_metadata_dict(
+                    **_extract_useful_metadata(
+                        output_metadata.get(
+                            Path(CORRELATIONS_PER_EPOCH_DATA_CSV).stem, {}
+                        )
+                    )
                 )
-            )
 
-            modulation_registration = (
-                output_data.register_file(
-                    MODULATION_VS_BASELINE_DATA_CSV,
-                    subdir=Path(MODULATION_VS_BASELINE_DATA_CSV).stem,
-                    prefix=output_prefix,
-                )
-                .register_preview(
+            mod_reg = output_data.register_file(
+                MODULATION_VS_BASELINE_DATA_CSV,
+                subdir=Path(MODULATION_VS_BASELINE_DATA_CSV).stem,
+                prefix=output_prefix,
+            )
+            if mod_reg:
+                mod_reg.register_preview(
                     TRACE_MODULATION_HISTOGRAM_PREVIEW,
                     caption="Distribution of trace modulation scores relative to baseline epoch.",
-                )
-                .register_preview(
+                ).register_preview(
                     TRACE_MODULATION_FOOTPRINT_PREVIEW,
                     caption="Spatial distribution of trace-modulated neurons relative to baseline epoch.",
                 )
-            )
-            if has_event_data:
-                modulation_registration = modulation_registration.register_preview(
-                    EVENT_MODULATION_HISTOGRAM_PREVIEW,
-                    caption="Distribution of event modulation scores relative to baseline epoch (when event data is available).",
-                ).register_preview(
-                    EVENT_MODULATION_PREVIEW,
-                    caption="Spatial footprints of event-modulated neurons relative to baseline epoch (when event data is available).",
+                if has_event_data:
+                    mod_reg.register_preview(
+                        EVENT_MODULATION_HISTOGRAM_PREVIEW,
+                        caption="Distribution of event modulation scores relative to baseline epoch (when event data is available).",
+                    ).register_preview(
+                        EVENT_MODULATION_PREVIEW,
+                        caption="Spatial footprints of event-modulated neurons relative to baseline epoch (when event data is available).",
+                    )
+                mod_reg.register_metadata_dict(
+                    **_extract_useful_metadata(
+                        output_metadata.get(
+                            Path(MODULATION_VS_BASELINE_DATA_CSV).stem, {}
+                        )
+                    )
                 )
-            modulation_registration.register_metadata_dict(
-                **_extract_useful_metadata(
-                    output_metadata.get(Path(MODULATION_VS_BASELINE_DATA_CSV).stem, {})
-                )
-            )
 
-            average_corr_registration = output_data.register_file(
+            avg_corr_reg = output_data.register_file(
                 AVERAGE_CORRELATIONS_CSV,
                 subdir=Path(AVERAGE_CORRELATIONS_CSV).stem,
                 prefix=output_prefix,
-            ).register_preview(
-                AVERAGE_CORRELATIONS_PREVIEW,
-                caption="Average positive and negative correlations per epoch.",
             )
-            if has_event_data:
-                average_corr_registration = average_corr_registration.register_preview(
-                    EVENT_AVERAGE_CORRELATIONS_PREVIEW,
-                    caption="Average positive and negative event correlations per epoch (when event data is available).",
+            if avg_corr_reg:
+                avg_corr_reg.register_preview(
+                    AVERAGE_CORRELATIONS_PREVIEW,
+                    caption="Average positive and negative correlations per epoch.",
                 )
-            average_corr_registration.register_metadata_dict(
-                **_extract_useful_metadata(
-                    output_metadata.get(Path(AVERAGE_CORRELATIONS_CSV).stem, {})
+                if has_event_data:
+                    avg_corr_reg.register_preview(
+                        EVENT_AVERAGE_CORRELATIONS_PREVIEW,
+                        caption="Average positive and negative event correlations per epoch (when event data is available).",
+                    )
+                avg_corr_reg.register_metadata_dict(
+                    **_extract_useful_metadata(
+                        output_metadata.get(Path(AVERAGE_CORRELATIONS_CSV).stem, {})
+                    )
                 )
-            )
 
-            raw_h5_registration = output_data.register_file(
+            raw_h5_reg = output_data.register_file(
                 RAW_CORRELATIONS_H5_NAME,
                 subdir=Path(RAW_CORRELATIONS_H5_NAME).stem,
                 prefix=output_prefix,
-            ).register_preview(
-                CORRELATION_MATRICES_PREVIEW,
-                caption="Pairwise correlation matrices for each epoch (trace).",
             )
-            if has_event_data:
-                raw_h5_registration = raw_h5_registration.register_preview(
-                    EVENT_CORRELATION_MATRICES_PREVIEW,
-                    caption="Pairwise correlation matrices for each epoch (events, when available).",
+            if raw_h5_reg:
+                raw_h5_reg.register_preview(
+                    CORRELATION_MATRICES_PREVIEW,
+                    caption="Pairwise correlation matrices for each epoch (trace).",
                 )
-            raw_h5_registration.register_metadata_dict(
-                **_extract_useful_metadata(
-                    output_metadata.get(Path(RAW_CORRELATIONS_H5_NAME).stem, {})
+                if has_event_data:
+                    raw_h5_reg.register_preview(
+                        EVENT_CORRELATION_MATRICES_PREVIEW,
+                        caption="Pairwise correlation matrices for each epoch (events, when available).",
+                    )
+                raw_h5_reg.register_metadata_dict(
+                    **_extract_useful_metadata(
+                        output_metadata.get(Path(RAW_CORRELATIONS_H5_NAME).stem, {})
+                    )
                 )
-            )
 
-            raw_zip_registration = (
-                output_data.register_file(
-                    RAW_CORRELATIONS_ZIP_NAME,
-                    subdir=Path(RAW_CORRELATIONS_ZIP_NAME).stem,
-                    prefix=output_prefix,
-                )
-                .register_preview(
+            raw_zip_reg = output_data.register_file(
+                RAW_CORRELATIONS_ZIP_NAME,
+                subdir=Path(RAW_CORRELATIONS_ZIP_NAME).stem,
+                prefix=output_prefix,
+            )
+            if raw_zip_reg:
+                raw_zip_reg.register_preview(
                     SPATIAL_CORRELATION_PREVIEW,
                     caption="Spatial distance vs correlation relationships per epoch (trace).",
-                )
-                .register_preview(
+                ).register_preview(
                     SPATIAL_CORRELATION_MAP_PREVIEW,
                     caption="Spatial map of correlations per epoch (trace).",
                 )
-            )
-            if has_event_data:
-                raw_zip_registration = raw_zip_registration.register_preview(
-                    EVENT_SPATIAL_CORRELATION_PREVIEW,
-                    caption="Spatial distance vs event-correlation relationships per epoch (when available).",
-                ).register_preview(
-                    EVENT_SPATIAL_CORRELATION_MAP_PREVIEW,
-                    caption="Spatial map of event correlations per epoch (when available).",
+                if has_event_data:
+                    raw_zip_reg.register_preview(
+                        EVENT_SPATIAL_CORRELATION_PREVIEW,
+                        caption="Spatial distance vs event-correlation relationships per epoch (when available).",
+                    ).register_preview(
+                        EVENT_SPATIAL_CORRELATION_MAP_PREVIEW,
+                        caption="Spatial map of event correlations per epoch (when available).",
+                    )
+                raw_zip_reg.register_metadata_dict(
+                    **_extract_useful_metadata(
+                        output_metadata.get(Path(RAW_CORRELATIONS_ZIP_NAME).stem, {})
+                    )
                 )
-            raw_zip_registration.register_metadata_dict(
-                **_extract_useful_metadata(
-                    output_metadata.get(Path(RAW_CORRELATIONS_ZIP_NAME).stem, {})
-                )
-            )
 
         logger.info("Registered output data")
     except Exception:
