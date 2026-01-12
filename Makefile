@@ -45,6 +45,12 @@ venv: pyproject.toml
 	# Let make know the venv is up-to-date
 	touch venv
 
+set-hooks: venv .pre-commit-config.yaml
+	@echo "Installing pre-commit hooks"
+	$(PRECOMMIT) install
+
+setup: venv set-hooks
+
 # Builds docker image
 # Installs necessary software dependencies for source code
 build:

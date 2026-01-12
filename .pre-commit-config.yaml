@@ -1,0 +1,28 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.1
+    hooks:
+      # Run the linter.
+      - id: ruff
+        types_or: [python, pyi]
+        files: "(analysis|tests)/.*"
+        fail_fast: true
+      # Run the formatter.
+      - id: ruff-format
+        types_or: [python, pyi]
+        files: "(analysis|tests)/.*"
+        fail_fast: true
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        language: python
+        types: [python]
+        entry: make
+        args: [test]
+        # Make target doesn't expect the list of files to check like pre-commit
+        # normally provides, it is enough to run it once if any python files
+        # change.
+        pass_filenames: false
+        # If the tests fail, no point running the rest of the hooks
+        fail_fast: true
