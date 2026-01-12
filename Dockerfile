@@ -21,20 +21,22 @@ RUN addgroup ideas \
 WORKDIR /ideas
 
 # Copy python project settings
-COPY pyproject.toml ./
+RUN apt-get -y update \
+    && apt-get install -y libgl1 \
+    && rm -rf /var/lib/apt/lists/*
+
+USER ideas
 
 # Create a venv to install python dependencies
 # This can be done globally, but using venv is best practice
-RUN apt-get -y update \
-    && apt-get install -y libgl1 \
-    && ${PYTHON} -m venv ${VENV} \
-    && ${PYTHON_VENV} -m pip install --upgrade pip \
-    && ${PYTHON_VENV} -m pip install .
+COPY pyproject.toml ./
+RUN ${PYTHON} -m venv ${VENV} \
+    && ${PYTHON_VENV} -m pip install --no-cache --upgrade pip \
+    && ${PYTHON_VENV} -m pip install --no-cache '.[analysis]'
 
 # Add venv bin to path
 ENV PATH="/ideas/${VENV}/bin:${PATH}"
 
-USER ideas
 CMD ["/bin/bash"]
 
 # Create image for testing which copies tool code and test data to
@@ -44,3 +46,5 @@ CMD ["/bin/bash"]
 FROM base AS test
 
 COPY --chown=ideas ./ /ideas
+
+RUN ${PYTHON_VENV} -m pip install --no-cache '.[dev]'

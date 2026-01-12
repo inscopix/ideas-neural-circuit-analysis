@@ -7,8 +7,8 @@ import pytest
 
 from analysis.epoch_activity import run
 from utils.utils import (
-    _redefine_epochs,
     _get_cellset_boundaries,
+    _redefine_epochs,
 )
 
 cell_sets = ["/ideas/data/input_cellset.isxd"]
@@ -69,6 +69,7 @@ def test_epoch_activity(params, tmp_path):
 
     os.chdir(cwd)
 
+
 def test_plot_traces(cleanup_plots):
     """Test the _plot_traces function with various state transition scenarios."""
     from utils.plots import _plot_traces
@@ -125,13 +126,7 @@ def test_plot_traces(cleanup_plots):
 
     # Test case 4: Multiple state transitions
     behavior4 = pd.DataFrame(
-        {
-            "state": ["A"] * 20
-            + ["B"] * 20
-            + ["A"] * 20
-            + ["B"] * 20
-            + ["A"] * 20
-        }
+        {"state": ["A"] * 20 + ["B"] * 20 + ["A"] * 20 + ["B"] * 20 + ["A"] * 20}
     )
     _plot_traces(
         traces=traces,
@@ -237,9 +232,7 @@ def test_plot_raster(cleanup_plots):
     events = []
     for _cell in range(num_cells):
         # Random events for each cell
-        event_times = np.sort(
-            np.random.uniform(0, 100, np.random.randint(5, 20))
-        )
+        event_times = np.sort(np.random.uniform(0, 100, np.random.randint(5, 20)))
         events.append(event_times)
 
     # Create event timeseries (binary matrix)
@@ -294,13 +287,7 @@ def test_plot_raster(cleanup_plots):
 
     # Test case 4: Multiple state transitions
     behavior4 = pd.DataFrame(
-        {
-            "state": ["A"] * 20
-            + ["B"] * 20
-            + ["A"] * 20
-            + ["B"] * 20
-            + ["A"] * 20
-        }
+        {"state": ["A"] * 20 + ["B"] * 20 + ["A"] * 20 + ["B"] * 20 + ["A"] * 20}
     )
     _plot_raster(
         events=events,
@@ -438,6 +425,6 @@ def test_redefine_epochs(
         boundaries=boundaries,
     )
 
-    assert (
-        epochs == expected_epochs
-    ), f"epochs {epochs} do not match expected epochs {expected_epochs}"
+    assert epochs == expected_epochs, (
+        f"epochs {epochs} do not match expected epochs {expected_epochs}"
+    )

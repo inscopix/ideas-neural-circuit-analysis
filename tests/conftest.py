@@ -5,12 +5,13 @@ including file cleanup, directory management, and plot cleanup.
 """
 
 import os
-import tempfile
 import shutil
+import tempfile
 from typing import List, Union
-import pytest
+
 import matplotlib
 import matplotlib.pyplot as plt
+import pytest
 
 
 @pytest.fixture

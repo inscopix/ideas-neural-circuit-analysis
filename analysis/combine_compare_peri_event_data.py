@@ -3,18 +3,17 @@ import os
 import warnings
 from typing import List
 
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.colors as mcolors
 import seaborn as sns
-# from ideas_commons.constants import (
-#     FileCategory,
-#     FileFormat,
-#     FileStructure,
-#     FileType,
-#     GroupType,
-# )
+from ideas.analysis.utils import (
+    get_file_size,
+)
+from ideas.exceptions import IdeasError
+from ideas.tools import log, outputs
+from ideas.tools.types import IdeasFile
 from scipy import stats
 
 import utils.config as config
@@ -24,22 +23,8 @@ from analysis.peri_event_workflow import (
     plot_single_neurons_heatmap,
     validate_modulation_colors,
 )
-# from toolbox.utils.data_model import (
-#     IdeasFile,
-#     IdeasGroup,
-#     IdeasPreviewFile,
-# )
-from ideas.exceptions import IdeasError
-# from toolbox.utils.output_manifest import save_output_manifest
 from utils.stats_utils import ttest
-from ideas.analysis.utils import (
-    get_file_size,
-)
 from utils.utils import compute_sampling_rate
-
-from ideas.tools import log
-from ideas.tools.types import IdeasFile
-from ideas.tools import outputs
 
 logger = log.get_logger()
 
@@ -396,18 +381,12 @@ def generate_subpopulation_activity_plot(
 
     if average_method == "neurons":
         num_up_modulated = modulated_cells_dict["up_modulated"]["num_cells"]
-        num_down_modulated = modulated_cells_dict["down_modulated"][
-            "num_cells"
-        ]
+        num_down_modulated = modulated_cells_dict["down_modulated"]["num_cells"]
         num_non_modulated = modulated_cells_dict["non_modulated"]["num_cells"]
     else:
         num_up_modulated = modulated_cells_dict["up_modulated"]["num_samples"]
-        num_down_modulated = modulated_cells_dict["down_modulated"][
-            "num_samples"
-        ]
-        num_non_modulated = modulated_cells_dict["non_modulated"][
-            "num_samples"
-        ]
+        num_down_modulated = modulated_cells_dict["down_modulated"]["num_samples"]
+        num_non_modulated = modulated_cells_dict["non_modulated"]["num_samples"]
 
     # plot data
     if epoch_name is not None:
@@ -491,9 +470,7 @@ def extract_modulation_group_data(
         )
 
         up_modulated_cell_names = (
-            stats_df[up_modulated_filter]["name"]
-            .apply(lambda x: x + "_mean")
-            .tolist()
+            stats_df[up_modulated_filter]["name"].apply(lambda x: x + "_mean").tolist()
         )
         down_modulated_cell_names = (
             stats_df[down_modulated_filter]["name"]
@@ -501,9 +478,7 @@ def extract_modulation_group_data(
             .tolist()
         )
         non_modulated_cell_names = (
-            stats_df[non_modulated_filter]["name"]
-            .apply(lambda x: x + "_mean")
-            .tolist()
+            stats_df[non_modulated_filter]["name"].apply(lambda x: x + "_mean").tolist()
         )
 
         # compute fractions of up/down/non modulated cells in each input recording
@@ -511,18 +486,12 @@ def extract_modulation_group_data(
         num_down_modulated_cells = len(down_modulated_cell_names)
         num_non_modulated_cells = len(non_modulated_cell_names)
         total_num_cells = (
-            num_up_modulated_cells
-            + num_down_modulated_cells
-            + num_non_modulated_cells
+            num_up_modulated_cells + num_down_modulated_cells + num_non_modulated_cells
         )
 
         up_modulated_fractions.append(num_up_modulated_cells / total_num_cells)
-        down_modulated_fractions.append(
-            num_down_modulated_cells / total_num_cells
-        )
-        non_modulated_fractions.append(
-            num_non_modulated_cells / total_num_cells
-        )
+        down_modulated_fractions.append(num_down_modulated_cells / total_num_cells)
+        non_modulated_fractions.append(num_non_modulated_cells / total_num_cells)
 
         # update cell counts
         total_num_up_modulated_cells += num_up_modulated_cells
@@ -581,9 +550,7 @@ def extract_modulation_group_data(
                 down_modulated_traces = np.column_stack(
                     [
                         down_modulated_traces,
-                        np.nanmean(
-                            traces_df[down_modulated_cell_names], axis=1
-                        ),
+                        np.nanmean(traces_df[down_modulated_cell_names], axis=1),
                     ]
                 )
             else:
@@ -597,9 +564,7 @@ def extract_modulation_group_data(
                 non_modulated_traces = np.column_stack(
                     [
                         non_modulated_traces,
-                        np.nanmean(
-                            traces_df[non_modulated_cell_names], axis=1
-                        ),
+                        np.nanmean(traces_df[non_modulated_cell_names], axis=1),
                     ]
                 )
             else:
@@ -616,15 +581,9 @@ def extract_modulation_group_data(
         down_modulated_mean = np.nanmean(down_modulated_traces, axis=1)
         non_modulated_mean = np.nanmean(non_modulated_traces, axis=1)
 
-        up_modulated_sem = stats.sem(
-            up_modulated_traces, axis=1, nan_policy="omit"
-        )
-        down_modulated_sem = stats.sem(
-            down_modulated_traces, axis=1, nan_policy="omit"
-        )
-        non_modulated_sem = stats.sem(
-            non_modulated_traces, axis=1, nan_policy="omit"
-        )
+        up_modulated_sem = stats.sem(up_modulated_traces, axis=1, nan_policy="omit")
+        down_modulated_sem = stats.sem(down_modulated_traces, axis=1, nan_policy="omit")
+        non_modulated_sem = stats.sem(non_modulated_traces, axis=1, nan_policy="omit")
 
     modulated_cells_dict = {
         "up_modulated": {
@@ -681,9 +640,7 @@ def generate_modulation_pie_chart(
     labels = []
     colors = []
     total_num_cells = (
-        num_cells_up_modulated
-        + num_cells_down_modulated
-        + num_cells_non_modulated
+        num_cells_up_modulated + num_cells_down_modulated + num_cells_non_modulated
     )
 
     # only include data for which the number of cells is greater than 0
@@ -739,9 +696,7 @@ def generate_modulation_pie_chart(
 
     # save figure to disk
     fig.tight_layout()
-    fig.savefig(
-        output_filename, dpi=300, bbox_inches="tight", transparent=True
-    )
+    fig.savefig(output_filename, dpi=300, bbox_inches="tight", transparent=True)
 
 
 def generate_activity_heatmap(
@@ -909,12 +864,8 @@ def plot_comparison_of_population_activity(
         "Event-Aligned Population Activity",
         fontsize=config.PLOT_TITLE_FONT_SIZE,
     )
-    ax.set_xlabel(
-        "Time from Event (seconds)", fontsize=config.PLOT_LABEL_FONT_SIZE
-    )
-    ax.set_ylabel(
-        "Neural Activity (z-score)", fontsize=config.PLOT_LABEL_FONT_SIZE
-    )
+    ax.set_xlabel("Time from Event (seconds)", fontsize=config.PLOT_LABEL_FONT_SIZE)
+    ax.set_ylabel("Neural Activity (z-score)", fontsize=config.PLOT_LABEL_FONT_SIZE)
 
     ax.set_xlim((group1_data["x_values"][0], group1_data["x_values"][-1]))
     ax.margins(x=0)
@@ -950,9 +901,7 @@ def plot_comparison_of_subpopulation_activity(
     :param These colors represent the two comparison groups.
     """
     group_colors = validate_group_colors(group_colors)
-    fig, ax = plt.subplots(
-        nrows=1, ncols=3, sharex=True, sharey=True, figsize=(10, 4)
-    )
+    fig, ax = plt.subplots(nrows=1, ncols=3, sharex=True, sharey=True, figsize=(10, 4))
 
     # plot data for each modulation group
     for i, modulation_group in enumerate(
@@ -1005,21 +954,15 @@ def plot_comparison_of_subpopulation_activity(
     ax[1].set_title("Down-Modulated", fontsize=config.PLOT_TITLE_FONT_SIZE)
     ax[2].set_title("Non-Modulated", fontsize=config.PLOT_TITLE_FONT_SIZE)
 
-    ax[1].set_xlabel(
-        "Time from Event (seconds)", fontsize=config.PLOT_LABEL_FONT_SIZE
-    )
-    ax[0].set_ylabel(
-        "Neural Activity (z-score)", fontsize=config.PLOT_LABEL_FONT_SIZE
-    )
+    ax[1].set_xlabel("Time from Event (seconds)", fontsize=config.PLOT_LABEL_FONT_SIZE)
+    ax[0].set_ylabel("Neural Activity (z-score)", fontsize=config.PLOT_LABEL_FONT_SIZE)
 
     for i in range(3):
         # add vertical line representing the event time
         ax[i].axvline(0, color=config.PLOT_EVENT_REF_LINE_COLOR)
 
         # set x limits
-        ax[i].set_xlim(
-            (group1_data["x_values"][0], group1_data["x_values"][-1])
-        )
+        ax[i].set_xlim((group1_data["x_values"][0], group1_data["x_values"][-1]))
 
         # add legend
         ax[i].margins(x=0)
@@ -1261,12 +1204,7 @@ def combine_peri_event_data(
                     .tolist()[0]
                 )
                 if (
-                    len(
-                        df[
-                            closest_index : closest_index
-                            + min_time_window_length
-                        ]
-                    )
+                    len(df[closest_index : closest_index + min_time_window_length])
                     == min_time_window_length
                 ):
                     traces_dataframes[i] = df.iloc[
@@ -1275,15 +1213,14 @@ def combine_peri_event_data(
                 else:
                     # if alignment based on closest time point fails (e.g. lack of data points),
                     # align based on first time point.
-                    traces_dataframes[i] = df.iloc[
-                        :min_time_window_length
-                    ].reset_index(drop=True)
+                    traces_dataframes[i] = df.iloc[:min_time_window_length].reset_index(
+                        drop=True
+                    )
 
                 # compute time shift between the time window in
                 # current file vs file with shortest time window
                 time_delta = abs(
-                    traces_dataframes[i].iloc[0]["Time"]
-                    - time_window_first_timepoint
+                    traces_dataframes[i].iloc[0]["Time"] - time_window_first_timepoint
                 )
                 logger.warning(
                     f"The time windows of the input traces files "
@@ -1344,9 +1281,7 @@ def combine_peri_event_data(
         stats_dataframes[i]["file"] = os.path.basename(stats_files[i])
         # drop first 4 rows (population, up_modulated, down_modulated, non_modulated)
         # to retain per-cell data only
-        stats_dataframes[i] = (
-            stats_dataframes[i].iloc[4:].reset_index(drop=True)
-        )
+        stats_dataframes[i] = stats_dataframes[i].iloc[4:].reset_index(drop=True)
 
         # reclassify neurons based on significance threshold supplied
         if significance_threshold is not None and significance_threshold > 0:
@@ -1370,9 +1305,7 @@ def combine_peri_event_data(
     # generate single-cell activity heatmap
     single_cell_heatmap_preview_filename = os.path.join(
         output_dir,
-        f"event_aligned_single_cell_activity_heatmap_{group_name}".replace(
-            " ", "_"
-        )
+        f"event_aligned_single_cell_activity_heatmap_{group_name}".replace(" ", "_")
         + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION,
     )
     generate_activity_heatmap(
@@ -1405,9 +1338,7 @@ def combine_peri_event_data(
             ]
         )
         population_mean = np.nanmean(combined_population_means, axis=1)
-        population_sem = stats.sem(
-            combined_population_means, axis=1, nan_policy="omit"
-        )
+        population_sem = stats.sem(combined_population_means, axis=1, nan_policy="omit")
 
     df_traces["Time"] = traces_timeline
     df_traces["population_mean"] = population_mean
@@ -1446,15 +1377,9 @@ def combine_peri_event_data(
 
     df_traces["up_modulated_mean"] = combined_cell_data["up_modulated"]["mean"]
     df_traces["up_modulated_sem"] = combined_cell_data["up_modulated"]["sem"]
-    df_traces["down_modulated_mean"] = combined_cell_data["down_modulated"][
-        "mean"
-    ]
-    df_traces["down_modulated_sem"] = combined_cell_data["down_modulated"][
-        "sem"
-    ]
-    df_traces["non_modulated_mean"] = combined_cell_data["non_modulated"][
-        "mean"
-    ]
+    df_traces["down_modulated_mean"] = combined_cell_data["down_modulated"]["mean"]
+    df_traces["down_modulated_sem"] = combined_cell_data["down_modulated"]["sem"]
+    df_traces["non_modulated_mean"] = combined_cell_data["non_modulated"]["mean"]
     df_traces["non_modulated_sem"] = combined_cell_data["non_modulated"]["sem"]
 
     # generate subpopulation activity plot
@@ -1478,12 +1403,8 @@ def combine_peri_event_data(
     )
     generate_modulation_pie_chart(
         num_cells_up_modulated=combined_cell_data["up_modulated"]["num_cells"],
-        num_cells_down_modulated=combined_cell_data["down_modulated"][
-            "num_cells"
-        ],
-        num_cells_non_modulated=combined_cell_data["non_modulated"][
-            "num_cells"
-        ],
+        num_cells_down_modulated=combined_cell_data["down_modulated"]["num_cells"],
+        num_cells_non_modulated=combined_cell_data["non_modulated"]["num_cells"],
         output_filename=pie_chart_modulation_preview_filename,
         modulation_colors=modulation_colors,
     )
@@ -1495,9 +1416,7 @@ def combine_peri_event_data(
     )
 
     # reorder columns and save to csv
-    df_traces = pd.concat(
-        [df_traces.iloc[:, -9:], df_traces.iloc[:, :-9]], axis=1
-    )
+    df_traces = pd.concat([df_traces.iloc[:, -9:], df_traces.iloc[:, :-9]], axis=1)
     df_traces.to_csv(output_traces_filename, index=False)
 
     logger.info(
@@ -1543,28 +1462,22 @@ def combine_peri_event_data(
         {
             "key": "ideas.metrics.num_up_modulated_cells",
             "name": "Number of up-modulated cells",
-            "value": combined_cell_data["up_modulated"][
-                "num_cells"
-            ]
+            "value": combined_cell_data["up_modulated"]["num_cells"],
         },
         {
             "key": "ideas.metrics.num_down_modulated_cells",
             "name": "Number of down-modulated cells",
-            "value": combined_cell_data["down_modulated"][
-                "num_cells"
-            ]
+            "value": combined_cell_data["down_modulated"]["num_cells"],
         },
         {
             "key": "ideas.metrics.num_non_modulated_cells",
             "name": "Number of non-modulated cells",
-            "value": combined_cell_data["non_modulated"][
-                "num_cells"
-            ]
+            "value": combined_cell_data["non_modulated"]["num_cells"],
         },
         {
             "key": "ideas.timingInfo.numTime",
             "name": "Number of timepoints",
-            "value": len(traces_timeline)
+            "value": len(traces_timeline),
         },
         {
             "key": "ideas.timingInfo.sampling_rate",
@@ -1572,8 +1485,8 @@ def combine_peri_event_data(
             "value": compute_sampling_rate(
                 period_num=abs(traces_timeline[0] - traces_timeline[1]),
                 period_den=1,
-            )
-        }
+            ),
+        },
     ]
 
     # event_aligned_metadata = {
@@ -1723,8 +1636,7 @@ def generate_comparison_plots(
     # Barplot (up, down, non)
     fractions_comparison_preview_filename = os.path.join(
         output_dir,
-        "modulated_fractions_comparison"
-        + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION,
+        "modulated_fractions_comparison" + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION,
     )
     plot_fractions_of_modulated_neurons(
         group1_data=group1_data,
@@ -1852,15 +1764,11 @@ def combine_compare_peri_event_data(
 
     # store plot params globally
     global PLOT_PARAMS
-    PLOT_PARAMS[
-        "population_activity_plot_limits"
-    ] = population_activity_plot_limits
-    PLOT_PARAMS[
-        "activity_heatmap_color_limits"
-    ] = activity_heatmap_color_limits
-    PLOT_PARAMS[
-        "activity_by_modulation_plot_limits"
-    ] = activity_by_modulation_plot_limits
+    PLOT_PARAMS["population_activity_plot_limits"] = population_activity_plot_limits
+    PLOT_PARAMS["activity_heatmap_color_limits"] = activity_heatmap_color_limits
+    PLOT_PARAMS["activity_by_modulation_plot_limits"] = (
+        activity_by_modulation_plot_limits
+    )
 
     if group2_traces_files is None:
         group2_traces_files = []
@@ -1873,7 +1781,6 @@ def combine_compare_peri_event_data(
         output_dir = os.getcwd()
 
     # define list of files to include in the output manifest
-    output_files = []
     output_metadata = {}
 
     # combine data from group 1
@@ -1882,7 +1789,7 @@ def combine_compare_peri_event_data(
         #     group1_data,
         #     # group1_traces_manifest_files,
         #     # group1_statistics_manifest_files,
-        # ) 
+        # )
         group1_data, group1_md = combine_peri_event_data(
             traces_files=group1_traces_files,
             stats_files=group1_stats_files,
@@ -1910,7 +1817,7 @@ def combine_compare_peri_event_data(
         #     group2_data,
         #     # group2_traces_manifest_files,
         #     # group2_statistics_manifest_files,
-        # ) = 
+        # ) =
         group2_data, group2_md = combine_peri_event_data(
             traces_files=group2_traces_files,
             stats_files=group2_stats_files,
@@ -1965,21 +1872,15 @@ def combine_compare_peri_event_data(
             comparison_dicts.append(
                 {
                     "modulation": modulation_group,
-                    f"n_{group1_name}": len(
-                        group1_data["up_modulated"]["fractions"]
-                    ),
-                    f"n_{group2_name}": len(
-                        group2_data["up_modulated"]["fractions"]
-                    ),
+                    f"n_{group1_name}": len(group1_data["up_modulated"]["fractions"]),
+                    f"n_{group2_name}": len(group2_data["up_modulated"]["fractions"]),
                     "t_statistic": stats_dict[modulation_group]["t_statistic"],
                     "p_value": stats_dict[modulation_group]["p_value"],
                 }
             )
         df_comparison = pd.DataFrame(comparison_dicts)
 
-        output_comparison_filename = os.path.join(
-            output_dir, "comparison_data.csv"
-        )
+        output_comparison_filename = os.path.join(output_dir, "comparison_data.csv")
         df_comparison.to_csv(output_comparison_filename, index=False)
 
         logger.info(
@@ -1993,7 +1894,7 @@ def combine_compare_peri_event_data(
         #     avg_population_comparison_preview_file,
         #     sub_population_comparison_preview_file,
         #     fractions_comparison_preview_file,
-        # ) = 
+        # ) =
         generate_comparison_plots(
             group1_data=group1_data,
             group1_name=group1_name,
@@ -2005,9 +1906,7 @@ def combine_compare_peri_event_data(
         logger.info("Comparison plots generated")
 
         # # define comparison file metadata
-        output_metadata["comparison_data"] = [
-            group1_md[3], group1_md[4]
-        ]
+        output_metadata["comparison_data"] = [group1_md[3], group1_md[4]]
         # comparison_metadata = {
         #     config.IDEAS_METADATA_KEY: {
         #         "timingInfo": group1_traces_manifest_files.file_metadata[
@@ -2044,7 +1943,6 @@ def combine_compare_peri_event_data(
     #     output_dir=output_dir,
     # )
 
-    
     with open(os.path.join(output_dir, "output_metadata.json"), "w") as f:
         json.dump(output_metadata, f)
 
@@ -2097,50 +1995,63 @@ def combine_compare_peri_event_data_ideas_wrapper(
             group_names = [g.replace(" ", "_") for g in [group1_name, group2_name] if g]
             for group_name in group_names:
                 subdir_base = "group1" if group_name == group_names[0] else "group2"
-                
-                output_file = output_data.register_file(
-                    f"event_aligned_activity_{group_name}.csv",
-                    subdir=f"{subdir_base}_event_aligned_activity_traces",
-                ).register_preview(
-                    f"event_aligned_population_activity_{group_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                    caption="Event-aligned average population activity line plot"
-                ).register_preview(
-                    f"event_aligned_single_cell_activity_heatmap_{group_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                    caption="Event-aligned single-cell activity heatmap"
+
+                output_file = (
+                    output_data.register_file(
+                        f"event_aligned_activity_{group_name}.csv",
+                        subdir=f"{subdir_base}_event_aligned_activity_traces",
+                    )
+                    .register_preview(
+                        f"event_aligned_population_activity_{group_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                        caption="Event-aligned average population activity line plot",
+                    )
+                    .register_preview(
+                        f"event_aligned_single_cell_activity_heatmap_{group_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                        caption="Event-aligned single-cell activity heatmap",
+                    )
                 )
-                for md in metadata.get(f"{subdir_base}_event_aligned_activity_traces", {}):
+                for md in metadata.get(
+                    f"{subdir_base}_event_aligned_activity_traces", {}
+                ):
                     output_file.register_metadata(**md)
 
-                output_file = output_data.register_file(
-                    f"event_aligned_statistics_{group_name}.csv",
-                    subdir=f"{subdir_base}_event_aligned_statistics",
-                ).register_preview(
-                    f"event_aligned_activity_by_modulation_{group_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                    caption="Event-aligned average sub-population activity line plot (up-, down-, and non-modulated neurons)",
-                ).register_preview(
-                    f"fraction_of_modulated_neurons_{group_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                    caption="Pie chart depicting the fraction of neurons in each sub-population (up-, down-, and non-modulated neurons)",
+                output_file = (
+                    output_data.register_file(
+                        f"event_aligned_statistics_{group_name}.csv",
+                        subdir=f"{subdir_base}_event_aligned_statistics",
+                    )
+                    .register_preview(
+                        f"event_aligned_activity_by_modulation_{group_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                        caption="Event-aligned average sub-population activity line plot (up-, down-, and non-modulated neurons)",
+                    )
+                    .register_preview(
+                        f"fraction_of_modulated_neurons_{group_name}{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                        caption="Pie chart depicting the fraction of neurons in each sub-population (up-, down-, and non-modulated neurons)",
+                    )
                 )
                 for md in metadata.get(f"{subdir_base}_event_aligned_statistics", {}):
                     output_file.register_metadata(**md)
 
-            output_file = output_data.register_file(
-                "comparison_data.csv",
-                subdir="comparison_data"
-            ).register_preview(
-                f"event_aligned_population_activity_comparison{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                caption="Event-aligned average population activity line plot",
-            ).register_preview(
-                f"event_aligned_subpopulation_activity_comparison{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                caption="Event-aligned average sub-population activity line plot",
-            ).register_preview(
-                f"modulated_fractions_comparison{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
-                caption="Fraction of neurons in each modulation group"
+            output_file = (
+                output_data.register_file(
+                    "comparison_data.csv", subdir="comparison_data"
+                )
+                .register_preview(
+                    f"event_aligned_population_activity_comparison{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                    caption="Event-aligned average population activity line plot",
+                )
+                .register_preview(
+                    f"event_aligned_subpopulation_activity_comparison{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                    caption="Event-aligned average sub-population activity line plot",
+                )
+                .register_preview(
+                    f"modulated_fractions_comparison{config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION}",
+                    caption="Fraction of neurons in each modulation group",
+                )
             )
             for md in metadata.get("comparison_data", {}):
                 output_file.register_metadata(**md)
-        
+
         logger.info("Registered output data")
     except Exception:
         logger.exception("Failed to generate output data!")
-    

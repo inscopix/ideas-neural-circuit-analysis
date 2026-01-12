@@ -1,9 +1,11 @@
 import json
-import logging
 import re
 
 import pandas as pd
 from beartype.typing import List, Optional
+from ideas.exceptions import IdeasError
+from ideas.tools import log, outputs
+from ideas.tools.types import IdeasFile
 
 from utils.algorithms import (
     _compare_correlation,
@@ -14,11 +16,6 @@ from utils.algorithms import (
 from utils.plots import _plot_combined_data
 from utils.utils import _combine_data
 from utils.validation import _validate_files
-from ideas.exceptions import IdeasError
-
-from ideas.tools import log
-from ideas.tools.types import IdeasFile
-from ideas.tools import outputs
 
 logger = log.get_logger()
 
@@ -78,13 +75,9 @@ def run_cc_epochs(
 
     # Validate that each group has more than one file for ANOVA
     if len(group1_traces) < 2:
-        raise IdeasError(
-            "Group1 must have more than 1 trace file to run ANOVA."
-        )
+        raise IdeasError("Group1 must have more than 1 trace file to run ANOVA.")
     if group2_traces is not None and len(group2_traces) < 2:
-        raise IdeasError(
-            "Group2 must have more than 1 trace file to run ANOVA."
-        )
+        raise IdeasError("Group2 must have more than 1 trace file to run ANOVA.")
 
     # Validate that group names do not contain special characters
     if group1_name and re.search(r'[\/:*?"<>|]', group1_name):
@@ -101,9 +94,7 @@ def run_cc_epochs(
 
     epoch_colors = epoch_colors.replace(" ", "").split(",")
     if len(epoch_names) != len(epoch_colors):
-        raise IdeasError(
-            "The number of epoch names and colors must be the same."
-        )
+        raise IdeasError("The number of epoch names and colors must be the same.")
 
     # initialize metadata
     metadata = {}
@@ -195,9 +186,7 @@ def run_cc_epochs(
         )
         mixed_aov = pd.concat([mixed_aov, mixed_corr_aov])
         mixed_pairwise = pd.concat([mixed_pairwise, mixed_corr_pairwise])
-        aov, pairwise = _unify_results(
-            aov, pairwise, mixed_aov, mixed_pairwise
-        )
+        aov, pairwise = _unify_results(aov, pairwise, mixed_aov, mixed_pairwise)
 
     aov.to_csv("ANOVA_results.csv", index=False)
     pairwise.to_csv("pairwise_results.csv", index=False)
@@ -219,6 +208,7 @@ def run_cc_epochs(
     # Create metadata
     with open("output_metadata.json", "w") as file:
         json.dump(metadata, file, indent=2)
+
 
 def run_cc_epochs_ideas_wrapper(
     group1_traces: List[IdeasFile],
@@ -292,48 +282,52 @@ def run_cc_epochs_ideas_wrapper(
                     f"{group_id}_combined_data.csv",
                     subdir=f"{group_id}_combined_data",
                     prefix=f"{group_name}_",
-                    name="combined_trace_event_data.csv"
-                ).register_metadata_dict(
-                    **metadata[f"{group_id}_combined_data"]
-                )
+                    name="combined_trace_event_data.csv",
+                ).register_metadata_dict(**metadata[f"{group_id}_combined_data"])
 
                 for metric in metrics:
                     output_file.register_preview(
                         f"{group_id}_{metric}_preview.svg",
-                        caption=f"Box plots comparing {metric.lower()} activity across epochs in group {group_name}, and histograms comparing pairwise differences in {metric.lower()} activity between each epoch combination"
+                        caption=f"Box plots comparing {metric.lower()} activity across epochs in group {group_name}, and histograms comparing pairwise differences in {metric.lower()} activity between each epoch combination",
                     )
-            
-                output_file = output_data.register_file(
-                    f"{group_id}_correlation_data.csv",
-                    subdir=f"{group_id}_correlation_data",
-                    prefix=f"{group_name}_",
-                    name="combined_correlation_data.csv"
-                ).register_preview(
-                    f"{group_id}_correlation_preview.svg",
-                    caption=f"Box plots comparing average positive (top) and negative (bottom) correlations between epochs in group {group_name}",
-                ).register_metadata_dict(
-                    **metadata[f"{group_id}_correlation_data"]
+
+                output_file = (
+                    output_data.register_file(
+                        f"{group_id}_correlation_data.csv",
+                        subdir=f"{group_id}_correlation_data",
+                        prefix=f"{group_name}_",
+                        name="combined_correlation_data.csv",
+                    )
+                    .register_preview(
+                        f"{group_id}_correlation_preview.svg",
+                        caption=f"Box plots comparing average positive (top) and negative (bottom) correlations between epochs in group {group_name}",
+                    )
+                    .register_metadata_dict(**metadata[f"{group_id}_correlation_data"])
                 )
 
-            anova_file = output_data.register_file(
-                "ANOVA_results.csv",
-                prefix=f"{group1_name}_{group2_name}_",
-                name="anova_results.csv"
-            ).register_preview(
-                "mixed_correlation_ANOVA_comparison.svg",
-                caption="Box plots comparing average positive (top) and negative (bottom) correlations between each group and epoch",
-            ).register_metadata_dict(
-                **metadata["ANOVA_results"]
+            anova_file = (
+                output_data.register_file(
+                    "ANOVA_results.csv",
+                    prefix=f"{group1_name}_{group2_name}_",
+                    name="anova_results.csv",
+                )
+                .register_preview(
+                    "mixed_correlation_ANOVA_comparison.svg",
+                    caption="Box plots comparing average positive (top) and negative (bottom) correlations between each group and epoch",
+                )
+                .register_metadata_dict(**metadata["ANOVA_results"])
             )
 
-            pairwise_file = output_data.register_file(
-                "pairwise_results.csv",
-                prefix=f"{group1_name}_{group2_name}_",
-            ).register_preview(
-                "mixed_correlation_pairwise_comparison.svg",
-                caption="Box plots comparing average positive (top) and negative (bottom) correlations between each group and epoch"
-            ).register_metadata_dict(
-                **metadata["pairwise_results"]
+            pairwise_file = (
+                output_data.register_file(
+                    "pairwise_results.csv",
+                    prefix=f"{group1_name}_{group2_name}_",
+                )
+                .register_preview(
+                    "mixed_correlation_pairwise_comparison.svg",
+                    caption="Box plots comparing average positive (top) and negative (bottom) correlations between each group and epoch",
+                )
+                .register_metadata_dict(**metadata["pairwise_results"])
             )
 
             for output_file in [anova_file, pairwise_file]:
@@ -342,7 +336,7 @@ def run_cc_epochs_ideas_wrapper(
                         output_file.register_preview(
                             f"{group_id}_{metric}_Activity_comparison.svg",
                             prefix="",
-                            caption=f"Box plots comparing {metric.lower()} activity between epochs in group {group_name}"
+                            caption=f"Box plots comparing {metric.lower()} activity between epochs in group {group_name}",
                         )
                     output_file.register_preview(
                         f"{group_id}_correlation_data_comparison.svg",

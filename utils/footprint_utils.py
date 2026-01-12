@@ -2,9 +2,7 @@ import cv2
 import numpy as np
 
 
-def threshold_footprint(
-    footprint, percentile=99.9, threshold_type=cv2.THRESH_TOZERO
-):
+def threshold_footprint(footprint, percentile=99.9, threshold_type=cv2.THRESH_TOZERO):
     """Adaptively threshold a cellular footprint image.
 
     :param footprint: footprint image matrix
@@ -17,14 +15,12 @@ def threshold_footprint(
     ret, thresh_img = cv2.threshold(footprint, 0, 100000, threshold_type)
 
     # compute weighted threshold (90% specified threshold, 10% image maximum)
-    weighted_threshold = 0.9 * np.percentile(
-        thresh_img, percentile
-    ) + 0.1 * np.max(thresh_img)
+    weighted_threshold = 0.9 * np.percentile(thresh_img, percentile) + 0.1 * np.max(
+        thresh_img
+    )
 
     # threshold again using weighted threshold
-    ret, thresh_img = cv2.threshold(
-        thresh_img, weighted_threshold, 1, threshold_type
-    )
+    ret, thresh_img = cv2.threshold(thresh_img, weighted_threshold, 1, threshold_type)
     return thresh_img
 
 
@@ -38,9 +34,7 @@ def get_cell_contour(footprint):
     thresholded_footprint = threshold_footprint(footprint)
 
     # compute min-max of image
-    min_val, max_val, min_index, max_indx = cv2.minMaxLoc(
-        thresholded_footprint
-    )
+    min_val, max_val, min_index, max_indx = cv2.minMaxLoc(thresholded_footprint)
     if min_val == max_val:
         # no contrast so no contour can be found
         return []

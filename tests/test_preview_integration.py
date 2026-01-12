@@ -5,11 +5,12 @@ Tests the entire pipeline from analysis to preview generation to ensure
 real timepoints and proper color mapping are used throughout.
 """
 
-import pytest
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
 import numpy as np
 import pandas as pd
-from unittest.mock import patch, MagicMock
-from pathlib import Path
+import pytest
 
 from analysis.state_epoch_baseline_analysis import (
     state_epoch_baseline_analysis,
@@ -39,9 +40,7 @@ class TestPreviewIntegrationWorkflow:
 
         # Create event file with proper .isxd extension
         eventset_file = tmp_path / "test_eventset.isxd"
-        events = np.random.poisson(
-            0.1, (num_timepoints, num_cells)
-        )  # Sparse events
+        events = np.random.poisson(0.1, (num_timepoints, num_cells))  # Sparse events
 
         # Just create empty file with correct extension
         eventset_file.touch()
@@ -144,9 +143,7 @@ class TestPreviewIntegrationWorkflow:
         )
 
         # Mock event loading
-        mock_all_offsets = [
-            [0.5, 1.5, 2.5] for _ in range(5)
-        ]  # Events for each cell
+        mock_all_offsets = [[0.5, 1.5, 2.5] for _ in range(5)]  # Events for each cell
         mock_all_amplitudes = [[1.0, 1.2, 0.8] for _ in range(5)]
         mock_load_eventset.return_value = (
             mock_all_offsets,
@@ -292,9 +289,9 @@ class TestPreviewIntegrationWorkflow:
             error_message = str(e)
 
         # Verify analysis completed successfully
-        assert (
-            analysis_passed
-        ), f"Analysis should complete successfully but got: {error_message}"
+        assert analysis_passed, (
+            f"Analysis should complete successfully but got: {error_message}"
+        )
 
         # The test passes if the analysis completes without crashing.
         # With the new architecture, when annotations are present, custom overlay
@@ -366,9 +363,7 @@ class TestPreviewIntegrationWorkflow:
         )
 
         # Mock event loading
-        mock_all_offsets = [
-            [0.5, 1.5, 2.5] for _ in range(5)
-        ]  # Events for each cell
+        mock_all_offsets = [[0.5, 1.5, 2.5] for _ in range(5)]  # Events for each cell
         mock_all_amplitudes = [[1.0, 1.2, 0.8] for _ in range(5)]
         mock_load_eventset.return_value = (
             mock_all_offsets,
@@ -473,9 +468,7 @@ class TestPreviewIntegrationWorkflow:
         )
 
         # Mock event loading
-        mock_all_offsets = [
-            [0.5, 1.5, 2.5] for _ in range(5)
-        ]  # Events for each cell
+        mock_all_offsets = [[0.5, 1.5, 2.5] for _ in range(5)]  # Events for each cell
         mock_all_amplitudes = [[1.0, 1.2, 0.8] for _ in range(5)]
         mock_load_eventset.return_value = (
             mock_all_offsets,
@@ -492,10 +485,10 @@ class TestPreviewIntegrationWorkflow:
         mock_output_instance = MagicMock()
         mock_output_generator.return_value = mock_output_instance
 
-        with patch("utils.plots._plot_traces") as mock_traces, patch(
-            "utils.plots._plot_raster"
-        ) as mock_raster:
-
+        with (
+            patch("utils.plots._plot_traces") as mock_traces,
+            patch("utils.plots._plot_raster") as mock_raster,
+        ):
             # Run analysis with multiple combinations
             with temporary_state_epoch_analysis_feature_flags(
                 include_correlations=False,
@@ -523,12 +516,12 @@ class TestPreviewIntegrationWorkflow:
                 trace_names = trace_call[1]["state_names"]
 
                 # Should have multiple combinations
-                assert (
-                    len(trace_colors) > 1
-                ), f"Expected multiple colors, got {len(trace_colors)}"
-                assert (
-                    len(trace_names) > 1
-                ), f"Expected multiple names, got {len(trace_names)}"
+                assert len(trace_colors) > 1, (
+                    f"Expected multiple colors, got {len(trace_colors)}"
+                )
+                assert len(trace_names) > 1, (
+                    f"Expected multiple names, got {len(trace_names)}"
+                )
 
                 # Colors should be from our input set
                 valid_colors = {"gray", "blue"}
@@ -542,12 +535,12 @@ class TestPreviewIntegrationWorkflow:
                 event_names = event_call[1]["state_names"]
 
                 # Should have multiple combinations
-                assert (
-                    len(event_colors) > 1
-                ), f"Expected multiple colors, got {len(event_colors)}"
-                assert (
-                    len(event_names) > 1
-                ), f"Expected multiple names, got {len(event_names)}"
+                assert len(event_colors) > 1, (
+                    f"Expected multiple colors, got {len(event_colors)}"
+                )
+                assert len(event_names) > 1, (
+                    f"Expected multiple names, got {len(event_names)}"
+                )
 
     @patch("utils.state_epoch_output.StateEpochOutputGenerator")
     @patch("utils.state_epoch_results.StateEpochResults")
@@ -612,9 +605,7 @@ class TestPreviewIntegrationWorkflow:
         )
 
         # Mock event loading
-        mock_all_offsets = [
-            [0.5, 1.5, 2.5] for _ in range(5)
-        ]  # Events for each cell
+        mock_all_offsets = [[0.5, 1.5, 2.5] for _ in range(5)]  # Events for each cell
         mock_all_amplitudes = [[1.0, 1.2, 0.8] for _ in range(5)]
         mock_load_eventset.return_value = (
             mock_all_offsets,
@@ -704,9 +695,7 @@ class TestEndToEndPreviewValidation:
         for i, (state, _epoch) in enumerate(combinations):
             # State color should match state index
             state_idx = generator.states.index(state)
-            expected_state_color = generator.color_scheme.state_colors[
-                state_idx
-            ]
+            expected_state_color = generator.color_scheme.state_colors[state_idx]
             assert state_colors[i] == expected_state_color
 
     def test_complete_preview_parameter_validation(self, tmp_path):

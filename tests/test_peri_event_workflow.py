@@ -1,20 +1,19 @@
-import json
 import os
 import shutil
-import h5py
 import unittest
+
+import h5py
 import numpy as np
 import pandas as pd
+from ideas.exceptions import IdeasError
+
 from analysis.peri_event_workflow import (
+    nanmean_iterative,
     peri_event_single_cell_analysis,
     run_peri_event_workflow,
-    nanmean_iterative,
 )
-from ideas.exceptions import IdeasError
 from utils.testing_utils import (
     compare_float_dataframes,
-    # validate_json_schema,
-    # validate_output_manifest,
 )
 
 
@@ -30,22 +29,14 @@ class TestPeriEventWorkflow(unittest.TestCase):
     output_dir = os.path.join(temporary_dir, "tmp_peri_event_workflow_outputs")
 
     # output manifest
-    output_manifest_json_schema = (
-        "toolbox/tests/schemas/output_manifest_schema.json"
-    )
+    output_manifest_json_schema = "toolbox/tests/schemas/output_manifest_schema.json"
     output_manifest_file_basename = "output_manifest.json"
-    output_manifest_file = os.path.join(
-        output_dir, output_manifest_file_basename
-    )
+    output_manifest_file = os.path.join(output_dir, output_manifest_file_basename)
 
     # output metadata
-    output_metadata_json_schema = (
-        "toolbox/tests/schemas/output_metadata_schema.json"
-    )
+    output_metadata_json_schema = "toolbox/tests/schemas/output_metadata_schema.json"
     output_metadata_file_basename = "output_metadata.json"
-    output_metadata_file = os.path.join(
-        output_dir, output_metadata_file_basename
-    )
+    output_metadata_file = os.path.join(output_dir, output_metadata_file_basename)
 
     # input files
     input_cellset_isxd_files = [
@@ -83,18 +74,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -123,7 +112,9 @@ class TestPeriEventWorkflow(unittest.TestCase):
         )
 
         expected_traces_df = pd.read_csv(
-            os.path.join(self.input_dir, "peri_event_workflow/expected_event_aligned_traces.csv")
+            os.path.join(
+                self.input_dir, "peri_event_workflow/expected_event_aligned_traces.csv"
+            )
         )
         compare_float_dataframes(actual_traces_df, expected_traces_df)
 
@@ -135,7 +126,8 @@ class TestPeriEventWorkflow(unittest.TestCase):
 
         expected_stats_df = pd.read_csv(
             os.path.join(
-                self.input_dir, "peri_event_workflow/expected_event_aligned_statistics.csv"
+                self.input_dir,
+                "peri_event_workflow/expected_event_aligned_statistics.csv",
             )
         )
         compare_float_dataframes(actual_stats_df, expected_stats_df)
@@ -167,152 +159,6 @@ class TestPeriEventWorkflow(unittest.TestCase):
         ]:
             self.assertTrue(os.path.exists(f))
 
-        # define expected output manifest
-        expected_output_manifest = {
-            "schema_version": "2.0.0",
-            "groups": [
-                {
-                    "group_key": "peri_event_analysis_output",
-                    "group_type": "tool_output",
-                    "group_id": "21ce294e-e7bc-4939-b234-4ad311ed2ac3",
-                    "series": [],
-                    "files": [
-                        {
-                            "file_key": "input_cellset_files",
-                            "file_name": "cellset_series_part1-PCA-ICA.isxd",
-                            "file_id": "8da1b69a-c537-4bfc-af3d-536740d93491",
-                            "file_path": "/ideas/toolbox/tests/data/"
-                            "peri_event_workflow/"
-                            "cellset_series_part1-PCA-ICA.isxd",
-                            "file_type": "cell_set",
-                            "file_format": "isxd",
-                            "file_structure": "binary",
-                            "file_category": "source",
-                        },
-                        {
-                            "file_key": "input_events_h5_file",
-                            "file_name": "events.h5",
-                            "file_id": "afdf1760-e0ae-46b3-aad2-30bf295b4ff5",
-                            "file_path": "/ideas/toolbox/tests/data/"
-                            "peri_event_workflow/events.h5",
-                            "file_type": "timestamp_events",
-                            "file_format": "h5",
-                            "file_structure": "sparse_time_series",
-                            "file_category": "source",
-                        },
-                        {
-                            "file_key": "event_aligned_activity_traces_event"
-                            "_aligned_activity_traces_csv_file",
-                            "file_name": "event_aligned_activity.TRACES.csv",
-                            "file_id": "167f76fb-3bd0-4745-8681-4daff0f6ef76",
-                            "file_path": "/tmp/tmp_peri_event_workflow_outputs/"
-                            "event_type_event_type_1/event_aligned_activity"
-                            ".TRACES.csv",
-                            "file_type": "event_aligned_neural_data",
-                            "file_format": "csv",
-                            "file_structure": "time_series",
-                            "file_category": "result",
-                            "parent_ids": [
-                                "8da1b69a-c537-4bfc-af3d-536740d93491"
-                            ],
-                            "preview": [
-                                {
-                                    "name": "Event-aligned population activity figure",
-                                    "help": "Event-aligned average population activity line plot",
-                                    "file_path": "/tmp/tmp_peri_event_workflow_outputs/"
-                                    "event_type_event_type_1/event_aligned_"
-                                    "population_activity.preview.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Event-aligned single-cell activity figure",
-                                    "help": "Event-aligned single-cell activity heatmap",
-                                    "file_path": "/tmp/tmp_peri_event_workflow_outputs/"
-                                    "event_type_event_type_1/event_aligned_"
-                                    "single_cell_activity_heatmap.preview.svg",
-                                    "file_format": "svg",
-                                },
-                            ],
-                        },
-                        {
-                            "file_key": "event_aligned_statistics_event_"
-                            "aligned_activity_statistics_csv_file",
-                            "file_name": "event_aligned_activity.STATISTICS.csv",
-                            "file_id": "971617a9-01c4-4d9b-8224-2c22199f30b2",
-                            "file_path": "/tmp/tmp_peri_event_workflow_outputs/"
-                            "event_type_event_type_1/event_aligned"
-                            "_activity.STATISTICS.csv",
-                            "file_type": "statistics",
-                            "file_format": "csv",
-                            "file_structure": "table",
-                            "file_category": "result",
-                            "parent_ids": [
-                                "8da1b69a-c537-4bfc-af3d-536740d93491",
-                                "167f76fb-3bd0-4745-8681-4daff0f6ef76",
-                            ],
-                            "preview": [
-                                {
-                                    "name": "Event-aligned sub-population activity figure",
-                                    "help": "Event-aligned average sub-population activity"
-                                    " line plot (up-, down-, and non-modulated neurons)",
-                                    "file_path": "/tmp/tmp_peri_event_workflow_outputs/"
-                                    "event_type_event_type_1/event_aligned_"
-                                    "activity_by_modulation.preview.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Spatial organization of modulation",
-                                    "help": "Cell map visualizing spatial organization of "
-                                    "modulation",
-                                    "file_path": "/tmp/tmp_peri_event_workflow_outputs/"
-                                    "event_type_event_type_1/cell_map.preview.svg",
-                                    "file_format": "svg",
-                                },
-                            ],
-                        },
-                    ],
-                }
-            ],
-        }
-        # validate output manifest
-        # self.assertTrue(
-        #     validate_output_manifest(
-        #         expected_output_manifest=expected_output_manifest,
-        #         tool_metadata=self.tool_metadata[self.tool_key],
-        #         actual_manifest_data_filepath=self.output_manifest_file,
-        #     )
-        # )
-
-        # validate output metadata
-        # self.assertTrue(os.path.exists(self.output_metadata_file))
-        # validate_json_schema(
-        #     self.output_metadata_file, self.output_metadata_json_schema
-        # )
-
-        # with open(self.output_metadata_file) as f:
-        #     actual_metadata = json.load(f)
-        #     group_metadata = actual_metadata["group_metadata"]
-        #     series_metadata = actual_metadata["series_metadata"]
-        #     file_metadata = actual_metadata["file_metadata"]
-
-        # # validate group metadata
-        # self.assertEqual(len(group_metadata), 1)
-        # self.assertEqual(
-        #     group_metadata[0]["add"]["ideas"]["dataset"]["group_type"],
-        #     "tool_output",
-        # )
-
-        # # validate series metadata
-        # self.assertEqual(series_metadata, [])
-
-        # # validate file metadata
-        # self.assertEqual(len(file_metadata), 2)
-        # for f in file_metadata:
-        #     self.assertEqual(list(f["add"].keys()), ["ideas"])
-        #     self.assertEqual(
-        #         f["add"]["ideas"]["timingInfo"]["sampling_rate"], 10
-        #     )
-
     def test_peri_event_single_cell_analysis_no_modulated_cells(self):
         # tests the case where there are zero modulated cells
 
@@ -327,9 +173,7 @@ class TestPeriEventWorkflow(unittest.TestCase):
         event_type = "event_type_1"
         significance_threshold = 0.05
 
-        input_traces_parquet_file = os.path.join(
-            self.input_dir, "traces.parquet"
-        )
+        input_traces_parquet_file = os.path.join(self.input_dir, "traces.parquet")
 
         df = pd.read_parquet(input_traces_parquet_file)
 
@@ -342,9 +186,7 @@ class TestPeriEventWorkflow(unittest.TestCase):
         event_indices_shuffles = [list(event_indices) for _ in range(10)]
 
         # footprints
-        input_footprints_h5_file = os.path.join(
-            self.input_dir, "footprints.h5"
-        )
+        input_footprints_h5_file = os.path.join(self.input_dir, "footprints.h5")
 
         f = h5py.File(input_footprints_h5_file, "r")
         footprints = f["footprints"]
@@ -387,18 +229,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -480,170 +320,6 @@ class TestPeriEventWorkflow(unittest.TestCase):
         ]:
             self.assertTrue(os.path.exists(f))
 
-        # define expected output manifest
-        expected_output_manifest = {
-            "schema_version": "2.0.0",
-            "groups": [
-                {
-                    "group_key": "peri_event_analysis_output",
-                    "group_type": "tool_output",
-                    "group_id": "9cf442c9-210c-4e23-8e71-052d6e7d30bb",
-                    "series": [],
-                    "files": [
-                        {
-                            "file_key": "input_cellset_files",
-                            "file_name": "cellset_series_part1-PCA-ICA.isxd",
-                            "file_id": "c3d70d60-961b-45ec-a3c1-2b88e9d5ca64",
-                            "file_path": "/ideas/toolbox/tests/data/peri_event_workflow/"
-                            "cellset_series_part1-PCA-ICA.isxd",
-                            "file_type": "cell_set",
-                            "file_format": "isxd",
-                            "file_structure": "binary",
-                            "file_category": "source",
-                        },
-                        {
-                            "file_key": "input_cellset_files",
-                            "file_name": "cellset_series_part2-PCA-ICA.isxd",
-                            "file_id": "f3ed71fc-2a6c-4806-bd7b-bec35a29c606",
-                            "file_path": "/ideas/toolbox/tests/data/peri_event_workflow"
-                            "/cellset_series_part2-PCA-ICA.isxd",
-                            "file_type": "cell_set",
-                            "file_format": "isxd",
-                            "file_structure": "binary",
-                            "file_category": "source",
-                        },
-                        {
-                            "file_key": "input_events_h5_file",
-                            "file_name": "events.h5",
-                            "file_id": "6ae088ef-0fd0-4140-9736-024c8d555044",
-                            "file_path": "/ideas/toolbox/tests/data/"
-                            "peri_event_workflow/events.h5",
-                            "file_type": "timestamp_events",
-                            "file_format": "h5",
-                            "file_structure": "sparse_time_series",
-                            "file_category": "source",
-                        },
-                        {
-                            "file_key": "event_aligned_activity_traces_event"
-                            "_aligned_activity_traces_csv_file",
-                            "file_name": "event_aligned_activity.TRACES.csv",
-                            "file_id": "4685184a-20cd-4c61-b071-b7fb7facf676",
-                            "file_path": "/tmp/tmp_peri_event_workflow_outputs/"
-                            "event_type_event_type_1/event_aligned"
-                            "_activity.TRACES.csv",
-                            "file_type": "event_aligned_neural_data",
-                            "file_format": "csv",
-                            "file_structure": "time_series",
-                            "file_category": "result",
-                            "parent_ids": [
-                                "c3d70d60-961b-45ec-a3c1-2b88e9d5ca64",
-                                "f3ed71fc-2a6c-4806-bd7b-bec35a29c606",
-                            ],
-                            "preview": [
-                                {
-                                    "name": "Event-aligned population activity "
-                                    "figure",
-                                    "help": "Event-aligned average population "
-                                    "activity line plot",
-                                    "file_path": "/tmp/tmp_peri_event_workflow_"
-                                    "outputs/event_type_event_type_1/"
-                                    "event_aligned_population_activity"
-                                    ".preview.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Event-aligned single-cell activity figure",
-                                    "help": "Event-aligned single-cell activity heatmap",
-                                    "file_path": "/tmp/tmp_peri_event_workflow_outputs/"
-                                    "event_type_event_type_1/event_aligned"
-                                    "_single_cell_activity_heatmap.preview"
-                                    ".svg",
-                                    "file_format": "svg",
-                                },
-                            ],
-                        },
-                        {
-                            "file_key": "event_aligned_statistics_event_aligned"
-                            "_activity_statistics_csv_file",
-                            "file_name": "event_aligned_activity.STATISTICS.csv",
-                            "file_id": "bddb084e-a638-4c64-aa4b-0c6a677ab30d",
-                            "file_path": "/tmp/tmp_peri_event_workflow_outputs/"
-                            "event_type_event_type_1/event_aligned"
-                            "_activity.STATISTICS.csv",
-                            "file_type": "statistics",
-                            "file_format": "csv",
-                            "file_structure": "table",
-                            "file_category": "result",
-                            "parent_ids": [
-                                "c3d70d60-961b-45ec-a3c1-2b88e9d5ca64",
-                                "4685184a-20cd-4c61-b071-b7fb7facf676",
-                            ],
-                            "preview": [
-                                {
-                                    "name": "Event-aligned sub-population "
-                                    "activity figure",
-                                    "help": "Event-aligned average sub-population "
-                                    "activity line plot (up-, down-, and "
-                                    "non-modulated neurons)",
-                                    "file_path": "/tmp/tmp_peri_event_workflow_outputs"
-                                    "/event_type_event_type_1/event_aligned"
-                                    "_activity_by_modulation.preview.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Spatial organization of modulation",
-                                    "help": "Cell map visualizing spatial organization"
-                                    " of modulation",
-                                    "file_path": "/tmp/tmp_peri_event_workflow_outputs"
-                                    "/event_type_event_type_1/cell_map"
-                                    ".preview.svg",
-                                    "file_format": "svg",
-                                },
-                            ],
-                        },
-                    ],
-                }
-            ],
-        }
-        # validate output manifest
-        # self.assertTrue(
-        #     validate_output_manifest(
-        #         expected_output_manifest=expected_output_manifest,
-        #         tool_metadata=self.tool_metadata[self.tool_key],
-        #         actual_manifest_data_filepath=self.output_manifest_file,
-        #     )
-        # )
-
-        # validate output metadata
-        # self.assertTrue(os.path.exists(self.output_metadata_file))
-        # validate_json_schema(
-        #     self.output_metadata_file, self.output_metadata_json_schema
-        # )
-
-        # with open(self.output_metadata_file) as f:
-        #     actual_metadata = json.load(f)
-        #     group_metadata = actual_metadata["group_metadata"]
-        #     series_metadata = actual_metadata["series_metadata"]
-        #     file_metadata = actual_metadata["file_metadata"]
-
-        # # validate group metadata
-        # self.assertEqual(len(group_metadata), 1)
-        # self.assertEqual(
-        #     group_metadata[0]["add"]["ideas"]["dataset"]["group_type"],
-        #     "tool_output",
-        # )
-
-        # # validate series metadata
-        # self.assertEqual(series_metadata, [])
-
-        # # validate file metadata
-        # self.assertEqual(len(file_metadata), 2)
-        # for f in file_metadata:
-        #     self.assertEqual(list(f["add"].keys()), ["ideas"])
-        #     self.assertEqual(
-        #         f["add"]["ideas"]["timingInfo"]["sampling_rate"], 10
-        #     )
-
     # ERROR CASES
     def test_peri_event_workflow_missing_cellset_file(self):
         input_cellset_isxd_files = ["/tmp/nfiuanuiadfnain/qodqm/ssndnd.isxd"]
@@ -664,18 +340,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -702,18 +376,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -740,18 +412,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -780,22 +450,20 @@ class TestPeriEventWorkflow(unittest.TestCase):
                 event_type=input_parameters["event_types"][0],
                 visual_window_pre=input_parameters["visual_window"]["pre"],
                 visual_window_post=input_parameters["visual_window"]["post"],
-                statistical_window_pre_start=input_parameters[
-                    "statistical_window"
-                ]["pre"][0],
-                statistical_window_pre_end=input_parameters[
-                    "statistical_window"
-                ]["pre"][1],
-                statistical_window_post_start=input_parameters[
-                    "statistical_window"
-                ]["post"][0],
-                statistical_window_post_end=input_parameters[
-                    "statistical_window"
-                ]["post"][1],
+                statistical_window_pre_start=input_parameters["statistical_window"][
+                    "pre"
+                ][0],
+                statistical_window_pre_end=input_parameters["statistical_window"][
+                    "pre"
+                ][1],
+                statistical_window_post_start=input_parameters["statistical_window"][
+                    "post"
+                ][0],
+                statistical_window_post_end=input_parameters["statistical_window"][
+                    "post"
+                ][1],
                 num_shuffles=input_parameters["num_shuffles"],
-                significance_threshold=input_parameters[
-                    "significance_threshold"
-                ],
+                significance_threshold=input_parameters["significance_threshold"],
                 seed=input_parameters["seed"],
                 output_dir=self.output_dir,
             )
@@ -822,22 +490,20 @@ class TestPeriEventWorkflow(unittest.TestCase):
                 event_type=input_parameters["event_types"][0],
                 visual_window_pre=input_parameters["visual_window"]["pre"],
                 visual_window_post=input_parameters["visual_window"]["post"],
-                statistical_window_pre_start=input_parameters[
-                    "statistical_window"
-                ]["pre"][0],
-                statistical_window_pre_end=input_parameters[
-                    "statistical_window"
-                ]["pre"][1],
-                statistical_window_post_start=input_parameters[
-                    "statistical_window"
-                ]["post"][0],
-                statistical_window_post_end=input_parameters[
-                    "statistical_window"
-                ]["post"][1],
+                statistical_window_pre_start=input_parameters["statistical_window"][
+                    "pre"
+                ][0],
+                statistical_window_pre_end=input_parameters["statistical_window"][
+                    "pre"
+                ][1],
+                statistical_window_post_start=input_parameters["statistical_window"][
+                    "post"
+                ][0],
+                statistical_window_post_end=input_parameters["statistical_window"][
+                    "post"
+                ][1],
                 num_shuffles=input_parameters["num_shuffles"],
-                significance_threshold=input_parameters[
-                    "significance_threshold"
-                ],
+                significance_threshold=input_parameters["significance_threshold"],
                 seed=input_parameters["seed"],
                 output_dir=self.output_dir,
             )
@@ -862,18 +528,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -906,22 +570,20 @@ class TestPeriEventWorkflow(unittest.TestCase):
                 event_type=input_parameters["event_types"][0],
                 visual_window_pre=input_parameters["visual_window"]["pre"],
                 visual_window_post=input_parameters["visual_window"]["post"],
-                statistical_window_pre_start=input_parameters[
-                    "statistical_window"
-                ]["pre"][0],
-                statistical_window_pre_end=input_parameters[
-                    "statistical_window"
-                ]["pre"][1],
-                statistical_window_post_start=input_parameters[
-                    "statistical_window"
-                ]["post"][0],
-                statistical_window_post_end=input_parameters[
-                    "statistical_window"
-                ]["post"][1],
+                statistical_window_pre_start=input_parameters["statistical_window"][
+                    "pre"
+                ][0],
+                statistical_window_pre_end=input_parameters["statistical_window"][
+                    "pre"
+                ][1],
+                statistical_window_post_start=input_parameters["statistical_window"][
+                    "post"
+                ][0],
+                statistical_window_post_end=input_parameters["statistical_window"][
+                    "post"
+                ][1],
                 num_shuffles=input_parameters["num_shuffles"],
-                significance_threshold=input_parameters[
-                    "significance_threshold"
-                ],
+                significance_threshold=input_parameters["significance_threshold"],
                 seed=input_parameters["seed"],
                 output_dir=self.output_dir,
             )
@@ -953,22 +615,20 @@ class TestPeriEventWorkflow(unittest.TestCase):
                 event_type=input_parameters["event_types"][0],
                 visual_window_pre=input_parameters["visual_window"]["pre"],
                 visual_window_post=input_parameters["visual_window"]["post"],
-                statistical_window_pre_start=input_parameters[
-                    "statistical_window"
-                ]["pre"][0],
-                statistical_window_pre_end=input_parameters[
-                    "statistical_window"
-                ]["pre"][1],
-                statistical_window_post_start=input_parameters[
-                    "statistical_window"
-                ]["post"][0],
-                statistical_window_post_end=input_parameters[
-                    "statistical_window"
-                ]["post"][1],
+                statistical_window_pre_start=input_parameters["statistical_window"][
+                    "pre"
+                ][0],
+                statistical_window_pre_end=input_parameters["statistical_window"][
+                    "pre"
+                ][1],
+                statistical_window_post_start=input_parameters["statistical_window"][
+                    "post"
+                ][0],
+                statistical_window_post_end=input_parameters["statistical_window"][
+                    "post"
+                ][1],
                 num_shuffles=input_parameters["num_shuffles"],
-                significance_threshold=input_parameters[
-                    "significance_threshold"
-                ],
+                significance_threshold=input_parameters["significance_threshold"],
                 seed=input_parameters["seed"],
                 output_dir=self.output_dir,
             )
@@ -1006,22 +666,20 @@ class TestPeriEventWorkflow(unittest.TestCase):
                 event_type=input_parameters["event_types"][0],
                 visual_window_pre=input_parameters["visual_window"]["pre"],
                 visual_window_post=input_parameters["visual_window"]["post"],
-                statistical_window_pre_start=input_parameters[
-                    "statistical_window"
-                ]["pre"][0],
-                statistical_window_pre_end=input_parameters[
-                    "statistical_window"
-                ]["pre"][1],
-                statistical_window_post_start=input_parameters[
-                    "statistical_window"
-                ]["post"][0],
-                statistical_window_post_end=input_parameters[
-                    "statistical_window"
-                ]["post"][1],
+                statistical_window_pre_start=input_parameters["statistical_window"][
+                    "pre"
+                ][0],
+                statistical_window_pre_end=input_parameters["statistical_window"][
+                    "pre"
+                ][1],
+                statistical_window_post_start=input_parameters["statistical_window"][
+                    "post"
+                ][0],
+                statistical_window_post_end=input_parameters["statistical_window"][
+                    "post"
+                ][1],
                 num_shuffles=input_parameters["num_shuffles"],
-                significance_threshold=input_parameters[
-                    "significance_threshold"
-                ],
+                significance_threshold=input_parameters["significance_threshold"],
                 seed=input_parameters["seed"],
                 output_dir=self.output_dir,
             )
@@ -1048,22 +706,20 @@ class TestPeriEventWorkflow(unittest.TestCase):
                 event_type=input_parameters["event_types"][0],
                 visual_window_pre=input_parameters["visual_window"]["pre"],
                 visual_window_post=input_parameters["visual_window"]["post"],
-                statistical_window_pre_start=input_parameters[
-                    "statistical_window"
-                ]["pre"][0],
-                statistical_window_pre_end=input_parameters[
-                    "statistical_window"
-                ]["pre"][1],
-                statistical_window_post_start=input_parameters[
-                    "statistical_window"
-                ]["post"][0],
-                statistical_window_post_end=input_parameters[
-                    "statistical_window"
-                ]["post"][1],
+                statistical_window_pre_start=input_parameters["statistical_window"][
+                    "pre"
+                ][0],
+                statistical_window_pre_end=input_parameters["statistical_window"][
+                    "pre"
+                ][1],
+                statistical_window_post_start=input_parameters["statistical_window"][
+                    "post"
+                ][0],
+                statistical_window_post_end=input_parameters["statistical_window"][
+                    "post"
+                ][1],
                 num_shuffles=input_parameters["num_shuffles"],
-                significance_threshold=input_parameters[
-                    "significance_threshold"
-                ],
+                significance_threshold=input_parameters["significance_threshold"],
                 seed=input_parameters["seed"],
                 output_dir=self.output_dir,
             )
@@ -1089,8 +745,8 @@ class TestPeriEventWorkflow(unittest.TestCase):
             # execute workflow and expect a IdeasError error to be raised
             self.assertRaisesRegex(
                 IdeasError,
-                "Visualization parameter 'Population activity \(y-axis range\)' must be specified "
-                "as 'auto' or 'min,max' \(e.g. -1,1\) where the minimum and "
+                r"Visualization parameter 'Population activity \(y-axis range\)' must be specified "
+                r"as 'auto' or 'min,max' \(e.g. -1,1\) where the minimum and "
                 "maximum are not equal.",
                 run_peri_event_workflow,
                 input_cellset_files=self.input_cellset_isxd_files,
@@ -1098,22 +754,20 @@ class TestPeriEventWorkflow(unittest.TestCase):
                 event_type=input_parameters["event_types"][0],
                 visual_window_pre=input_parameters["visual_window"]["pre"],
                 visual_window_post=input_parameters["visual_window"]["post"],
-                statistical_window_pre_start=input_parameters[
-                    "statistical_window"
-                ]["pre"][0],
-                statistical_window_pre_end=input_parameters[
-                    "statistical_window"
-                ]["pre"][1],
-                statistical_window_post_start=input_parameters[
-                    "statistical_window"
-                ]["post"][0],
-                statistical_window_post_end=input_parameters[
-                    "statistical_window"
-                ]["post"][1],
+                statistical_window_pre_start=input_parameters["statistical_window"][
+                    "pre"
+                ][0],
+                statistical_window_pre_end=input_parameters["statistical_window"][
+                    "pre"
+                ][1],
+                statistical_window_post_start=input_parameters["statistical_window"][
+                    "post"
+                ][0],
+                statistical_window_post_end=input_parameters["statistical_window"][
+                    "post"
+                ][1],
                 num_shuffles=input_parameters["num_shuffles"],
-                significance_threshold=input_parameters[
-                    "significance_threshold"
-                ],
+                significance_threshold=input_parameters["significance_threshold"],
                 seed=input_parameters["seed"],
                 population_activity_plot_limits=population_activity_plot_limits,
                 output_dir=self.output_dir,
@@ -1140,8 +794,8 @@ class TestPeriEventWorkflow(unittest.TestCase):
             # execute workflow and expect a IdeasError error to be raised
             self.assertRaisesRegex(
                 IdeasError,
-                "Visualization parameter 'Activity heatmap \(colormap range\)' must be specified "
-                "as 'auto' or 'min,max' \(e.g. -1,1\) where the minimum and "
+                r"Visualization parameter 'Activity heatmap \(colormap range\)' must be specified "
+                r"as 'auto' or 'min,max' \(e.g. -1,1\) where the minimum and "
                 "maximum are not equal.",
                 run_peri_event_workflow,
                 input_cellset_files=self.input_cellset_isxd_files,
@@ -1149,22 +803,20 @@ class TestPeriEventWorkflow(unittest.TestCase):
                 event_type=input_parameters["event_types"][0],
                 visual_window_pre=input_parameters["visual_window"]["pre"],
                 visual_window_post=input_parameters["visual_window"]["post"],
-                statistical_window_pre_start=input_parameters[
-                    "statistical_window"
-                ]["pre"][0],
-                statistical_window_pre_end=input_parameters[
-                    "statistical_window"
-                ]["pre"][1],
-                statistical_window_post_start=input_parameters[
-                    "statistical_window"
-                ]["post"][0],
-                statistical_window_post_end=input_parameters[
-                    "statistical_window"
-                ]["post"][1],
+                statistical_window_pre_start=input_parameters["statistical_window"][
+                    "pre"
+                ][0],
+                statistical_window_pre_end=input_parameters["statistical_window"][
+                    "pre"
+                ][1],
+                statistical_window_post_start=input_parameters["statistical_window"][
+                    "post"
+                ][0],
+                statistical_window_post_end=input_parameters["statistical_window"][
+                    "post"
+                ][1],
                 num_shuffles=input_parameters["num_shuffles"],
-                significance_threshold=input_parameters[
-                    "significance_threshold"
-                ],
+                significance_threshold=input_parameters["significance_threshold"],
                 seed=input_parameters["seed"],
                 activity_heatmap_color_limits=activity_heatmap_color_limits,
                 output_dir=self.output_dir,
@@ -1193,8 +845,8 @@ class TestPeriEventWorkflow(unittest.TestCase):
             # execute workflow and expect a IdeasError error to be raised
             self.assertRaisesRegex(
                 IdeasError,
-                "Visualization parameter 'Activity by modulation group \(y-axis range\)' must be "
-                "specified as 'auto' or 'min,max' \(e.g. -1,1\) where the "
+                r"Visualization parameter 'Activity by modulation group \(y-axis range\)' must be "
+                r"specified as 'auto' or 'min,max' \(e.g. -1,1\) where the "
                 "minimum and maximum are not equal.",
                 run_peri_event_workflow,
                 input_cellset_files=self.input_cellset_isxd_files,
@@ -1202,22 +854,20 @@ class TestPeriEventWorkflow(unittest.TestCase):
                 event_type=input_parameters["event_types"][0],
                 visual_window_pre=input_parameters["visual_window"]["pre"],
                 visual_window_post=input_parameters["visual_window"]["post"],
-                statistical_window_pre_start=input_parameters[
-                    "statistical_window"
-                ]["pre"][0],
-                statistical_window_pre_end=input_parameters[
-                    "statistical_window"
-                ]["pre"][1],
-                statistical_window_post_start=input_parameters[
-                    "statistical_window"
-                ]["post"][0],
-                statistical_window_post_end=input_parameters[
-                    "statistical_window"
-                ]["post"][1],
+                statistical_window_pre_start=input_parameters["statistical_window"][
+                    "pre"
+                ][0],
+                statistical_window_pre_end=input_parameters["statistical_window"][
+                    "pre"
+                ][1],
+                statistical_window_post_start=input_parameters["statistical_window"][
+                    "post"
+                ][0],
+                statistical_window_post_end=input_parameters["statistical_window"][
+                    "post"
+                ][1],
                 num_shuffles=input_parameters["num_shuffles"],
-                significance_threshold=input_parameters[
-                    "significance_threshold"
-                ],
+                significance_threshold=input_parameters["significance_threshold"],
                 seed=input_parameters["seed"],
                 activity_by_modulation_plot_limits=activity_by_modulation_plot_limits,
                 output_dir=self.output_dir,
@@ -1257,18 +907,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=input_parameters["event_types"][0],
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -1293,8 +941,7 @@ class TestPeriEventWorkflow(unittest.TestCase):
         # verify event-aligned TRACES data
         actual_traces_df = pd.read_csv(traces_csv_filename)
         self.assertTrue(
-            len(actual_traces_df) == 401
-            and len(actual_traces_df.columns) == 52
+            len(actual_traces_df) == 401 and len(actual_traces_df.columns) == 52
         )
 
         # verify STATISTICS data
@@ -1330,152 +977,6 @@ class TestPeriEventWorkflow(unittest.TestCase):
         ]:
             self.assertTrue(os.path.exists(f))
 
-        # define expected output manifest
-        expected_output_manifest = {
-            "schema_version": "2.0.0",
-            "groups": [
-                {
-                    "group_key": "peri_event_analysis_output",
-                    "group_type": "tool_output",
-                    "group_id": "21ce294e-e7bc-4939-b234-4ad311ed2ac3",
-                    "series": [],
-                    "files": [
-                        {
-                            "file_key": "input_cellset_files",
-                            "file_name": "cellset_series_part1-PCA-ICA.isxd",
-                            "file_id": "8da1b69a-c537-4bfc-af3d-536740d93491",
-                            "file_path": "/ideas/toolbox/tests/data/"
-                            "peri_event_workflow/"
-                            "cellset_series_part1-PCA-ICA.isxd",
-                            "file_type": "cell_set",
-                            "file_format": "isxd",
-                            "file_structure": "binary",
-                            "file_category": "source",
-                        },
-                        {
-                            "file_key": "input_events_h5_file",
-                            "file_name": "single_event.h5",
-                            "file_id": "afdf1760-e0ae-46b3-aad2-30bf295b4ff5",
-                            "file_path": "/ideas/toolbox/tests/data/"
-                            "peri_event_workflow/single_event.h5",
-                            "file_type": "timestamp_events",
-                            "file_format": "h5",
-                            "file_structure": "sparse_time_series",
-                            "file_category": "source",
-                        },
-                        {
-                            "file_key": "event_aligned_activity_traces_event"
-                            "_aligned_activity_traces_csv_file",
-                            "file_name": "event_aligned_activity.TRACES.csv",
-                            "file_id": "167f76fb-3bd0-4745-8681-4daff0f6ef76",
-                            "file_path": "/tmp/tmp_peri_event_workflow_outputs/"
-                            "event_type_Shock_1/event_aligned_activity"
-                            ".TRACES.csv",
-                            "file_type": "event_aligned_neural_data",
-                            "file_format": "csv",
-                            "file_structure": "time_series",
-                            "file_category": "result",
-                            "parent_ids": [
-                                "8da1b69a-c537-4bfc-af3d-536740d93491"
-                            ],
-                            "preview": [
-                                {
-                                    "name": "Event-aligned population activity figure",
-                                    "help": "Event-aligned average population activity line plot",
-                                    "file_path": "/tmp/tmp_peri_event_workflow_outputs/"
-                                    "event_type_Shock_1/event_aligned_"
-                                    "population_activity.preview.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Event-aligned single-cell activity figure",
-                                    "help": "Event-aligned single-cell activity heatmap",
-                                    "file_path": "/tmp/tmp_peri_event_workflow_outputs/"
-                                    "event_type_Shock_1/event_aligned_"
-                                    "single_cell_activity_heatmap.preview.svg",
-                                    "file_format": "svg",
-                                },
-                            ],
-                        },
-                        {
-                            "file_key": "event_aligned_statistics_event_"
-                            "aligned_activity_statistics_csv_file",
-                            "file_name": "event_aligned_activity.STATISTICS.csv",
-                            "file_id": "971617a9-01c4-4d9b-8224-2c22199f30b2",
-                            "file_path": "/tmp/tmp_peri_event_workflow_outputs/"
-                            "event_type_Shock_1/event_aligned"
-                            "_activity.STATISTICS.csv",
-                            "file_type": "statistics",
-                            "file_format": "csv",
-                            "file_structure": "table",
-                            "file_category": "result",
-                            "parent_ids": [
-                                "8da1b69a-c537-4bfc-af3d-536740d93491",
-                                "167f76fb-3bd0-4745-8681-4daff0f6ef76",
-                            ],
-                            "preview": [
-                                {
-                                    "name": "Event-aligned sub-population activity figure",
-                                    "help": "Event-aligned average sub-population activity"
-                                    " line plot (up-, down-, and non-modulated neurons)",
-                                    "file_path": "/tmp/tmp_peri_event_workflow_outputs/"
-                                    "event_type_Shock_1/event_aligned_"
-                                    "activity_by_modulation.preview.svg",
-                                    "file_format": "svg",
-                                },
-                                {
-                                    "name": "Spatial organization of modulation",
-                                    "help": "Cell map visualizing spatial organization of "
-                                    "modulation",
-                                    "file_path": "/tmp/tmp_peri_event_workflow_outputs/"
-                                    "event_type_Shock_1/cell_map.preview.svg",
-                                    "file_format": "svg",
-                                },
-                            ],
-                        },
-                    ],
-                }
-            ],
-        }
-        # validate output manifest
-        # self.assertTrue(
-        #     validate_output_manifest(
-        #         expected_output_manifest=expected_output_manifest,
-        #         tool_metadata=self.tool_metadata[self.tool_key],
-        #         actual_manifest_data_filepath=self.output_manifest_file,
-        #     )
-        # )
-
-        # validate output metadata
-        # self.assertTrue(os.path.exists(self.output_metadata_file))
-        # validate_json_schema(
-        #     self.output_metadata_file, self.output_metadata_json_schema
-        # )
-
-        # with open(self.output_metadata_file) as f:
-        #     actual_metadata = json.load(f)
-        #     group_metadata = actual_metadata["group_metadata"]
-        #     series_metadata = actual_metadata["series_metadata"]
-        #     file_metadata = actual_metadata["file_metadata"]
-
-        # # validate group metadata
-        # self.assertEqual(len(group_metadata), 1)
-        # self.assertEqual(
-        #     group_metadata[0]["add"]["ideas"]["dataset"]["group_type"],
-        #     "tool_output",
-        # )
-
-        # # validate series metadata
-        # self.assertEqual(series_metadata, [])
-
-        # # validate file metadata
-        # self.assertEqual(len(file_metadata), 2)
-        # for f in file_metadata:
-        #     self.assertEqual(list(f["add"].keys()), ["ideas"])
-        #     self.assertEqual(
-        #         f["add"]["ideas"]["timingInfo"]["sampling_rate"], 10
-        #     )
-
     def test_peri_event_workflow_plot_limits(self):
         # ensure that data previews are properly generated when either user-specified
         # or automatic plot limits are applied
@@ -1507,22 +1008,20 @@ class TestPeriEventWorkflow(unittest.TestCase):
                 event_type=input_parameters["event_types"][0],
                 visual_window_pre=input_parameters["visual_window"]["pre"],
                 visual_window_post=input_parameters["visual_window"]["post"],
-                statistical_window_pre_start=input_parameters[
-                    "statistical_window"
-                ]["pre"][0],
-                statistical_window_pre_end=input_parameters[
-                    "statistical_window"
-                ]["pre"][1],
-                statistical_window_post_start=input_parameters[
-                    "statistical_window"
-                ]["post"][0],
-                statistical_window_post_end=input_parameters[
-                    "statistical_window"
-                ]["post"][1],
+                statistical_window_pre_start=input_parameters["statistical_window"][
+                    "pre"
+                ][0],
+                statistical_window_pre_end=input_parameters["statistical_window"][
+                    "pre"
+                ][1],
+                statistical_window_post_start=input_parameters["statistical_window"][
+                    "post"
+                ][0],
+                statistical_window_post_end=input_parameters["statistical_window"][
+                    "post"
+                ][1],
                 num_shuffles=input_parameters["num_shuffles"],
-                significance_threshold=input_parameters[
-                    "significance_threshold"
-                ],
+                significance_threshold=input_parameters["significance_threshold"],
                 seed=input_parameters["seed"],
                 population_activity_plot_limits=input_parameters[
                     "population_activity_plot_limits"
@@ -1538,9 +1037,7 @@ class TestPeriEventWorkflow(unittest.TestCase):
 
             # validate existence of output preview files
             event_type = input_parameters["event_types"][0]
-            output_dir = os.path.join(
-                self.output_dir, "event_type_" + event_type
-            )
+            output_dir = os.path.join(self.output_dir, "event_type_" + event_type)
 
             # define basename for output files
             population_activity_basename = os.path.join(
@@ -1649,18 +1146,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=event_type,
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -1716,18 +1211,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=event_type,
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -1786,18 +1279,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=event_type,
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -1855,18 +1346,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=event_type,
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],
@@ -1896,18 +1385,16 @@ class TestPeriEventWorkflow(unittest.TestCase):
             event_type=event_type,
             visual_window_pre=input_parameters["visual_window"]["pre"],
             visual_window_post=input_parameters["visual_window"]["post"],
-            statistical_window_pre_start=input_parameters[
-                "statistical_window"
-            ]["pre"][0],
-            statistical_window_pre_end=input_parameters["statistical_window"][
-                "pre"
-            ][1],
-            statistical_window_post_start=input_parameters[
-                "statistical_window"
-            ]["post"][0],
-            statistical_window_post_end=input_parameters["statistical_window"][
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
                 "post"
-            ][1],
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
             num_shuffles=input_parameters["num_shuffles"],
             significance_threshold=input_parameters["significance_threshold"],
             seed=input_parameters["seed"],

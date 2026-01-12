@@ -3,19 +3,17 @@ activity in different states.
 """
 
 import json
-import logging
 from pathlib import Path
-import pathlib
 
 import numpy as np
 import pandas as pd
 from beartype import beartype
 from beartype.typing import List, Optional
 from ideas.analysis import io
-from ideas.exceptions import IdeasError
 from ideas.analysis.types import NumpyFloatArray
-from ideas.tools.log import get_logger
+from ideas.exceptions import IdeasError
 from ideas.tools import outputs
+from ideas.tools.log import get_logger
 from ideas.tools.types import IdeasFile
 
 from utils.plots import (
@@ -36,7 +34,6 @@ from utils.utils import (
     _standardize_baseline,
 )
 from utils.validation import _validate_correlation_params
-
 
 logger = get_logger()
 
@@ -86,17 +83,13 @@ def _apply_rescaling(
             raise IdeasError(
                 "Baseline state must be specified for fractional change rescaling"
             )
-        return _fractional_change_states(
-            traces, behavior, column_name, baseline_state
-        )
+        return _fractional_change_states(traces, behavior, column_name, baseline_state)
     elif rescale == Rescale.STANDARDIZE_BASELINE.value:
         if baseline_state is None:
             raise IdeasError(
                 "Baseline state must be specified for standardize baseline rescaling"
             )
-        return _standardize_baseline(
-            traces, behavior, column_name, baseline_state
-        )
+        return _standardize_baseline(traces, behavior, column_name, baseline_state)
     else:
         raise IdeasError(f"Rescale method {rescale} is not supported")
 
@@ -229,12 +222,8 @@ def _make_modulation_data(
                     data[state]["modulation_scores"] = np.zeros(num_cells)
                     data[state]["p_val"] = np.ones(num_cells)
                     data[state]["modulation"] = np.zeros(num_cells)
-                    data[state]["up_modulated_neurons"] = np.array(
-                        [], dtype=int
-                    )
-                    data[state]["down_modulated_neurons"] = np.array(
-                        [], dtype=int
-                    )
+                    data[state]["up_modulated_neurons"] = np.array([], dtype=int)
+                    data[state]["down_modulated_neurons"] = np.array([], dtype=int)
 
     elif method == Comp.NOT_DEFINED.value:
         # Find frames that don't belong to any defined state
@@ -334,9 +323,9 @@ def _calculate_modulation_scores(
     # Calculate modulation only where denominator is above threshold
     valid_indices = ~denominator_is_small
     if np.any(valid_indices):
-        mod[valid_indices] = (
-            x[valid_indices] - y[valid_indices]
-        ) / denominator[valid_indices]
+        mod[valid_indices] = (x[valid_indices] - y[valid_indices]) / denominator[
+            valid_indices
+        ]
 
     # For very small denominators, check if numerator is also small
     small_denom_indices = denominator_is_small
@@ -568,9 +557,7 @@ def population_activity(
     )
 
     # Only use baseline_state when method is BASELINE
-    effective_baseline_state = (
-        baseline_state if method == Comp.BASELINE.value else None
-    )
+    effective_baseline_state = baseline_state if method == Comp.BASELINE.value else None
 
     # Exception: always pass baseline_state for rescaling methods that require it
     rescale_needs_baseline = (
@@ -587,9 +574,7 @@ def population_activity(
         alpha=alpha,
         method=method,
         baseline_state=(
-            baseline_state
-            if rescale_needs_baseline
-            else effective_baseline_state
+            baseline_state if rescale_needs_baseline else effective_baseline_state
         ),
         rescale=trace_scale_method,
     )
@@ -684,9 +669,7 @@ def population_activity(
 
     if event_set_files is not None and len(event_set_files) > 0:
         try:
-            offsets, amplitudes = io.event_set_to_events(
-                event_set_files, concatenate
-            )
+            offsets, amplitudes = io.event_set_to_events(event_set_files, concatenate)
         except Exception as e:
             logger.error(
                 f"Error in event set processing: {e}. Skipping event set processing"
@@ -712,9 +695,7 @@ def population_activity(
                     f"but filtered traces have {traces.shape[1]} cells."
                 )
         except Exception as e:
-            logger.warning(
-                f"Error during unfiltered event validation step: {e}"
-            )
+            logger.warning(f"Error during unfiltered event validation step: {e}")
             # valid_events remains False
 
         # --- Attempt 2: Validate with filtered offsets (if Attempt 1 failed) ---
@@ -739,9 +720,7 @@ def population_activity(
                         f"but filtered traces have {traces.shape[1]} cells."
                     )
             except Exception as e:
-                logger.warning(
-                    f"Error during filtered event validation step: {e}"
-                )
+                logger.warning(f"Error during filtered event validation step: {e}")
                 # valid_events remains False
 
         # --- Final Check ---
@@ -755,8 +734,7 @@ def population_activity(
             # Proceed with event processing
             if final_offsets is None:
                 logger.error(
-                    "Event offsets unavailable after validation. "
-                    "Event analysis will be skipped."
+                    "Event offsets unavailable after validation. Event analysis will be skipped."
                 )
                 event_processing_successful = False
             else:
@@ -779,8 +757,7 @@ def population_activity(
                         ylabel = "Mean Fractional Change in Event Rate"
                     elif (
                         event_scale_method == Rescale.STANDARDIZE.value
-                        or event_scale_method
-                        == Rescale.STANDARDIZE_BASELINE.value
+                        or event_scale_method == Rescale.STANDARDIZE_BASELINE.value
                     ):
                         unit = "z-score"
                         ylabel = "Mean Event Rate Z-score"
@@ -809,9 +786,7 @@ def population_activity(
                         baseline_state=baseline_state,
                         rescale=event_scale_method,
                     )
-                    logger.info(
-                        "Event modulation data created, creating plots..."
-                    )
+                    logger.info("Event modulation data created, creating plots...")
                     _plot_raster(
                         events=final_offsets,
                         event_timeseries=event_timeseries,
@@ -1093,9 +1068,7 @@ def _modulation_data_to_csv(
     df.to_csv(filename, index=False)
 
 
-def _add_modulation_columns(
-    df_data: dict, state_data: dict, label: str
-) -> None:
+def _add_modulation_columns(df_data: dict, state_data: dict, label: str) -> None:
     """Add modulation columns to the dataframe dictionary.
 
     :param df_data: Dictionary to add columns to
@@ -1173,7 +1146,9 @@ def population_activity_ideas_wrapper(
     metadata = outputs._load_and_remove_output_metadata()
 
     # generate basename for output files based on input cell sets
-    output_prefix = outputs.input_paths_to_output_prefix(cell_set_files, annotations_file)
+    output_prefix = outputs.input_paths_to_output_prefix(
+        cell_set_files, annotations_file
+    )
 
     try:
         logger.info("Registering output data")
@@ -1186,22 +1161,20 @@ def population_activity_ideas_wrapper(
                 "time_in_state_preview.svg",
                 subdir="",
                 prefix="",
-                caption="Time spent in the different behavioral states. Left panel shows the total time (in seconds) spent in each of the behavioral states. Right panel displays the fraction of the total recording time occupied by each state."
+                caption="Time spent in the different behavioral states. Left panel shows the total time (in seconds) spent in each of the behavioral states. Right panel displays the fraction of the total recording time occupied by each state.",
             ).register_preview(
                 "trace_preview.svg",
-                caption="Neural activity traces during different behavioral states. Upper panel shows the population average activity over time. Lower panel displays individual traces from neurons, with colored regions indicating different behavioral states."
+                caption="Neural activity traces during different behavioral states. Upper panel shows the population average activity over time. Lower panel displays individual traces from neurons, with colored regions indicating different behavioral states.",
             ).register_preview(
                 "activity_average_preview.svg",
-                caption="Average neural activity across behavioral states. Box plot showing the distribution of activity for all neurons in each state. Individual points represent single neurons, with connecting lines showing paired comparisons across states."
+                caption="Average neural activity across behavioral states. Box plot showing the distribution of activity for all neurons in each state. Individual points represent single neurons, with connecting lines showing paired comparisons across states.",
             ).register_preview(
                 "modulation_histogram_preview.svg",
-                caption="Distribution of modulation scores across neurons. Histograms show the modulation scores for all neurons."
+                caption="Distribution of modulation scores across neurons. Histograms show the modulation scores for all neurons.",
             ).register_preview(
                 "modulation_preview.svg",
-                caption="Spatial distribution of state-modulated neurons. Cell footprints are colored by modulation direction. The left stacked bar chart shows the proportion of cells up and down regulated. In the cell map in the center the face color of the cell is the modulation score, and the color of the outline shows whether that cell was significantly modulated or not. On the right is a color bar mapping of modulation score."
-            ).register_metadata_dict(
-                **metadata["trace_population_data"]
-            )
+                caption="Spatial distribution of state-modulated neurons. Cell footprints are colored by modulation direction. The left stacked bar chart shows the proportion of cells up and down regulated. In the cell map in the center the face color of the cell is the modulation score, and the color of the outline shows whether that cell was significantly modulated or not. On the right is a color bar mapping of modulation score.",
+            ).register_metadata_dict(**metadata["trace_population_data"])
 
             output_data.register_file(
                 "event_population_data.csv",
@@ -1211,22 +1184,20 @@ def population_activity_ideas_wrapper(
                 "time_in_state_preview.svg",
                 subdir="",
                 prefix="",
-                caption="Time spent in the different behavioral states. Left panel shows the total time (in seconds) spent in each of the behavioral states. Right panel displays the fraction of the total recording time occupied by each state."
+                caption="Time spent in the different behavioral states. Left panel shows the total time (in seconds) spent in each of the behavioral states. Right panel displays the fraction of the total recording time occupied by each state.",
             ).register_preview(
                 "event_preview.svg",
-                caption="Event raster plot during different behavioral states. Upper panel shows the population average event rate over time. Lower panel displays neural events from all neurons, with colored regions indicating different behavioral states."
+                caption="Event raster plot during different behavioral states. Upper panel shows the population average event rate over time. Lower panel displays neural events from all neurons, with colored regions indicating different behavioral states.",
             ).register_preview(
                 "event_average_preview.svg",
-                caption="Average event rate across behavioral states. Box plot showing the distribution of event rates for all neurons in each state. Individual points represent single neurons, with connecting lines showing paired comparisons across states."
+                caption="Average event rate across behavioral states. Box plot showing the distribution of event rates for all neurons in each state. Individual points represent single neurons, with connecting lines showing paired comparisons across states.",
             ).register_preview(
                 "event_modulation_histogram_preview.svg",
-                caption="Distribution of event rate modulation scores across neurons. Histograms show the modulation scores for all neurons."
+                caption="Distribution of event rate modulation scores across neurons. Histograms show the modulation scores for all neurons.",
             ).register_preview(
                 "event_modulation_preview.svg",
-                caption="Spatial distribution of state-modulated event rates. (left) The stacked bar chart shows the proportions of up- and down-modulated cells. (center) Cell footprints are colored by event rate modulation direction and score, and outline color shows modulation significance. (right) Color bar for the modulation score."
-            ).register_metadata_dict(
-                **metadata["event_population_data"]
-            )
+                caption="Spatial distribution of state-modulated event rates. (left) The stacked bar chart shows the proportions of up- and down-modulated cells. (center) Cell footprints are colored by event rate modulation direction and score, and outline color shows modulation significance. (right) Color bar for the modulation score.",
+            ).register_metadata_dict(**metadata["event_population_data"])
 
         logger.info("Registered output data")
     except Exception:

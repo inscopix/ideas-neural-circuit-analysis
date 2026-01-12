@@ -1,17 +1,12 @@
 import json
-import logging
+import os
+import shutil
+import tempfile
+import zipfile
 from pathlib import Path
-import pathlib
+from typing import Literal, Optional, Union
 
 import h5py
-from typing import Literal, Optional, Union
-import os
-import zipfile
-import tempfile
-import shutil
-from ideas.analysis.io import cell_set_to_positions
-from ideas.tools import outputs
-from ideas.tools.types import IdeasFile
 
 # Add isx import
 import isx
@@ -20,24 +15,28 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from beartype import beartype
-from beartype.typing import List, Dict, Tuple, Any
+from beartype.typing import Any, Dict, List, Tuple
 from ideas.analysis import measures, plots
-from ideas.tools.log import get_logger
+from ideas.analysis.io import cell_set_to_positions
 from ideas.exceptions import IdeasError
+from ideas.tools import outputs
+from ideas.tools.log import get_logger
+from ideas.tools.types import IdeasFile
+from matplotlib.collections import LineCollection
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.gridspec import GridSpec
-from matplotlib.collections import LineCollection
+
+from utils.plots import (
+    LABEL_FONT,
+    SUPTITLE_FONT,
+    TITLE_FONT,
+)
 from utils.utils import (
+    DIVISION_THRESHOLD,
     _check_columns_in_df,
     _check_states_valid,
     _get_cellset_data,
     save_optimized_svg,
-    DIVISION_THRESHOLD,
-)
-from utils.plots import (
-    SUPTITLE_FONT,
-    TITLE_FONT,
-    LABEL_FONT,
 )
 
 logger = get_logger()
@@ -170,14 +169,10 @@ def cell_set_to_positions_mapping(
         cellset = isx.CellSet.read(files[0])
 
         # Get cell names for all cells
-        all_cell_names = [
-            cellset.get_cell_name(i) for i in range(cellset.num_cells)
-        ]
+        all_cell_names = [cellset.get_cell_name(i) for i in range(cellset.num_cells)]
 
         # Get positions from core function
-        positions_x, positions_y = cell_set_to_positions(
-            files, threshold=threshold
-        )
+        positions_x, positions_y = cell_set_to_positions(files, threshold=threshold)
 
         # Initialize positions dictionary
         positions = {}
@@ -189,9 +184,7 @@ def cell_set_to_positions_mapping(
         for cell_name in target_cells:
             if cell_name in all_cell_names:
                 i = all_cell_names.index(cell_name)
-                if not np.isnan(positions_x[i]) and not np.isnan(
-                    positions_y[i]
-                ):
+                if not np.isnan(positions_x[i]) and not np.isnan(positions_y[i]):
                     positions[cell_name] = (
                         int(positions_x[i]),
                         int(positions_y[i]),
@@ -256,17 +249,13 @@ def correlation_tool(
     # Parse state names
     states = []
     if state_names:
-        states = [
-            state.strip() for state in state_names.split(",") if state.strip()
-        ]
+        states = [state.strip() for state in state_names.split(",") if state.strip()]
 
     # Log analysis plan
     if states:
         logger.info(f"Will analyze the following states: {states}")
     else:
-        logger.info(
-            "No specific states provided, will analyze entire recording"
-        )
+        logger.info("No specific states provided, will analyze entire recording")
 
     # Parse color parameters
     colors = state_colors.split(",")
@@ -310,7 +299,7 @@ Will compute correlation matrix for entire recording"""
     else:
         logger.info(
             f"""Annotations provided, will be used to
- compute correlations in states: {', '.join(states)}"""
+ compute correlations in states: {", ".join(states)}"""
         )
         try:
             annotations = pd.read_parquet(annotations_file[0]).copy()
@@ -328,9 +317,7 @@ Will compute correlation matrix for entire recording"""
                 logger.error(
                     f"Column '{column_name}' not found in annotation file: {e}"
                 )
-                logger.info(
-                    "Computing correlations for entire recording instead"
-                )
+                logger.info("Computing correlations for entire recording instead")
                 annotations = None
                 states = ["all times"]
                 # Skip the rest of the annotation processing
@@ -355,9 +342,7 @@ Will compute correlation matrix for entire recording"""
                     f"Found {num_nan_frames_end} frames at end of"
                     " input annotations with NaN mapped frames, trimming from analysis"
                 )
-                annotations = annotations.drop(
-                    index=range(n - num_nan_frames_end, n)
-                )
+                annotations = annotations.drop(index=range(n - num_nan_frames_end, n))
 
             # Check if specified states exist in the annotations
             available_states = annotations[column_name].unique()
@@ -486,9 +471,7 @@ Will compute correlation matrix for entire recording"""
                 correlation_colors=corr_colors,
                 max_lines=500,
             )
-            logger.info(
-                f"Spatial correlation map saved to {SPATIAL_MAP_SVG_NAME}"
-            )
+            logger.info(f"Spatial correlation map saved to {SPATIAL_MAP_SVG_NAME}")
         else:
             logger.warning(
                 "Could not create spatial correlation analysis: missing position data"
@@ -519,7 +502,7 @@ Will compute correlation matrix for entire recording"""
         stat_key: stat_values,
         avg_key: values,
         raw_h5_key: values,
-        raw_zip_key: values
+        raw_zip_key: values,
     }
 
     with open("output_metadata.json", "w") as file:
@@ -611,9 +594,7 @@ def plot_correlation_matrices(
     cax.set_xlabel("Correlation", fontdict=LABEL_FONT)
 
     # Adjust layout for better spacing
-    fig.subplots_adjust(
-        hspace=0.5, bottom=0.1, top=0.98, left=0.15, right=0.85
-    )
+    fig.subplots_adjust(hspace=0.5, bottom=0.1, top=0.98, left=0.15, right=0.85)
     # Save optimized SVG
     save_optimized_svg(
         fig,
@@ -720,9 +701,7 @@ def _correlations_to_csv(
                                 x2, y2 = positions[cell_j]
 
                                 # Calculate Euclidean distance
-                                distance = np.sqrt(
-                                    (x1 - x2) ** 2 + (y1 - y2) ** 2
-                                )
+                                distance = np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
                                 # Add position data to row
                                 row.update(
@@ -749,21 +728,14 @@ def _correlations_to_csv(
                     )
 
                     # Verify that the output dataframe actually has the position columns
-                    if (
-                        "centroid_x1" not in triu_df.columns
-                        and positions_included > 0
-                    ):
-                        logger.warning(
-                            "Position columns missing from output data"
-                        )
+                    if "centroid_x1" not in triu_df.columns and positions_included > 0:
+                        logger.warning("Position columns missing from output data")
 
                 triu_df.to_csv(triu_path, index=False)
                 csv_files.append((triu_path, triu_filename))
 
         # Create a zip file containing all CSV files
-        logger.info(
-            f"Creating zip file with all correlation matrices: {zip_filename}"
-        )
+        logger.info(f"Creating zip file with all correlation matrices: {zip_filename}")
         with zipfile.ZipFile(zip_filename, "w", zipfile.ZIP_DEFLATED) as zipf:
             for file_path, arcname in csv_files:
                 zipf.write(file_path, arcname=arcname)
@@ -910,18 +882,14 @@ but the length of the annotations data is {len(annotations)}"""
     valid_states = [state for state in states if state in available_states]
 
     if len(valid_states) < len(states):
-        invalid_states = [
-            state for state in states if state not in available_states
-        ]
+        invalid_states = [state for state in states if state not in available_states]
         logger.warning(
             f"Skipping states not found in annotation data: {invalid_states}"
         )
 
     # If no valid states left, warn user
     if not valid_states:
-        logger.warning(
-            "None of the specified states were found in annotation data!"
-        )
+        logger.warning("None of the specified states were found in annotation data!")
 
     for state in valid_states:
         traces_in_state = traces[annotations[column_name] == state, :]
@@ -1001,9 +969,7 @@ def plot_measure_correlations(
     ax[0].set_xlabel("Correlation", fontdict=LABEL_FONT)
 
     # Set consistent font for tick labels
-    ax[0].tick_params(
-        axis="both", which="major", labelsize=LABEL_FONT["fontsize"]
-    )
+    ax[0].tick_params(axis="both", which="major", labelsize=LABEL_FONT["fontsize"])
 
     # Only create boxplot when we have multiple states or enough room
     if not single_state:
@@ -1036,9 +1002,7 @@ def plot_measure_correlations(
         ax[1].spines["right"].set_visible(False)
 
         # Set consistent font for tick labels and rotate x-axis labels to prevent overlap
-        ax[1].tick_params(
-            axis="both", which="major", labelsize=LABEL_FONT["fontsize"]
-        )
+        ax[1].tick_params(axis="both", which="major", labelsize=LABEL_FONT["fontsize"])
         ax[1].tick_params(axis="x", rotation=45)
 
     out_file_name = "correlation_plot.svg"
@@ -1075,9 +1039,7 @@ def _correlations_to_stat(
     df["name"] = cell_names
 
     for state in correlation_matrix.keys():
-        df[state] = statistic_mapper[statistic](
-            correlation_matrix[state], axis=0
-        )
+        df[state] = statistic_mapper[statistic](correlation_matrix[state], axis=0)
 
     df = pd.DataFrame(df)
 
@@ -1145,9 +1107,7 @@ We cannot accurately estimate correlations here. """,
 
     # Count frames that don't belong to any specified state
     num_unlabeled_frames = np.sum(not_in_any_state)
-    logger.info(
-        f"Found {num_unlabeled_frames} frames not in any specified state"
-    )
+    logger.info(f"Found {num_unlabeled_frames} frames not in any specified state")
 
     # If there are enough unlabeled frames, create a "not_defined" state for them
     if num_unlabeled_frames >= MINIMUM_STATE_LENGTH:
@@ -1313,9 +1273,7 @@ def plot_spatial_correlations(
     # Create shared colorbar at the bottom
     if density_axes:
         cax = fig.add_subplot(gs[-1, :])
-        cbar = plt.colorbar(
-            hb, cax=cax, orientation="horizontal", label="Count"
-        )
+        cbar = plt.colorbar(hb, cax=cax, orientation="horizontal", label="Count")
         cbar.set_label("Count", fontdict=LABEL_FONT)
 
     # Adjust layout
@@ -1490,9 +1448,7 @@ def plot_correlation_spatial_map(
         ax.set_title(f"{state}", fontdict=TITLE_FONT)
 
         # Extract cell coordinates
-        xy_coords = np.array(
-            [positions[name] for name in cells_with_positions]
-        )
+        xy_coords = np.array([positions[name] for name in cells_with_positions])
 
         # Plot all cells as dots
         ax.scatter(xy_coords[:, 0], xy_coords[:, 1], c="gray", s=10, alpha=0.5)
@@ -1516,9 +1472,7 @@ def plot_correlation_spatial_map(
                     orig_idx2 = cell_names.index(name2)
 
                     # Get correlation value
-                    corr_value = correlation_matrix[state][
-                        orig_idx1, orig_idx2
-                    ]
+                    corr_value = correlation_matrix[state][orig_idx1, orig_idx2]
 
                     # Only include if absolute correlation is above threshold
                     if abs(corr_value) >= correlation_threshold:
@@ -1615,6 +1569,7 @@ def plot_correlation_spatial_map(
     # Save figure using optimized SVG function
     save_optimized_svg(fig, out_file_name)
 
+
 def correlation_tool_ideas_wrapper(
     cell_set_files: List[IdeasFile],
     annotations_file: Optional[List[IdeasFile]] = None,
@@ -1661,13 +1616,15 @@ def correlation_tool_ideas_wrapper(
         correlation_colors=correlation_colors,
         statistic=statistic,
         include_positions=include_positions,
-        correlation_threshold=correlation_threshold
+        correlation_threshold=correlation_threshold,
     )
 
     metadata = outputs._load_and_remove_output_metadata()
 
     # generate basename for output files based on input cell sets
-    output_prefix = outputs.input_paths_to_output_prefix(cell_set_files, annotations_file)
+    output_prefix = outputs.input_paths_to_output_prefix(
+        cell_set_files, annotations_file
+    )
 
     try:
         logger.info("Registering output data")
@@ -1678,10 +1635,8 @@ def correlation_tool_ideas_wrapper(
                 prefix=output_prefix,
             ).register_preview(
                 "average_correlations_preview.svg",
-                caption="Mean positive (top) and negative (bottom) correlations across behavioral states. These barplots show how average correlation values differ between states, providing insight into overall network connectivity patterns."
-            ).register_metadata_dict(
-                **metadata["average_correlations"]
-            )
+                caption="Mean positive (top) and negative (bottom) correlations across behavioral states. These barplots show how average correlation values differ between states, providing insight into overall network connectivity patterns.",
+            ).register_metadata_dict(**metadata["average_correlations"])
 
             output_data.register_file(
                 RAW_CORRELATIONS_H5_NAME,
@@ -1689,10 +1644,8 @@ def correlation_tool_ideas_wrapper(
                 prefix=output_prefix,
             ).register_preview(
                 "correlation_matrices.svg",
-                caption="Pairwise Pearson correlation matrices between neural activity across behavioral states. Neurons are hierarchically clustered to reveal functional organization, with color intensity representing correlation strength from -1 (negative) to +1 (positive)."
-            ).register_metadata_dict(
-                **metadata["pairwise_correlation_heatmaps"]
-            )
+                caption="Pairwise Pearson correlation matrices between neural activity across behavioral states. Neurons are hierarchically clustered to reveal functional organization, with color intensity representing correlation strength from -1 (negative) to +1 (positive).",
+            ).register_metadata_dict(**metadata["pairwise_correlation_heatmaps"])
 
             output_data.register_file(
                 RAW_CORRELATIONS_ZIP_NAME,
@@ -1700,10 +1653,10 @@ def correlation_tool_ideas_wrapper(
                 prefix=output_prefix,
             ).register_preview(
                 "spatial_correlation.svg",
-                caption="Relationship between spatial distance and neural correlation across different behavioral states. Left panels show scatter plots of pairwise neural correlation versus physical distance between cell centroids, with linear regression line (gray). Right panels show density plots displaying the distribution of correlation values as a function of distance. This visualization reveals how functional relationships between neurons relate to their spatial arrangement."
+                caption="Relationship between spatial distance and neural correlation across different behavioral states. Left panels show scatter plots of pairwise neural correlation versus physical distance between cell centroids, with linear regression line (gray). Right panels show density plots displaying the distribution of correlation values as a function of distance. This visualization reveals how functional relationships between neurons relate to their spatial arrangement.",
             ).register_preview(
                 "spatial_correlation_map.svg",
-                caption="Spatial map of neural correlations across behavioral states. Gray dots show all neurons with known positions. Colored lines connect neuron pairs above the correlation threshold, with line color indicating correlation strength and direction. Bold black dots highlight neurons with very strong correlations (|r| > 0.7)."
+                caption="Spatial map of neural correlations across behavioral states. Gray dots show all neurons with known positions. Colored lines connect neuron pairs above the correlation threshold, with line color indicating correlation strength and direction. Bold black dots highlight neurons with very strong correlations (|r| > 0.7).",
             ).register_metadata_dict(
                 **metadata["spatial_analysis_pairwise_correlations"]
             )
@@ -1714,10 +1667,8 @@ def correlation_tool_ideas_wrapper(
                 prefix=output_prefix,
             ).register_preview(
                 "correlation_plot.svg",
-                caption="Distribution of correlation values across behavioral states. Shows cumulative distribution functions of correlation values and boxplot comparisons between states, illustrating the proportion of neurons with correlations below each threshold."
-            ).register_metadata_dict(
-                **metadata["correlation_statistic_comparison"]
-            )
+                caption="Distribution of correlation values across behavioral states. Shows cumulative distribution functions of correlation values and boxplot comparisons between states, illustrating the proportion of neurons with correlations below each threshold.",
+            ).register_metadata_dict(**metadata["correlation_statistic_comparison"])
 
         logger.info("Registered output data")
     except Exception:

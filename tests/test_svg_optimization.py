@@ -1,17 +1,19 @@
 import os
 import tempfile
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
-from matplotlib.collections import PolyCollection, LineCollection, QuadMesh
+from matplotlib.collections import LineCollection, PolyCollection, QuadMesh
 from matplotlib.gridspec import GridSpec
+
 from utils.utils import (
-    estimate_svg_size,
-    save_optimized_svg,
-    QUADMESH_FACTOR,
     LINECOLLECTION_SEGMENT_FACTOR,
     POLYCOLLECTION_FACTOR,
+    QUADMESH_FACTOR,
     SCATTER_POINT_FACTOR,
+    estimate_svg_size,
+    save_optimized_svg,
 )
 
 
@@ -82,9 +84,7 @@ class TestSVGOptimization:
 
         return quad_cells, poly_count, line_segments
 
-    def _create_spatial_correlation_plot(
-        self, n_points=1000, gridsize=30, n_lines=100
-    ):
+    def _create_spatial_correlation_plot(self, n_points=1000, gridsize=30, n_lines=100):
         """Create a spatial correlation plot similar to correlation tool."""
         # Generate synthetic data
         x_pos = np.random.uniform(0, 1000, n_points)
@@ -190,32 +190,28 @@ class TestSVGOptimization:
         """Test that the SVG size estimation factors are sensible constants."""
         # Test that factors are positive
         assert QUADMESH_FACTOR > 0, "QUADMESH_FACTOR should be positive"
-        assert (
-            LINECOLLECTION_SEGMENT_FACTOR > 0
-        ), "LINECOLLECTION_SEGMENT_FACTOR should be positive"
-        assert (
-            POLYCOLLECTION_FACTOR > 0
-        ), "POLYCOLLECTION_FACTOR should be positive"
-        assert (
-            SCATTER_POINT_FACTOR > 0
-        ), "SCATTER_POINT_FACTOR should be positive"
+        assert LINECOLLECTION_SEGMENT_FACTOR > 0, (
+            "LINECOLLECTION_SEGMENT_FACTOR should be positive"
+        )
+        assert POLYCOLLECTION_FACTOR > 0, "POLYCOLLECTION_FACTOR should be positive"
+        assert SCATTER_POINT_FACTOR > 0, "SCATTER_POINT_FACTOR should be positive"
 
         # Test relative magnitudes make sense
         # PolyCollection should have highest factor (most complex)
         # LineCollection and ScatterPoint should be medium
         # QuadMesh should be lowest (most efficient)
-        assert (
-            POLYCOLLECTION_FACTOR > LINECOLLECTION_SEGMENT_FACTOR
-        ), "POLYCOLLECTION_FACTOR should be > LINECOLLECTION_SEGMENT_FACTOR"
-        assert (
-            POLYCOLLECTION_FACTOR > SCATTER_POINT_FACTOR
-        ), "POLYCOLLECTION_FACTOR should be > SCATTER_POINT_FACTOR"
-        assert (
-            LINECOLLECTION_SEGMENT_FACTOR > QUADMESH_FACTOR
-        ), "LINECOLLECTION_SEGMENT_FACTOR should be > QUADMESH_FACTOR"
-        assert (
-            SCATTER_POINT_FACTOR > QUADMESH_FACTOR
-        ), "SCATTER_POINT_FACTOR should be > QUADMESH_FACTOR"
+        assert POLYCOLLECTION_FACTOR > LINECOLLECTION_SEGMENT_FACTOR, (
+            "POLYCOLLECTION_FACTOR should be > LINECOLLECTION_SEGMENT_FACTOR"
+        )
+        assert POLYCOLLECTION_FACTOR > SCATTER_POINT_FACTOR, (
+            "POLYCOLLECTION_FACTOR should be > SCATTER_POINT_FACTOR"
+        )
+        assert LINECOLLECTION_SEGMENT_FACTOR > QUADMESH_FACTOR, (
+            "LINECOLLECTION_SEGMENT_FACTOR should be > QUADMESH_FACTOR"
+        )
+        assert SCATTER_POINT_FACTOR > QUADMESH_FACTOR, (
+            "SCATTER_POINT_FACTOR should be > QUADMESH_FACTOR"
+        )
 
     def test_quadmesh_factor_accuracy(self):
         """Test that QUADMESH_FACTOR provides reasonable size estimation for matrices."""
@@ -248,9 +244,9 @@ class TestSVGOptimization:
                 ) = self._measure_actual_svg_size(fig, svg_path)
 
                 # Ensure actual size is valid
-                assert (
-                    actual_size_bytes > 0
-                ), f"Invalid actual file size: {actual_size_bytes}"
+                assert actual_size_bytes > 0, (
+                    f"Invalid actual file size: {actual_size_bytes}"
+                )
 
                 # Calculate accuracy
                 accuracy_ratio = estimated_size_bytes / actual_size_bytes
@@ -265,9 +261,9 @@ class TestSVGOptimization:
                 )
 
                 # Verify QuadMesh was detected
-                assert (
-                    quad_cells > 0
-                ), f"No QuadMesh cells detected for matrix size {case['matrix_size']}"
+                assert quad_cells > 0, (
+                    f"No QuadMesh cells detected for matrix size {case['matrix_size']}"
+                )
 
                 plt.close(fig)
 
@@ -313,9 +309,9 @@ class TestSVGOptimization:
                 ) = self._measure_actual_svg_size(fig, svg_path)
 
                 # Ensure actual size is valid
-                assert (
-                    actual_size_bytes > 0
-                ), f"Invalid actual file size: {actual_size_bytes}"
+                assert actual_size_bytes > 0, (
+                    f"Invalid actual file size: {actual_size_bytes}"
+                )
 
                 # Calculate accuracy
                 accuracy_ratio = estimated_size_bytes / actual_size_bytes
@@ -330,12 +326,12 @@ class TestSVGOptimization:
                 )
 
                 # Verify elements were detected
-                assert (
-                    poly_count > 0
-                ), f"No PolyCollection detected for {case['n_points']} points"
-                assert (
-                    line_segments > 0
-                ), f"No LineCollection detected for {case['n_points']} points"
+                assert poly_count > 0, (
+                    f"No PolyCollection detected for {case['n_points']} points"
+                )
+                assert line_segments > 0, (
+                    f"No LineCollection detected for {case['n_points']} points"
+                )
 
                 plt.close(fig)
 
@@ -348,9 +344,7 @@ class TestSVGOptimization:
         sizes = np.random.uniform(10, 50, n_points)
 
         fig, ax = plt.subplots(figsize=(8, 6))
-        scatter = ax.scatter(
-            x, y, c=colors, s=sizes, alpha=0.7, cmap="viridis"
-        )
+        scatter = ax.scatter(x, y, c=colors, s=sizes, alpha=0.7, cmap="viridis")
 
         ax.set_title(f"Scatter Plot ({n_points} points)")
         ax.set_xlabel("X Value")
@@ -383,9 +377,9 @@ class TestSVGOptimization:
                 ) = self._measure_actual_svg_size(fig, svg_path)
 
                 # Ensure actual size is valid
-                assert (
-                    actual_size_bytes > 0
-                ), f"Invalid actual file size: {actual_size_bytes}"
+                assert actual_size_bytes > 0, (
+                    f"Invalid actual file size: {actual_size_bytes}"
+                )
 
                 # Calculate accuracy
                 accuracy_ratio = estimated_size_bytes / actual_size_bytes
@@ -443,12 +437,8 @@ class TestSVGOptimization:
         quad_cells, poly_count, line_segments = self._count_plot_elements(fig)
 
         assert quad_cells == 0, "Empty plot should have 0 QuadMesh cells"
-        assert (
-            poly_count == 0
-        ), "Empty plot should have 0 PolyCollection elements"
-        assert (
-            line_segments == 0
-        ), "Empty plot should have 0 LineCollection segments"
+        assert poly_count == 0, "Empty plot should have 0 PolyCollection elements"
+        assert line_segments == 0, "Empty plot should have 0 LineCollection segments"
 
         plt.close(fig)
 
@@ -460,12 +450,8 @@ class TestSVGOptimization:
 
         # Should still be 0 since plot() creates Line2D objects, not collections
         assert quad_cells == 0, "Line plot should have 0 QuadMesh cells"
-        assert (
-            poly_count == 0
-        ), "Line plot should have 0 PolyCollection elements"
-        assert (
-            line_segments == 0
-        ), "Line plot should have 0 LineCollection segments"
+        assert poly_count == 0, "Line plot should have 0 PolyCollection elements"
+        assert line_segments == 0, "Line plot should have 0 LineCollection segments"
 
         plt.close(fig)
 
@@ -490,9 +476,9 @@ class TestSVGOptimization:
             estimated_size = estimate_svg_size(fig)
 
             # Should return a non-negative number
-            assert (
-                estimated_size >= 0
-            ), f"Estimated size should be non-negative for {plot_name} plot, got {estimated_size}"
+            assert estimated_size >= 0, (
+                f"Estimated size should be non-negative for {plot_name} plot, got {estimated_size}"
+            )
 
             plt.close(fig)
 
@@ -510,8 +496,7 @@ class TestSVGOptimization:
             estimate2 = estimate_svg_size(fig2)
 
             assert estimate1 == estimate2, (
-                f"Identical plots should have identical estimates. "
-                f"Got {estimate1} and {estimate2}"
+                f"Identical plots should have identical estimates. Got {estimate1} and {estimate2}"
             )
 
             plt.close(fig1)
@@ -525,9 +510,7 @@ class TestSVGOptimization:
         with plt.style.context("default"):
             # Test matrix scaling
             small_matrix = self._create_correlation_matrix_plot(matrix_size=50)
-            large_matrix = self._create_correlation_matrix_plot(
-                matrix_size=200
-            )
+            large_matrix = self._create_correlation_matrix_plot(matrix_size=200)
 
             small_estimate = estimate_svg_size(small_matrix)
             large_estimate = estimate_svg_size(large_matrix)
@@ -607,9 +590,9 @@ class TestSVGOptimization:
 
             # Should detect large scatter plots as needing rasterization
             if n_points >= 15000:  # ~12MB with factor 800
-                assert (
-                    estimated_size > 10 * 1024 * 1024
-                ), f"Large scatter plot ({n_points} points) should exceed 10MB threshold"
+                assert estimated_size > 10 * 1024 * 1024, (
+                    f"Large scatter plot ({n_points} points) should exceed 10MB threshold"
+                )
 
             plt.close(fig)
 

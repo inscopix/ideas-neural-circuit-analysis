@@ -1,8 +1,9 @@
-from scipy import stats
-from typing import List
-import pingouin as pg
-import warnings
 import logging
+import warnings
+from typing import List
+
+import pingouin as pg
+from scipy import stats
 
 logger = logging.getLogger()
 
@@ -127,18 +128,12 @@ def statistically_compare_two_groups(
     else:
         if paired:
             # non-parametric test for paired data
-            logger.info(
-                "Performing Wilcoxon signed-rank test (non-parametric, paired)"
-            )
-            df = pg.wilcoxon(
-                x=x, y=y, alternative=alternative, nan_policy="omit"
-            )
+            logger.info("Performing Wilcoxon signed-rank test (non-parametric, paired)")
+            df = pg.wilcoxon(x=x, y=y, alternative=alternative, nan_policy="omit")
             test = "Wilcoxon signed-rank test"
         else:
             # non-parametric test for unpaired data
-            logger.info(
-                "Performing Mann–Whitney U test (non-parametric, unpaired)"
-            )
+            logger.info("Performing Mann–Whitney U test (non-parametric, unpaired)")
             df = pg.mwu(x=x, y=y, alternative=alternative, nan_policy="omit")
             test = "Mann–Whitney U test"
 

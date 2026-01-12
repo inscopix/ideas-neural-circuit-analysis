@@ -6,18 +6,20 @@ neural data across behavioral states and time epochs.
 
 import logging
 import os
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 from beartype import beartype
-from beartype.typing import List, Optional, Dict, Any, Tuple
+from beartype.typing import Any, Dict, List, Optional, Tuple
 from ideas.exceptions import IdeasError
+
 from utils.utils import (
     _epoch_time_to_index,
     _get_cellset_data,
-    event_set_to_events,
     _parse_string_to_tuples,
-    _validate_epochs_param,
     _redefine_epochs,
+    _validate_epochs_param,
+    event_set_to_events,
 )
 from utils.validation import _validate_events
 
@@ -25,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 def load_and_filter_cell_contours(
-    cell_info: Dict[str, Any]
+    cell_info: Dict[str, Any],
 ) -> Tuple[List[np.ndarray], List[np.ndarray]]:
     """Load cell contours and apply intelligent status filtering.
 
@@ -108,13 +110,10 @@ def load_and_filter_cell_contours(
     # Validate filtered results
     if len(x) == 0 or len(y) == 0:
         raise IdeasError(
-            f"No cells found with status '{cell_status_filter}'. "
-            f"Available statuses: {set(status)}"
+            f"No cells found with status '{cell_status_filter}'. Available statuses: {set(status)}"
         )
 
-    logger.info(
-        f"Filtered to {len(x)} cells with status '{cell_status_filter}'"
-    )
+    logger.info(f"Filtered to {len(x)} cells with status '{cell_status_filter}'")
     return x, y
 
 
@@ -169,9 +168,7 @@ def scale_data(
         # Import the helper function from utils
         from utils.utils import _fractional_change_states
 
-        return _fractional_change_states(
-            data, behavior, column_name, baseline_state
-        )
+        return _fractional_change_states(data, behavior, column_name, baseline_state)
     elif method == "standardize_baseline":
         if behavior is None or baseline_state is None:
             raise IdeasError(
@@ -181,9 +178,7 @@ def scale_data(
         # Import the helper function from utils
         from utils.utils import _standardize_baseline
 
-        return _standardize_baseline(
-            data, behavior, column_name, baseline_state
-        )
+        return _standardize_baseline(data, behavior, column_name, baseline_state)
     else:
         raise IdeasError(f"Unknown scaling method: {method}")
 
@@ -225,8 +220,7 @@ def check_epochs_valid_state_epoch(
 
         if epoch[0] < 0 or epoch[1] < 0:
             raise IdeasError(
-                f"Epoch '{epoch_name}' times must be positive. "
-                f"Got start={epoch[0]}, end={epoch[1]}"
+                f"Epoch '{epoch_name}' times must be positive. Got start={epoch[0]}, end={epoch[1]}"
             )
 
         if epoch[0] > num_samples:
@@ -606,18 +600,14 @@ class StateEpochDataManager:
                 np.array([int(offset / period) for offset in cell])
                 for cell in original_offsets
             ]
-            if _validate_events(
-                self._traces, original_offsets, unfiltered_indices
-            ):
+            if _validate_events(self._traces, original_offsets, unfiltered_indices):
                 logger.info("Unfiltered event validation successful.")
                 valid_events = True
                 final_offset_indices = unfiltered_indices
             else:
                 logger.warning("Unfiltered event validation failed.")
         except Exception as e:
-            logger.warning(
-                f"Error during unfiltered event validation step: {e}"
-            )
+            logger.warning(f"Error during unfiltered event validation step: {e}")
 
         # --- Attempt 2: Validate with filtered offsets (if Attempt 1 failed) ---
         if not valid_events:
@@ -635,18 +625,14 @@ class StateEpochDataManager:
                     for cell in filtered_offsets
                 ]
 
-                if _validate_events(
-                    self._traces, filtered_offsets, filtered_indices
-                ):
+                if _validate_events(self._traces, filtered_offsets, filtered_indices):
                     logger.info("Filtered event validation successful.")
                     valid_events = True
                     final_offset_indices = filtered_indices
                 else:
                     logger.warning("Filtered event validation failed.")
             except Exception as e:
-                logger.warning(
-                    f"Error during filtered event validation step: {e}"
-                )
+                logger.warning(f"Error during filtered event validation step: {e}")
 
         # --- Final Check ---
         if not valid_events:
@@ -747,9 +733,7 @@ class StateEpochDataManager:
                 epoch_annotations = annotations_df.iloc[start_idx:end_idx]
                 epoch_traces = traces[start_idx:end_idx, :]
                 epoch_events = (
-                    events[start_idx:end_idx, :]
-                    if events is not None
-                    else None
+                    events[start_idx:end_idx, :] if events is not None else None
                 )
 
                 # Filter by state
@@ -762,9 +746,7 @@ class StateEpochDataManager:
 
                 state_traces = epoch_traces[state_mask, :]
                 state_events = (
-                    epoch_events[state_mask, :]
-                    if epoch_events is not None
-                    else None
+                    epoch_events[state_mask, :] if epoch_events is not None else None
                 )
 
                 return {

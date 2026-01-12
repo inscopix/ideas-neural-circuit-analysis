@@ -9,10 +9,11 @@ Tests cover:
 - Color consistency across all preview functions
 """
 
-import pytest
+from unittest.mock import MagicMock, patch
+
 import numpy as np
 import pandas as pd
-from unittest.mock import patch, MagicMock
+import pytest
 
 from utils.state_epoch_output import StateEpochOutputGenerator
 from utils.state_epoch_results import StateEpochResults
@@ -59,9 +60,7 @@ class TestColorMappingFunctionality:
                 "epoch": epoch,
             }
 
-        results.get_combination_results.side_effect = (
-            mock_get_combination_results
-        )
+        results.get_combination_results.side_effect = mock_get_combination_results
 
         return results
 
@@ -144,9 +143,7 @@ class TestPreviewFunctionIntegration:
                 "epoch": epoch,
             }
 
-        results.get_combination_results.side_effect = (
-            mock_get_combination_results
-        )
+        results.get_combination_results.side_effect = mock_get_combination_results
 
         # Mock behavioral annotations
         annotations_df = pd.DataFrame(
@@ -200,9 +197,9 @@ class TestPreviewFunctionIntegration:
         )
 
         # Verify state overlay plotting function was called
-        assert (
-            mock_plot_traces.called
-        ), "_plot_traces_with_epochs was not called for state overlay"
+        assert mock_plot_traces.called, (
+            "_plot_traces_with_epochs was not called for state overlay"
+        )
 
         # With annotations present, custom epoch overlay is used instead of plot_trace_preview
         # The custom implementation creates its own figure rather than calling plot_trace_preview
@@ -254,9 +251,9 @@ class TestPreviewFunctionIntegration:
         )
 
         # Verify state overlay plotting function was called
-        assert (
-            mock_plot_raster.called
-        ), "_plot_raster_with_epochs was not called for state overlay"
+        assert mock_plot_raster.called, (
+            "_plot_raster_with_epochs was not called for state overlay"
+        )
 
         # With annotations present, custom epoch overlay is used instead of _plot_timecourse
         # The custom implementation creates its own figures rather than calling _plot_timecourse
@@ -324,9 +321,7 @@ class TestPreviewFunctionIntegration:
             )
 
             # Should complete without errors (graceful handling)
-            assert (
-                True
-            ), "Preview functions handled missing annotations gracefully"
+            assert True, "Preview functions handled missing annotations gracefully"
         except Exception as e:
             pytest.fail(
                 f"Preview functions should handle missing annotations gracefully, but got: {e}"

@@ -4,19 +4,19 @@ This module contains all validation functions used by the population data analys
 It provides comprehensive validation for input parameters, file structures, and data consistency.
 """
 
-import os
 import logging
-from typing import List, Optional, Dict, Set, Any, Tuple, Union
+import os
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
-import pandas as pd
 import matplotlib.colors as mcolors
-
+import pandas as pd
 from ideas.exceptions import IdeasError
+
+import utils.config as config
 from utils.combine_compare_population_data_utils import (
     detect_baseline_state,
     validate_states_by_state_comparison_type,
 )
-import utils.config as config
 
 logger = logging.getLogger(__name__)
 
@@ -102,10 +102,7 @@ def validate_colors(
                 f"{color_type}_colors must contain at least {color_config['min_colors']} colors.",
             )
 
-        if (
-            color_config["max_colors"]
-            and len(colors) > color_config["max_colors"]
-        ):
+        if color_config["max_colors"] and len(colors) > color_config["max_colors"]:
             raise IdeasError(
                 f"{color_type}_colors must contain at most {color_config['max_colors']} colors.",
             )
@@ -118,9 +115,7 @@ def validate_colors(
                 )
 
         # Check for duplicates if not allowed
-        if not color_config["allow_duplicates"] and len(set(colors)) != len(
-            colors
-        ):
+        if not color_config["allow_duplicates"] and len(set(colors)) != len(colors):
             raise IdeasError(
                 f"Duplicate colors detected in {color_type}_colors.",
             )
@@ -342,9 +337,7 @@ def validate_combine_compare_population_data_parameters(
     )
 
     # Validate file groups
-    validate_file_group(
-        group1_population_activity_files, "group 1", "activity"
-    )
+    validate_file_group(group1_population_activity_files, "group 1", "activity")
 
     # Events files validation
     if group1_population_events_files:
@@ -354,9 +347,7 @@ def validate_combine_compare_population_data_parameters(
 
     # Group 2 file validation (group name already validated above)
     if group2_population_activity_files:
-        validate_file_group(
-            group2_population_activity_files, "group 2", "activity"
-        )
+        validate_file_group(group2_population_activity_files, "group 2", "activity")
 
         if group2_population_events_files:
             validate_file_group(
@@ -439,9 +430,7 @@ def _extract_validated_states(
             validated_states, _, _ = validate_states_by_state_comparison_type(
                 reference_df, extracted_states
             )
-            logger.debug(
-                f"Auto-extracted and validated states: {validated_states}"
-            )
+            logger.debug(f"Auto-extracted and validated states: {validated_states}")
 
         return validated_states
 
@@ -519,9 +508,7 @@ def _validate_all_files_consistency(
     reference_column_count = reference_df.shape[1]
     validation_errors = []
 
-    logger.debug(
-        f"Validating {len(all_files_to_validate)} files for consistency"
-    )
+    logger.debug(f"Validating {len(all_files_to_validate)} files for consistency")
 
     # Validate each file with enhanced error collection
     for file_path in all_files_to_validate:
@@ -533,9 +520,7 @@ def _validate_all_files_consistency(
                 state_comparison_type,
             )
         except Exception as e:
-            validation_errors.append(
-                f"{os.path.basename(file_path)}: {str(e)}"
-            )
+            validation_errors.append(f"{os.path.basename(file_path)}: {str(e)}")
 
     # Report any validation errors
     if validation_errors:
@@ -560,12 +545,8 @@ def _validate_inter_group_consistency(
         group2_df = pd.read_csv(group2_files[0])
 
         # Extract states from each group
-        _, group1_mod_states, group1_mean_states = detect_baseline_state(
-            group1_df
-        )
-        _, group2_mod_states, group2_mean_states = detect_baseline_state(
-            group2_df
-        )
+        _, group1_mod_states, group1_mean_states = detect_baseline_state(group1_df)
+        _, group2_mod_states, group2_mean_states = detect_baseline_state(group2_df)
 
         # Combine states for comparison
         group1_all_states = set(group1_mod_states + group1_mean_states)
@@ -667,8 +648,7 @@ def _validate_file_structure_and_states(
 
         if validation_results["extra_states"]:
             logger.debug(
-                f"File {file_name}: Additional states found: "
-                f"{validation_results['extra_states']}"
+                f"File {file_name}: Additional states found: {validation_results['extra_states']}"
             )
 
     except pd.errors.EmptyDataError:
@@ -714,9 +694,7 @@ def _validate_states_by_state_comparison_type(
 
     # Determine expected states based on comparison type
     if state_comparison_type == "pairwise":
-        expected_states = _extract_individual_states_from_pairs(
-            reference_states
-        )
+        expected_states = _extract_individual_states_from_pairs(reference_states)
         missing_states = [
             state for state in expected_states if state not in all_file_states
         ]
@@ -767,25 +745,15 @@ def _extract_individual_states_from_pairs(state_list: List[str]) -> Set[str]:
     return individual
 
 
-def _create_inconsistency_error(
-    group1_only: Set[str], group2_only: Set[str]
-) -> str:
+def _create_inconsistency_error(group1_only: Set[str], group2_only: Set[str]) -> str:
     """Create standardized error message for state inconsistencies."""
     error_msg = "State name inconsistency detected between groups:\n"
     if group1_only:
-        error_msg += (
-            f"Group 1 has states not in Group 2: {sorted(group1_only)}\n"
-        )
+        error_msg += f"Group 1 has states not in Group 2: {sorted(group1_only)}\n"
     if group2_only:
-        error_msg += (
-            f"Group 2 has states not in Group 1: {sorted(group2_only)}\n"
-        )
-    error_msg += (
-        "Both groups must have the same state names for proper comparison. "
-    )
-    error_msg += (
-        "Please ensure consistent state naming across all input files."
-    )
+        error_msg += f"Group 2 has states not in Group 1: {sorted(group2_only)}\n"
+    error_msg += "Both groups must have the same state names for proper comparison. "
+    error_msg += "Please ensure consistent state naming across all input files."
     return error_msg
 
 
@@ -799,12 +767,8 @@ def _validate_group_state_consistency(
     """Validate state consistency between groups."""
     if detected_state_comparison_type == "pairwise":
         # Check individual component states for consistency
-        group1_individual = _extract_individual_states_from_pairs(
-            list(group1_states)
-        )
-        group2_individual = _extract_individual_states_from_pairs(
-            list(group2_states)
-        )
+        group1_individual = _extract_individual_states_from_pairs(list(group1_states))
+        group2_individual = _extract_individual_states_from_pairs(list(group2_states))
 
         group1_only = group1_individual - group2_individual
         group2_only = group2_individual - group1_individual
@@ -861,9 +825,7 @@ def validate_group_names(
         If validation fails
 
     """
-    if require_group1 and (
-        not isinstance(group1_name, str) or not group1_name.strip()
-    ):
+    if require_group1 and (not isinstance(group1_name, str) or not group1_name.strip()):
         raise IdeasError(
             "group1_name must be a non-empty string.",
         )
@@ -875,11 +837,7 @@ def validate_group_names(
             )
 
     # Check for identical group names
-    if (
-        group1_name
-        and group2_name
-        and group1_name.strip() == group2_name.strip()
-    ):
+    if group1_name and group2_name and group1_name.strip() == group2_name.strip():
         raise IdeasError(
             "Group names cannot be identical.",
         )
@@ -916,9 +874,7 @@ def validate_subject_id_format(
     """
     # Validate inputs
     if data is None or data.empty:
-        logger.debug(
-            f"No data provided for subject ID validation in {context}"
-        )
+        logger.debug(f"No data provided for subject ID validation in {context}")
         return
 
     if data_pairing not in ["paired", "unpaired"]:
@@ -992,10 +948,7 @@ def validate_subject_id_format(
             # Example: "subject_1", "subject_2"
             # Underscore count == 1 because: subject_ + N
             # (exactly one underscore between "subject" and number)
-            if not (
-                subject_id.startswith("subject_")
-                and subject_id.count("_") == 1
-            ):
+            if not (subject_id.startswith("subject_") and subject_id.count("_") == 1):
                 invalid_subjects.append(subject_id)
 
     # Report filename contamination first (more specific error)
@@ -1040,9 +993,7 @@ def validate_subject_id_format(
             ]
 
             if not inconsistent_subjects.empty:
-                missing_subjects = list(
-                    inconsistent_subjects.index[:3]
-                )  # Show first 3
+                missing_subjects = list(inconsistent_subjects.index[:3])  # Show first 3
                 raise IdeasError(
                     f"Paired analysis requires all subjects to appear in all groups. "
                     f"Subjects with missing group data in {context}: {missing_subjects}. "
@@ -1173,9 +1124,7 @@ def extract_and_validate_states(
         # Re-raise ToolExceptions without modification
         raise
     except Exception as e:
-        logger.error(
-            f"Unexpected error in extract_and_validate_states: {str(e)}"
-        )
+        logger.error(f"Unexpected error in extract_and_validate_states: {str(e)}")
         raise IdeasError(
             f"Error validating states across files: {str(e)}",
         )

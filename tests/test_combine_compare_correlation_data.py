@@ -1,38 +1,37 @@
+import logging
+import os
 import shutil
 import unittest
-import pandas as pd
-import numpy as np
-import h5py
+import warnings
 from unittest import mock
 from unittest.mock import patch
-import warnings
-import os
-import logging
-import matplotlib.pyplot as plt
-from pathlib import Path
 
-# Import necessary functions and classes from the updated tool
-from analysis.combine_compare_correlation_data import (
-    combine_compare_correlation_data,
-    validate_combine_compare_correlation_data_parameters,
-    average_correlations,
-    measure_cells,
-    calculate_and_plot_stats,
-    plot_average_correlation_data,
-    read_h5,
-    _clean_ax,
-    generate_output_manifest,
-)
-from utils.visualization_helpers import create_cdf_preview
-from utils import config
+import h5py
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
 # Correct imports based on tool structure
 from ideas.exceptions import (
     IdeasError,
 )  # Added ExitStatus
+
+# Import necessary functions and classes from the updated tool
+from analysis.combine_compare_correlation_data import (
+    average_correlations,
+    calculate_and_plot_stats,
+    combine_compare_correlation_data,
+    measure_cells,
+    plot_average_correlation_data,
+    read_h5,
+    validate_combine_compare_correlation_data_parameters,
+)
+from utils import config
+from utils.plots import _clean_ax
+from utils.visualization_helpers import create_cdf_preview
+
 # import utils.config as config  # Import config for file extensions
 
-import pytest
 
 # @pytest.mark.skip(reason="This test case is temporarily disabled.")
 class TestCombineCompareCorrelationData(unittest.TestCase):
@@ -44,27 +43,17 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
     # define directories
     temporary_dir = "/tmp"
     input_dir = "toolbox/tests/data/combine_compare_correlation_data"
-    output_dir = os.path.join(
-        temporary_dir, "tmp_combine_compare_correlation_data"
-    )
+    output_dir = os.path.join(temporary_dir, "tmp_combine_compare_correlation_data")
 
     # output manifest
-    output_manifest_json_schema = (
-        "toolbox/tests/schemas/output_manifest_schema.json"
-    )
+    output_manifest_json_schema = "toolbox/tests/schemas/output_manifest_schema.json"
     output_manifest_file_basename = "output_manifest.json"
-    output_manifest_file = os.path.join(
-        output_dir, output_manifest_file_basename
-    )
+    output_manifest_file = os.path.join(output_dir, output_manifest_file_basename)
 
     # output metadata
-    output_metadata_json_schema = (
-        "toolbox/tests/schemas/output_metadata_schema.json"
-    )
+    output_metadata_json_schema = "toolbox/tests/schemas/output_metadata_schema.json"
     output_metadata_file_basename = "output_metadata.json"
-    output_metadata_file = os.path.join(
-        output_dir, output_metadata_file_basename
-    )
+    output_metadata_file = os.path.join(output_dir, output_metadata_file_basename)
 
     def setUp(self):
         if os.path.exists(self.output_dir):
@@ -274,9 +263,7 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
 
         # Test files for state filtering and logging
         self.state_filtering_files = []
-        file_path = os.path.join(
-            self.synthetic_dir, "state_filtering_file1.h5"
-        )
+        file_path = os.path.join(self.synthetic_dir, "state_filtering_file1.h5")
         with h5py.File(file_path, "w") as f:
             mobile_data = np.full((4, 4), 0.6)
             np.fill_diagonal(mobile_data, 1.0)
@@ -289,13 +276,9 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
             f.create_dataset("other", data=other_data)
         self.state_filtering_files.append(file_path)
 
-        file_path2 = os.path.join(
-            self.synthetic_dir, "state_filtering_file2.h5"
-        )
+        file_path2 = os.path.join(self.synthetic_dir, "state_filtering_file2.h5")
         shutil.copy(file_path, file_path2)  # Create duplicate file
-        self.state_filtering_files.append(
-            file_path2
-        )  # Ensure minimum file count
+        self.state_filtering_files.append(file_path2)  # Ensure minimum file count
 
     # Valid Cases
     def test_combine_single_group_single_state(self):
@@ -322,9 +305,7 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
         )
 
         # validate existence of expected output files based on the new structure
-        actual_files = [
-            f for f in os.listdir(self.output_dir) if f != "synthetic_data"
-        ]
+        actual_files = [f for f in os.listdir(self.output_dir) if f != "synthetic_data"]
         # Corrected expected file list based on current tool output
         expected_files = [
             # # "output_manifest.json",
@@ -360,9 +341,7 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
         self.assertIn("group_name", avg_df.columns)
         self.assertEqual(avg_df["group_name"].unique()[0], group_name)
 
-        stat_df = pd.read_csv(
-            os.path.join(self.output_dir, "ANOVA_comparisons.csv")
-        )
+        stat_df = pd.read_csv(os.path.join(self.output_dir, "ANOVA_comparisons.csv"))
         self.assertIn("Source", stat_df.columns)
         # Check for either standardized or original column names
         self.assertTrue(
@@ -428,9 +407,7 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
         )
 
         # validate existence of expected output files
-        actual_files = [
-            f for f in os.listdir(self.output_dir) if f != "synthetic_data"
-        ]
+        actual_files = [f for f in os.listdir(self.output_dir) if f != "synthetic_data"]
         # Corrected expected file list for two groups
         expected_files = [
             # "output_manifest.json",
@@ -455,14 +432,10 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
             f"{group2_name}_{statistic}_correlation_boxplot.svg",
             f"{group2_name}_{statistic}_correlation_cdf.svg",
         ]
-        self.assertCountEqual(
-            actual_files, expected_files
-        )  # Use assertCountEqual
+        self.assertCountEqual(actual_files, expected_files)  # Use assertCountEqual
 
         # Validate statistical results structure from pingouin
-        anova_df = pd.read_csv(
-            os.path.join(self.output_dir, "ANOVA_comparisons.csv")
-        )
+        anova_df = pd.read_csv(os.path.join(self.output_dir, "ANOVA_comparisons.csv"))
         self.assertIn("Source", anova_df.columns)
         # self.assertIn("p-unc", anova_df.columns)
         self.assertIn(
@@ -608,9 +581,7 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
             )
 
         # Test duplicate group names
-        with self.assertRaisesRegex(
-            IdeasError, "Group names cannot be identical."
-        ):
+        with self.assertRaisesRegex(IdeasError, "Group names cannot be identical."):
             validate_combine_compare_correlation_data_parameters(
                 group1_correlation_files=self.synthetic_group1_files[
                     :2
@@ -625,9 +596,7 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
             )
 
         # Test missing state_names
-        with self.assertRaisesRegex(
-            IdeasError, "State names must be provided"
-        ):
+        with self.assertRaisesRegex(IdeasError, "State names must be provided"):
             validate_combine_compare_correlation_data_parameters(
                 group1_correlation_files=self.synthetic_group1_files[
                     :2
@@ -640,9 +609,7 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
             )
 
         # Test missing state_colors
-        with self.assertRaisesRegex(
-            IdeasError, "State colors must be provided"
-        ):
+        with self.assertRaisesRegex(IdeasError, "State colors must be provided"):
             validate_combine_compare_correlation_data_parameters(
                 group1_correlation_files=self.synthetic_group1_files[
                     :2
@@ -655,9 +622,7 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
             )
 
         # Test mismatched state names and colors
-        with self.assertRaisesRegex(
-            IdeasError, "Number of state colors.*is less than"
-        ):
+        with self.assertRaisesRegex(IdeasError, "Number of state colors.*is less than"):
             validate_combine_compare_correlation_data_parameters(
                 group1_correlation_files=self.synthetic_group1_files[
                     :2
@@ -672,9 +637,7 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
     def test_validation_with_insufficient_states_found(self):
         """Test warning handling when fewer than 2 valid states are found after filtering."""
         # Use the state_filtering_files which have 'mobile', 'immobile', 'other'
-        test_files = (
-            self.state_filtering_files
-        )  # Contains 2 files with these states
+        test_files = self.state_filtering_files  # Contains 2 files with these states
 
         # Mock the logger where the warning originates
         with mock.patch(
@@ -693,8 +656,7 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
 
         # Verify relevant warnings were logged about single state analysis
         log_calls_utils = [
-            call.args[0].lower()
-            for call in mock_logger_utils.warning.call_args_list
+            call.args[0].lower() for call in mock_logger_utils.warning.call_args_list
         ]
         # Check for warnings about single state analysis (may be different now)
         has_single_state_warning = any(
@@ -710,9 +672,7 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
 
         # Check that output files were still created (single state analysis should work)
         self.assertTrue(
-            os.path.exists(
-                os.path.join(self.output_dir, "ANOVA_comparisons.csv")
-            )
+            os.path.exists(os.path.join(self.output_dir, "ANOVA_comparisons.csv"))
         )
 
         # Test when requested states exist but only one is found across all files combined
@@ -741,8 +701,7 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
 
         # Verify relevant warnings were logged about single state analysis
         log_calls_utils_2 = [
-            call.args[0].lower()
-            for call in mock_logger_utils_2.warning.call_args_list
+            call.args[0].lower() for call in mock_logger_utils_2.warning.call_args_list
         ]
         has_single_state_warning_2 = any(
             "statistical analysis requires at least two unique states" in log
@@ -757,9 +716,7 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
 
         # Check that output files were still created (single state analysis should work)
         self.assertTrue(
-            os.path.exists(
-                os.path.join(self.output_dir, "ANOVA_comparisons.csv")
-            )
+            os.path.exists(os.path.join(self.output_dir, "ANOVA_comparisons.csv"))
         )
 
     def test_average_correlations(self):
@@ -784,12 +741,8 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
         self.assertCountEqual(result["subject_id"].unique(), [1, 2])
 
         # Verify data types (approximate check)
-        self.assertTrue(
-            pd.api.types.is_numeric_dtype(result["positive_correlation"])
-        )
-        self.assertTrue(
-            pd.api.types.is_numeric_dtype(result["negative_correlation"])
-        )
+        self.assertTrue(pd.api.types.is_numeric_dtype(result["positive_correlation"]))
+        self.assertTrue(pd.api.types.is_numeric_dtype(result["negative_correlation"]))
         self.assertTrue(pd.api.types.is_integer_dtype(result["subject_id"]))
 
         # Example: Check specific calculated values for the first file/state
@@ -828,9 +781,7 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
         # Expected rows: 2 files * 2 states * 3 cells/rows per state = 12 rows
         num_files = len(test_data)
         num_states = len(test_data[0]["data"])
-        num_cells_per_state = len(
-            test_data[0]["data"]["state1"]
-        )  # 3 rows = 3 cells
+        num_cells_per_state = len(test_data[0]["data"]["state1"])  # 3 rows = 3 cells
         expected_rows = num_files * num_states * num_cells_per_state
         self.assertEqual(expected_rows, 12)
 
@@ -926,9 +877,7 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
         # Avg pos = mean(0.5, 0.5, nan) = 0.5
         # Avg neg = mean(nan, -0.3, -0.3) = -0.3
         self.assertAlmostEqual(avg_result["positive_correlation"].iloc[0], 0.5)
-        self.assertAlmostEqual(
-            avg_result["negative_correlation"].iloc[0], -0.3
-        )
+        self.assertAlmostEqual(avg_result["negative_correlation"].iloc[0], -0.3)
 
         # Test measure_cells with NaN values
         with warnings.catch_warnings():
@@ -949,18 +898,14 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
         # Cell 1: nanmin([0.5, 1.0, -0.3]) = -0.3
         # Cell 2: nanmin([np.nan, -0.3, 1.0]) = -0.3
         self.assertFalse(min_result["min_correlation"].isnull().any())
-        self.assertTrue(
-            np.allclose(min_result["min_correlation"], [0.5, -0.3, -0.3])
-        )
+        self.assertTrue(np.allclose(min_result["min_correlation"], [0.5, -0.3, -0.3]))
 
         # Check mean (nanmean ignores nans)
         # Cell 0: nanmean([1.0, 0.5, np.nan]) = 0.75
         # Cell 1: nanmean([0.5, 1.0, -0.3]) = 0.4
         # Cell 2: nanmean([np.nan, -0.3, 1.0]) = 0.35
         self.assertFalse(mean_result["mean_correlation"].isnull().any())
-        self.assertTrue(
-            np.allclose(mean_result["mean_correlation"], [0.75, 0.4, 0.35])
-        )
+        self.assertTrue(np.allclose(mean_result["mean_correlation"], [0.75, 0.4, 0.35]))
 
     # ... (keep test_read_h5_with_invalid_structure as is) ...
 
@@ -970,9 +915,7 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
         """Test handling of datasets with only positive or only negative correlations."""
         test_files = self.extreme_values_files
         # Create duplicate file for minimum file requirement
-        duplicate_file = os.path.join(
-            self.synthetic_dir, "extreme_values_file_2.h5"
-        )
+        duplicate_file = os.path.join(self.synthetic_dir, "extreme_values_file_2.h5")
         shutil.copy(test_files[0], duplicate_file)
         test_files = test_files + [duplicate_file]
 
@@ -1006,14 +949,10 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
         # --- Check Average Correlation CSV ---
         pos_state_avg_rows = avg_df[avg_df["state"] == "all_positive"]
         self.assertTrue(all(pos_state_avg_rows["positive_correlation"] > 0))
-        self.assertTrue(
-            pos_state_avg_rows["negative_correlation"].isnull().all()
-        )
+        self.assertTrue(pos_state_avg_rows["negative_correlation"].isnull().all())
 
         neg_state_avg_rows = avg_df[avg_df["state"] == "all_negative"]
-        self.assertTrue(
-            neg_state_avg_rows["positive_correlation"].isnull().all()
-        )
+        self.assertTrue(neg_state_avg_rows["positive_correlation"].isnull().all())
         self.assertTrue(all(neg_state_avg_rows["negative_correlation"] < 0))
 
         # --- Check Statistic Correlation CSV (e.g., mean) ---
@@ -1027,9 +966,7 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
         neg_state_stat_rows = stat_df[stat_df["state"] == "all_negative"]
         # Row mean = (1.0 + 3 * -0.5) / 4 = -0.5 / 4 = -0.125
         self.assertTrue(
-            np.allclose(
-                neg_state_stat_rows[f"{statistic}_correlation"], -0.125
-            )
+            np.allclose(neg_state_stat_rows[f"{statistic}_correlation"], -0.125)
         )
 
     def test_error_handling_with_empty_files(self):
@@ -1044,9 +981,7 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
             pass
 
         # Expect a IdeasError because no valid data will be found after filtering
-        with self.assertRaisesRegex(
-            IdeasError, "No valid data found in any"
-        ):
+        with self.assertRaisesRegex(IdeasError, "No valid data found in any"):
             combine_compare_correlation_data(
                 group1_correlation_files=[empty_file1, empty_file2],
                 group1_name="empty_test",
@@ -1085,14 +1020,10 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
 
         # Check if output files were created (they might be empty or contain minimal info)
         self.assertTrue(
-            os.path.exists(
-                os.path.join(self.output_dir, "ANOVA_comparisons.csv")
-            )
+            os.path.exists(os.path.join(self.output_dir, "ANOVA_comparisons.csv"))
         )
         self.assertTrue(
-            os.path.exists(
-                os.path.join(self.output_dir, "pairwise_comparisons.csv")
-            )
+            os.path.exists(os.path.join(self.output_dir, "pairwise_comparisons.csv"))
         )
 
         # Check if specific warnings related to NaN/variance issues were raised
@@ -1171,12 +1102,8 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
 
         # ... (keep test_read_h5_with_filtering as is) ...
 
-    @mock.patch(
-        "analysis.combine_compare_correlation_data.plot_group_anova_comparison"
-    )
-    @mock.patch(
-        "analysis.combine_compare_correlation_data.plot_state_lmm_comparison"
-    )
+    @mock.patch("analysis.combine_compare_correlation_data.plot_group_anova_comparison")
+    @mock.patch("analysis.combine_compare_correlation_data.plot_state_lmm_comparison")
     @mock.patch(
         "analysis.combine_compare_correlation_data.plot_average_correlation_data"
     )
@@ -1243,15 +1170,11 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
         mock_plot_group_anova.assert_called_once()
         _, anova_kwargs = mock_plot_group_anova.call_args
         self.assertEqual(anova_kwargs.get("group_names"), expected_group_names)
-        self.assertEqual(
-            anova_kwargs.get("group_colors"), expected_group_colors
-        )
+        self.assertEqual(anova_kwargs.get("group_colors"), expected_group_colors)
 
     def test_state_name_case_insensitivity(self):
         """Test that state name filtering is case-insensitive."""
-        test_file = os.path.join(
-            self.synthetic_dir, "case_sensitivity_test.h5"
-        )
+        test_file = os.path.join(self.synthetic_dir, "case_sensitivity_test.h5")
         with h5py.File(test_file, "w") as f:
             f.create_dataset("State1", data=np.eye(3))
             f.create_dataset(
@@ -1261,9 +1184,7 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
                 "STATE1", data=np.eye(3) * 0.2
             )  # Duplicate name, different case
             f.create_dataset("State2", data=np.eye(3) * 0.3)
-        test_file2 = os.path.join(
-            self.synthetic_dir, "case_sensitivity_test2.h5"
-        )
+        test_file2 = os.path.join(self.synthetic_dir, "case_sensitivity_test2.h5")
         shutil.copy(test_file, test_file2)
 
         group_name = "CaseInsensitiveTest"  # Not used in combined filenames
@@ -1296,12 +1217,8 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
         # Because filtering is case-insensitive, all variations of 'state1' and 'state2'
         # found in the files should be present in the output, using their original casing.
         expected_states_found = {"State1", "state1", "STATE1", "State2"}
-        self.assertCountEqual(
-            set(avg_df["state"].unique()), expected_states_found
-        )
-        self.assertCountEqual(
-            set(stat_df["state"].unique()), expected_states_found
-        )
+        self.assertCountEqual(set(avg_df["state"].unique()), expected_states_found)
+        self.assertCountEqual(set(stat_df["state"].unique()), expected_states_found)
 
         # Check that similar names are NOT included
         self.assertNotIn("state10", avg_df["state"].unique())
@@ -1359,51 +1276,31 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
         )
 
         expected_existing_states = {"stateA", "stateB"}
-        self.assertCountEqual(
-            set(avg_df["state"].unique()), expected_existing_states
-        )
-        self.assertCountEqual(
-            set(stat_df["state"].unique()), expected_existing_states
-        )
+        self.assertCountEqual(set(avg_df["state"].unique()), expected_existing_states)
+        self.assertCountEqual(set(stat_df["state"].unique()), expected_existing_states)
         self.assertNotIn("nonexistent_state", avg_df["state"].unique())
         self.assertNotIn("stateC", avg_df["state"].unique())  # Not requested
         self.assertNotIn("stateD", avg_df["state"].unique())  # Not requested
 
         # Check state counts reflect file availability
         state_counts_avg = avg_df["state"].value_counts().to_dict()
-        self.assertEqual(
-            state_counts_avg.get("stateA", 0), 2
-        )  # In file1, file2
-        self.assertEqual(
-            state_counts_avg.get("stateB", 0), 2
-        )  # In file1, file3
+        self.assertEqual(state_counts_avg.get("stateA", 0), 2)  # In file1, file2
+        self.assertEqual(state_counts_avg.get("stateB", 0), 2)  # In file1, file3
 
-        state_counts_stat = (
-            stat_df.groupby("state")["file"].nunique().to_dict()
-        )
-        self.assertEqual(
-            state_counts_stat.get("stateA", 0), 2
-        )  # In file1, file2
-        self.assertEqual(
-            state_counts_stat.get("stateB", 0), 2
-        )  # In file1, file3
+        state_counts_stat = stat_df.groupby("state")["file"].nunique().to_dict()
+        self.assertEqual(state_counts_stat.get("stateA", 0), 2)  # In file1, file2
+        self.assertEqual(state_counts_stat.get("stateB", 0), 2)  # In file1, file3
 
         # Check subject IDs
         self.assertIn("subject_id", avg_df.columns)
         self.assertIn("subject_id", stat_df.columns)
-        self.assertEqual(
-            len(avg_df["subject_id"].unique()), 3
-        )  # 3 files input
+        self.assertEqual(len(avg_df["subject_id"].unique()), 3)  # 3 files input
 
     # ... (keep test_different_sized_correlation_matrices as is, ensure reading combined) ...
     def test_different_sized_correlation_matrices(self):
         """Test handling H5 files with correlation matrices of different dimensions."""
-        file1 = os.path.join(
-            self.synthetic_dir, "different_size_matrix1.h5"
-        )  # 3x3
-        file2 = os.path.join(
-            self.synthetic_dir, "different_size_matrix2.h5"
-        )  # 10x10
+        file1 = os.path.join(self.synthetic_dir, "different_size_matrix1.h5")  # 3x3
+        file2 = os.path.join(self.synthetic_dir, "different_size_matrix2.h5")  # 10x10
         with h5py.File(file1, "w") as f:
             f.create_dataset("state1", data=np.eye(3))
             f.create_dataset("state2", data=np.eye(3) * 0.5)
@@ -1441,9 +1338,7 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
 
         # Verify cell counts in the stat_df reflect different matrix sizes
         cell_counts = stat_df.groupby("file")["cell"].nunique()
-        self.assertEqual(
-            cell_counts[os.path.basename(file1)], 3
-        )  # 3 cells from 3x3
+        self.assertEqual(cell_counts[os.path.basename(file1)], 3)  # 3 cells from 3x3
         self.assertEqual(
             cell_counts[os.path.basename(file2)], 10
         )  # 10 cells from 10x10
@@ -1541,14 +1436,10 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
             )
         )
         self.assertTrue(
-            os.path.exists(
-                os.path.join(self.output_dir, "ANOVA_comparisons.csv")
-            )
+            os.path.exists(os.path.join(self.output_dir, "ANOVA_comparisons.csv"))
         )
         self.assertTrue(
-            os.path.exists(
-                os.path.join(self.output_dir, "pairwise_comparisons.csv")
-            )
+            os.path.exists(os.path.join(self.output_dir, "pairwise_comparisons.csv"))
         )
 
         # Verify CSVs contain only the found state ('other')
@@ -1559,20 +1450,14 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
             )
         )
         stat_df = pd.read_csv(
-            os.path.join(
-                self.output_dir, f"{group_name}_combined_max_correlation.csv"
-            )
+            os.path.join(self.output_dir, f"{group_name}_combined_max_correlation.csv")
         )
         self.assertCountEqual(avg_df["state"].unique(), ["other"])
         self.assertCountEqual(stat_df["state"].unique(), ["other"])
 
         # Check that ANOVA/pairwise results might be empty or indicate issues due to single state
-        anova_file_path = os.path.join(
-            self.output_dir, "ANOVA_comparisons.csv"
-        )
-        pairwise_file_path = os.path.join(
-            self.output_dir, "pairwise_comparisons.csv"
-        )
+        anova_file_path = os.path.join(self.output_dir, "ANOVA_comparisons.csv")
+        pairwise_file_path = os.path.join(self.output_dir, "pairwise_comparisons.csv")
 
         anova_df = pd.DataFrame()
         # if os.path.getsize(anova_file_path) > 0:
@@ -1603,13 +1488,9 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
             anova_df.empty
             or (
                 "Source" in anova_df.columns
-                and anova_df["Source"]
-                .str.contains("Error|Warning", case=False)
-                .any()
+                and anova_df["Source"].str.contains("Error|Warning", case=False).any()
             )
-            or (
-                "Status" in anova_df.columns and anova_df.isnull().values.any()
-            )
+            or ("Status" in anova_df.columns and anova_df.isnull().values.any())
             or anova_df.isnull().values.any()
         )
         self.assertTrue(
@@ -1737,9 +1618,7 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
                 file = row["file"]
                 state = row["state"]
                 cell_idx = row["cell"]  # 0, 1 for file1; 0, 1, 2 for file2
-                expected = expected_values[file][state][cell_idx][
-                    correlation_type
-                ]
+                expected = expected_values[file][state][cell_idx][correlation_type]
                 actual = row[col_name]
 
                 self.assertAlmostEqual(
@@ -1775,16 +1654,12 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
             col_name = f"{correlation_type}_correlation"
 
             # Single value state (1 cell/row: [0.99])
-            single_row = edge_result[
-                edge_result["state"] == "single_value_state"
-            ]
+            single_row = edge_result[edge_result["state"] == "single_value_state"]
             self.assertEqual(len(single_row), 1)
             self.assertAlmostEqual(single_row[col_name].iloc[0], 0.99)
 
             # Extreme values state (2 cells/rows: [1.0, -1.0], [-1.0, 1.0])
-            extreme_rows = edge_result[
-                edge_result["state"] == "extreme_values_state"
-            ]
+            extreme_rows = edge_result[edge_result["state"] == "extreme_values_state"]
             self.assertEqual(len(extreme_rows), 2)
             if correlation_type == "max":
                 self.assertTrue(np.allclose(extreme_rows[col_name], 1.0))
@@ -1849,21 +1724,15 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
         test_file = os.path.join(self.output_dir, "test_read.h5")
         with h5py.File(test_file, "w") as f:
             f.create_dataset("state1", data=np.array([[1.0, 0.5], [0.5, 1.0]]))
-            f.create_dataset(
-                "state2", data=np.array([[1.0, -0.3], [-0.3, 1.0]])
-            )
-            f.create_dataset(
-                "extra_state", data=np.array([[1.0, 0.2], [0.2, 1.0]])
-            )
+            f.create_dataset("state2", data=np.array([[1.0, -0.3], [-0.3, 1.0]]))
+            f.create_dataset("extra_state", data=np.array([[1.0, 0.2], [0.2, 1.0]]))
 
         # Test reading all states
         data_dict, available_states = read_h5(test_file)
 
         self.assertIn("state1", data_dict)
         self.assertIn("state2", data_dict)
-        self.assertEqual(
-            set(available_states), {"state1", "state2", "extra_state"}
-        )
+        self.assertEqual(set(available_states), {"state1", "state2", "extra_state"})
 
         # Test reading filtered states
         data_dict_filtered, available_states_filtered = read_h5(
@@ -1886,9 +1755,7 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
             f.create_dataset("state1", data=np.eye(2))
 
         with self.assertLogs(level="DEBUG"):
-            data_dict, available_states = read_h5(
-                test_file, verbose_logging=True
-            )
+            data_dict, available_states = read_h5(test_file, verbose_logging=True)
             self.assertIn("state1", data_dict)
 
     # Test _clean_ax
@@ -1911,15 +1778,9 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
         plt.close(fig)
 
     # Test calculate_and_plot_stats
-    @patch(
-        "analysis.combine_compare_correlation_data.calculate_state_lmm_stats"
-    )
-    @patch(
-        "analysis.combine_compare_correlation_data.calculate_group_anova_stats"
-    )
-    def test_calculate_and_plot_stats_basic(
-        self, mock_group_anova, mock_state_lmm
-    ):
+    @patch("analysis.combine_compare_correlation_data.calculate_state_lmm_stats")
+    @patch("analysis.combine_compare_correlation_data.calculate_group_anova_stats")
+    def test_calculate_and_plot_stats_basic(self, mock_group_anova, mock_state_lmm):
         """Test basic stats calculation and plotting."""
         # Create test data with proper format
         avg_data = pd.DataFrame(
@@ -2054,9 +1915,7 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
         self.assertIsInstance(preview_files, list)
 
     # Test plot_average_correlation_data
-    @patch(
-        "tests.test_combine_compare_correlation_data.plot_average_correlation_data"
-    )
+    @patch("tests.test_combine_compare_correlation_data.plot_average_correlation_data")
     def test_plot_average_correlation_data_basic(self, mock_plot_function):
         """Test basic correlation data plotting."""
         # Create test modulation data with required columns
@@ -2136,12 +1995,8 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
         # Verify the function was called
         mock_plot_function.assert_called_once()
 
-    @patch(
-        "tests.test_combine_compare_correlation_data.plot_average_correlation_data"
-    )
-    def test_plot_average_correlation_data_single_group(
-        self, mock_plot_function
-    ):
+    @patch("tests.test_combine_compare_correlation_data.plot_average_correlation_data")
+    def test_plot_average_correlation_data_single_group(self, mock_plot_function):
         """Test correlation data plotting with single group."""
         mod_data = pd.DataFrame(
             {
@@ -2227,15 +2082,11 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
         with h5py.File(test_file, "w") as f:
             f.create_dataset(
                 "state1",
-                data=np.array(
-                    [[1.0, 0.8, 0.6], [0.8, 1.0, 0.7], [0.6, 0.7, 1.0]]
-                ),
+                data=np.array([[1.0, 0.8, 0.6], [0.8, 1.0, 0.7], [0.6, 0.7, 1.0]]),
             )
             f.create_dataset(
                 "state2",
-                data=np.array(
-                    [[1.0, 0.3, -0.2], [0.3, 1.0, 0.1], [-0.2, 0.1, 1.0]]
-                ),
+                data=np.array([[1.0, 0.3, -0.2], [0.3, 1.0, 0.1], [-0.2, 0.1, 1.0]]),
             )
 
         # 2. Read the H5 file
@@ -2327,12 +2178,8 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
                 "group_id": 1,
                 "subject_id": 1,
                 "data": {
-                    "state1": [
-                        large_matrix[i] for i in range(large_matrix_size)
-                    ],
-                    "state2": [
-                        large_matrix[i] * 0.8 for i in range(large_matrix_size)
-                    ],
+                    "state1": [large_matrix[i] for i in range(large_matrix_size)],
+                    "state2": [large_matrix[i] * 0.8 for i in range(large_matrix_size)],
                 },
             }
         ]
@@ -2382,7 +2229,5 @@ class TestCombineCompareCorrelationData(unittest.TestCase):
         # Verify that only desired states are present
         if "state" in avg_result.columns:
             present_states = set(avg_result["state"].unique())
-            self.assertTrue(
-                present_states.issubset({"state1", "state2", "state3"})
-            )
+            self.assertTrue(present_states.issubset({"state1", "state2", "state3"}))
             self.assertNotIn("unwanted_state", present_states)

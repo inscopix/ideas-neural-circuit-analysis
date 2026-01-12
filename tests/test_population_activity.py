@@ -2,20 +2,21 @@ import os
 import re
 from unittest import mock
 
-import pytest
 import numpy as np
 import pandas as pd
+import pytest
 from ideas.exceptions import IdeasError
-from utils.utils import Comp
+
 from analysis.population_activity import (
-    population_activity,
+    _make_modulation_data,
+    _modulation_data_to_csv,
     compute_modulation,
     compute_two_state_modulation,
     find_modulated_neurons,
     find_two_state_modulated_neurons,
-    _make_modulation_data,
-    _modulation_data_to_csv,
+    population_activity,
 )
+from utils.utils import Comp
 
 series_annotations = "data/cellset_series_annotations.csv"
 
@@ -625,12 +626,12 @@ class TestFindModulatedNeurons:
         strong_down_detection_rate = len(detected_down_strong) / 40
 
         # We expect high detection rates for strongly modulated neurons
-        assert (
-            strong_up_detection_rate > 0.8
-        ), f"Only detected {strong_up_detection_rate * 100:.1f}% of strongly up-modulated neurons"
-        assert (
-            strong_down_detection_rate > 0.8
-        ), f"Only detected {strong_down_detection_rate} down modulated neurons, expected > 0.8"
+        assert strong_up_detection_rate > 0.8, (
+            f"Only detected {strong_up_detection_rate * 100:.1f}% of strongly up-modulated neurons"
+        )
+        assert strong_down_detection_rate > 0.8, (
+            f"Only detected {strong_down_detection_rate} down modulated neurons, expected > 0.8"
+        )
 
         # False positives in non-modulated neurons (160-199) should be rare
         non_modulated_range = np.arange(160, 200)
@@ -644,9 +645,9 @@ class TestFindModulatedNeurons:
         false_positive_rate = len(false_positives) / 40
 
         # False positive rate should be close to alpha
-        assert (
-            false_positive_rate < 0.1
-        ), f"False positive rate {false_positive_rate * 100:.1f}% exceeds reasonable threshold"
+        assert false_positive_rate < 0.1, (
+            f"False positive rate {false_positive_rate * 100:.1f}% exceeds reasonable threshold"
+        )
 
 
 class TestFindTwoStateModulatedNeurons:
@@ -1120,8 +1121,9 @@ class TestValidationFunctions:
 
     def test_validate_params_invalid(self):
         """Test invalid parameter combinations."""
-        from utils.validation import _validate_correlation_params
         import pytest
+
+        from utils.validation import _validate_correlation_params
 
         # Invalid: baseline method without baseline state
         with pytest.raises(AssertionError, match="Baseline state must be provided"):

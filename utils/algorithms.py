@@ -16,9 +16,9 @@ from utils.plots import (
     _plot_mixed_corr_comparisons,
 )
 from utils.utils import (
+    DIVISION_THRESHOLD,
     Metric,
     save_optimized_svg,
-    DIVISION_THRESHOLD,
 )
 
 # Minimum sample size required for normality testing
@@ -97,9 +97,7 @@ def _calculate_population_activity(
         )
     except Exception as error:
         logger.exception(error)
-        logger.warning(
-            f"Failed to generate preview Population_{data_name}.svg"
-        )
+        logger.warning(f"Failed to generate preview Population_{data_name}.svg")
 
     try:
         _plot_difference_cellmap(
@@ -312,12 +310,8 @@ def _run_ANOVA(
             logger.warning(
                 "Not enough valid groups for analysis. Returning empty results."
             )
-            empty_aov = pd.DataFrame(
-                {"Comparison": [metric], "p-unc": [np.nan]}
-            )
-            empty_pairwise = pd.DataFrame(
-                {"Comparison": [metric], "p-unc": [np.nan]}
-            )
+            empty_aov = pd.DataFrame({"Comparison": [metric], "p-unc": [np.nan]})
+            empty_pairwise = pd.DataFrame({"Comparison": [metric], "p-unc": [np.nan]})
             return empty_aov, empty_pairwise
 
         # Add tiny random noise to eliminate exact zeros in variance
@@ -333,9 +327,7 @@ def _run_ANOVA(
     except Exception as e:
         logger.warning(f"Error preprocessing data for ANOVA: {str(e)}")
         empty_aov = pd.DataFrame({"Comparison": [metric], "p-unc": [np.nan]})
-        empty_pairwise = pd.DataFrame(
-            {"Comparison": [metric], "p-unc": [np.nan]}
-        )
+        empty_pairwise = pd.DataFrame({"Comparison": [metric], "p-unc": [np.nan]})
         return empty_aov, empty_pairwise
 
     # check for normality to see if we should use parametric tests
@@ -383,9 +375,7 @@ def _run_ANOVA(
                     )
                     # Ensure Source column exists for compatibility with tests
                     if "Source" not in aov.columns and len(aov) > 0:
-                        aov["Source"] = ["Epoch", "Group", "Epoch * Group"][
-                            : len(aov)
-                        ]
+                        aov["Source"] = ["Epoch", "Group", "Epoch * Group"][: len(aov)]
 
                     pairwise = pg.pairwise_tests(
                         data=data,
@@ -415,18 +405,10 @@ def _run_ANOVA(
                         {
                             "Contrast": ["Epoch * Group"],
                             "A": [
-                                (
-                                    data["Epoch"].iloc[0]
-                                    if len(data) > 0
-                                    else "Epoch1"
-                                )
+                                (data["Epoch"].iloc[0] if len(data) > 0 else "Epoch1")
                             ],
                             "B": [
-                                (
-                                    data["Epoch"].iloc[-1]
-                                    if len(data) > 0
-                                    else "Epoch2"
-                                )
+                                (data["Epoch"].iloc[-1] if len(data) > 0 else "Epoch2")
                             ],
                             "p-unc": [1.0],
                             "p-corr": [1.0],
@@ -511,12 +493,9 @@ def _run_ANOVA(
     pairwise["Comparison"] = metric
 
     # Put the comparison column on the far left
-    aov = aov[
-        ["Comparison"] + [col for col in aov.columns if col != "Comparison"]
-    ]
+    aov = aov[["Comparison"] + [col for col in aov.columns if col != "Comparison"]]
     pairwise = pairwise[
-        ["Comparison"]
-        + [col for col in pairwise.columns if col != "Comparison"]
+        ["Comparison"] + [col for col in pairwise.columns if col != "Comparison"]
     ]
     return aov, pairwise
 
@@ -543,9 +522,7 @@ def _compare_single_group(
                 logger.warning(
                     f"Dropping {len(problem_cells)} cells with all NaN values: {problem_cells}"
                 )
-                data = data[
-                    data["Cell"].isin(cells_to_keep[cells_to_keep].index)
-                ]
+                data = data[data["Cell"].isin(cells_to_keep[cells_to_keep].index)]
 
         # Check for sufficient variance in data
         trace_variance = data.groupby("Epoch")[Metric.TRACE.value].var()
@@ -620,12 +597,8 @@ def _compare_single_group(
                 "Average Negative Correlation"
             ].var()
 
-            low_var_pos = pos_variance[
-                pos_variance < DIVISION_THRESHOLD
-            ].index.tolist()
-            low_var_neg = neg_variance[
-                neg_variance < DIVISION_THRESHOLD
-            ].index.tolist()
+            low_var_pos = pos_variance[pos_variance < DIVISION_THRESHOLD].index.tolist()
+            low_var_neg = neg_variance[neg_variance < DIVISION_THRESHOLD].index.tolist()
 
             if low_var_pos or low_var_neg:
                 logger.warning(
@@ -856,11 +829,7 @@ def _unify_results(
     # Put Group, Comparison, and Source columns at the beginning
     pairwise = pairwise[
         ["Group", "Comparison"]
-        + [
-            col
-            for col in pairwise.columns
-            if col not in ["Group", "Comparison"]
-        ]
+        + [col for col in pairwise.columns if col not in ["Group", "Comparison"]]
     ]
 
     return aov, pairwise
