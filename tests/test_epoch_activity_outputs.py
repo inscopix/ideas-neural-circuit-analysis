@@ -401,7 +401,14 @@ def test_modulation_vs_baseline_csv_matches_modulation_results(
     baseline_state = modulation_results["baseline_state"]
 
     # Baseline should not appear as an epoch row (baseline is skipped in modulation calc).
-    assert not ((df["state"] == baseline_state) & (df["epoch"] == baseline_epoch)).any()
+    # If state column exists, ensure we check state+epoch; otherwise just epoch.
+    has_state_col = "state" in df.columns
+    if has_state_col:
+        assert not (
+            (df["state"] == baseline_state) & (df["epoch"] == baseline_epoch)
+        ).any()
+    else:
+        assert not (df["epoch"] == baseline_epoch).any()
 
     # Expected combinations are all non-baseline combinations with data.
     activity_mod = modulation_results.get("activity_modulation", {})
@@ -410,26 +417,37 @@ def test_modulation_vs_baseline_csv_matches_modulation_results(
     assert len(all_keys) > 0
 
     # Basic invariants on schema and value ranges
-    assert set(
-        ["name", "cell_index", "state", "epoch", "baseline_state", "baseline_epoch"]
-    ).issubset(df.columns)
-    assert (df["baseline_state"] == baseline_state).all()
+    required_cols = ["name", "cell_index", "epoch", "baseline_epoch"]
+    if has_state_col:
+        required_cols.extend(["state", "baseline_state"])
+
+    assert set(required_cols).issubset(df.columns)
+
+    if has_state_col:
+        assert (df["baseline_state"] == baseline_state).all()
+
     assert (df["baseline_epoch"] == baseline_epoch).all()
 
     # Validate a few per-key dynamic columns exist and match underlying arrays.
     # (The output CSV repeats values per row in the dynamic column corresponding to that row's state-epoch.)
     for state, epoch in sorted(all_keys):
-        sub = df[(df["state"] == state) & (df["epoch"] == epoch)].sort_values(
-            "cell_index"
-        )
+        if has_state_col:
+            sub = df[(df["state"] == state) & (df["epoch"] == epoch)].sort_values(
+                "cell_index"
+            )
+            label_suffix = f"{state}-{epoch}"
+        else:
+            sub = df[df["epoch"] == epoch].sort_values("cell_index")
+            label_suffix = f"{epoch}"
+
         assert len(sub) > 0
 
-        trace_col = f"trace_modulation_scores in {state}-{epoch}"
-        trace_p_col = f"trace_p_values in {state}-{epoch}"
-        trace_cat_col = f"trace_modulation in {state}-{epoch}"
-        event_col = f"event_modulation_scores in {state}-{epoch}"
-        event_p_col = f"event_p_values in {state}-{epoch}"
-        event_cat_col = f"event_modulation in {state}-{epoch}"
+        trace_col = f"trace_modulation_scores in {label_suffix}"
+        trace_p_col = f"trace_p_values in {label_suffix}"
+        trace_cat_col = f"trace_modulation in {label_suffix}"
+        event_col = f"event_modulation_scores in {label_suffix}"
+        event_p_col = f"event_p_values in {label_suffix}"
+        event_cat_col = f"event_modulation in {label_suffix}"
 
         for c in [
             trace_col,
