@@ -772,6 +772,7 @@ class StateEpochOutputGenerator:
         )
 
         for state, epoch in all_state_epoch_keys:
+            combo_label = self._format_state_epoch_label(state, epoch, "-")
             # Get trace modulation data
             trace_mod_data = activity_modulation.get((state, epoch), {})
             trace_modulation_index = trace_mod_data.get("modulation_index", [])
@@ -861,23 +862,25 @@ class StateEpochOutputGenerator:
                 row = {
                     "name": cell_name,
                     "cell_index": cell_idx,
-                    "state": state,
                     "epoch": epoch,
-                    "baseline_state": self.baseline_state,
                     "baseline_epoch": self.baseline_epoch,
                     # Trace-based modulation columns
-                    f"trace_modulation_scores in {state}-{epoch}": (
+                    f"trace_modulation_scores in {combo_label}": (
                         trace_value if trace_value is not None else np.nan
                     ),
-                    f"trace_p_values in {state}-{epoch}": (trace_p_value),
-                    f"trace_modulation in {state}-{epoch}": trace_modulation_categorical,
+                    f"trace_p_values in {combo_label}": (trace_p_value),
+                    f"trace_modulation in {combo_label}": trace_modulation_categorical,
                     # Event-based modulation columns
-                    f"event_modulation_scores in {state}-{epoch}": (
+                    f"event_modulation_scores in {combo_label}": (
                         event_value if event_value is not None else np.nan
                     ),
-                    f"event_p_values in {state}-{epoch}": (event_p_value),
-                    f"event_modulation in {state}-{epoch}": event_modulation_categorical,
+                    f"event_p_values in {combo_label}": (event_p_value),
+                    f"event_modulation in {combo_label}": event_modulation_categorical,
                 }
+
+                if not self.hide_state_prefix:
+                    row["state"] = state
+                    row["baseline_state"] = self.baseline_state
                 data_rows.append(row)
 
         df = pd.DataFrame(data_rows)
