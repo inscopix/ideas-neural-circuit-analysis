@@ -65,7 +65,7 @@ build:
 test: TARGET=test
 test: IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:${LABEL}-test
 test: LATEST_IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:latest-test
-test: clean build
+test: build
 	@echo "Running tests..."
 	docker run \
 		--platform ${PLATFORM} \

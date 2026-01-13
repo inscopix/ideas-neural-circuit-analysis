@@ -5,12 +5,10 @@ repos:
       # Run the linter.
       - id: ruff
         types_or: [python, pyi]
-        files: "(analysis|tests)/.*"
         fail_fast: true
       # Run the formatter.
       - id: ruff-format
         types_or: [python, pyi]
-        files: "(analysis|tests)/.*"
         fail_fast: true
   - repo: local
     hooks:
