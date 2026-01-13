@@ -11,6 +11,7 @@ By cloning this repo, you can run various Inscopix neural analyses on your own c
 In order to use this repo to run tools locally, the following software dependencies are required to be installed on your computer:
 * [git](https://git-scm.com/)
 * [Docker](https://docs.docker.com/desktop/)
+* [IDEAS CLI](https://pypi.org/project/ideas-python/)
 
 Once pre-requisites are installed, run the following commands to clone the repo to your local computer, and build the Docker container image used for running analyses.
 ```
@@ -27,14 +28,14 @@ Once the docker image is built, you are ready to run analyses. The following sec
 
 To run the [correlations tool](https://inscopix.github.io/ideas-docs/tools/epochs/correlations__correlation_tool/correlations__correlation_tool.html), execute the following CLI command:
 ```
-ideas tools run correlations --inputs data/correlations/inputs.json 
+make run tool=correlations
 ```
 
 #### Combine and Compare Analysis Tool
 
 To run the [combine and compare correlations tool](https://inscopix.github.io/ideas-docs/tools/standard-python/combine_compare_correlation_data/combine_compare_correlation_data.html), execute the following CLI command:
 ```
-ideas tools run combine_compare_correlation_data --inputs data/combine_compare_correlation_data/inputs.json 
+make run tool=combine_compare_correlation_data
 ```
 
 ### Neural Population Activity
@@ -43,14 +44,14 @@ ideas tools run combine_compare_correlation_data --inputs data/combine_compare_c
 
 To run the [population activity tool](https://inscopix.github.io/ideas-docs/tools/epochs/population_activity__population_activity/population_activity__population_activity.html), execute the following CLI command:
 ```
-ideas tools run population_activity --inputs data/population_activity/inputs.json 
+make run tool=population_activity
 ```
 
 #### Combine and Compare Analysis Tool
 
 To run the [combine and compare population activity tool](https://inscopix.github.io/ideas-docs/tools/standard-python/combine_compare_population_data/combine_compare_population_data.html), execute the following CLI command:
 ```
-ideas tools run combine_compare_population_activity_data --inputs data/combine_compare_population_activity_data/inputs.json 
+make run tool=combine_compare_population_data
 ```
 
 ### Peri-Event
@@ -59,14 +60,14 @@ ideas tools run combine_compare_population_activity_data --inputs data/combine_c
 
 To run the [peri-event tool](https://inscopix.github.io/ideas-docs/tools/standard-python/peri_event_workflow/peri_event_workflow.html), execute the following CLI command:
 ```
-ideas tools run peri_event_workflow --inputs data/peri_event_workflow/inputs.json
+make run tool=peri_event_workflow
 ```
 
 #### Combine and Compare Analysis Tool
 
 To run the [combine and compare peri-event data tool](https://inscopix.github.io/ideas-docs/tools/standard-python/combine_compare_peri_event_data/combine_compare_peri_event_data.html), execute the following CLI command:
 ```
-ideas tools run combine_compare_peri_event_data --inputs data/combine_compare_peri_event_data/inputs.json 
+make run tool=combine_compare_peri_event_data
 ```
 
 ### Peri-Event Across Epochs
@@ -75,14 +76,14 @@ ideas tools run combine_compare_peri_event_data --inputs data/combine_compare_pe
 
 To run the [compare peri-event activity across epochs tool](https://inscopix.github.io/ideas-docs/tools/standard-python/compare_peri_event_activity_across_epochs/compare_peri_event_activity_across_epochs.html), execute the following CLI command:
 ```
-ideas tools run compare_peri_event_activity_across_epochs -s
+make run tool=compare_peri_event_activity_across_epochs
 ```
 
 #### Combine and Compare Analysis Tool
 
 To run the [combine and compare peri-event data across epochs tool](https://inscopix.github.io/ideas-docs/tools/standard-python/combine_compare_peri_event_data_across_epochs/combine_compare_peri_event_data_across_epochs.html), execute the following CLI command:
 ```
-ideas tools run compare_peri_event_activity_across_epochs -s
+make run tool=combine_compare_peri_event_data_across_epochs
 ```
 
 ### Epoch Activity
@@ -91,14 +92,14 @@ ideas tools run compare_peri_event_activity_across_epochs -s
 
 To run the [compare neural activity across epochs tool](https://inscopix.github.io/ideas-docs/tools/epochs/epoch_activity__run/epoch_activity__run.html), execute the following CLI command:
 ```
-ideas tools run epoch_activity__run -s
+make run tool=epoch_activity__run
 ```
 
 #### Combine and Compare Analysis Tool
 
 To run the [combine and compare neural activity across epochs tool](https://inscopix.github.io/ideas-docs/tools/epochs/comb_comp_epochs__run_cc_epochs/comb_comp_epochs__run_cc_epochs.html), execute the following CLI command:
 ```
-ideas tools run epoch_activity__run -s
+make run tool=comb_comp_epochs__run_cc_epochs
 ```
 
 ### State Epoch Activity
@@ -107,14 +108,14 @@ ideas tools run epoch_activity__run -s
 
 To run the [compare neural state data across epochs tool](https://inscopix.github.io/ideas-docs/tools/epochs/state_epoch_baseline/state_epoch_baseline.html), execute the following CLI command:
 ```
-ideas tools run state_epoch_baseline -s
+make run tool=state_epoch_baseline
 ```
 
 #### Combine and Compare Analysis Tool
 
 To run the [compare neural state-epoch data across between groups tool](https://inscopix.github.io/ideas-docs/tools/epochs/combine_compare_state_epoch_data/combine_compare_state_epoch_data.html), execute the following CLI command:
 ```
-ideas tools run combine_compare_state_epoch_data -s
+make run tool=combine_compare_state_epoch_data
 ```
 
 ## Development
