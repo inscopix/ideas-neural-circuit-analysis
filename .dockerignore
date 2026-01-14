@@ -1,7 +1,9 @@
+.git/
+.venv/
 venv/
 venv3/
 .venv/
 __pycache__/
 .pytest_cache/
 *.pyc
-
+*.cbundle
