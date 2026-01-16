@@ -1,4 +1,4 @@
-.PHONY:  clean build test
+.PHONY:  clean build test venv
 
 REPO_NAME=neural-circuit-analysis
 IMAGE_REPO=platform
@@ -12,11 +12,8 @@ ifndef TARGET
 endif
 
 # Define envs for virtualenv
-VENV = venv
-
-ifndef PYTHON_VERSION
-	PYTHON_VERSION=python3.13
-endif
+ROOT_DIR := $(shell dirname $(shell readlink -f $(firstword $(MAKEFILE_LIST))))
+VENV = $(ROOT_DIR)/venv
 
 # Detect OS to know how to call python in venv
 ifeq ($(OS), Windows_NT)
@@ -35,15 +32,17 @@ TOOL_SPECS=${shell ls -d .ideas/*/tool_spec.json}
 clean:
 	@echo "Cleaning up"
 	-docker rmi ${IMAGE_TAG}
-	-rm -rf venv
+	-docker rmi ${IMAGE_TAG}-test
 
-venv: pyproject.toml
-	@echo "Creating virtualenv and installing dependencies"
-	test -d venv || $(PYTHON_VERSION) -m venv venv
-	$(PYTHON) -m pip install pip --upgrade
-	$(PYTHON) -m pip install '.[dev]'
-	# Let make know the venv is up-to-date
-	touch venv
+clean-venv:
+	rm -rf venv .venv
+
+venv: venv/touchfile
+
+venv/touchfile: pyproject.toml uv.lock
+	test -d $(VENV) || uv venv && ln -sf .venv $(VENV)
+	uv sync --no-install-project --only-group dev
+	touch $(VENV)/touchfile
 
 set-hooks: venv .pre-commit-config.yaml
 	@echo "Installing pre-commit hooks"
