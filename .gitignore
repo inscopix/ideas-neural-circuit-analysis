@@ -1,3 +1,5 @@
+# Repo-specific excludes
+venv
 outputs/
 .DS_Store
 *.cbundle
