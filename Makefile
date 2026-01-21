@@ -90,3 +90,6 @@ ruff-check: venv
 # Specify the tool key to run
 run: build
 	ideas tools run $(tool) -s -c -n
+
+run-all: build
+	@$(foreach f, $(shell ls -d .ideas/*), ideas tools run -s -c -n $(shell basename $(f));)

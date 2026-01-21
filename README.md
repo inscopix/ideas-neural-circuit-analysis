@@ -138,6 +138,20 @@ Build the docker container image used for analyses with the following command:
 make build
 ```
 
+### Run
+
+Run each tool locally with the following command:
+
+```bash
+make run
+```
+
+To run all tools, for easy testing, run the following command:
+
+```bash
+make run-all
+```
+
 ### Test
 
 Run unit tests in the repo with the following command.
