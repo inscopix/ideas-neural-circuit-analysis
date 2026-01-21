@@ -1,18 +1,18 @@
-{
-    "group1_population_activity_files": null,
-    "state_names": null,
-    "state_colors": null,
-    "group1_population_events_files": null,
-    "group1_name": null,
-    "group1_color": null,
-    "group2_population_activity_files": null,
-    "group2_population_events_files": null,
-    "group2_name": null,
-    "group2_color": null,
-    "modulation_colors": "red, blue",
+{    
+    
+    "group1_population_activity_files": ["data/combine_compare_population_activity_data/New_Outputs/group1/pairwise_group1_subject1.csv","data/combine_compare_population_activity_data/New_Outputs/group1/pairwise_group1_subject2.csv"],
+    "group1_name": "Vehicle",
+    "group1_color": "tab:red",
+    "group2_population_activity_files": ["data/combine_compare_population_activity_data/New_Outputs/group2/pairwise_group2_subject1.csv","data/combine_compare_population_activity_data/New_Outputs/group2/pairwise_group2_subject2.csv"],
+    "group2_name": "Drug",
+    "group2_color": "tab:orange",
+    "state_names": "center, quad 4, quad 1, quad 2",
+    "state_colors": "tab:grey, tab:cyan, tab:blue, red",
+    "modulation_colors": "tab:red,tab:blue",
     "data_pairing": "unpaired",
-    "subject_matching": "number",
-    "significance_threshold": 0.05,
+    "subject_matching": "order",
     "multiple_correction": "bonf",
-    "effect_size": "cohen"
+    "effect_size": "cohen",
+    "significance_threshold": 0.05,
+    "state_comparison_method": "auto"
 }
