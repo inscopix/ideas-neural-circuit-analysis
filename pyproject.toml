@@ -5,15 +5,7 @@ requires-python = ">=3.13"
 classifiers = [
     "Programming Language :: Python :: 3"
 ]
-dependencies = []
-
-dynamic = ["version"]
-
-[tool.setuptools.packages.find]
-exclude = ["data", "inputs", "resources"]
-
-[project.optional-dependencies]
-analysis = [
+dependencies = [
     "ideas-python[analysis]==1.1.1",
     "numpy==2.2.6",
     "pandas==2.3.3",
@@ -38,15 +30,27 @@ analysis = [
     "pynapple==0.10.1",
     "beartype==0.22.6",
 ]
-dev = [
-    "pre-commit",
+
+dynamic = ["version"]
+
+[tool.setuptools.packages.find]
+exclude = ["data", "inputs", "resources"]
+
+[dependency-groups]
+test = [
     "pytest",
     "pytest-cov",
     "pytest-mock",
     "pytest-order",
     "pytest-watch",
+]
+dev = [
+    "pre-commit",
     "ruff==0.11.4",
 ]
+
+[tool.uv]
+package = false
 
 [tool.pytest.ini_options]
 pythonpath = [

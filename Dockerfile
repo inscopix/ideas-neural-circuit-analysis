@@ -20,19 +20,37 @@ RUN addgroup ideas \
 # Create ideas home dir
 WORKDIR /ideas
 
-# Copy python project settings
+# ========================== Apt Dependency Installation ===========================
 RUN apt-get -y update \
-    && apt-get install -y libgl1 \
+    && apt-get install -y libgl1 --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-USER ideas
-
-# Create a venv to install python dependencies
+# Create a venv with uv to install python dependencies
 # This can be done globally, but using venv is best practice
-COPY pyproject.toml ./
-RUN ${PYTHON} -m venv ${VENV} \
-    && ${PYTHON_VENV} -m pip install --no-cache --upgrade pip \
-    && ${PYTHON_VENV} -m pip install --no-cache '.[analysis]'
+
+# ========================== Python Dependency Installation with uv ===========================
+
+# Copy from the cache instead of linking since it's a mounted volume
+ENV UV_LINK_MODE=copy
+# Enable bytecode compilation
+ENV UV_COMPILE_BYTECODE=1
+# Ensure installed tools can be executed out of the box
+ENV UV_TOOL_BIN_DIR=/usr/local/bin
+# Install venv into in the ideas user's home
+ENV UV_PROJECT_ENVIRONMENT=/ideas/venv VIRTUAL_ENV=/ideas/venv
+# Never download python, we use upstream python from python docker image
+ENV UV_NO_MANAGED_PYTHON=1 UV_PYTHON_DOWNLOADS=never
+# Strictly use frozen dependencies, and require cryptographic verification of each package
+ENV UV_FROZEN=1 UV_REQUIRE_HASHES=1 UV_VERIFY_HASHES=1
+ENV UV_CACHE_DIR=/tmp/.cache/uv
+
+RUN --mount=from=ghcr.io/astral-sh/uv:0.9.16,source=/uv,target=/bin/uv \
+    --mount=type=cache,target=/tmp/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync
+
+USER ideas
 
 # Add venv bin to path
 ENV PATH="/ideas/${VENV}/bin:${PATH}"
@@ -45,6 +63,28 @@ CMD ["/bin/bash"]
 # your local folder with files generated during testing.
 FROM base AS test
 
+USER root
+
 COPY --chown=ideas ./ /ideas
 
-RUN ${PYTHON_VENV} -m pip install --no-cache '.[dev]'
+# Copy from the cache instead of linking since it's a mounted volume
+ENV UV_LINK_MODE=copy
+# Enable bytecode compilation
+ENV UV_COMPILE_BYTECODE=1
+# Ensure installed tools can be executed out of the box
+ENV UV_TOOL_BIN_DIR=/usr/local/bin
+# Install venv into in the ideas user's home
+ENV UV_PROJECT_ENVIRONMENT=/ideas/venv VIRTUAL_ENV=/ideas/venv
+# Never download python, we use upstream python from python docker image
+ENV UV_NO_MANAGED_PYTHON=1 UV_PYTHON_DOWNLOADS=never
+# Strictly use frozen dependencies, and require cryptographic verification of each package
+ENV UV_FROZEN=1 UV_REQUIRE_HASHES=1 UV_VERIFY_HASHES=1
+ENV UV_CACHE_DIR=/tmp/.cache/uv
+
+RUN --mount=from=ghcr.io/astral-sh/uv:0.9.16,source=/uv,target=/bin/uv \
+    --mount=type=cache,target=/tmp/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --group test
+
+USER ideas

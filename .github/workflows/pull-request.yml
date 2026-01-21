@@ -9,14 +9,21 @@ jobs:
   pull-request-checks:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
     - name: Set up Python 3.13
       uses: actions/setup-python@v4
       with:
-        python-version: 3.13
-        cache: 'pip'  # Cache pip dependencies
+        python-version: '3.13.9'
+    # Setup uv and handle caching
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v7
+      with:
+        version: '0.9.25'
+        # Caches the uv executable and its internal cache directories
         cache-dependency-path: pyproject.toml
-    - run: make venv
+    # Create a virtual environment and install dependencies
+    - name: Setup venv
+      run: make venv
     - name: Check code formatting
       run: make ruff-check
     - name: Check unit tests
