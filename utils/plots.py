@@ -40,6 +40,12 @@ BOX_PLOT_ARGS = {
 }
 
 
+def _clean_ax(ax):
+    """Remove spines from an axis."""
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+
 def plot_trace_preview(
     traces,
     epochs,
@@ -722,12 +728,6 @@ def _plot_box_and_strip(
         dpi=300,
         transparent=True,
     )
-
-
-def _clean_ax(ax):
-    """Remove spines from an axis."""
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
 
 
 def _plot_difference_cellmap(
