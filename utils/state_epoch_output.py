@@ -372,7 +372,10 @@ class StateEpochOutputGenerator:
             column_name: Column name containing state labels in annotations.
 
         """
-        logger.info("Generating state-epoch analysis outputs...")
+        if self.epoch_only_mode:
+            logger.info("Generating epoch-only analysis outputs...")
+        else:
+            logger.info("Generating state-epoch analysis outputs...")
 
         event_corr_outputs_enabled = (
             self.include_event_correlation_preview
@@ -1628,7 +1631,10 @@ class StateEpochOutputGenerator:
     ) -> None:
         """Create state-epoch time summary plots mirroring population activity tool."""
         if annotations_df is None:
-            logger.info("Annotations unavailable for state time preview; skipping.")
+            preview_label = "epoch" if self.epoch_only_mode else "state"
+            logger.info(
+                f"Annotations unavailable for {preview_label} time preview; skipping."
+            )
             return
 
         period = cell_info.get("period", 1.0)
@@ -1661,7 +1667,10 @@ class StateEpochOutputGenerator:
                     filename=output_path,
                 )
         except Exception as exc:
-            raise RuntimeError(f"Failed to create state time preview: {exc}") from exc
+            preview_label = "epoch" if self.epoch_only_mode else "state"
+            raise RuntimeError(
+                f"Failed to create {preview_label} time preview: {exc}"
+            ) from exc
 
     def _create_trace_preview(
         self,
@@ -1723,7 +1732,8 @@ class StateEpochOutputGenerator:
 
             # Create separate overlay previews
             if annotations_df is not None:
-                logger.info("Creating trace preview with state overlays")
+                overlay_label = "epoch" if self.epoch_only_mode else "state"
+                logger.info(f"Creating trace preview with {overlay_label} overlays")
 
                 # 1. Create state overlay preview (like population_activity.py)
                 self._plot_trace_preview_with_state_overlays(
@@ -1747,7 +1757,11 @@ class StateEpochOutputGenerator:
                 #     epoch_names=epoch_names[: len(epochs)],
                 # )
 
-            logger.info(f"Created trace state overlay preview: {TRACE_STATE_OVERLAY}")
+            overlay_label = "epoch" if self.epoch_only_mode else "state"
+            output_path = self._get_output_path(TRACE_STATE_OVERLAY)
+            logger.info(
+                f"Created trace {overlay_label} overlay preview: {output_path}"
+            )
 
         except Exception as e:
             logger.warning(f"Could not create trace preview: {e}")
@@ -2613,7 +2627,8 @@ class StateEpochOutputGenerator:
                 event_indices = np.where(events[:, cell_idx] > 0)[0]
                 offsets.append(event_indices * period)
 
-            logger.info("Creating event preview with state overlays")
+            overlay_label = "epoch" if self.epoch_only_mode else "state"
+            logger.info(f"Creating event preview with {overlay_label} overlays")
             self._plot_event_preview_with_state_overlays(
                 events=offsets,
                 event_timeseries=events,
@@ -2625,7 +2640,9 @@ class StateEpochOutputGenerator:
                 epoch_names=epoch_names,
                 epoch_colors=epoch_color_list,
             )
-            logger.info(f"Created event state overlay preview: {EVENT_STATE_OVERLAY}")
+            if not self.epoch_only_mode:
+                output_path = self._get_output_path(EVENT_STATE_OVERLAY)
+                logger.info(f"Created event state overlay preview: {output_path}")
 
         except Exception as e:
             logger.warning(f"Could not create event preview: {e}")
