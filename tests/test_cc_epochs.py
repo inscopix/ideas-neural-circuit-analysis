@@ -609,13 +609,6 @@ def test_cc_epochs_medium_neuronal_data(tmp_path, monkeypatch, cleanup_plots):
         tmp_path: Pytest fixture for temporary directory
         monkeypatch: Pytest fixture for modifying the environment
     """
-    import numpy as np
-    import pandas as pd
-    import pytest
-    from ideas.exceptions import IdeasError
-
-    from analysis.comb_comp_epochs import run_cc_epochs
-
     # Generate medium data: 50 cells across 3 epochs (each simulated with one observation per cell)
     epochs = ["Epoch1", "Epoch2", "Epoch3"]
     num_cells = 50
@@ -690,13 +683,6 @@ def test_cc_epochs_large_neuronal_data(tmp_path, monkeypatch, cleanup_plots):
         tmp_path: Pytest fixture for temporary directory
         monkeypatch: Pytest fixture for modifying the environment
     """
-    import numpy as np
-    import pandas as pd
-    import pytest
-    from ideas.exceptions import IdeasError
-
-    from analysis.comb_comp_epochs import run_cc_epochs
-
     # Generate large data: 200 cells across 3 epochs.
     epochs = ["Epoch1", "Epoch2", "Epoch3"]
     num_cells = 200

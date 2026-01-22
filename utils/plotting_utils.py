@@ -7,6 +7,8 @@ for creating consistent visualizations across different tools.
 import logging
 
 import matplotlib.pyplot as plt
+import numpy as np
+import scipy.stats
 from beartype.typing import Any, Callable, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
@@ -130,8 +132,6 @@ def create_dual_panel_plot_with_epoch_overlays(
         **callback_kwargs: Additional arguments for bottom panel callback
 
     """
-    import numpy as np
-
     # Extend epoch parameters to match epoch count for plotting
     while len(epoch_colors) < len(epochs):
         epoch_colors.append("lightblue")
@@ -220,9 +220,6 @@ def plot_traces_bottom_panel(ax, traces, period: float, **kwargs) -> None:
         Additional keyword arguments
 
     """
-    import numpy as np
-    import scipy.stats
-
     # Create time axis
     time = np.arange(0, traces.shape[0] * period, period)
     num_cells = min(traces.shape[1], 50)

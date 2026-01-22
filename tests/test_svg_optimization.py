@@ -1,4 +1,5 @@
 import os
+import shutil
 import tempfile
 
 import matplotlib.pyplot as plt
@@ -47,8 +48,6 @@ class TestSVGOptimization:
 
     def teardown_method(self):
         """Clean up test fixtures."""
-        import shutil
-
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def _measure_actual_svg_size(self, fig, filename):

@@ -22,8 +22,9 @@ from ideas.exceptions import IdeasError
 from ideas.tools import outputs
 from ideas.tools.log import get_logger
 from ideas.tools.types import IdeasFile
+import matplotlib.cm as cm
 from matplotlib.collections import LineCollection
-from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.colors import LinearSegmentedColormap, Normalize
 from matplotlib.gridspec import GridSpec
 
 from utils.plots import (
@@ -1519,9 +1520,6 @@ def plot_correlation_spatial_map(
             line_collections.append(lc)
         else:
             # Create a dummy collection for consistent colorbar
-            import matplotlib.cm as cm
-            from matplotlib.colors import Normalize
-
             norm = Normalize(vmin=-1, vmax=1)
             sm = cm.ScalarMappable(norm=norm, cmap=cmap)
             sm.set_array([])

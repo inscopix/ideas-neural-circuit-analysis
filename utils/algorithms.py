@@ -1,4 +1,5 @@
 import logging
+import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -342,7 +343,6 @@ def _run_ANOVA(
             # - Non-normal distributions (expected and handled by parametric flag)
             # - Numerical precision issues
             # - Statistical assumption violations
-            import warnings
 
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")

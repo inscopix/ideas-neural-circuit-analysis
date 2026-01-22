@@ -23,6 +23,9 @@ from analysis.combine_compare_population_data import (
     reclassify_neurons,
 )
 from utils import config
+from utils.combine_compare_population_data_utils import (
+    validate_user_specified_comparison_method,
+)
 from utils.visualization_helpers import (
     plot_combined_modulation_data,
     plot_group_anova_comparison,
@@ -1867,11 +1870,6 @@ class TestCombineComparePopulationData(unittest.TestCase):
         )
 
         # Import the validation function
-        from ideas.exceptions import IdeasError
-
-        from utils.combine_compare_population_data_utils import (
-            validate_user_specified_comparison_method,
-        )
 
         # Test 1: Auto-detection works correctly for state_vs_not_state
         result = validate_user_specified_comparison_method(

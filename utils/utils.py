@@ -12,6 +12,10 @@ import numpy as np
 import pandas as pd
 from beartype import beartype
 from beartype.typing import List, Optional, Union
+from matplotlib.collections import Collection, LineCollection, PolyCollection, QuadMesh
+from matplotlib.image import AxesImage
+from matplotlib.spines import Spine
+
 from ideas.analysis import io
 from ideas.analysis.utils import _sort_isxd_files_by_start_time
 from ideas.analysis.validation import event_set_series
@@ -716,11 +720,6 @@ def estimate_svg_size(fig) -> int:
     :param fig: Matplotlib figure object to analyze
     :returns: Estimated size in bytes
     """
-    import logging
-
-    from matplotlib.collections import LineCollection, PolyCollection, QuadMesh
-
-    logger = logging.getLogger()
     estimated_size = 0
 
     for ax in fig.get_axes():
@@ -780,12 +779,6 @@ def save_optimized_svg(
     :param pad_inches: Amount of padding in inches around the figure when bbox_inches is 'tight'.
     :returns: Estimated size in bytes before optimization
     """
-    # Import required modules
-    from matplotlib.collections import (
-        Collection,
-    )
-    from matplotlib.image import AxesImage
-
     # Ensure layout is optimized - handle colorbars and complex layouts gracefully
     try:
         # Temporarily suppress the specific tight_layout warning for complex layouts

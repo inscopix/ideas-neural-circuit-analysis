@@ -65,11 +65,17 @@ from typing import (
     Union,
 )
 
+import h5py
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
+from beartype import beartype
 from ideas.exceptions import IdeasError  # type: ignore[import-not-found]
 from ideas.tools import log, outputs
 from ideas.tools.types import IdeasFile
+from matplotlib import colormaps
+from matplotlib.colors import to_hex
 
 from utils.population_data_validation import (
     validate_file_group,
@@ -1760,8 +1766,6 @@ def _load_correlation_data_from_h5(
         DataFrame with same structure as correlations_per_state_epoch_data.csv
 
     """
-    import h5py
-
     logger.info(f"Loading correlation data from H5 file: {h5_file_path}")
 
     # Extract unique states, epochs, and cell info from activity data
@@ -4313,9 +4317,6 @@ def _resolve_color_map(
 
     missing_items = [item for item in items if item not in color_map]
     if missing_items:
-        from matplotlib import colormaps
-        from matplotlib.colors import to_hex
-
         cmap = colormaps.get_cmap("tab20").resampled(len(missing_items))
         denominator = max(len(missing_items) - 1, 1)
         for index, item in enumerate(missing_items):
