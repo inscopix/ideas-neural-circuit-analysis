@@ -10,6 +10,7 @@ import h5py
 
 # Add isx import
 import isx
+import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -22,7 +23,6 @@ from ideas.exceptions import IdeasError
 from ideas.tools import outputs
 from ideas.tools.log import get_logger
 from ideas.tools.types import IdeasFile
-import matplotlib.cm as cm
 from matplotlib.collections import LineCollection
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 from matplotlib.gridspec import GridSpec

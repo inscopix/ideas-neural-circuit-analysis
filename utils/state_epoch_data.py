@@ -11,9 +11,9 @@ import numpy as np
 import pandas as pd
 from beartype import beartype
 from beartype.typing import Any, Dict, List, Optional, Tuple
+from ideas.analysis.io import cell_set_to_contours, cell_set_to_status
 from ideas.exceptions import IdeasError
 
-from ideas.analysis.io import cell_set_to_contours, cell_set_to_status
 from utils.utils import (
     _epoch_time_to_index,
     _fractional_change_2D_array,

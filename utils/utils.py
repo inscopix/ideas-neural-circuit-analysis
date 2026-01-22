@@ -12,14 +12,12 @@ import numpy as np
 import pandas as pd
 from beartype import beartype
 from beartype.typing import List, Optional, Union
-from matplotlib.collections import Collection, LineCollection, PolyCollection, QuadMesh
-from matplotlib.image import AxesImage
-from matplotlib.spines import Spine
-
 from ideas.analysis import io
 from ideas.analysis.utils import _sort_isxd_files_by_start_time
 from ideas.analysis.validation import event_set_series
 from ideas.exceptions import IdeasError
+from matplotlib.collections import Collection, LineCollection, PolyCollection, QuadMesh
+from matplotlib.image import AxesImage
 from matplotlib.spines import Spine
 
 from utils.metadata import read_isxd_metadata
