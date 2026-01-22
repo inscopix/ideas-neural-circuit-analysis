@@ -24,7 +24,7 @@
                     "isxd"
                 ]
             },
-            "group": ""
+            "group": "Inputs"
         },
         {
             "key": "event_set_files",
@@ -38,7 +38,30 @@
                     "isxd"
                 ]
             },
-            "group": ""
+            "group": "Inputs"
+        },
+        {
+            "key": "sort_by_time",
+            "name": "Sort Files by Time",
+            "required": false,
+            "description": "Whether to sort the cell set files by start time. If False, order of input cell sets is maintainted.",
+            "type": {
+                "param_type": "ToolBooleanParam",
+                "default": true
+            },
+            "group": "Inputs"
+        },
+        {
+            "key": "tolerance",
+            "name": "Sampling Rate Tolerance",
+            "required": false,
+            "description": "Tolerance for potential discrepancies in the sampling rate of input cell sets. If not specified, defaults to 1e-4.",
+            "type": {
+                "param_type": "ToolFloatRangeParam",
+                "default": 0.0001,
+                "min": 0
+            },
+            "group": "Inputs"
         },
         {
             "key": "define_epochs_by",
@@ -59,7 +82,7 @@
                 ],
                 "default": "global file time"
             },
-            "group": ""
+            "group": "Epochs"
         },
         {
             "key": "epochs",
@@ -69,7 +92,7 @@
             "type": {
                 "param_type": "ToolStringParam"
             },
-            "group": ""
+            "group": "Epochs"
         },
         {
             "key": "epoch_names",
@@ -79,7 +102,7 @@
             "type": {
                 "param_type": "ToolStringParam"
             },
-            "group": ""
+            "group": "Epochs"
         },
         {
             "key": "baseline_epoch",
@@ -90,7 +113,7 @@
                 "param_type": "ToolStringParam",
                 "default": "Auto"
             },
-            "group": ""
+            "group": "Epochs"
         },
         {
             "key": "epoch_comparison_method",
@@ -107,18 +130,7 @@
                 ],
                 "default": "epoch_vs_baseline"
             },
-            "group": ""
-        },
-        {
-            "key": "epoch_colors",
-            "name": "Epoch Colors",
-            "required": true,
-            "description": "List of matplotlib compatible colors to represent each epoch",
-            "type": {
-                "param_type": "ToolStringParam",
-                "default": "tab:grey, tab:blue, tab:cyan"
-            },
-            "group": ""
+            "group": "Analysis"
         },
         {
             "key": "bin_size",
@@ -129,7 +141,7 @@
                 "param_type": "ToolFloatRangeParam",
                 "min": 0
             },
-            "group": ""
+            "group": "Analysis"
         },
         {
             "key": "trace_scale_method",
@@ -154,7 +166,7 @@
                     "Fractional change from first epoch"
                 ]
             },
-            "group": ""
+            "group": "Analysis"
         },
         {
             "key": "event_scale_method",
@@ -179,41 +191,7 @@
                     "Fractional change from first epoch"
                 ]
             },
-            "group": ""
-        },
-        {
-            "key": "sort_by_time",
-            "name": "Sort Files by Time",
-            "required": false,
-            "description": "Whether to sort the cell set files by start time. If False, order of input cell sets is maintainted.",
-            "type": {
-                "param_type": "ToolBooleanParam",
-                "default": true
-            },
-            "group": ""
-        },
-        {
-            "key": "tolerance",
-            "name": "Sampling Rate Tolerance",
-            "required": false,
-            "description": "Tolerance for potential discrepancies in the sampling rate of input cell sets. If not specified, defaults to 1e-4.",
-            "type": {
-                "param_type": "ToolFloatRangeParam",
-                "default": 0.0001,
-                "min": 0
-            },
-            "group": ""
-        },
-        {
-            "key": "modulation_colormap",
-            "name": "Modulation colormap",
-            "required": false,
-            "description": "Comma-separated colors used for modulation visualizations in the order (up, down, non). Example: `red, blue, gray`.",
-            "type": {
-                "param_type": "ToolStringParam",
-                "default": "red, blue, gray"
-            },
-            "group": ""
+            "group": "Analysis"
         },
         {
             "key": "alpha",
@@ -226,7 +204,7 @@
                 "min": 0.001,
                 "max": 0.1
             },
-            "group": ""
+            "group": "Statistics"
         },
         {
             "key": "n_shuffle",
@@ -239,7 +217,29 @@
                 "min": 100,
                 "max": 10000
             },
-            "group": ""
+            "group": "Statistics"
+        },
+        {
+            "key": "epoch_colors",
+            "name": "Epoch Colors",
+            "required": true,
+            "description": "List of matplotlib compatible colors to represent each epoch",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "tab:grey, tab:blue, tab:cyan"
+            },
+            "group": "Visualization"
+        },
+        {
+            "key": "modulation_colormap",
+            "name": "Modulation colormap",
+            "required": false,
+            "description": "Comma-separated colors used for modulation visualizations in the order (up, down, non). Example: `red, blue, gray`.",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "red, blue, gray"
+            },
+            "group": "Visualization"
         }
     ],
     "results": [
