@@ -66,11 +66,8 @@ from typing import (
 )
 
 import h5py
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
-from beartype import beartype
 from ideas.exceptions import IdeasError  # type: ignore[import-not-found]
 from ideas.tools import log, outputs
 from ideas.tools.types import IdeasFile

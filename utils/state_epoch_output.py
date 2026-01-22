@@ -8,6 +8,7 @@ import json
 import logging
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
 import h5py
 import matplotlib
@@ -19,8 +20,14 @@ from beartype.typing import Any, Dict, List, Optional, Set, Tuple
 from matplotlib import colors as mcolors
 
 # Import existing functions from correlations.py to avoid duplication
+# Plotting utilities imports
 from analysis.correlations import (
     _correlations_to_csv,
+    _extract_triu_data_for_spatial_analysis,
+    cell_set_to_positions_mapping,
+    plot_correlation_matrices,
+    plot_correlation_spatial_map,
+    plot_spatial_correlations,
 )
 
 # Consolidated imports to reduce redundancy in functions
@@ -34,8 +41,6 @@ from utils.plots import (
     _plot_traces_with_epochs,
     plot_modulated_neuron_footprints,
 )
-
-# Plotting utilities imports
 from utils.plotting_utils import (
     create_dual_panel_plot_with_epoch_overlays,
     plot_events_bottom_panel,
@@ -1072,8 +1077,6 @@ class StateEpochOutputGenerator:
         modulation_results: Dict[str, Any],
     ) -> None:
         """Save comprehensive output metadata JSON file."""
-        from pathlib import Path
-
         # Get basic stats
         all_combinations = results.get_all_combinations()
         num_combinations = len(all_combinations)
@@ -1759,9 +1762,7 @@ class StateEpochOutputGenerator:
 
             overlay_label = "epoch" if self.epoch_only_mode else "state"
             output_path = self._get_output_path(TRACE_STATE_OVERLAY)
-            logger.info(
-                f"Created trace {overlay_label} overlay preview: {output_path}"
-            )
+            logger.info(f"Created trace {overlay_label} overlay preview: {output_path}")
 
         except Exception as e:
             logger.warning(f"Could not create trace preview: {e}")
@@ -1797,8 +1798,6 @@ class StateEpochOutputGenerator:
         correlation_matrices = self._collect_correlation_matrices(results, matrix_key)
 
         if correlation_matrices:
-            from analysis.correlations import plot_correlation_matrices
-
             # Use default colors if not provided
             if not correlation_colors:
                 correlation_colors = ["red", "blue"]
@@ -1831,10 +1830,6 @@ class StateEpochOutputGenerator:
 
             # Get cell positions
             try:
-                from analysis.correlations import (
-                    cell_set_to_positions_mapping,
-                )
-
                 positions = cell_set_to_positions_mapping(
                     files=cell_info.get("cell_set_files", []),
                     cell_names=cell_info.get("cell_names", []),
@@ -1858,10 +1853,6 @@ class StateEpochOutputGenerator:
                 return
 
             # Use the plot_spatial_correlations function from correlations tool
-            from analysis.correlations import (
-                _extract_triu_data_for_spatial_analysis,
-                plot_spatial_correlations,
-            )
 
             # Extract correlation matrices from results
             correlation_matrix = self._collect_correlation_matrices(results, matrix_key)
@@ -1921,10 +1912,6 @@ class StateEpochOutputGenerator:
 
             # Get cell positions
             try:
-                from analysis.correlations import (
-                    cell_set_to_positions_mapping,
-                )
-
                 positions = cell_set_to_positions_mapping(
                     files=cell_info.get("cell_set_files", []),
                     cell_names=cell_info.get("cell_names", []),
@@ -1948,7 +1935,6 @@ class StateEpochOutputGenerator:
                 return
 
             # Use the plot_correlation_spatial_map function from correlations tool
-            from analysis.correlations import plot_correlation_spatial_map
 
             correlation_matrix = self._collect_correlation_matrices(results, matrix_key)
 

@@ -11,6 +11,8 @@ import numpy as np
 import scipy.stats
 from beartype.typing import Any, Callable, List, Optional, Tuple
 
+from utils.utils import save_optimized_svg
+
 logger = logging.getLogger(__name__)
 
 
@@ -195,8 +197,6 @@ def create_dual_panel_plot_with_epoch_overlays(
         )
 
     # Save figure using optimized SVG
-    from utils.utils import save_optimized_svg
-
     save_optimized_svg(
         fig,
         output_path,

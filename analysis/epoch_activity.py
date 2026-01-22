@@ -418,7 +418,11 @@ def run(
                     CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
                     caption="Distribution of per-cell correlation statistic across epochs.",
                 )
-                if has_event_data and has_event_correlation_data and include_event_correlation_preview:
+                if (
+                    has_event_data
+                    and has_event_correlation_data
+                    and include_event_correlation_preview
+                ):
                     corr_reg.register_preview(
                         EVENT_CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
                         caption="Distribution of per-cell event correlation statistic across epochs (when event data is available).",
@@ -470,7 +474,11 @@ def run(
                     AVERAGE_CORRELATIONS_PREVIEW,
                     caption="Average positive and negative correlations per epoch.",
                 )
-                if has_event_data and has_event_correlation_data and include_event_correlation_preview:
+                if (
+                    has_event_data
+                    and has_event_correlation_data
+                    and include_event_correlation_preview
+                ):
                     avg_corr_reg.register_preview(
                         EVENT_AVERAGE_CORRELATIONS_PREVIEW,
                         caption="Average positive and negative event correlations per epoch (when event data is available).",
@@ -491,7 +499,11 @@ def run(
                     CORRELATION_MATRICES_PREVIEW,
                     caption="Pairwise correlation matrices for each epoch (trace).",
                 )
-                if has_event_data and has_event_correlation_data and include_event_correlation_preview:
+                if (
+                    has_event_data
+                    and has_event_correlation_data
+                    and include_event_correlation_preview
+                ):
                     raw_h5_reg.register_preview(
                         EVENT_CORRELATION_MATRICES_PREVIEW,
                         caption="Pairwise correlation matrices for each epoch (events, when available).",
@@ -515,7 +527,11 @@ def run(
                     SPATIAL_CORRELATION_MAP_PREVIEW,
                     caption="Spatial map of correlations per epoch (trace).",
                 )
-                if has_event_data and has_event_correlation_data and include_event_correlation_preview:
+                if (
+                    has_event_data
+                    and has_event_correlation_data
+                    and include_event_correlation_preview
+                ):
                     raw_zip_reg.register_preview(
                         EVENT_SPATIAL_CORRELATION_PREVIEW,
                         caption="Spatial distance vs event-correlation relationships per epoch (when available).",
