@@ -131,6 +131,7 @@ def run(
     modulation_colormap: Optional[str] = None,
     alpha: float = 0.05,
     n_shuffle: int = 1000,
+    include_event_correlation_preview: bool = False,
 ):
     """Analyze neural activity across user-defined time epochs (epoch-only mode).
 
@@ -338,7 +339,7 @@ def run(
         n_shuffle=n_shuffle,
         epoch_periods=epoch_periods,
         correlation_statistic="max",
-        include_event_correlation_preview=False,
+        include_event_correlation_preview=include_event_correlation_preview,
         trace_scale_method=trace_scale_method,
         event_scale_method=event_scale_method,
         filename_overrides=_EPOCH_FILENAME_OVERRIDES,
@@ -356,44 +357,16 @@ def run(
         modulation_colors=parsed_modulation_colormap,
     )
 
-
-def epoch_activity_ideas_wrapper(
-    *,
-    cell_set_files: List[IdeasFile],
-    event_set_files: Optional[List[IdeasFile]] = None,
-    define_epochs_by: str,
-    epoch_names: str,
-    baseline_epoch: Optional[str] = None,
-    epochs: Optional[str] = None,
-    epoch_colors: str,
-    bin_size: Optional[Union[int, float]] = None,
-    trace_scale_method: Optional[str] = "none",
-    event_scale_method: Optional[str] = "none",
-    sort_by_time: Optional[bool] = True,
-    tolerance: Optional[float] = 1e-4,
-    modulation_colormap: Optional[str] = None,
-    epoch_comparison_method: str = "epoch_vs_baseline",
-    alpha: float = 0.05,
-    n_shuffle: int = 1000,
-):
-    run(
-        cell_set_files=cell_set_files,
-        event_set_files=event_set_files,
-        define_epochs_by=define_epochs_by,
-        epoch_names=epoch_names,
-        baseline_epoch=baseline_epoch,
-        epoch_comparison_method=epoch_comparison_method,
-        epochs=epochs,
-        epoch_colors=epoch_colors,
-        bin_size=bin_size,
-        trace_scale_method=trace_scale_method,
-        event_scale_method=event_scale_method,
-        sort_by_time=sort_by_time,
-        tolerance=tolerance,
-        modulation_colormap=modulation_colormap,
-        alpha=alpha,
-        n_shuffle=n_shuffle,
-    )
+    has_event_correlation_data = False
+    if events is not None:
+        for state, epoch in results.get_all_combinations():
+            combination_results = results.get_combination_results(state, epoch)
+            if (
+                combination_results
+                and combination_results.get("event_correlation_matrix") is not None
+            ):
+                has_event_correlation_data = True
+                break
 
     logger.info("Registering output data")
     try:
@@ -445,7 +418,7 @@ def epoch_activity_ideas_wrapper(
                     CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
                     caption="Distribution of per-cell correlation statistic across epochs.",
                 )
-                if has_event_data:
+                if has_event_data and has_event_correlation_data and include_event_correlation_preview:
                     corr_reg.register_preview(
                         EVENT_CORRELATION_STATISTIC_DISTRIBUTION_PREVIEW,
                         caption="Distribution of per-cell event correlation statistic across epochs (when event data is available).",
@@ -497,7 +470,7 @@ def epoch_activity_ideas_wrapper(
                     AVERAGE_CORRELATIONS_PREVIEW,
                     caption="Average positive and negative correlations per epoch.",
                 )
-                if has_event_data:
+                if has_event_data and has_event_correlation_data and include_event_correlation_preview:
                     avg_corr_reg.register_preview(
                         EVENT_AVERAGE_CORRELATIONS_PREVIEW,
                         caption="Average positive and negative event correlations per epoch (when event data is available).",
@@ -518,7 +491,7 @@ def epoch_activity_ideas_wrapper(
                     CORRELATION_MATRICES_PREVIEW,
                     caption="Pairwise correlation matrices for each epoch (trace).",
                 )
-                if has_event_data:
+                if has_event_data and has_event_correlation_data and include_event_correlation_preview:
                     raw_h5_reg.register_preview(
                         EVENT_CORRELATION_MATRICES_PREVIEW,
                         caption="Pairwise correlation matrices for each epoch (events, when available).",
@@ -542,7 +515,7 @@ def epoch_activity_ideas_wrapper(
                     SPATIAL_CORRELATION_MAP_PREVIEW,
                     caption="Spatial map of correlations per epoch (trace).",
                 )
-                if has_event_data:
+                if has_event_data and has_event_correlation_data and include_event_correlation_preview:
                     raw_zip_reg.register_preview(
                         EVENT_SPATIAL_CORRELATION_PREVIEW,
                         caption="Spatial distance vs event-correlation relationships per epoch (when available).",
@@ -559,3 +532,44 @@ def epoch_activity_ideas_wrapper(
         logger.info("Registered output data")
     except Exception:
         logger.exception("Failed to generate output data!")
+
+
+def epoch_activity_ideas_wrapper(
+    *,
+    cell_set_files: List[IdeasFile],
+    event_set_files: Optional[List[IdeasFile]] = None,
+    define_epochs_by: str,
+    epoch_names: str,
+    baseline_epoch: Optional[str] = None,
+    epochs: Optional[str] = None,
+    epoch_colors: str,
+    bin_size: Optional[Union[int, float]] = None,
+    trace_scale_method: Optional[str] = "none",
+    event_scale_method: Optional[str] = "none",
+    sort_by_time: Optional[bool] = True,
+    tolerance: Optional[float] = 1e-4,
+    modulation_colormap: Optional[str] = None,
+    epoch_comparison_method: str = "epoch_vs_baseline",
+    alpha: float = 0.05,
+    n_shuffle: int = 1000,
+    include_event_correlation_preview: bool = False,
+):
+    run(
+        cell_set_files=cell_set_files,
+        event_set_files=event_set_files,
+        define_epochs_by=define_epochs_by,
+        epoch_names=epoch_names,
+        baseline_epoch=baseline_epoch,
+        epoch_comparison_method=epoch_comparison_method,
+        epochs=epochs,
+        epoch_colors=epoch_colors,
+        bin_size=bin_size,
+        trace_scale_method=trace_scale_method,
+        event_scale_method=event_scale_method,
+        sort_by_time=sort_by_time,
+        tolerance=tolerance,
+        modulation_colormap=modulation_colormap,
+        alpha=alpha,
+        n_shuffle=n_shuffle,
+        include_event_correlation_preview=include_event_correlation_preview,
+    )
