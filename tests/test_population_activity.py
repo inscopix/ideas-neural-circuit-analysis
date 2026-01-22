@@ -16,7 +16,8 @@ from analysis.population_activity import (
     find_two_state_modulated_neurons,
     population_activity,
 )
-from utils.utils import Comp
+from utils.utils import Comp, Rescale
+from utils.validation import _validate_correlation_params
 
 series_annotations = "data/cellset_series_annotations.csv"
 
@@ -889,8 +890,6 @@ class TestMakeModulationData:
 
     def test_with_different_rescale_methods(self):
         """Test all rescale methods in _make_modulation_data."""
-        from utils.utils import Rescale
-
         # Use larger dataset with 500 timepoints and 50 neurons
         np.random.seed(42)
         n_timepoints, n_neurons = 500, 50
@@ -1099,8 +1098,6 @@ class TestValidationFunctions:
 
     def test_validate_params_valid(self):
         """Test valid parameter combinations."""
-        from utils.validation import _validate_correlation_params
-
         # Valid parameters for "state vs not state" method
         _validate_correlation_params(
             method=Comp.NOT_STATE.value,
@@ -1121,10 +1118,6 @@ class TestValidationFunctions:
 
     def test_validate_params_invalid(self):
         """Test invalid parameter combinations."""
-        import pytest
-
-        from utils.validation import _validate_correlation_params
-
         # Invalid: baseline method without baseline state
         with pytest.raises(AssertionError, match="Baseline state must be provided"):
             _validate_correlation_params(

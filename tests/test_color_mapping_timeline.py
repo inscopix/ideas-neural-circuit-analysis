@@ -11,6 +11,7 @@ Tests cover:
 
 from unittest.mock import MagicMock, patch
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
@@ -122,8 +123,6 @@ class TestColorMappingFunctionality:
     def test_average_correlation_preview_uses_epoch_colors(
         self, mock_boxplot, mock_stripplot, tmp_path, monkeypatch
     ):
-        import numpy as np
-
         generator = StateEpochOutputGenerator(
             output_dir=str(tmp_path),
             states=["rest", "active"],
@@ -141,8 +140,6 @@ class TestColorMappingFunctionality:
         color_map = {"rest-baseline": "lightgray", "active-test": "lightblue"}
 
         def fake_save(fig, output_path, title):
-            import matplotlib.pyplot as plt
-
             plt.close(fig)
 
         monkeypatch.setattr(
@@ -157,8 +154,6 @@ class TestColorMappingFunctionality:
         assert palette_arg == color_map
 
     def test_create_average_correlation_preview_state_mode(self, tmp_path, monkeypatch):
-        import numpy as np
-
         generator = StateEpochOutputGenerator(
             output_dir=str(tmp_path),
             states=["rest", "active"],
@@ -203,8 +198,6 @@ class TestColorMappingFunctionality:
         assert captured["color_map"]["active-test"] == "lightblue"
 
     def test_create_average_correlation_preview_epoch_only(self, tmp_path, monkeypatch):
-        import numpy as np
-
         generator = StateEpochOutputGenerator(
             output_dir=str(tmp_path),
             states=["epoch_activity"],
@@ -671,9 +664,6 @@ class TestStateEpochOverlayFunctionality:
 
     def test_event_bottom_panel_aligns_with_population_axis(self):
         """Ensure raster x-axis span matches duration used by population plot."""
-        import matplotlib.pyplot as plt
-        import numpy as np
-
         fig, ax = plt.subplots()
         try:
             period = 0.5

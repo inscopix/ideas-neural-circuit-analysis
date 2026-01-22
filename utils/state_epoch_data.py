@@ -13,14 +13,17 @@ from beartype import beartype
 from beartype.typing import Any, Dict, List, Optional, Tuple
 from ideas.exceptions import IdeasError
 
+from ideas.analysis.io import cell_set_to_contours, cell_set_to_status
 from utils.utils import (
     _epoch_time_to_index,
     _fractional_change_2D_array,
+    _fractional_change_states,
     _get_cellset_data,
     _norm_2D_array,
     _parse_string_to_tuples,
     _redefine_epochs,
     _standardize_2D_array,
+    _standardize_baseline,
     _standardize_to_epoch,
     _validate_epochs_param,
     event_set_to_events,
@@ -56,8 +59,6 @@ def load_and_filter_cell_contours(
         IdeasError: If cell files are missing or no valid cells are found
 
     """
-    from ideas.analysis.io import cell_set_to_contours, cell_set_to_status
-
     # Validate input files
     cell_set_files = cell_info.get("cell_set_files", [])
     if not cell_set_files:
@@ -197,9 +198,6 @@ def scale_data(
     elif method == "fractional_change":
         # State-based fractional change (default for state-epoch tools)
         if behavior is not None and baseline_state is not None:
-            # Import the helper function from utils
-            from utils.utils import _fractional_change_states
-
             return _fractional_change_states(
                 data, behavior, column_name, baseline_state
             )
@@ -222,9 +220,6 @@ def scale_data(
                 "Behavior data and baseline_state must be specified for "
                 "standardize baseline scaling"
             )
-        # Import the helper function from utils
-        from utils.utils import _standardize_baseline
-
         return _standardize_baseline(data, behavior, column_name, baseline_state)
     elif method == "standardize_epoch":
         if epochs is None or period is None:

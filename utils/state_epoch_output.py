@@ -9,10 +9,12 @@ import logging
 import os
 from dataclasses import dataclass
 
+import h5py
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 from beartype.typing import Any, Dict, List, Optional, Set, Tuple
 from matplotlib import colors as mcolors
 
@@ -985,8 +987,6 @@ class StateEpochOutputGenerator:
         Saves both trace and event correlation matrices in a single H5 file
         with hierarchical structure: trace/{state-epoch} and event/{state-epoch}.
         """
-        import h5py
-
         trace_correlation_matrices = {}
         event_correlation_matrices = {}
 
@@ -2167,8 +2167,6 @@ class StateEpochOutputGenerator:
         ):
             return epoch_palette, epoch_palette
 
-        import seaborn as sns
-
         distinct_colors = sns.color_palette("husl", len(labels))
         ecdf_palette = dict(
             zip(labels, [mcolors.to_hex(color) for color in distinct_colors])
@@ -2214,8 +2212,6 @@ class StateEpochOutputGenerator:
             palette_map, box_palette = self._build_state_epoch_palette(
                 combination_order, labels
             )
-
-        import seaborn as sns
 
         fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
@@ -2432,8 +2428,6 @@ class StateEpochOutputGenerator:
         output_filename: str,
     ) -> None:
         """Create average correlations plot with proper state-epoch labels and spacing."""
-        import pandas as pd
-        import seaborn as sns
 
         # Collect individual correlation data points for each state-epoch combination
         pos_data = []
