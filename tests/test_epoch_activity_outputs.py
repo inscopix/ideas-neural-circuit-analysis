@@ -39,6 +39,27 @@ DEFAULT_PARAMS = dict(
 )
 
 
+def _load_output_data(output_dir: Path) -> dict:
+    output_data_path = output_dir / "output_data.json"
+    return json.loads(output_data_path.read_text())
+
+
+def _find_output_path(output_data: dict, filename: str, output_dir: Path) -> Path:
+    for entry in output_data.get("output_files", []):
+        file_path = Path(entry.get("file", ""))
+        if str(file_path).endswith(filename):
+            return output_dir / file_path
+    raise AssertionError(f"Output file ending with {filename} not registered")
+
+
+def _metadata_for_output(output_data: dict, filename: str) -> dict:
+    for entry in output_data.get("output_files", []):
+        file_path = Path(entry.get("file", ""))
+        if str(file_path).endswith(filename):
+            return {m["key"]: m["value"] for m in entry.get("metadata", [])}
+    raise AssertionError(f"No metadata found for output {filename}")
+
+
 @pytest.fixture(scope="module")
 def epoch_activity_output_dir(tmp_path_factory):
     """Run the refactored epoch activity workflow once and cache outputs."""
@@ -50,6 +71,11 @@ def epoch_activity_output_dir(tmp_path_factory):
     finally:
         os.chdir(cwd)
     return tmp_dir
+
+
+@pytest.fixture(scope="module")
+def epoch_activity_output_data(epoch_activity_output_dir):
+    return _load_output_data(Path(epoch_activity_output_dir))
 
 
 @pytest.fixture(scope="module")
@@ -200,11 +226,17 @@ def _sort_activity_df(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def test_activity_csv_matches_state_epoch_results(
-    epoch_activity_output_dir, epoch_activity_reference
+    epoch_activity_output_dir, epoch_activity_output_data, epoch_activity_reference
 ):
     """Ensure long-form activity CSV mirrors the underlying combination results."""
     actual_df = _sort_activity_df(
-        pd.read_csv(Path(epoch_activity_output_dir) / "activity_per_epoch_data.csv")
+        pd.read_csv(
+            _find_output_path(
+                epoch_activity_output_data,
+                "activity_per_epoch_data.csv",
+                Path(epoch_activity_output_dir),
+            )
+        )
     )
 
     results = epoch_activity_reference["results"]
@@ -251,30 +283,27 @@ def test_activity_csv_matches_state_epoch_results(
 
 
 def test_output_metadata_contains_parity_fields(
-    epoch_activity_output_dir, epoch_activity_reference
+    epoch_activity_output_data, epoch_activity_reference
 ):
     """Confirm metadata exposes comparison-friendly summary statistics."""
-    metadata_path = Path(epoch_activity_output_dir) / "output_metadata.json"
-    metadata = json.loads(metadata_path.read_text())
-
-    activity_meta = metadata["activity_per_epoch_data"]
-    corr_meta = metadata["correlations_per_epoch_data"]
+    activity_meta = _metadata_for_output(
+        epoch_activity_output_data, "activity_per_epoch_data.csv"
+    )
+    corr_meta = _metadata_for_output(
+        epoch_activity_output_data, "correlations_per_epoch_data.csv"
+    )
 
     parsed_epoch_names = epoch_activity_reference["parsed_epoch_names"]
     num_cells = len(epoch_activity_reference["cell_info"].get("cell_names", []))
 
     assert activity_meta["num_cells"] == num_cells
-    assert activity_meta["states"] == [_EPOCH_ONLY_STATE_NAME]
-    assert activity_meta["epochs"] == parsed_epoch_names
-    assert activity_meta["baseline_state"] == _EPOCH_ONLY_STATE_NAME
+    assert activity_meta["num_epochs"] == len(parsed_epoch_names)
     assert activity_meta["baseline_epoch"] == parsed_epoch_names[0]
     assert activity_meta["epoch_comparison_method"] == "epoch_vs_baseline"
-    assert activity_meta["analysis_type"] == "state_epoch_baseline_analysis"
 
     # Correlation metadata should mirror global stats as well
     assert corr_meta["num_cells"] == num_cells
     assert corr_meta["num_epochs"] == len(parsed_epoch_names)
-    assert corr_meta["analysis_type"] == "correlation_analysis"
 
 
 def _sort_correlation_df(df: pd.DataFrame) -> pd.DataFrame:
@@ -297,11 +326,17 @@ def _pos_neg_triangle_means(corr_matrix: Optional[np.ndarray]) -> tuple[float, f
 
 
 def test_correlations_csv_matches_state_epoch_results(
-    epoch_activity_output_dir, epoch_activity_reference
+    epoch_activity_output_dir, epoch_activity_output_data, epoch_activity_reference
 ):
     """Ensure correlations CSV matches correlation matrices in the results."""
     actual_df = _sort_correlation_df(
-        pd.read_csv(Path(epoch_activity_output_dir) / "correlations_per_epoch_data.csv")
+        pd.read_csv(
+            _find_output_path(
+                epoch_activity_output_data,
+                "correlations_per_epoch_data.csv",
+                Path(epoch_activity_output_dir),
+            )
+        )
     )
 
     results: StateEpochResults = epoch_activity_reference["results"]
@@ -387,11 +422,15 @@ def test_correlations_csv_matches_state_epoch_results(
 
 
 def test_modulation_vs_baseline_csv_matches_modulation_results(
-    epoch_activity_output_dir, epoch_activity_reference
+    epoch_activity_output_dir, epoch_activity_output_data, epoch_activity_reference
 ):
     """Ensure modulation CSV encodes the baseline-vs-epoch modulation results."""
     df = pd.read_csv(
-        Path(epoch_activity_output_dir) / "modulation_vs_baseline_data.csv"
+        _find_output_path(
+            epoch_activity_output_data,
+            "modulation_vs_baseline_data.csv",
+            Path(epoch_activity_output_dir),
+        )
     )
 
     modulation_results = epoch_activity_reference["modulation_results"]

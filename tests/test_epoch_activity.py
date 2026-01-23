@@ -48,21 +48,49 @@ expected_output_files = [
     "average_correlations.csv",
     "pairwise_correlation_heatmaps.h5",
     "spatial_analysis_pairwise_correlations.zip",
-    # Previews
+]
+expected_preview_files = [
     "time_in_epoch_preview.svg",
     "trace_population_average_preview.svg",
     "trace_epoch_overlay.svg",
-    # Output metadata
-    "output_metadata.json",
 ]
 
 if HAS_ISX_EVENTSET:
-    expected_output_files.extend(
-        [
-            "event_population_average_preview.svg",
-            "event_epoch_overlay.svg",
-        ]
+    expected_preview_files.extend(
+        ["event_population_average_preview.svg", "event_epoch_overlay.svg"]
     )
+
+
+def _load_output_data(output_dir: Path) -> dict:
+    output_data_path = Path(output_dir) / "output_data.json"
+    return json.loads(output_data_path.read_text())
+
+
+def _collect_output_paths(output_data: dict) -> list[Path]:
+    return [Path(entry["file"]) for entry in output_data.get("output_files", [])]
+
+
+def _collect_preview_paths(output_data: dict) -> list[Path]:
+    previews = []
+    for entry in output_data.get("output_files", []):
+        for preview in entry.get("previews", []):
+            previews.append(Path(preview["file"]))
+    return previews
+
+
+def _find_output_path(output_data: dict, filename: str, output_dir: Path) -> Path:
+    for path in _collect_output_paths(output_data):
+        if str(path).endswith(filename):
+            return output_dir / path
+    raise AssertionError(f"Output file ending with {filename} not registered")
+
+
+def _metadata_for_output(output_data: dict, filename: str) -> dict:
+    for entry in output_data.get("output_files", []):
+        file_path = Path(entry.get("file", ""))
+        if str(file_path).endswith(filename):
+            return {m["key"]: m["value"] for m in entry.get("metadata", [])}
+    raise AssertionError(f"No metadata found for output {filename}")
 
 
 @pytest.mark.parametrize("params", valid_inputs)
@@ -72,16 +100,27 @@ def test_epoch_activity(params, tmp_path):
     os.chdir(tmp_path)
     try:
         run(**params)
-        actual_output_files = os.listdir(tmp_path)
+        output_data = _load_output_data(tmp_path)
+        actual_output_files = _collect_output_paths(output_data)
+        actual_preview_files = _collect_preview_paths(output_data)
 
         # check that the output files are created
         for output_file in expected_output_files:
-            assert output_file in actual_output_files
+            matches = [p for p in actual_output_files if str(p).endswith(output_file)]
+            assert matches, f"Missing registered output ending with {output_file}"
+            for match in matches:
+                assert (Path(tmp_path) / match).exists()
+
+        for preview_file in expected_preview_files:
+            matches = [p for p in actual_preview_files if str(p).endswith(preview_file)]
+            assert matches, f"Missing preview ending with {preview_file}"
+            for match in matches:
+                assert (Path(tmp_path) / match).exists()
 
         # validate number of cells in output files
         # validate number of cells in long-form output files
         for f in ["activity_per_epoch_data.csv", "correlations_per_epoch_data.csv"]:
-            df = pd.read_csv(f)
+            df = pd.read_csv(_find_output_path(output_data, f, Path(tmp_path)))
             assert len(df) == 76 * 3  # 76 accepted cells, 3 epochs
     finally:
         os.chdir(cwd)
@@ -97,12 +136,10 @@ def test_epoch_activity_baseline_epoch_can_be_non_first(tmp_path):
     os.chdir(tmp_path)
     try:
         run(**params)
-        metadata = json.loads(Path("output_metadata.json").read_text())
-        assert metadata["activity_per_epoch_data"]["baseline_epoch"] == "epoch2"
-        assert (
-            metadata["activity_per_epoch_data"]["epoch_comparison_method"]
-            == "epoch_vs_baseline"
-        )
+        output_data = _load_output_data(tmp_path)
+        activity_meta = _metadata_for_output(output_data, "activity_per_epoch_data.csv")
+        assert activity_meta["baseline_epoch"] == "epoch2"
+        assert activity_meta["epoch_comparison_method"] == "epoch_vs_baseline"
     finally:
         os.chdir(cwd)
 
