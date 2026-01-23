@@ -1,5 +1,4 @@
 import json
-import os
 from pathlib import Path
 from typing import Optional
 
@@ -64,12 +63,7 @@ def _metadata_for_output(output_data: dict, filename: str) -> dict:
 def epoch_activity_output_dir(tmp_path_factory):
     """Run the refactored epoch activity workflow once and cache outputs."""
     tmp_dir = tmp_path_factory.mktemp("epoch_activity_outputs")
-    cwd = os.getcwd()
-    os.chdir(tmp_dir)
-    try:
-        run(**DEFAULT_PARAMS)
-    finally:
-        os.chdir(cwd)
+    run(**DEFAULT_PARAMS, output_dir=tmp_dir)
     return tmp_dir
 
 

@@ -96,34 +96,29 @@ def _metadata_for_output(output_data: dict, filename: str) -> dict:
 @pytest.mark.parametrize("params", valid_inputs)
 def test_epoch_activity(params, tmp_path):
     """Check that code runs without error with valid inputs."""
-    cwd = os.getcwd()
-    os.chdir(tmp_path)
-    try:
-        run(**params)
-        output_data = _load_output_data(tmp_path)
-        actual_output_files = _collect_output_paths(output_data)
-        actual_preview_files = _collect_preview_paths(output_data)
+    run(**params, output_dir=tmp_path)
+    output_data = _load_output_data(tmp_path)
+    actual_output_files = _collect_output_paths(output_data)
+    actual_preview_files = _collect_preview_paths(output_data)
 
-        # check that the output files are created
-        for output_file in expected_output_files:
-            matches = [p for p in actual_output_files if str(p).endswith(output_file)]
-            assert matches, f"Missing registered output ending with {output_file}"
-            for match in matches:
-                assert (Path(tmp_path) / match).exists()
+    # check that the output files are created
+    for output_file in expected_output_files:
+        matches = [p for p in actual_output_files if str(p).endswith(output_file)]
+        assert matches, f"Missing registered output ending with {output_file}"
+        for match in matches:
+            assert (Path(tmp_path) / match).exists()
 
-        for preview_file in expected_preview_files:
-            matches = [p for p in actual_preview_files if str(p).endswith(preview_file)]
-            assert matches, f"Missing preview ending with {preview_file}"
-            for match in matches:
-                assert (Path(tmp_path) / match).exists()
+    for preview_file in expected_preview_files:
+        matches = [p for p in actual_preview_files if str(p).endswith(preview_file)]
+        assert matches, f"Missing preview ending with {preview_file}"
+        for match in matches:
+            assert (Path(tmp_path) / match).exists()
 
-        # validate number of cells in output files
-        # validate number of cells in long-form output files
-        for f in ["activity_per_epoch_data.csv", "correlations_per_epoch_data.csv"]:
-            df = pd.read_csv(_find_output_path(output_data, f, Path(tmp_path)))
-            assert len(df) == 76 * 3  # 76 accepted cells, 3 epochs
-    finally:
-        os.chdir(cwd)
+    # validate number of cells in output files
+    # validate number of cells in long-form output files
+    for f in ["activity_per_epoch_data.csv", "correlations_per_epoch_data.csv"]:
+        df = pd.read_csv(_find_output_path(output_data, f, Path(tmp_path)))
+        assert len(df) == 76 * 3  # 76 accepted cells, 3 epochs
 
 
 def test_epoch_activity_baseline_epoch_can_be_non_first(tmp_path):
@@ -131,44 +126,26 @@ def test_epoch_activity_baseline_epoch_can_be_non_first(tmp_path):
     params = valid_inputs[0].copy()
     params["baseline_epoch"] = "epoch2"
     params["epoch_comparison_method"] = "epoch_vs_baseline"
-
-    cwd = os.getcwd()
-    os.chdir(tmp_path)
-    try:
-        run(**params)
-        output_data = _load_output_data(tmp_path)
-        activity_meta = _metadata_for_output(output_data, "activity_per_epoch_data.csv")
-        assert activity_meta["baseline_epoch"] == "epoch2"
-        assert activity_meta["epoch_comparison_method"] == "epoch_vs_baseline"
-    finally:
-        os.chdir(cwd)
+    run(**params, output_dir=tmp_path)
+    output_data = _load_output_data(tmp_path)
+    activity_meta = _metadata_for_output(output_data, "activity_per_epoch_data.csv")
+    assert activity_meta["baseline_epoch"] == "epoch2"
+    assert activity_meta["epoch_comparison_method"] == "epoch_vs_baseline"
 
 
 def test_epoch_activity_invalid_epoch_comparison_method_raises(tmp_path):
     params = valid_inputs[0].copy()
     params["epoch_comparison_method"] = "pairwise"
-
-    cwd = os.getcwd()
-    os.chdir(tmp_path)
-    try:
-        with pytest.raises(IdeasError):
-            run(**params)
-    finally:
-        os.chdir(cwd)
+    with pytest.raises(IdeasError):
+        run(**params, output_dir=tmp_path)
 
 
 def test_epoch_activity_invalid_modulation_colormap_raises(tmp_path):
     """modulation_colormap must be exactly three comma-separated colors."""
     params = valid_inputs[0].copy()
     params["modulation_colormap"] = "red, blue"  # missing third
-
-    cwd = os.getcwd()
-    os.chdir(tmp_path)
-    try:
-        with pytest.raises(IdeasError):
-            run(**params)
-    finally:
-        os.chdir(cwd)
+    with pytest.raises(IdeasError):
+        run(**params, output_dir=tmp_path)
 
 
 def test_plot_traces(cleanup_plots):

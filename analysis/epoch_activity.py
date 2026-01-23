@@ -10,6 +10,7 @@ metadata) while keeping the existing public entrypoints (`run` and
 `epoch_activity_ideas_wrapper`) stable.
 """
 
+import json
 from pathlib import Path
 
 import numpy as np
@@ -132,6 +133,7 @@ def run(
     alpha: float = 0.05,
     n_shuffle: int = 1000,
     include_event_correlation_preview: bool = False,
+    output_dir: Optional[Union[str, Path]] = None,
 ):
     """Analyze neural activity across user-defined time epochs (epoch-only mode).
 
@@ -146,6 +148,11 @@ def run(
     - `average_correlations.csv`
     - `pairwise_correlation_heatmaps.h5`
     - `spatial_analysis_pairwise_correlations.zip`
+
+    :Args
+    ----
+        output_dir: Directory where output files will be written. If None (default),
+            writes to the current working directory.
     """
     parsed_epoch_names = _validate_epoch_name_strings(epoch_names)
     parsed_epoch_colors = _parse_csv_list(epoch_colors)
@@ -162,6 +169,10 @@ def run(
     states = [_EPOCH_ONLY_STATE_NAME]
     state_colors = ["gray"]
     baseline_state = _EPOCH_ONLY_STATE_NAME
+
+    # Resolve output directory
+    resolved_output_dir = Path(output_dir) if output_dir is not None else Path(".")
+
     resolved_baseline_epoch: str
     if baseline_epoch is None:
         resolved_baseline_epoch = parsed_epoch_names[0]
@@ -327,7 +338,7 @@ def run(
 
     # Generate outputs using the same organization as the state-epoch baseline tool.
     output_generator = StateEpochOutputGenerator(
-        output_dir="",
+        output_dir=str(output_dir) if output_dir is not None else "",
         states=states,
         epochs=parsed_epoch_names,
         state_colors=state_colors,
@@ -370,16 +381,23 @@ def run(
 
     logger.info("Registering output data")
     try:
-        output_metadata = outputs._load_and_remove_output_metadata()
+        output_metadata_path = resolved_output_dir / "output_metadata.json"
+        if output_metadata_path.exists():
+            output_metadata = json.loads(output_metadata_path.read_text())
+            output_metadata_path.unlink()
+        else:
+            output_metadata = outputs._load_and_remove_output_metadata()
         prefix_args = [cell_set_files]
         if event_set_files:
             prefix_args.append(event_set_files)
         output_prefix = outputs.input_paths_to_output_prefix(*prefix_args)
         has_event_data = bool(event_set_files)
 
-        with outputs.register(raise_missing_file=False) as output_data:
+        with outputs.register(
+            output_dir=resolved_output_dir, raise_missing_file=False
+        ) as output_data:
             activity_reg = output_data.register_file(
-                ACTIVITY_PER_EPOCH_DATA_CSV,
+                resolved_output_dir / ACTIVITY_PER_EPOCH_DATA_CSV,
                 subdir=Path(ACTIVITY_PER_EPOCH_DATA_CSV).stem,
                 prefix=output_prefix,
             )
@@ -409,7 +427,7 @@ def run(
                 )
 
             corr_reg = output_data.register_file(
-                CORRELATIONS_PER_EPOCH_DATA_CSV,
+                resolved_output_dir / CORRELATIONS_PER_EPOCH_DATA_CSV,
                 subdir=Path(CORRELATIONS_PER_EPOCH_DATA_CSV).stem,
                 prefix=output_prefix,
             )
@@ -436,7 +454,7 @@ def run(
                 )
 
             mod_reg = output_data.register_file(
-                MODULATION_VS_BASELINE_DATA_CSV,
+                resolved_output_dir / MODULATION_VS_BASELINE_DATA_CSV,
                 subdir=Path(MODULATION_VS_BASELINE_DATA_CSV).stem,
                 prefix=output_prefix,
             )
@@ -465,7 +483,7 @@ def run(
                 )
 
             avg_corr_reg = output_data.register_file(
-                AVERAGE_CORRELATIONS_CSV,
+                resolved_output_dir / AVERAGE_CORRELATIONS_CSV,
                 subdir=Path(AVERAGE_CORRELATIONS_CSV).stem,
                 prefix=output_prefix,
             )
@@ -490,7 +508,7 @@ def run(
                 )
 
             raw_h5_reg = output_data.register_file(
-                RAW_CORRELATIONS_H5_NAME,
+                resolved_output_dir / RAW_CORRELATIONS_H5_NAME,
                 subdir=Path(RAW_CORRELATIONS_H5_NAME).stem,
                 prefix=output_prefix,
             )
@@ -515,7 +533,7 @@ def run(
                 )
 
             raw_zip_reg = output_data.register_file(
-                RAW_CORRELATIONS_ZIP_NAME,
+                resolved_output_dir / RAW_CORRELATIONS_ZIP_NAME,
                 subdir=Path(RAW_CORRELATIONS_ZIP_NAME).stem,
                 prefix=output_prefix,
             )
