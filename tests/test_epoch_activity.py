@@ -2,6 +2,7 @@ import json
 import os
 from pathlib import Path
 
+import isx
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -18,12 +19,7 @@ DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 cell_sets = [str(DATA_DIR / "input_cellset.isxd")]
 event_sets = [str(DATA_DIR / "input_cellset-ED.isxd")]
 
-try:
-    import isx  # type: ignore
-
-    HAS_ISX_EVENTSET = hasattr(isx, "EventSet")
-except Exception:
-    HAS_ISX_EVENTSET = False
+HAS_ISX_EVENTSET = True
 
 valid_inputs = [
     # valid inputs
@@ -505,7 +501,6 @@ def test_redefine_epochs(
     """
     Test the redefine epochs function.
     """
-    import isx
 
     cellset = isx.CellSet.read(cell_set_files[0])
     period = cellset.timing.period.secs_float
