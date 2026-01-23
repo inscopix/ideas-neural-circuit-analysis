@@ -4350,7 +4350,7 @@ class TestModulationFootprintVisualizationFix:
         }
 
     @patch("utils.utils._get_cellset_data")
-    @patch("ideas.analysis.io.cell_set_to_contours")
+    @patch("utils.state_epoch_data.cell_set_to_contours")
     @patch("utils.plots.plot_modulated_neuron_footprints")
     @pytest.mark.skip(
         reason="Complex test needs full rewrite for simplified API - focus on other tests first"
@@ -4443,8 +4443,8 @@ class TestModulationFootprintVisualizationFix:
         # which is verified by the file existence check above
 
     @patch("utils.utils._get_cellset_data")
-    @patch("ideas.analysis.io.cell_set_to_contours")
-    @patch("ideas.analysis.io.cell_set_to_status")
+    @patch("utils.state_epoch_data.cell_set_to_contours")
+    @patch("utils.state_epoch_data.cell_set_to_status")
     @patch("utils.state_epoch_output.plot_modulated_neuron_footprints")
     def test_modulation_footprint_error_handling(
         self,
@@ -4520,7 +4520,7 @@ class TestModulationFootprintVisualizationFix:
         assert os.path.exists(expected_file), "Plot file should be created"
 
     @patch("utils.utils._get_cellset_data")
-    @patch("ideas.analysis.io.cell_set_to_contours")
+    @patch("utils.state_epoch_data.cell_set_to_contours")
     def test_modulation_footprint_no_contours(
         self,
         mock_cell_contours,
@@ -4567,8 +4567,8 @@ class TestModulationFootprintVisualizationFix:
 
     @patch("utils.state_epoch_output.plot_modulated_neuron_footprints")
     @patch("utils.utils._get_cellset_data")
-    @patch("ideas.analysis.io.cell_set_to_contours")
-    @patch("ideas.analysis.io.cell_set_to_status")
+    @patch("utils.state_epoch_data.cell_set_to_contours")
+    @patch("utils.state_epoch_data.cell_set_to_status")
     def test_no_modulated_neurons_warning_message(
         self,
         mock_cell_status,
@@ -4691,8 +4691,8 @@ class TestModulationFootprintVisualizationFix:
         # Verify the function completes successfully without exceptions
         # (The fact that we reach this point proves no exceptions were raised)
 
-    @patch("ideas.analysis.io.cell_set_to_contours")
-    @patch("ideas.analysis.io.cell_set_to_status")
+    @patch("utils.state_epoch_data.cell_set_to_contours")
+    @patch("utils.state_epoch_data.cell_set_to_status")
     @patch("utils.state_epoch_output.plot_modulated_neuron_footprints")
     def test_modulated_neurons_found_proceeds_with_plotting(
         self,
@@ -5013,8 +5013,8 @@ class TestModulationFootprintVisualizationFix:
         # Test completed successfully - modulation calculation works correctly
 
     @patch("utils.state_epoch_output.plot_modulated_neuron_footprints")
-    @patch("ideas.analysis.io.cell_set_to_contours")
-    @patch("ideas.analysis.io.cell_set_to_status")
+    @patch("utils.state_epoch_data.cell_set_to_contours")
+    @patch("utils.state_epoch_data.cell_set_to_status")
     def test_modulation_footprint_plotting_with_detected_modulation(
         self,
         mock_cell_status,
@@ -5948,8 +5948,8 @@ class TestModulationPreviewFunctionality:
 
     @patch("utils.state_epoch_data._get_cellset_data")
     @patch("utils.state_epoch_data.event_set_to_events")
-    @patch("ideas.analysis.io.cell_set_to_contours")
-    @patch("ideas.analysis.io.cell_set_to_status")
+    @patch("utils.state_epoch_data.cell_set_to_contours")
+    @patch("utils.state_epoch_data.cell_set_to_status")
     def test_modulation_preview_data_alignment(
         self,
         mock_cell_status,
