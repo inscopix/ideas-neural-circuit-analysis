@@ -1,5 +1,5 @@
 # Create base image to run analysis
-FROM public.ecr.aws/docker/library/python:3.13.9 AS base
+FROM public.ecr.aws/docker/library/python:3.13.11 AS base
 
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
@@ -48,7 +48,7 @@ RUN --mount=from=ghcr.io/astral-sh/uv:0.9.16,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/tmp/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync
+    uv sync --group analysis
 
 USER ideas
 
@@ -85,6 +85,6 @@ RUN --mount=from=ghcr.io/astral-sh/uv:0.9.16,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/tmp/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --group test
+    uv sync --group analysis --group test
 
 USER ideas

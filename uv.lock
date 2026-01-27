@@ -632,7 +632,9 @@ wheels = [
 [[package]]
 name = "ideas-neural-circuit-analysis"
 source = { virtual = "." }
-dependencies = [
+
+[package.dev-dependencies]
+analysis = [
     { name = "beartype" },
     { name = "bokeh" },
     { name = "h5py" },
@@ -657,8 +659,6 @@ dependencies = [
     { name = "statsmodels" },
     { name = "tifffile" },
 ]
-
-[package.dev-dependencies]
 dev = [
     { name = "pre-commit" },
     { name = "ruff" },
@@ -672,7 +672,9 @@ test = [
 ]
 
 [package.metadata]
-requires-dist = [
+
+[package.metadata.requires-dev]
+analysis = [
     { name = "beartype", specifier = "==0.22.6" },
     { name = "bokeh", specifier = "==3.8.1" },
     { name = "h5py", specifier = "==3.15.1" },
@@ -697,8 +699,6 @@ requires-dist = [
     { name = "statsmodels", specifier = "==0.14.5" },
     { name = "tifffile", specifier = "==2025.10.16" },
 ]
-
-[package.metadata.requires-dev]
 dev = [
     { name = "pre-commit" },
     { name = "ruff", specifier = "==0.11.4" },
