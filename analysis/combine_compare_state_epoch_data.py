@@ -523,8 +523,7 @@ def combine_compare_state_epoch_data(
         )
     elif comparison_dimension == "epochs":
         logger.info(
-            "Analysis mode: Comparing across EPOCHS. "
-            "States will be analyzed separately within each epoch (if multiple states are present)."
+            "Analysis mode: Comparing across EPOCHS."
         )
 
     if data_pairing == "paired" and not group2_activity_csv_files:
@@ -710,7 +709,7 @@ def combine_compare_state_epoch_data(
         EPOCH_ONLY_DUMMY_STATE
     ]
     if epoch_only_mode:
-        logger.info("Epoch-only inputs detected; suppressing state labels.")
+        logger.debug("Epoch-only inputs detected; suppressing state labels.")
         logger.info("Group 1 - Epochs: %s", epochs)
         logger.info("Group 1 - Baseline epoch: %s", baseline_epoch)
     else:
@@ -2360,12 +2359,12 @@ def _extract_metadata_from_data(
             )
 
         if baseline_state == EPOCH_ONLY_DUMMY_STATE:
-            logger.info(
+            logger.debug(
                 "Validated metadata consistency across groups (baseline: %s)",
                 baseline_epoch,
             )
         else:
-            logger.info(
+            logger.debug(
                 "Validated metadata consistency across groups (baseline: %s-%s)",
                 baseline_state,
                 baseline_epoch,
@@ -5805,7 +5804,7 @@ def _save_output_metadata(
     with open(output_path, "w") as f:
         json.dump(metadata, f, indent=2, default=str)
 
-    logger.info("Saved comprehensive output metadata to %s", output_path)
+    logger.debug("Saved comprehensive output metadata to %s", output_path)
 
 
 MANUAL_PREVIEW_MAP: Dict[str, List[Tuple[str, str]]] = {}
