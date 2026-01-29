@@ -1,0 +1,23 @@
+name,cell_index,state,epoch,baseline_state,baseline_epoch,trace_modulation_scores in epoch_activity-early drug,trace_p_values in epoch_activity-early drug,trace_modulation in epoch_activity-early drug,event_modulation_scores in epoch_activity-early drug,event_p_values in epoch_activity-early drug,event_modulation in epoch_activity-early drug,trace_modulation_scores in epoch_activity-late-Drug,trace_p_values in epoch_activity-late-Drug,trace_modulation in epoch_activity-late-Drug,event_modulation_scores in epoch_activity-late-Drug,event_p_values in epoch_activity-late-Drug,event_modulation in epoch_activity-late-Drug
+C0,0,epoch_activity,early drug,epoch_activity,BASELINE,-1.1057364756787493,0.08442158696078404,-1,-1.313190255530572,0.07357909751720722,-1,,,,,,
+C1,1,epoch_activity,early drug,epoch_activity,BASELINE,0.15375997138538328,0.7548857581857744,0,0.13810473798519188,0.7673201002656084,0,,,,,,
+C2,2,epoch_activity,early drug,epoch_activity,BASELINE,0.19004926777505096,0.6337643573291136,0,0.17832609699205668,0.6416923534592363,0,,,,,,
+C3,3,epoch_activity,early drug,epoch_activity,BASELINE,-0.7321432075989872,0.09118875939239279,-1,-0.7372364065175663,0.1184811371077727,-1,,,,,,
+C4,4,epoch_activity,early drug,epoch_activity,BASELINE,-0.6288523011954938,0.08599667463184246,-1,-0.5567314037494722,0.07274304328400846,-1,,,,,,
+C5,5,epoch_activity,early drug,epoch_activity,BASELINE,-0.08619972534110848,0.6803170831864194,0,0.06491080355160311,0.6906152117889125,0,,,,,,
+C6,6,epoch_activity,early drug,epoch_activity,BASELINE,1.0497892095853256,0.07479548968750213,1,1.0677674296267992,0.06087364360005263,1,,,,,,
+C7,7,epoch_activity,early drug,epoch_activity,BASELINE,0.8826730898707936,0.09766763308568882,1,0.8461239507664788,0.09732447516247322,1,,,,,,
+C8,8,epoch_activity,early drug,epoch_activity,BASELINE,0.9169195194145006,0.030044235322812765,1,0.7985882976157628,0.01871474331410758,1,,,,,,
+C9,9,epoch_activity,early drug,epoch_activity,BASELINE,0.2709456790972403,0.812705521808307,0,0.39833752542219014,0.8514779608097893,0,,,,,,
+C10,10,epoch_activity,early drug,epoch_activity,BASELINE,-0.9943380061575184,0.007947715967695335,-1,-1.057719241424226,0.01961685832068595,-1,,,,,,
+C0,0,epoch_activity,late-Drug,epoch_activity,BASELINE,,,,,,,-0.5791243955878689,0.03512159639299239,-1,-0.6891972224016627,0.0,-1
+C1,1,epoch_activity,late-Drug,epoch_activity,BASELINE,,,,,,,0.9523421463277586,0.0528542617609888,1,0.9265527453648319,0.030027963850094846,1
+C2,2,epoch_activity,late-Drug,epoch_activity,BASELINE,,,,,,,-0.20434622662663438,0.6917803611723611,0,-0.30593430841912317,0.6735042590885034,0
+C3,3,epoch_activity,late-Drug,epoch_activity,BASELINE,,,,,,,0.2020954466431092,0.5445211240437451,0,-0.03505976207633829,0.5424233658929954,0
+C4,4,epoch_activity,late-Drug,epoch_activity,BASELINE,,,,,,,-1.181900909952494,0.024413221720421086,-1,-1.094046469592742,0.022389484444232333,-1
+C5,5,epoch_activity,late-Drug,epoch_activity,BASELINE,,,,,,,1.2314802339719857,0.055751073738751766,1,1.1678276220386783,0.08100972294218925,1
+C6,6,epoch_activity,late-Drug,epoch_activity,BASELINE,,,,,,,1.1795245916930508,0.06043731707501618,1,1.3717631915821054,0.05827146670855759,1
+C7,7,epoch_activity,late-Drug,epoch_activity,BASELINE,,,,,,,-1.0643804907479395,0.029880815995156063,-1,-1.0335463493206616,0.02549606729468181,-1
+C8,8,epoch_activity,late-Drug,epoch_activity,BASELINE,,,,,,,0.07025243940366216,0.6034735572532866,0,0.005647375060104515,0.5970100285718256,0
+C9,9,epoch_activity,late-Drug,epoch_activity,BASELINE,,,,,,,0.584415070812579,8.370493658802492e-05,1,0.5078738352575206,0.0,1
+C10,10,epoch_activity,late-Drug,epoch_activity,BASELINE,,,,,,,0.8002172728153061,0.01503748546620608,1,0.7605574032891835,0.0,1
