@@ -1,6 +1,5 @@
 .PHONY:  clean clean-venv venv set-hooks setup build test ruff ruff-check run run-all
 
-REPO_NAME=neural-circuit-analysis
 IMAGE_REPO=platform
 IMAGE_NAME=neural-analysis
 LABEL=$(shell cat .ideas/images_spec.json | jq -r ".[0].label")
@@ -30,7 +29,7 @@ clean-venv:
 
 venv: .venv/touchfile
 
-.venv/touchfile: pyproject.toml uv.lock
+.venv/touchfile: pyproject.toml
 	test -d $(VENV) || uv venv
 	uv sync --no-install-project --only-group dev
 	touch $(VENV)/touchfile
@@ -83,4 +82,4 @@ run: build
 	ideas tools run $(tool) -s -c -n
 
 run-all: build
-	@$(foreach f, $(shell ls -d .ideas/*), ideas tools run -s -c -n $(shell basename $(f));)
+	@$(foreach f, $(shell ls -d .ideas/*/), ideas tools run -s -c -n $(shell basename $(f));)
