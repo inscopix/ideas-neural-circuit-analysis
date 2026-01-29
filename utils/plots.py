@@ -1236,6 +1236,7 @@ def _plot_state_time(
     filename: str = "time_in_state_preview.svg",
     epoch_names: Optional[List[str]] = None,
     epoch_periods: Optional[List[tuple]] = None,
+    epoch_only_mode: bool = False,
 ):
     """Plot the time spent in each state and the fraction of time spent in each state.
 
@@ -1255,6 +1256,8 @@ def _plot_state_time(
         epoch_periods (list of tuple, optional): Start and end times (seconds)
             for each epoch. When provided with epoch_names, a third panel showing
             the state-epoch duration distribution is added.
+        epoch_only_mode (bool, optional): When True, label axes/titles using
+            epoch-only terminology.
 
     :Returns
         None: The function saves the plot as 'time_in_state_preview.svg'
@@ -1263,6 +1266,8 @@ def _plot_state_time(
     """
     # Set consistent font size
     plt.rcParams.update({"font.size": 12})
+
+    label_term = "epoch" if epoch_only_mode else "state"
 
     include_state_epoch = bool(epoch_periods and epoch_names and len(epoch_periods) > 0)
     sanitized_epoch_names: List[str] = []
@@ -1294,7 +1299,7 @@ def _plot_state_time(
     frames_in_state = frames_in_state * period
     total_frames = len(behavior) * period
     frames_in_state.plot(kind="bar", ax=ax_time, color=state_colors)
-    ax_time.set_title("Time spent in each state", fontdict=TITLE_FONT)
+    ax_time.set_title(f"Time spent in each {label_term}", fontdict=TITLE_FONT)
     ax_time.set_ylabel("Time (s)", fontdict=LABEL_FONT)
     ax_time.set_xlabel("")
     # Capitalize x-axis tick labels for consistency
@@ -1305,16 +1310,16 @@ def _plot_state_time(
     ax_time.spines["top"].set_visible(False)
     ax_time.spines["right"].set_visible(False)
 
-    # plot fraction of time spent in each state
+    # plot fraction of time spent in each state/epoch
     fraction_in_state = {
         state: frames_in_state[state] / total_frames for state in state_names
     }
 
     colors = {state: color for state, color in zip(state_names, state_colors)}
-    # plot fractions of neurons in different states
+    # plot fractions of neurons in different states/epochs
     plot_neuron_fractions(
         fractions=fraction_in_state,
-        label="states",
+        label=f"{label_term}s",
         bottom=0,
         colors=colors,
         xlabel="",
@@ -1362,9 +1367,12 @@ def _plot_state_time(
             and state_epoch_seconds.shape[1] <= 8,
             fmt=".1f",
         )
-        ax_dist.set_title("State-Epoch Duration", fontdict=TITLE_FONT)
+        if epoch_only_mode:
+            ax_dist.set_title("Epoch Duration", fontdict=TITLE_FONT)
+        else:
+            ax_dist.set_title("State-Epoch Duration", fontdict=TITLE_FONT)
         ax_dist.set_xlabel("Epoch", fontdict=LABEL_FONT)
-        ax_dist.set_ylabel("State", fontdict=LABEL_FONT)
+        ax_dist.set_ylabel("Epoch" if epoch_only_mode else "State", fontdict=LABEL_FONT)
 
         # Rotate tick labels for readability
         ax_dist.set_xticklabels(
@@ -1403,6 +1411,7 @@ def _plot_state_epoch_time(
             state_colors,
             period,
             filename=filename,
+            epoch_only_mode=epoch_only_mode,
         )
         return
 

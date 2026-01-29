@@ -1002,9 +1002,11 @@ def validate_subject_id_format(
                     f"Check subject matching or data completeness.",
                 )
 
-    logger.info(
-        f"Subject ID validation passed for {context}: {len(all_subjects)} subjects, "
-        f"pairing={data_pairing}, format=clean"
+    logger.debug(
+        "Subject ID validation passed for %s: %d subjects, pairing=%s, format=clean",
+        context,
+        len(all_subjects),
+        data_pairing,
     )
 
 

@@ -248,7 +248,7 @@ def _safe_ttest(
             return None
         clean_data1 = clean_data1.iloc[:min_length]
         clean_data2 = clean_data2.iloc[:min_length]
-        logger.info(f"_safe_ttest: Truncated paired data to {min_length} samples")
+        logger.info("_safe_ttest: Truncated paired data to %d samples", min_length)
 
     try:
         result = pg.ttest(clean_data1, clean_data2, paired=paired, **kwargs)
@@ -491,11 +491,16 @@ def _auto_select_pairwise_parametric(
     n_samples = len(cleaned_series)
 
     if n_samples < min_sample_size:
-        logger.info(
-            "Auto-select parametric (pairwise): fewer than %d observations "
-            "found (n=%d). Non-parametric tests will be used.",
-            min_sample_size,
+        logger.debug(
+            "Auto-select parametric (pairwise): n=%d < %d; using non-parametric tests.",
             n_samples,
+            min_sample_size,
+        )
+        return False
+
+    if cleaned_series.nunique() <= 1:
+        logger.debug(
+            "Auto-select parametric (pairwise): zero variance detected; using non-parametric tests."
         )
         return False
 
@@ -530,14 +535,12 @@ def _auto_select_pairwise_parametric(
         parametric = normality_result["normal"].all()
 
         if parametric:
-            logger.info(
-                "Auto-select parametric (pairwise): data appears normally "
-                "distributed. Parametric tests will be used."
+            logger.debug(
+                "Auto-select parametric (pairwise): normal; using parametric tests."
             )
         else:
-            logger.info(
-                "Auto-select parametric (pairwise): data is not normally "
-                "distributed. Non-parametric tests will be used."
+            logger.debug(
+                "Auto-select parametric (pairwise): non-normal; using non-parametric tests."
             )
 
         return bool(parametric)

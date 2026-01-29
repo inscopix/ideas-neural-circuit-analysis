@@ -1668,6 +1668,7 @@ class StateEpochOutputGenerator:
                     self.color_scheme.state_colors[: len(self.states)],
                     period,
                     filename=output_path,
+                    epoch_only_mode=self.epoch_only_mode,
                 )
         except Exception as exc:
             preview_label = "epoch" if self.epoch_only_mode else "state"
@@ -2620,9 +2621,8 @@ class StateEpochOutputGenerator:
                 epoch_names=epoch_names,
                 epoch_colors=epoch_color_list,
             )
-            if not self.epoch_only_mode:
-                output_path = self._get_output_path(EVENT_STATE_OVERLAY)
-                logger.info(f"Created event state overlay preview: {output_path}")
+            output_path = self._get_output_path(EVENT_STATE_OVERLAY)
+            logger.info(f"Created event {overlay_label} overlay preview: {output_path}")
 
         except Exception as e:
             logger.warning(f"Could not create event preview: {e}")

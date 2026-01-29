@@ -287,7 +287,7 @@ def _compute_missing_effect_sizes(df: pd.DataFrame) -> pd.DataFrame:
     numeric_cols = df.select_dtypes(include=[np.number]).columns
     for col in df.columns:
         if col not in numeric_cols:
-            df[col] = df[col].fillna("NA")
+            df[col] = df[col].astype("string").fillna("NA")
 
     return df
 
