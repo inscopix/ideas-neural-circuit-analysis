@@ -74,6 +74,7 @@ from ideas.tools.types import IdeasFile
 from matplotlib import colormaps
 from matplotlib.colors import to_hex
 
+from utils.config import EPOCH_ONLY_DUMMY_STATE
 from utils.population_data_validation import (
     validate_file_group,
     validate_group_names,
@@ -341,6 +342,9 @@ def combine_compare_state_epoch_data(
     state_colors: Optional[Union[str, Sequence[str]]] = None,
     epoch_colors: Optional[Union[str, Sequence[str]]] = None,
     modulation_colors: Optional[str] = "green,blue,black",
+    # Ordering hints (optional; affects plot ordering only)
+    preferred_state_order: Optional[Union[str, Sequence[str]]] = None,
+    preferred_epoch_order: Optional[Union[str, Sequence[str]]] = None,
     # Comparison parameters
     data_pairing: str = "unpaired",
     subject_matching: str = "order",
@@ -507,7 +511,9 @@ def combine_compare_state_epoch_data(
         using parametric="auto" or parametric="False"
 
     """
-    logger.info("Starting combine and compare state-epoch analysis...")
+    logger.info(
+        "Starting combine and compare analysis across %s...", comparison_dimension
+    )
 
     # Log the comparison mode for clarity
     if comparison_dimension == "states":
@@ -517,8 +523,8 @@ def combine_compare_state_epoch_data(
         )
     elif comparison_dimension == "epochs":
         logger.info(
-            "Analysis mode: Comparing across EPOCHS "
-            "States will be analyzed separately within each epoch."
+            "Analysis mode: Comparing across EPOCHS. "
+            "States will be analyzed separately within each epoch (if multiple states are present)."
         )
 
     if data_pairing == "paired" and not group2_activity_csv_files:
@@ -533,7 +539,7 @@ def combine_compare_state_epoch_data(
         if data_pairing == "paired"
         else "independent samples"
     )
-    logger.info(f"Data pairing mode: {data_pairing.upper()} ({pairing_description})")
+    logger.info("Data pairing mode: %s (%s)", data_pairing.upper(), pairing_description)
 
     measure_source = measure_source.lower().strip()
     correlation_statistic = str(correlation_statistic).strip().lower()
@@ -543,6 +549,8 @@ def combine_compare_state_epoch_data(
     )
     state_colors = _normalize_color_list(state_colors)
     epoch_colors = _normalize_color_list(epoch_colors)
+    preferred_state_order = _normalize_order_list(preferred_state_order)
+    preferred_epoch_order = _normalize_order_list(preferred_epoch_order)
 
     # Apply default labels before validation so validation receives the resolved values
     # Convert string paths to pathlib.Path objects
@@ -579,7 +587,7 @@ def combine_compare_state_epoch_data(
 
     # Validate modulation colors
     modulation_colors = validate_modulation_colors(modulation_colors)
-    logger.info(f"Using modulation colors: {modulation_colors}")
+    logger.debug("Using modulation colors: %s", modulation_colors)
 
     # Validate inputs
     _validate_inputs(
@@ -603,7 +611,7 @@ def combine_compare_state_epoch_data(
     if group2_color:
         group_colors.append(group2_color)
 
-    logger.info(f"Comparing {len(group_names)} groups across {comparison_dimension}")
+    logger.info("Comparing %d groups across %s", len(group_names), comparison_dimension)
 
     # Apply subject matching when running paired analysis with two groups
     if data_pairing == "paired" and group2_activity_csv_files:
@@ -664,7 +672,7 @@ def combine_compare_state_epoch_data(
             )
 
     # Load and process group 1 data
-    logger.info("Loading Group 1 data...")
+    logger.debug("Loading Group 1 data...")
     group1_data = _load_group_data(
         activity_csv_files=group1_activity_csv_files,
         correlation_csv_files=group1_correlation_csv_files,
@@ -677,7 +685,7 @@ def combine_compare_state_epoch_data(
     # Load and process group 2 data if provided
     group2_data = None
     if group2_activity_csv_files:
-        logger.info("Loading Group 2 data...")
+        logger.debug("Loading Group 2 data...")
         group2_data = _load_group_data(
             activity_csv_files=group2_activity_csv_files,
             correlation_csv_files=group2_correlation_csv_files,
@@ -694,15 +702,28 @@ def combine_compare_state_epoch_data(
         group2_data,
     )
 
-    logger.info(f"Group 1 - States: {states}")
-    logger.info(f"Group 1 - Epochs: {epochs}")
-    logger.info(f"Group 1 - Baseline: {baseline_state}-{baseline_epoch}")
+    # Apply optional ordering hints for plotting/display only (never filters data)
+    states = _apply_preferred_order(preferred_state_order, states)
+    epochs = _apply_preferred_order(preferred_epoch_order, epochs)
+
+    epoch_only_mode = comparison_dimension == "epochs" and states == [
+        EPOCH_ONLY_DUMMY_STATE
+    ]
+    if epoch_only_mode:
+        logger.info("Epoch-only inputs detected; suppressing state labels.")
+        logger.info("Group 1 - Epochs: %s", epochs)
+        logger.info("Group 1 - Baseline epoch: %s", baseline_epoch)
+    else:
+        logger.info("Group 1 - States: %s", states)
+        logger.info("Group 1 - Epochs: %s", epochs)
+        logger.info("Group 1 - Baseline: %s-%s", baseline_state, baseline_epoch)
 
     # Reclassify neurons if significance_threshold is explicitly provided
     # (otherwise use pre-computed classifications from state_epoch_baseline_analysis)
     if significance_threshold is not None:
         logger.info(
-            f"Reclassifying neurons with significance threshold: {significance_threshold}"
+            "Reclassifying neurons with significance threshold: %s",
+            significance_threshold,
         )
         group1_data = _reclassify_state_epoch_neurons(
             group1_data,
@@ -722,7 +743,7 @@ def combine_compare_state_epoch_data(
                 significance_threshold,
             )
     else:
-        logger.info(
+        logger.debug(
             "Using pre-computed modulation classifications from state_epoch_baseline_analysis"
         )
 
@@ -777,7 +798,7 @@ def combine_compare_state_epoch_data(
     )
 
     # Save comprehensive output metadata
-    logger.info("Saving output metadata...")
+    logger.debug("Saving output metadata...")
     resolved_selected_measures = comparison_results.get("selected_measures", {})
     resolved_selected_sources = comparison_results.get("selected_sources", {})
     _save_output_metadata(
@@ -1458,6 +1479,59 @@ def _normalize_color_list(
     return normalized or None
 
 
+def _normalize_order_list(
+    values: Optional[Union[str, Sequence[str]]],
+) -> Optional[List[str]]:
+    """Return a cleaned list of strings intended as a preferred ordering.
+
+    Accepts either a comma/semicolon-separated string or a sequence of strings.
+    """
+    if values is None:
+        return None
+
+    if isinstance(values, str):
+        tokens = re.split(r"[;,]", values)
+        cleaned = [token.strip() for token in tokens if token.strip()]
+        return cleaned or None
+
+    normalized: List[str] = []
+    for value in values:
+        if not isinstance(value, str):
+            continue
+        cleaned = value.strip()
+        if cleaned:
+            normalized.append(cleaned)
+    return normalized or None
+
+
+def _apply_preferred_order(
+    preferred: Optional[Sequence[str]],
+    available: List[str],
+) -> List[str]:
+    """Return `available` reordered by `preferred`, preserving extras."""
+    if not preferred:
+        return available
+    missing = [value for value in preferred if value not in available]
+    if missing:
+        logger.warning(
+            "Ignoring unknown preferred ordering values: %s. Available values: %s",
+            missing,
+            available,
+        )
+    ordered: List[str] = []
+    seen: set[str] = set()
+    for value in preferred:
+        if value in available and value not in seen:
+            ordered.append(value)
+            seen.add(value)
+    if not ordered:
+        return available
+    for value in available:
+        if value not in seen:
+            ordered.append(value)
+    return ordered
+
+
 def _normalize_subject_matching(subject_matching: str) -> str:
     """Map UI-friendly subject matching names to implementation keywords."""
     normalized = (subject_matching or "").strip().lower()
@@ -1763,7 +1837,7 @@ def _load_correlation_data_from_h5(
         DataFrame with same structure as correlations_per_state_epoch_data.csv
 
     """
-    logger.info(f"Loading correlation data from H5 file: {h5_file_path}")
+    logger.info("Loading correlation data from H5 file: %s", h5_file_path)
 
     # Extract unique states, epochs, and cell info from activity data
     states = activity_df["state"].unique().tolist()
@@ -1926,7 +2000,7 @@ def _load_correlation_data_from_h5(
             )
 
     correlation_df = pd.DataFrame(correlation_rows)
-    logger.info(f"Loaded {len(correlation_df)} correlation records from H5 file")
+    logger.info("Loaded %d correlation records from H5 file", len(correlation_df))
 
     return correlation_df
 
@@ -1969,7 +2043,7 @@ def _load_group_data(
         Dictionary containing combined data for the group
 
     """
-    logger.info(f"Loading {len(activity_csv_files)} subjects for {group_name}")
+    logger.debug("Loading %d subjects for %s", len(activity_csv_files), group_name)
 
     # ========================================================================
     # CLEAN SUBJECT ID ASSIGNMENT - Consistent with Population and Correlation Tools
@@ -1990,15 +2064,13 @@ def _load_group_data(
     )
 
     if data_pairing == "unpaired":
-        logger.info(
-            f"Clean subject ID assignment for {group_name}: "
-            f"Using group-prefixed format '{group_prefix}subject_N' for unpaired analysis"
+        logger.debug(
+            "Subject IDs for %s: using '%ssubject_N' (unpaired)",
+            group_name,
+            group_prefix,
         )
     else:
-        logger.info(
-            f"Clean subject ID assignment for {group_name}: "
-            f"Using standard format 'subject_N' for paired analysis"
-        )
+        logger.debug("Subject IDs for %s: using 'subject_N' (paired)", group_name)
 
     # Load activity data
     activity_dfs = []
@@ -2039,9 +2111,9 @@ def _load_group_data(
             correlation_dfs.append(df)
 
         combined_correlation = pd.concat(correlation_dfs, ignore_index=True)
-        logger.info(f"Loaded correlation data for {group_name}")
+        logger.debug("Loaded correlation data for %s", group_name)
     else:
-        logger.info(f"Skipping correlation data for {group_name} (not provided)")
+        logger.debug("Skipping correlation data for %s (not provided)", group_name)
 
     # Load modulation data - only if provided
     combined_modulation = None
@@ -2061,9 +2133,9 @@ def _load_group_data(
         combined_modulation = pd.concat(modulation_dfs, ignore_index=True)
         # Add count columns for up/down modulated cells
         combined_modulation = _add_modulation_count_columns(combined_modulation)
-        logger.info(f"Loaded modulation data for {group_name}")
+        logger.debug("Loaded modulation data for %s", group_name)
     else:
-        logger.info(f"Skipping modulation data for {group_name} (not provided)")
+        logger.debug("Skipping modulation data for %s (not provided)", group_name)
 
     return {
         "activity": combined_activity,
@@ -2171,11 +2243,16 @@ def _extract_metadata_from_data(
             )
 
         if "baseline_state" not in modulation_df.columns:
-            raise IdeasError(
-                f"Missing 'baseline_state' column in modulation data for "
-                f"{group_label}. Input files must be from "
-                "state_epoch_baseline_analysis."
-            )
+            if len(states_local) == 1:
+                modulation_df = modulation_df.copy()
+                modulation_df["baseline_state"] = states_local[0]
+                group_data["modulation"] = modulation_df
+            else:
+                raise IdeasError(
+                    f"Missing 'baseline_state' column in modulation data for "
+                    f"{group_label}. Input files must be from "
+                    "state_epoch_baseline_analysis."
+                )
         if "baseline_epoch" not in modulation_df.columns:
             raise IdeasError(
                 f"Missing 'baseline_epoch' column in modulation data for "
@@ -2218,6 +2295,11 @@ def _extract_metadata_from_data(
                 f"{group_label}: {unique_baseline_epochs.tolist()}. "
                 "All rows must share the same baseline epoch."
             )
+
+        if "state" not in modulation_df.columns and len(states_local) == 1:
+            modulation_df = modulation_df.copy()
+            modulation_df["state"] = states_local[0]
+            group_data["modulation"] = modulation_df
 
         return (
             states_local,
@@ -2277,11 +2359,17 @@ def _extract_metadata_from_data(
                 "Both groups must have identical epoch sets."
             )
 
-        logger.info(
-            "Validated metadata consistency across groups (baseline: %s-%s)",
-            baseline_state,
-            baseline_epoch,
-        )
+        if baseline_state == EPOCH_ONLY_DUMMY_STATE:
+            logger.info(
+                "Validated metadata consistency across groups (baseline: %s)",
+                baseline_epoch,
+            )
+        else:
+            logger.info(
+                "Validated metadata consistency across groups (baseline: %s-%s)",
+                baseline_state,
+                baseline_epoch,
+            )
 
     return states, epochs, baseline_state, baseline_epoch
 
@@ -2732,7 +2820,7 @@ def _perform_statistical_comparison_csv(
             "Using default significance threshold: 0.05 for statistical comparisons"
         )
 
-    logger.info(f"Performing {comparison_dimension} comparison between groups")
+    logger.debug("Performing %s comparison between groups", comparison_dimension)
 
     measure_source = measure_source.lower().strip()
 
@@ -2821,7 +2909,7 @@ def _perform_statistical_comparison_csv(
 
     # Prepare combined DataFrames for each measure type
     if group2_data is None:
-        logger.info("Single group analysis: comparing within group")
+        logger.debug("Single group analysis: comparing within group")
         combined_activity = group1_data["activity"].copy()
         combined_correlation = (
             group1_data["correlation"].copy()
@@ -2835,7 +2923,7 @@ def _perform_statistical_comparison_csv(
         )
         has_single_group = True
     else:
-        logger.info("Two group analysis: comparing between groups")
+        logger.debug("Two group analysis: comparing between groups")
         combined_activity = pd.concat(
             [group1_data["activity"], group2_data["activity"]],
             ignore_index=True,
@@ -2886,7 +2974,7 @@ def _perform_statistical_comparison_csv(
     comparison_col = "state" if comparison_dimension == "states" else "epoch"
 
     # Use comprehensive measure selection based on user parameters
-    logger.info("Measure source selection: %s", measure_source)
+    logger.debug("Measure source selection: %s", measure_source)
 
     available_columns = set()
     for frame in combined_frames.values():
@@ -2905,7 +2993,7 @@ def _perform_statistical_comparison_csv(
         correlation_statistic=correlation_statistic,
     )
 
-    logger.info(
+    logger.debug(
         "Resolved measure sources: activity=%s, correlation=%s, modulation=%s",
         selected_sources.get("activity", []),
         selected_sources.get("correlation", []),
@@ -2934,7 +3022,7 @@ def _perform_statistical_comparison_csv(
             "multiple_correction": multiple_correction,
         }
 
-    logger.info(f"Selected measures for analysis: {all_measure_columns}")
+    logger.debug("Selected measures for analysis: %s", all_measure_columns)
 
     # Use the existing comparison utilities
     # Analyze each measure column separately and combine results
@@ -2952,14 +3040,18 @@ def _perform_statistical_comparison_csv(
 
             source_frame = combined_frames.get(measure_type)
             if source_frame is None or source_frame.empty:
-                logger.info(
-                    f"Skipping {measure_column} because {measure_type} data is unavailable"
+                logger.debug(
+                    "Skipping %s because %s data is unavailable",
+                    measure_column,
+                    measure_type,
                 )
                 continue
 
             if measure_column not in source_frame.columns:
-                logger.info(
-                    f"Skipping {measure_column} because column is missing from {measure_type} data"
+                logger.debug(
+                    "Skipping %s because column is missing from %s data",
+                    measure_column,
+                    measure_type,
                 )
                 continue
 
@@ -2972,12 +3064,16 @@ def _perform_statistical_comparison_csv(
                 col for col in required_cols if col not in source_frame.columns
             ]
             if missing_cols:
-                logger.info(
-                    f"Skipping {measure_column} due to missing columns: {missing_cols}"
+                logger.debug(
+                    "Skipping %s due to missing columns: %s",
+                    measure_column,
+                    missing_cols,
                 )
                 continue
 
-            logger.info(f"Analyzing {data_source} {measure_type}: {measure_column}")
+            logger.debug(
+                "Analyzing %s %s: %s", data_source, measure_type, measure_column
+            )
 
             # The utility function returns (aov_df, pairwise_df) as a tuple
             aov_df, pairwise_df = calculate_state_epoch_comparison_stats(
@@ -3022,9 +3118,10 @@ def _perform_statistical_comparison_csv(
                     parametric=parametric,
                 )
             elif enable_lmm_analysis and _is_population_correlation(measure_column):
-                logger.info(
-                    f"Skipping LMM for {measure_column}: population correlation columns "
-                    f"are state-epoch aggregates (not cell-level data). Use ANOVA results instead."
+                logger.debug(
+                    "Skipping LMM for %s: population correlation columns are "
+                    "state-epoch aggregates (not cell-level data). Use ANOVA results.",
+                    measure_column,
                 )
 
             # Add metadata columns for comprehensive result tracking
@@ -3200,6 +3297,7 @@ def _perform_statistical_comparison_csv(
         # Files saved directly in output_dir (or current dir if output_dir is empty)
         # Use current directory if output_dir is empty (for Docker runs)
         save_dir = output_dir if output_dir else "."
+        os.makedirs(save_dir, exist_ok=True)
 
         # ========================================================================
         # SAVE SEPARATE TRACE AND EVENT STATISTICAL COMPARISON FILES
@@ -3379,7 +3477,7 @@ def _generate_combined_outputs_csv(
     - Consistent with combine_compare_population_data and combine_compare_correlation_data
     - Respects correlation_statistic when generating per-cell preview files
     """
-    logger.info("Generating combined comparison outputs...")
+    logger.debug("Generating combined comparison outputs...")
 
     if not output_dir:
         output_dir = "."
@@ -3405,8 +3503,8 @@ def _generate_combined_outputs_csv(
         key: set(selected_sources_raw.get(key, [])) for key in default_selection
     }
 
-    logger.info(
-        "Using resolved measure configuration: activity=%s, correlation=%s, modulation=%s",
+    logger.debug(
+        "Resolved measures: activity=%s, correlation=%s, modulation=%s",
         selected_source_sets["activity"] or {"none"},
         selected_source_sets["correlation"] or {"none"},
         selected_source_sets["modulation"] or {"none"},
@@ -3428,7 +3526,7 @@ def _generate_combined_outputs_csv(
     )
     group1_activity_path = os.path.join(output_dir, group1_activity_filename)
     group1_activity_clean.to_csv(group1_activity_path, index=False)
-    logger.info(f"Saved {group_names[0]} activity data to {group1_activity_path}")
+    logger.debug("Saved %s activity data to %s", group_names[0], group1_activity_path)
 
     # Save Group 1 correlation data using result key name (if provided)
     if group1_data["correlation"] is not None:
@@ -3445,11 +3543,16 @@ def _generate_combined_outputs_csv(
             group1_correlation_filename,
         )
         group1_correlation_clean.to_csv(group1_correlation_path, index=False)
-        logger.info(
-            f"Saved {group_names[0]} correlation data to {group1_correlation_path}"
+        logger.debug(
+            "Saved %s correlation data to %s",
+            group_names[0],
+            group1_correlation_path,
         )
     else:
-        logger.info(f"Skipping {group_names[0]} correlation data save (not provided)")
+        logger.debug(
+            "Skipping %s correlation data save (not provided)",
+            group_names[0],
+        )
 
     # Save Group 1 modulation data using result key name (if provided)
     if group1_data["modulation"] is not None:
@@ -3466,11 +3569,16 @@ def _generate_combined_outputs_csv(
             group1_modulation_filename,
         )
         group1_modulation_clean.to_csv(group1_modulation_path, index=False)
-        logger.info(
-            f"Saved {group_names[0]} modulation data to {group1_modulation_path}"
+        logger.debug(
+            "Saved %s modulation data to %s",
+            group_names[0],
+            group1_modulation_path,
         )
     else:
-        logger.info(f"Skipping {group_names[0]} modulation data save (not provided)")
+        logger.debug(
+            "Skipping %s modulation data save (not provided)",
+            group_names[0],
+        )
 
     # Save Group 2 data if present using result key names
     if group2_data is not None and len(group_names) > 1:
@@ -3488,7 +3596,9 @@ def _generate_combined_outputs_csv(
             group2_activity_filename,
         )
         group2_activity_clean.to_csv(group2_activity_path, index=False)
-        logger.info(f"Saved {group_names[1]} activity data to {group2_activity_path}")
+        logger.debug(
+            "Saved %s activity data to %s", group_names[1], group2_activity_path
+        )
 
         # Save Group 2 correlation data using result key name (if provided)
         if group2_data["correlation"] is not None:
@@ -3505,12 +3615,15 @@ def _generate_combined_outputs_csv(
                 group2_correlation_filename,
             )
             group2_correlation_clean.to_csv(group2_correlation_path, index=False)
-            logger.info(
-                f"Saved {group_names[1]} correlation data to {group2_correlation_path}"
+            logger.debug(
+                "Saved %s correlation data to %s",
+                group_names[1],
+                group2_correlation_path,
             )
         else:
-            logger.info(
-                f"Skipping {group_names[1]} correlation data save (not provided)"
+            logger.debug(
+                "Skipping %s correlation data save (not provided)",
+                group_names[1],
             )
 
         # Save Group 2 modulation data using result key name (if provided)
@@ -3528,12 +3641,15 @@ def _generate_combined_outputs_csv(
                 group2_modulation_filename,
             )
             group2_modulation_clean.to_csv(group2_modulation_path, index=False)
-            logger.info(
-                f"Saved {group_names[1]} modulation data to {group2_modulation_path}"
+            logger.debug(
+                "Saved %s modulation data to %s",
+                group_names[1],
+                group2_modulation_path,
             )
         else:
-            logger.info(
-                f"Skipping {group_names[1]} modulation data save (not provided)"
+            logger.debug(
+                "Skipping %s modulation data save (not provided)",
+                group_names[1],
             )
 
     # ========================================================================
@@ -3650,7 +3766,7 @@ def _generate_combined_outputs_csv(
             # Skip generic activity/correlation plots - these are now generated
             # as source-specific plots (trace_activity, event_activity, etc.)
             # to avoid duplication
-            logger.info("Generating source-specific comparison plots...")
+            logger.debug("Generating source-specific comparison plots...")
 
             # Generate modulation plots with source-specific naming
             if modulation_measures_selected and not plot_modulation_df.empty:
@@ -3780,7 +3896,7 @@ def _generate_combined_outputs_csv(
                     "selected or data unavailable"
                 )
 
-            logger.info("Generated modulation comparison plots")
+            logger.debug("Generated modulation comparison plots")
 
             # ================================================================
             # GENERATE TRACE-SPECIFIC COMPARISON PLOTS
@@ -3794,7 +3910,7 @@ def _generate_combined_outputs_csv(
 
             if trace_files_exist:
                 if trace_activity_selected or trace_correlation_selected:
-                    logger.info("Generating trace-specific comparison plots...")
+                    logger.debug("Generating trace-specific comparison plots...")
 
                     trace_activity = _filter_data_by_source(
                         combined_activity, "trace", measure_type="activity"
@@ -3878,7 +3994,7 @@ def _generate_combined_outputs_csv(
                                 correlation_statistic=correlation_statistic,
                             )
 
-                    logger.info("Generated trace-specific comparison plots")
+                    logger.debug("Generated trace-specific comparison plots")
                 else:
                     logger.info(
                         "Skipping trace-specific comparison plots - trace measures not selected"
@@ -4518,28 +4634,30 @@ def _compute_correlation_y_limits(
     )
 
     # Log summary of computed shared y-limits
-    logger.info(
-        "Computed shared y-limits for correlation boxplots (across all groups):"
-    )
+    logger.debug("Shared y-limits for correlation boxplots (across all groups):")
     if per_cell_max_limits:
-        logger.info(
-            f"  Per-cell max correlations: "
-            f"[{per_cell_max_limits[0]:.3f}, {per_cell_max_limits[1]:.3f}]"
+        logger.debug(
+            "  Per-cell max correlations: [%.3f, %.3f]",
+            per_cell_max_limits[0],
+            per_cell_max_limits[1],
         )
     if per_cell_min_limits:
-        logger.info(
-            f"  Per-cell min correlations: "
-            f"[{per_cell_min_limits[0]:.3f}, {per_cell_min_limits[1]:.3f}]"
+        logger.debug(
+            "  Per-cell min correlations: [%.3f, %.3f]",
+            per_cell_min_limits[0],
+            per_cell_min_limits[1],
         )
     if population_positive_limits:
-        logger.info(
-            f"  Population positive correlations: "
-            f"[{population_positive_limits[0]:.3f}, {population_positive_limits[1]:.3f}]"
+        logger.debug(
+            "  Population positive correlations: [%.3f, %.3f]",
+            population_positive_limits[0],
+            population_positive_limits[1],
         )
     if population_negative_limits:
-        logger.info(
-            f"  Population negative correlations: "
-            f"[{population_negative_limits[0]:.3f}, {population_negative_limits[1]:.3f}]"
+        logger.debug(
+            "  Population negative correlations: [%.3f, %.3f]",
+            population_negative_limits[0],
+            population_negative_limits[1],
         )
 
     return (
@@ -4760,8 +4878,8 @@ def _generate_group_metric_previews(
             y_limits=y_limit_lookup.get(spec.y_limit_key),
         )
         if success:
-            logger.info(
-                "Generated %s %s preview: %s",
+            logger.debug(
+                "Preview saved (%s, %s): %s",
                 group_label,
                 spec.title,
                 boxplot_path,
@@ -4790,8 +4908,8 @@ def _generate_group_metric_previews(
             data_type=spec.data_type,
         )
         if cdf_success:
-            logger.info(
-                "Generated %s %s CDF preview: %s",
+            logger.debug(
+                "CDF preview saved (%s, %s): %s",
                 group_label,
                 spec.cdf_title,
                 cdf_path,
@@ -4866,8 +4984,8 @@ def _generate_modulation_histograms_for_group(
                 data_type=data_type,
                 dimension_label=dimension_label,
             )
-            logger.info(
-                "Generated %s %s modulation histogram",
+            logger.debug(
+                "Modulation histogram saved (%s, %s)",
                 group_label,
                 data_type,
             )
@@ -5056,7 +5174,7 @@ def _generate_per_group_previews(
                 group_preview_prefixes=group_preview_prefixes,  # Use real group names for previews
             )
 
-        logger.info("Completed per-group preview generation")
+        logger.debug("Completed per-group preview generation")
 
     except Exception as e:
         logger.warning(f"Could not generate all per-group previews: {e}")
@@ -5687,7 +5805,7 @@ def _save_output_metadata(
     with open(output_path, "w") as f:
         json.dump(metadata, f, indent=2, default=str)
 
-    logger.info(f"Saved comprehensive output metadata to {output_path}")
+    logger.info("Saved comprehensive output metadata to %s", output_path)
 
 
 MANUAL_PREVIEW_MAP: Dict[str, List[Tuple[str, str]]] = {}
@@ -6125,6 +6243,7 @@ def _register_combined_tool_outputs(
 
     # Normalize empty output_dir to current directory for file operations
     output_metadata = _load_output_metadata_dict(output_dir)
+    base_dir = Path(output_dir) if output_dir else Path(".")
     resolved_group_names = group_names or ["Group 1"]
     group_file_prefixes = _resolve_group_file_prefixes(
         resolved_group_names
@@ -6147,6 +6266,12 @@ def _register_combined_tool_outputs(
             dimension_suffix=None,
         )
 
+    def _resolve_output_path(path_like: Union[str, Path]) -> Path:
+        path = Path(path_like)
+        if path.is_absolute():
+            return path
+        return base_dir / path
+
     trace_comparison_previews = _build_trace_comparison_previews(comparison_dimension)
     event_comparison_previews = _build_event_comparison_previews(comparison_dimension)
 
@@ -6162,7 +6287,9 @@ def _register_combined_tool_outputs(
         normalized_stats = {"max", "min", "mean"}
 
     try:
-        with outputs.register(raise_missing_file=False) as output_data:
+        with outputs.register(
+            output_dir=output_dir or ".", raise_missing_file=False
+        ) as output_data:
             for i, group_label in enumerate(resolved_group_names):
                 group_index = i + 1
                 group_id = f"group{group_index}"
@@ -6178,7 +6305,7 @@ def _register_combined_tool_outputs(
                     ),
                 ]
                 for group_suffix, preview_func in group_outputs:
-                    path = Path(f"{group_id}_{group_suffix}")
+                    path = _resolve_output_path(f"{group_id}_{group_suffix}")
                     if not path.exists():
                         continue
                     group_key = path.stem
@@ -6186,7 +6313,7 @@ def _register_combined_tool_outputs(
                         output_metadata.get(group_key, {})
                     )
                     output_file = output_data.register_file(
-                        _group_file(i, group_suffix),
+                        str(_resolve_output_path(_group_file(i, group_suffix))),
                         subdir=group_key,
                     ).register_metadata_dict(**group_metadata)
                     for preview_file, preview_caption in preview_func(
@@ -6195,7 +6322,13 @@ def _register_combined_tool_outputs(
                         group_preview_prefixes,
                         normalized_dimension_suffix,
                     ):
-                        output_file.register_preview(preview_file, preview_caption)
+                        preview_path = _resolve_output_path(preview_file)
+                        if not preview_path.exists():
+                            continue
+                        output_file.register_preview(
+                            str(preview_path),
+                            preview_caption,
+                        )
 
             stat_outputs = [
                 (TRACE_ANOVA_COMPARISONS_CSV, trace_comparison_previews),
@@ -6208,7 +6341,7 @@ def _register_combined_tool_outputs(
                 (EVENT_LMM_PAIRWISE_COMPARISONS_CSV, []),
             ]
             for stat_suffix, previews in stat_outputs:
-                path = Path(stat_suffix)
+                path = _resolve_output_path(stat_suffix)
                 if not path.exists():
                     continue
 
@@ -6217,11 +6350,17 @@ def _register_combined_tool_outputs(
                     output_metadata.get(group_key, {})
                 )
                 output_file = output_data.register_file(
-                    stat_suffix,
+                    str(path),
                     subdir=group_key,
                 ).register_metadata_dict(**group_metadata)
                 for preview_file, preview_caption in previews:
-                    output_file.register_preview(preview_file, preview_caption)
+                    preview_path = _resolve_output_path(preview_file)
+                    if not preview_path.exists():
+                        continue
+                    output_file.register_preview(
+                        str(preview_path),
+                        preview_caption,
+                    )
 
     except Exception:
         logger.exception("Failed to generate output data!")

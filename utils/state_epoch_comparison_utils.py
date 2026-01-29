@@ -162,11 +162,16 @@ def _auto_select_parametric(
     n_samples = len(cleaned_series)
 
     if n_samples < min_sample_size:
-        logger.info(
-            "Auto-select parametric: fewer than %d observations found (n=%d). "
-            "Non-parametric tests will be used.",
-            min_sample_size,
+        logger.debug(
+            "Auto-select parametric: n=%d < %d; using non-parametric tests.",
             n_samples,
+            min_sample_size,
+        )
+        return False
+
+    if cleaned_series.nunique() <= 1:
+        logger.debug(
+            "Auto-select parametric: zero variance detected; using non-parametric tests."
         )
         return False
 
@@ -196,14 +201,10 @@ def _auto_select_parametric(
         parametric = normality_result["normal"].all()
 
         if parametric:
-            logger.info(
-                "Auto-select parametric: data appears normally distributed. "
-                "Parametric tests will be used."
-            )
+            logger.debug("Auto-select parametric: normal; using parametric tests.")
         else:
-            logger.info(
-                "Auto-select parametric: data is not normally distributed. "
-                "Non-parametric tests will be used."
+            logger.debug(
+                "Auto-select parametric: non-normal; using non-parametric tests."
             )
 
         return parametric
@@ -739,18 +740,19 @@ def calculate_state_epoch_comparison_stats(
 
     # Apply global multiple comparison correction if requested
     if not combined_pairwise.empty and multiple_correction_scope == "global":
-        logger.info(
-            f"Applying {multiple_correction_scope} multiple comparison correction "
-            f"across all {len(combined_pairwise)} pairwise tests"
+        logger.debug(
+            "Applying %s multiple comparison correction across all %d pairwise tests",
+            multiple_correction_scope,
+            len(combined_pairwise),
         )
         combined_pairwise = _apply_global_multiple_comparison_correction(
             pairwise_df=combined_pairwise,
             correction_method=multiple_correction,
         )
     elif not combined_pairwise.empty and multiple_correction_scope == "within_stratum":
-        logger.info(
-            f"Using within-stratum multiple comparison correction "
-            f"(correction applied separately within each {other_dimension})"
+        logger.debug(
+            "Using within-stratum multiple comparison correction (per %s)",
+            other_dimension,
         )
         # Add metadata to indicate within-stratum correction
         combined_pairwise["correction_scope"] = "within_stratum"
@@ -1340,13 +1342,33 @@ def _perform_pairwise_tests(
             grouping_column=grouping_column,
         )
 
+        # Effect size computation (e.g., Cohen's d) fails on constant data because
+        # the pooled standard deviation becomes zero, causing division errors.
+        # Disable effect size when any comparison stratum has zero variance.
+        effsize_value = effect_size
+        variance_groups = [comparison_col]
+        if group_col and group_col in grouped.columns:
+            variance_groups.append(group_col)
+        if variance_groups and measure_col in grouped.columns:
+            group_variances = grouped.groupby(variance_groups)[measure_col].agg(
+                lambda s: np.nanvar(s.to_numpy())
+            )
+            zero_variance_count = int((group_variances == 0).sum())
+            if zero_variance_count:
+                effsize_value = None
+                logger.debug(
+                    "Effect size disabled for %s due to zero variance in %d strata",
+                    measure_col,
+                    zero_variance_count,
+                )
+
         pairwise_kwargs: Dict[str, Any] = {
             "data": grouped,
             "dv": measure_col,
             "within": within_factors,
             "subject": subject_col,
             "padjust": correction,
-            "effsize": effect_size,
+            "effsize": effsize_value,
             "tail": group_comparison_type,
             "parametric": resolved_parametric,
         }
@@ -1580,9 +1602,10 @@ def _apply_global_multiple_comparison_correction(
     )
     if invalid_mask.any():
         n_invalid = int(invalid_mask.sum())
-        logger.info(
-            f"Excluding {n_invalid} invalid p-values (NaN or outside [0, 1]) "
-            "from global multiple comparison correction"
+        logger.debug(
+            "Excluding %d invalid p-values (NaN or outside [0, 1]) "
+            "from global multiple comparison correction",
+            n_invalid,
         )
 
     valid_mask = ~invalid_mask
@@ -1644,9 +1667,10 @@ def _apply_global_multiple_comparison_correction(
     result["correction_scope"] = "global"
     result["n_tests_corrected"] = n_valid_tests
 
-    logger.info(
-        f"Applied global {correction_name} correction across {n_valid_tests} "
-        "valid tests from all strata"
+    logger.debug(
+        "Applied global %s correction across %d valid tests from all strata",
+        correction_name,
+        n_valid_tests,
     )
 
     return result
@@ -1798,7 +1822,7 @@ def match_subjects(
         )
 
     matched_pairs = []
-    logger.info(f"Attempting to match subjects using {normalized_method} method")
+    logger.info("Attempting to match subjects using %s method", normalized_method)
 
     def extract_numbers(filepath: str) -> Optional[int]:
         """Extract all digits from a filename as a single number."""
@@ -2064,16 +2088,18 @@ def _perform_state_epoch_lmm_analysis(
             f"lmm_structure_{n_subjects}_{n_observations}_{has_nested_structure}"
         )
         if structure_key not in _global_lmm_structure_logged:
-            logger.info(
-                f"LMM data structure: {n_subjects} subjects, {n_observations} observations"
+            logger.debug(
+                "LMM data structure: %d subjects, %d observations",
+                n_subjects,
+                n_observations,
             )
             if has_nested_structure:
-                logger.info(
-                    f"  - Cell-level data (max {max_obs_per_condition} per subject-condition) "
-                    f"- using proper random effects"
+                logger.debug(
+                    "  - Cell-level data (max %d per subject-condition) - using random effects",
+                    max_obs_per_condition,
                 )
             else:
-                logger.info("  - Subject-level data - using standard LMM")
+                logger.debug("  - Subject-level data - using standard LMM")
             _global_lmm_structure_logged.add(structure_key)
         else:
             logger.debug(
@@ -2208,7 +2234,7 @@ def _perform_state_epoch_lmm_analysis(
                 df = model_data
                 model = None
                 methods = []
-                logger.info(f"Using Poisson GLM results for {measure_name}")
+                logger.info("Using Poisson GLM results for %s", measure_name)
             else:
                 # Fallback to standard LMM
                 model = MixedLM.from_formula(
@@ -2427,10 +2453,11 @@ def _perform_state_epoch_lmm_analysis(
             # Add convergence status
             lmm_df["converged"] = result.converged
 
-            logger.info(
-                f"LMM analysis completed for {measure_name} "
-                f"(converged={result.converged}, "
-                f"concerns={has_reliability_concerns})"
+            logger.debug(
+                "LMM analysis completed for %s (converged=%s, concerns=%s)",
+                measure_name,
+                result.converged,
+                has_reliability_concerns,
             )
 
             return lmm_df, has_reliability_concerns, lmm_warning_messages
@@ -2996,7 +3023,13 @@ def plot_state_epoch_comparison(
             # Filter data
             if other_val is not None:
                 subset = data[data[other_col] == other_val]
-                title = f"{data_type.capitalize()} - {other_col}={other_val}"
+                # Filter out the dummy state name used in epoch-only analysis
+                from utils.config import EPOCH_ONLY_DUMMY_STATE
+
+                if str(other_val) == EPOCH_ONLY_DUMMY_STATE:
+                    title = f"{data_type.capitalize()}"
+                else:
+                    title = f"{data_type.capitalize()} - {other_col}={other_val}"
             else:
                 subset = data
                 title = f"{data_type.capitalize()}"
@@ -3142,7 +3175,7 @@ def plot_state_epoch_comparison(
                 bbox_inches="tight",
                 transparent=True,
             )
-            logger.info(f"Saved comparison plot: {save_path}")
+            logger.debug("Saved comparison plot: %s", save_path)
         else:
             plt.show()
 

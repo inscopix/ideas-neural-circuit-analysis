@@ -91,7 +91,7 @@ def is_multicolor(metadata, check_interleaved=True):
     if check_deinterleaved=True: True only for multicolor movies that have not been deinterleaved
     """
     if "extraProperties" not in metadata or metadata["extraProperties"] is None:
-        logger.warn("Unable to determine whether the input is a multicolor movie")
+        logger.warning("Missing metadata extraProperties; assuming not multicolor.")
         return False
 
     # return False if we cannot determine if the file is multicolor
@@ -139,7 +139,7 @@ def is_multiplane(metadata, check_interleaved=True):
 
     # return False if we cannot determine if the file is multiplane
     if "extraProperties" not in metadata or metadata["extraProperties"] is None:
-        logger.warn("Unable to determine whether the input is a multiplane movie")
+        logger.warning("Missing metadata extraProperties; assuming not multiplane.")
         return False
 
     has_multiplane_metadata = False
