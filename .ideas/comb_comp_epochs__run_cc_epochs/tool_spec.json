@@ -13,10 +13,10 @@
     },
     "params": [
         {
-            "key": "group1_traces",
-            "name": "Group 1 Trace Files",
+            "key": "group1_activity_csv_files",
+            "name": "Group 1 Activity Files",
             "required": true,
-            "description": "Group 1 Trace Files",
+            "description": "CSV files containing activity_per_epoch_data outputs for Group 1 (produced by epoch_activity). At least two files are required.",
             "type": {
                 "param_type": "ToolPathParam",
                 "multiple": true,
@@ -24,88 +24,90 @@
                     "csv"
                 ]
             },
-            "group": ""
+            "group": "Group 1 Input Files"
         },
         {
-            "key": "group2_traces",
-            "name": "Group 2 Trace Files",
-            "required": false,
-            "description": "Group 2 Trace Files",
-            "type": {
-                "param_type": "ToolPathParam",
-                "multiple": true,
-                "file_formats": [
-                    "csv"
-                ]
-            },
-            "group": ""
-        },
-        {
-            "key": "group1_events",
-            "name": "Group 1 Eventrate Files",
-            "required": false,
-            "description": "Group 1 Eventrate Files",
-            "type": {
-                "param_type": "ToolPathParam",
-                "multiple": true,
-                "file_formats": [
-                    "csv"
-                ]
-            },
-            "group": ""
-        },
-        {
-            "key": "group2_events",
-            "name": "Group 2 Eventrate Files",
-            "required": false,
-            "description": "Group 2 Eventrate Files",
-            "type": {
-                "param_type": "ToolPathParam",
-                "multiple": true,
-                "file_formats": [
-                    "csv"
-                ]
-            },
-            "group": ""
-        },
-        {
-            "key": "group1_corr",
+            "key": "group1_correlation_csv_files",
             "name": "Group 1 Correlation Files",
             "required": false,
-            "description": "Group 1 Correlation Files",
+            "description": "Correlation outputs for Group 1. Accepts either CSV files (correlations_per_epoch_data.csv) or H5 files (pairwise_correlation_heatmaps.h5) from epoch_activity.",
             "type": {
                 "param_type": "ToolPathParam",
                 "multiple": true,
                 "file_formats": [
-                    "npy"
+                    "csv",
+                    "h5"
                 ]
             },
-            "group": ""
+            "group": "Group 1 Input Files"
         },
         {
-            "key": "group2_corr",
-            "name": "Group 2 Correlation Files",
+            "key": "group1_modulation_csv_files",
+            "name": "Group 1 Modulation Files",
             "required": false,
-            "description": "Group 2 Correlation Files",
+            "description": "CSV files containing modulation_vs_baseline_data outputs for Group 1 (produced by epoch_activity).",
             "type": {
                 "param_type": "ToolPathParam",
                 "multiple": true,
                 "file_formats": [
-                    "npy"
+                    "csv"
                 ]
             },
-            "group": ""
+            "group": "Group 1 Input Files"
+        },
+        {
+            "key": "group2_activity_csv_files",
+            "name": "Group 2 Activity Files",
+            "required": false,
+            "description": "CSV files containing activity_per_epoch_data outputs for Group 2 (produced by epoch_activity). At least two files are required when provided.",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "csv"
+                ]
+            },
+            "group": "Group 2 Input Files"
+        },
+        {
+            "key": "group2_correlation_csv_files",
+            "name": "Group 2 Correlation Files",
+            "required": false,
+            "description": "Correlation outputs for Group 2. Accepts either CSV files (correlations_per_epoch_data.csv) or H5 files (pairwise_correlation_heatmaps.h5) from epoch_activity. Required when Group 1 provides correlation files and Group 2 is provided.",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "csv",
+                    "h5"
+                ]
+            },
+            "group": "Group 2 Input Files"
+        },
+        {
+            "key": "group2_modulation_csv_files",
+            "name": "Group 2 Modulation Files",
+            "required": false,
+            "description": "CSV files containing modulation_vs_baseline_data outputs for Group 2 (produced by epoch_activity). Required when Group 1 provides modulation files and Group 2 is provided.",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "csv"
+                ]
+            },
+            "group": "Group 2 Input Files"
         },
         {
             "key": "epoch_names",
             "name": "Name of Epochs",
             "required": true,
-            "description": "List of names of epochs",
+            "description": "Comma-separated epoch names matching the epochs in your input CSVs. Order determines plot ordering.",
             "type": {
                 "param_type": "ToolStringParam",
-                "default": "Epoch 1, Epoch 2, Epoch 3"
+                "default": "Baseline, Drug, Washout"
             },
-            "group": ""
+            "group": "Epoch Configuration"
         },
         {
             "key": "group1_name",
@@ -115,7 +117,7 @@
             "type": {
                 "param_type": "ToolStringParam"
             },
-            "group": ""
+            "group": "Group Configuration"
         },
         {
             "key": "group2_name",
@@ -125,18 +127,18 @@
             "type": {
                 "param_type": "ToolStringParam"
             },
-            "group": ""
+            "group": "Group Configuration"
         },
         {
             "key": "epoch_colors",
             "name": "Epoch Color Palette",
-            "required": true,
-            "description": "List of matplotlib compatible colors to represent each epoch",
+            "required": false,
+            "description": "Optional comma-separated matplotlib compatible colors for each epoch (must match epoch_names length when both are provided).",
             "type": {
                 "param_type": "ToolStringParam",
                 "default": "tab:grey, tab:blue, tab:cyan"
             },
-            "group": ""
+            "group": "Epoch Configuration"
         },
         {
             "key": "group1_color",
@@ -145,20 +147,100 @@
             "description": "Color of the first group",
             "type": {
                 "param_type": "ToolStringParam",
-                "default": "tab:red"
+                "default": "tab:blue"
             },
-            "group": ""
+            "group": "Group Configuration"
         },
         {
             "key": "group2_color",
             "name": "Color of the second group",
-            "required": true,
+            "required": false,
             "description": "Color of the second group",
             "type": {
                 "param_type": "ToolStringParam",
-                "default": "tab:orange"
+                "default": "red"
             },
-            "group": ""
+            "group": "Group Configuration"
+        },
+        {
+            "key": "measure_source",
+            "name": "Measure Source",
+            "required": false,
+            "description": "Which data source to analyze: trace, event, or both.",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "trace",
+                "choices": [
+                    "trace",
+                    "event",
+                    "both"
+                ],
+                "display_options": [
+                    "Trace",
+                    "Event",
+                    "Both"
+                ]
+            },
+            "group": "Analysis Options"
+        },
+        {
+            "key": "correlation_statistic",
+            "name": "Correlation Statistic",
+            "required": false,
+            "description": "Which per-cell correlation statistic to use from correlations CSVs.",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "max",
+                "choices": [
+                    "max",
+                    "min",
+                    "mean"
+                ],
+                "display_options": [
+                    "Max",
+                    "Min",
+                    "Mean"
+                ]
+            },
+            "group": "Analysis Options"
+        },
+        {
+            "key": "data_pairing",
+            "name": "Pairing",
+            "required": false,
+            "description": "Whether subjects are paired across groups.",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "unpaired",
+                "choices": [
+                    "unpaired",
+                    "paired"
+                ],
+                "display_options": [
+                    "Unpaired",
+                    "Paired"
+                ]
+            },
+            "group": "Analysis Options"
+        },
+        {
+            "key": "subject_matching",
+            "name": "Subject Matching",
+            "required": false,
+            "description": "How to match subjects when pairing is enabled.",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "default": "order",
+                "choices": [
+                    "order",
+                    "filename"
+                ],
+                "display_options": [
+                    "Input order",
+                    "Filename"
+                ]
+            },
+            "group": "Analysis Options"
         },
         {
             "key": "multiple_correction",
@@ -170,18 +252,16 @@
                 "default": "bonf",
                 "choices": [
                     "bonf",
-                    "fdr",
                     "fdr_bh",
                     "none"
                 ],
                 "display_options": [
                     "Bonferroni",
-                    "False Discovery Rate (FDR)",
                     "Benjamini-Hochberg FDR",
                     "None"
                 ]
             },
-            "group": ""
+            "group": "Statistical Parameters"
         },
         {
             "key": "effect_size",
@@ -210,60 +290,54 @@
                     "Common Language Effect Size"
                 ]
             },
-            "group": ""
+            "group": "Statistical Parameters"
         }
     ],
     "results": [
         {
-            "key": "group_1_combined_data",
-            "name": "Group 1 Combined Trace & Event Data",
-            "description": "Combined trace and event rate data for group 1 recordings",
+            "key": "activity_group_comparison",
+            "name": "Activity Group Comparison",
+            "description": "Combined neural activity tables per group.",
             "file_patterns": [
-                "group_1_combined_data/**/*"
+                "group*_combined_activity_data/**/*"
             ]
         },
         {
-            "key": "group_1_correlation_data",
-            "name": "Group 1 Combined Correlation Data",
-            "description": "Combined correlation data for group 1 recordings",
+            "key": "correlation_group_comparison",
+            "name": "Correlation Group Comparison",
+            "description": "Combined per-cell correlation tables per group.",
             "file_patterns": [
-                "group_1_correlation_data/**/*"
+                "group*_combined_trace_correlation_data/**/*"
             ]
         },
         {
-            "key": "group_2_combined_data",
-            "name": "Group 2 Combined Trace & Event Data",
-            "description": "Combined trace and event rate data for the group 2 recordings",
+            "key": "modulation_group_comparison",
+            "name": "Modulation Group Comparison",
+            "description": "Combined modulation vs baseline tables per group.",
             "file_patterns": [
-                "group_2_combined_data/**/*"
+                "group*_combined_modulation_data/**/*"
             ]
         },
         {
-            "key": "group_2_correlation_data",
-            "name": "Group 2 Correlation Data",
-            "description": "Combined correlation data for group 2 recordings",
+            "key": "summary_statistics",
+            "name": "Summary Statistics",
+            "description": "ANOVA-style statistics and pairwise comparisons for trace and event measures.",
             "file_patterns": [
-                "group_2_correlation_data/**/*"
+                "trace_aov_comparisons/**/*",
+                "trace_pairwise_comparisons/**/*",
+                "event_aov_comparisons/**/*",
+                "event_pairwise_comparisons/**/*"
             ]
         },
         {
-            "key": "ANOVA_results",
-            "name": "Anova Comparisons",
-            "description": "ANOVA comparisons for each group and for both groups combined",
+            "key": "lmm_analysis_results",
+            "name": "Linear Mixed Model Results",
+            "description": "Linear mixed model summaries and pairwise comparisons (generated when save_lmm_outputs=true).",
             "file_patterns": [
-                "*anova*",
-                "*_Activity_comparison.svg",
-                "*_correlation_data_comparison.svg"
-            ]
-        },
-        {
-            "key": "pairwise_results",
-            "name": "Pairwise Comparisons",
-            "description": "Pairwise comparisons for each group and for both groups combined",
-            "file_patterns": [
-                "*pairwise*",
-                "*_Activity_comparison.svg",
-                "*_correlation_data_comparison.svg"
+                "trace_lmm_comparisons/**/*",
+                "trace_lmm_pairwise_comparisons/**/*",
+                "event_lmm_comparisons/**/*",
+                "event_lmm_pairwise_comparisons/**/*"
             ]
         }
     ],
@@ -274,7 +348,7 @@
     },
     "description": "Statistically compare neural activity across epochs between two different groups",
     "visibility": "public",
-    "version": "2.0.4",
+    "version": "3.0.0",
     "docs": "https://inscopix.github.io/ideas-docs/tools/epochs/comb_comp_epochs__run_cc_epochs/comb_comp_epochs__run_cc_epochs.html",
     "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis",
     "tags": [
