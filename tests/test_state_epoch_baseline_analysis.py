@@ -4711,6 +4711,14 @@ class TestModulationFootprintVisualizationFix:
             "activity_modulation": {
                 ("state1", "epoch1"): {
                     "modulation_index": np.array(
+                        [0.0, 0.0, 0.0, 0.0, 0.0]
+                    ),  # Baseline should be 0
+                    "p_values": np.array([1.0, 1.0, 1.0, 1.0, 1.0]),
+                    "significant": np.array([False, False, False, False, False]),
+                    "mean_activity": np.array([1.0, 1.0, 1.0, 1.0, 1.0]),
+                },
+                ("state2", "epoch1"): {
+                    "modulation_index": np.array(
                         [0.8, -0.6, 0.1, -0.7, 0.9]
                     ),  # Large changes
                     "p_values": np.array(
