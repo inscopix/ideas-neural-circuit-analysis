@@ -5,6 +5,7 @@ analysis results from state-epoch baseline analysis.
 """
 
 import logging
+import warnings
 
 import numpy as np
 from beartype import beartype
@@ -118,7 +119,14 @@ def _calculate_correlation_metrics(
 
     try:
         # Use existing correlation computation logic
-        correlation_matrix = measures.correlation_matrix(traces, fill_diagonal=0.0)
+        # Suppress numpy warnings for constant data (zero stddev produces NaN correlations)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message="invalid value encountered in divide",
+                category=RuntimeWarning,
+            )
+            correlation_matrix = measures.correlation_matrix(traces, fill_diagonal=0.0)
 
         # Compute statistics using shared function
         stats = _compute_correlation_statistics(correlation_matrix, strong_threshold)
@@ -220,9 +228,16 @@ def _calculate_event_metrics(
 
                 # Use existing correlation computation logic
                 # Note: Cells with no events will produce NaN correlations
-                event_correlation_matrix = measures.correlation_matrix(
-                    events_float, fill_diagonal=0.0
-                )
+                # Suppress numpy warnings for constant data (zero stddev produces NaN)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        message="invalid value encountered in divide",
+                        category=RuntimeWarning,
+                    )
+                    event_correlation_matrix = measures.correlation_matrix(
+                        events_float, fill_diagonal=0.0
+                    )
 
                 # Compute statistics using shared function
                 event_corr_stats = _compute_correlation_statistics(

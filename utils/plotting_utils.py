@@ -203,6 +203,7 @@ def create_dual_panel_plot_with_epoch_overlays(
         max_size_mb=10,
         pad_inches=0.3,
     )
+    plt.close(fig)
 
 
 def plot_traces_bottom_panel(ax, traces, period: float, **kwargs) -> None:

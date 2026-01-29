@@ -1,5 +1,4 @@
 import json
-import math
 import os
 from collections import OrderedDict
 from typing import List
@@ -16,7 +15,6 @@ from ideas.exceptions import IdeasError
 from ideas.tools import outputs
 from ideas.tools.log import get_logger
 from ideas.tools.types import IdeasFile
-from scipy import stats
 
 import utils.config as config
 from analysis.peri_event_workflow import (
@@ -45,7 +43,7 @@ from utils.plots import (
     plot_post_minus_pre_activity_differences_with_cell_map,
     plot_post_minus_pre_per_epoch_bar_chart,
 )
-from utils.stats_utils import perform_paired_pairwise_comparisons
+from utils.stats_utils import perform_paired_pairwise_comparisons, safe_sem
 from utils.utils import (
     _get_cellset_boundaries,
     _parse_string_to_tuples,
@@ -1241,17 +1239,7 @@ def peri_event_population_analysis(
         # - Also compute the standard error of the mean (sem) associated with each timepoint.
         mean_event_window = np.nanmean(event_windows, axis=0, dtype="float32")
 
-        if event_windows.shape[0] > 1:
-            sem_event_window = stats.sem(
-                event_windows,
-                axis=0,
-                nan_policy="omit",
-            ).astype("float32")
-        else:
-            # no SEM to compute if dealing with a single event
-            sem_event_window = np.full_like(
-                mean_event_window, math.nan, dtype="float32"
-            )
+        sem_event_window = safe_sem(event_windows, axis=0)
 
         # Step 2: Construct the null distribution
         # - The null distribution is constructed by shuffling the events a number of times.
@@ -1535,15 +1523,7 @@ def peri_event_single_cell_analysis(
         # cell - this step returns an array with shape (num_timepoints_per_window, num_cells)
         mean_event_windows = np.nanmean(event_windows, axis=0, dtype="float32")
 
-        if event_windows.shape[0] > 1:
-            sem_event_windows = stats.sem(
-                event_windows, axis=0, nan_policy="omit"
-            ).astype("float32")
-        else:
-            # no SEM to compute if dealing with a single event
-            sem_event_windows = np.full_like(
-                mean_event_windows, math.nan, dtype="float32"
-            )
+        sem_event_windows = safe_sem(event_windows, axis=0)
 
         # - Compute mean activity difference between timepoints after the event (post)
         # and timepoints before (pre) the event.
@@ -1628,15 +1608,7 @@ def peri_event_single_cell_analysis(
             mean_up_modulated = np.empty(mean_event_windows.shape[0], dtype="float32")
             mean_up_modulated.fill(np.nan)
         # up modulated SEM
-        if num_cells_up_modulated > 1:
-            sem_up_modulated = stats.sem(
-                mean_event_windows[:, up_modulated_indices],
-                axis=1,
-                nan_policy="omit",
-            ).astype("float32")
-        else:
-            sem_up_modulated = np.empty(mean_event_windows.shape[0], dtype="float32")
-            sem_up_modulated.fill(np.nan)
+        sem_up_modulated = safe_sem(mean_event_windows[:, up_modulated_indices], axis=1)
 
         # down modulated MEAN
         if num_cells_down_modulated > 0:
@@ -1649,15 +1621,9 @@ def peri_event_single_cell_analysis(
             mean_down_modulated = np.empty(mean_event_windows.shape[0], dtype="float32")
             mean_down_modulated.fill(np.nan)
         # down modulated SEM
-        if num_cells_down_modulated > 1:
-            sem_down_modulated = stats.sem(
-                mean_event_windows[:, down_modulated_indices],
-                axis=1,
-                nan_policy="omit",
-            ).astype("float32")
-        else:
-            sem_down_modulated = np.empty(mean_event_windows.shape[0], dtype="float32")
-            sem_down_modulated.fill(np.nan)
+        sem_down_modulated = safe_sem(
+            mean_event_windows[:, down_modulated_indices], axis=1
+        )
 
         # non modulated MEAN
         if num_cells_non_modulated > 0:
@@ -1670,15 +1636,9 @@ def peri_event_single_cell_analysis(
             mean_non_modulated = np.empty(mean_event_windows.shape[0])
             mean_non_modulated.fill(np.nan)
         # non modulated SEM
-        if num_cells_non_modulated > 1:
-            sem_non_modulated = stats.sem(
-                mean_event_windows[:, non_modulated_indices],
-                axis=1,
-                nan_policy="omit",
-            ).astype("float32")
-        else:
-            sem_non_modulated = np.empty(mean_event_windows.shape[0], dtype="float32")
-            sem_non_modulated.fill(np.nan)
+        sem_non_modulated = safe_sem(
+            mean_event_windows[:, non_modulated_indices], axis=1
+        )
 
         # compute stats for each modulation group
         # up-modulated

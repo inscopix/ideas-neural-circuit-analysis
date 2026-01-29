@@ -98,8 +98,10 @@ def _check_model_assumptions(model_result, data, dv_column):
         if model_result is None or not hasattr(model_result, "resid"):
             return diagnostics
 
-        residuals = model_result.resid
+        residuals = np.asarray(model_result.resid)
         if len(residuals) < 3:
+            return diagnostics
+        if np.ptp(residuals) == 0:
             return diagnostics
 
         if len(residuals) <= 5000:

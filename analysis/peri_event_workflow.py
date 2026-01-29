@@ -3,6 +3,7 @@ import math
 import os
 import pathlib
 import shutil
+import warnings
 from collections import OrderedDict
 from typing import List, Optional
 
@@ -153,7 +154,12 @@ def extract_mean_event_windows_per_event_shuffle(
 
         # compute the mean event window of the current shuffle by averaging
         # all event windows across time
-        event_windows[i] = np.nanmean(shuffle_event_windows, axis=0, dtype="float32")
+        if shuffle_event_windows.size == 0:
+            event_windows[i] = np.full(event_windows[i].shape, np.nan, dtype="float32")
+        else:
+            event_windows[i] = np.nanmean(
+                shuffle_event_windows, axis=0, dtype="float32"
+            )
         del shuffle_event_windows
 
     return event_windows
@@ -172,19 +178,32 @@ def compute_post_minus_pre(event_windows, pre_event_indices, post_event_indices)
 
     :return: average post- minus pre-event activity for the given event windows
     """
-    if event_windows.ndim == 1:
-        post_minus_pre = np.nanmean(
-            event_windows[post_event_indices], dtype="float32"
-        ) - np.nanmean(event_windows[pre_event_indices], dtype="float32")
-    elif event_windows.ndim == 2:
-        post_minus_pre = np.nanmean(
-            event_windows[post_event_indices], axis=0, dtype="float32"
-        ) - np.nanmean(event_windows[pre_event_indices], axis=0, dtype="float32")
-    else:
+    if event_windows.ndim not in (1, 2):
         raise IdeasError(
             "Post minus pre event activity difference can only be computed "
             "from a one- or two-dimensional array of event windows.",
         )
+    if (
+        event_windows.size == 0
+        or len(pre_event_indices) == 0
+        or len(post_event_indices) == 0
+    ):
+        if event_windows.ndim == 2:
+            return np.full(event_windows.shape[1], np.nan, dtype="float32")
+        return np.float32(np.nan)
+    # Suppress "Mean of empty slice" warnings for all-NaN data (expected behavior)
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", message="Mean of empty slice", category=RuntimeWarning
+        )
+        if event_windows.ndim == 1:
+            post_minus_pre = np.nanmean(
+                event_windows[post_event_indices], dtype="float32"
+            ) - np.nanmean(event_windows[pre_event_indices], dtype="float32")
+        else:
+            post_minus_pre = np.nanmean(
+                event_windows[post_event_indices], axis=0, dtype="float32"
+            ) - np.nanmean(event_windows[pre_event_indices], axis=0, dtype="float32")
     return post_minus_pre
 
 
@@ -358,7 +377,12 @@ def compute_statistical_metrics(
     # zscore
     null_dist_mus = np.nanmean(null_dist, axis=0, dtype="float32")
     null_dist_stds = np.nanstd(null_dist, axis=0, dtype="float32")
-    zscores = (true_dist - null_dist_mus) / null_dist_stds
+    zscores = np.divide(
+        true_dist - null_dist_mus,
+        null_dist_stds,
+        out=np.full_like(true_dist, np.nan, dtype="float32"),
+        where=np.isfinite(null_dist_stds) & (null_dist_stds != 0),
+    )
 
     for i in range(true_dist.shape[0]):
         # estimate p-values by comparing to null dist

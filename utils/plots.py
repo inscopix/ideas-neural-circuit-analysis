@@ -28,6 +28,13 @@ from utils.utils import (
 
 logger = logging.getLogger(__name__)
 
+# Suppress matplotlib's pending deprecation warning triggered by seaborn boxplots.
+warnings.filterwarnings(
+    "ignore",
+    message="vert: bool will be deprecated in a future version.*",
+    category=PendingDeprecationWarning,
+)
+
 # Consistent font settings
 TITLE_FONT = {"fontsize": 13}
 SUPTITLE_FONT = {"fontsize": 14}
@@ -2296,6 +2303,7 @@ def _plot_population_average(
     ax_box.tick_params(axis="x", pad=10)
 
     fig.savefig(filename, dpi=300, transparent=True, bbox_inches="tight")
+    plt.close(fig)
 
     return df
 
@@ -2932,7 +2940,11 @@ def plot_post_minus_pre_per_epoch_bar_chart(data, epoch_data, output_filename):
 
         post_minus_pre_dist = data[epoch_name]["cell"]["true_mean_post-pre"]
         post_mins_pre_mean = np.nanmean(post_minus_pre_dist)
-        post_mins_pre_sem = stats.sem(post_minus_pre_dist, nan_policy="omit")
+        finite_mask = np.isfinite(post_minus_pre_dist)
+        if np.sum(finite_mask) < 2:
+            post_mins_pre_sem = np.nan
+        else:
+            post_mins_pre_sem = stats.sem(post_minus_pre_dist, nan_policy="omit")
 
         post_minus_pre_means.append(post_mins_pre_mean)
         post_minus_pre_sems.append(post_mins_pre_sem)

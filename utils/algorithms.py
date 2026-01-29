@@ -174,7 +174,14 @@ def _calculate_correlation(
             )
             continue
 
-        mtx = measures.correlation_matrix(epoch_data, fill_diagonal=0.0)
+        # Suppress warnings for constant data (zero stddev produces NaN correlations)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message="invalid value encountered in divide",
+                category=RuntimeWarning,
+            )
+            mtx = measures.correlation_matrix(epoch_data, fill_diagonal=0.0)
         correlation_mtx[epoch_names[idx]] = mtx
 
         # check for nans in the correlation matrix
