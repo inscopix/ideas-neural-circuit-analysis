@@ -74,6 +74,7 @@ from ideas.tools.types import IdeasFile
 from matplotlib import colormaps
 from matplotlib.colors import to_hex
 
+from utils.comparison_filters import _filter_self_comparisons
 from utils.config import EPOCH_ONLY_DUMMY_STATE
 from utils.population_data_validation import (
     validate_file_group,
@@ -523,7 +524,7 @@ def combine_compare_state_epoch_data(
         )
     elif comparison_dimension == "epochs":
         logger.info(
-            "Analysis mode: Comparing across EPOCHS."
+            "Analysis mode: Comparing across EPOCHS (states analyzed separately when present)."
         )
 
     if data_pairing == "paired" and not group2_activity_csv_files:
@@ -3235,6 +3236,15 @@ def _perform_statistical_comparison_csv(
             lmm_pairwise_df = pd.concat(all_lmm_pairwise_dfs, ignore_index=True)
         else:
             lmm_pairwise_df = pd.DataFrame()
+
+        if not pairwise_df.empty:
+            pairwise_df = _filter_self_comparisons(
+                pairwise_df, context="statistical comparison"
+            )
+        if not lmm_pairwise_df.empty:
+            lmm_pairwise_df = _filter_self_comparisons(
+                lmm_pairwise_df, context="LMM comparison"
+            )
 
         # Add analysis parameters to the dataframes for comprehensive CSV output
         # (consistent with combine_compare_population_data and combine_compare_correlation_data)

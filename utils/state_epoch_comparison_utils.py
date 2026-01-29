@@ -38,6 +38,7 @@ from utils.combine_compare_population_data_utils import (
     _choose_model_type,
     _fit_simple_poisson_glmm,
 )
+from utils.comparison_filters import _filter_self_comparisons
 from utils.statistical_formatting import (
     _add_pairing_columns,
     _finalize_statistical_output,
@@ -1455,6 +1456,9 @@ def _perform_pairwise_tests(
         pairwise_result = _format_interaction_comparisons(
             pairwise_result, comparison_col
         )
+
+        # Drop redundant self-comparisons (e.g., baseline vs baseline).
+        pairwise_result = _filter_self_comparisons(pairwise_result, context=context)
 
         # Add context and standardize columns
         pairwise_result["Context"] = context
