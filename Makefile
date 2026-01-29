@@ -1,6 +1,5 @@
-.PHONY:  clean build test venv
+.PHONY:  clean clean-venv venv set-hooks setup build test ruff ruff-check run run-all
 
-REPO_NAME=neural-circuit-analysis
 IMAGE_REPO=platform
 IMAGE_NAME=neural-analysis
 LABEL=$(shell cat .ideas/images_spec.json | jq -r ".[0].label")
@@ -13,16 +12,7 @@ endif
 
 # Define envs for virtualenv
 ROOT_DIR := $(shell dirname $(shell readlink -f $(firstword $(MAKEFILE_LIST))))
-VENV = $(ROOT_DIR)/venv
-
-# Detect OS to know how to call python in venv
-ifeq ($(OS), Windows_NT)
-	PYTHON = $(VENV)/Scripts/python
-	PRECOMMIT = $(VENV)/Scripts/pre-commit
-else
-	PYTHON = $(VENV)/bin/python
-	PRECOMMIT = $(VENV)/bin/pre-commit
-endif
+VENV = $(ROOT_DIR)/.venv
 
 # Update the tool specs whenever a new version of a container image is created
 TOOL_SPECS=${shell ls -d .ideas/*/tool_spec.json}
@@ -35,18 +25,18 @@ clean:
 	-docker rmi ${IMAGE_TAG}-test
 
 clean-venv:
-	rm -rf venv .venv
+	rm -rf $(VENV)
 
-venv: venv/touchfile
+venv: .venv/touchfile
 
-venv/touchfile: pyproject.toml uv.lock
-	test -d $(VENV) || uv venv && ln -sf .venv $(VENV)
+.venv/touchfile: pyproject.toml
+	test -d $(VENV) || uv venv
 	uv sync --no-install-project --only-group dev
 	touch $(VENV)/touchfile
 
 set-hooks: venv .pre-commit-config.yaml
 	@echo "Installing pre-commit hooks"
-	$(PRECOMMIT) install
+	uv run pre-commit install
 
 setup: venv set-hooks
 
@@ -75,16 +65,16 @@ test: build
 # Applies linter on source code
 ruff: venv
 	@echo "Running ruff..."
-	$(PYTHON) -m ruff format . $(ARGS)
-	$(PYTHON) -m ruff check --fix . $(ARGS)
+	uv run ruff format . $(ARGS)
+	uv run ruff check --fix . $(ARGS)
 
 # Checks code formatting of source code
 # Used in automated pr checks on github
 # Does not actually apply any linter changes on the source code,
 ruff-check: venv
 	@echo "Running lint..."
-	$(PYTHON) -m ruff format --check . $(ARGS)
-	$(PYTHON) -m ruff check --no-fix . $(ARGS)
+	uv run ruff format --check . $(ARGS)
+	uv run ruff check --no-fix . $(ARGS)
 
 # Run a tool in the repo
 # Specify the tool key to run
@@ -92,4 +82,4 @@ run: build
 	ideas tools run $(tool) -s -c -n
 
 run-all: build
-	@$(foreach f, $(shell ls -d .ideas/*), ideas tools run -s -c -n $(shell basename $(f));)
+	@$(foreach f, $(shell ls -d .ideas/*/), ideas tools run -s -c -n $(shell basename $(f));)

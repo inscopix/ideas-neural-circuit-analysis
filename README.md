@@ -143,7 +143,7 @@ make build
 Run each tool locally with the following command:
 
 ```bash
-make run
+make run tool=<tool-key>
 ```
 
 To run all tools, for easy testing, run the following command:
