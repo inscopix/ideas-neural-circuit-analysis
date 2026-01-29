@@ -250,7 +250,7 @@
             "name": "Event-Aligned Statistics (Group 1)",
             "description": "Statistics associated with the event-aligned data",
             "file_patterns": [
-                "group1_event_aligned_statistics/***"
+                "group1_event_aligned_statistics/**/*"
             ]
         },
         {
