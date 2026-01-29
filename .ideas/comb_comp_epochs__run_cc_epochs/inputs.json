@@ -1,27 +1,45 @@
 {
-    "group1_traces": [
-        "data/Traces1.csv",
-        "data/Traces2.csv"
+    "group1_activity_csv_files": [
+        "data/test_data/cc_epoch_dummy/group1/group1_subject1_activity_per_epoch_data.csv",
+        "data/test_data/cc_epoch_dummy/group1/group1_subject2_activity_per_epoch_data.csv",
+        "data/test_data/cc_epoch_dummy/group1/group1_subject3_activity_per_epoch_data.csv",
+        "data/test_data/cc_epoch_dummy/group1/group1_subject4_activity_per_epoch_data.csv",
+        "data/test_data/cc_epoch_dummy/group1/group1_subject5_activity_per_epoch_data.csv"
     ],
-    "group2_traces": [
-        "data/Traces3.csv",
-        "data/Traces4.csv"
+    "group1_correlation_csv_files": [
+        "data/test_data/cc_epoch_dummy/group1/group1_subject1_correlations_per_epoch_data.csv",
+        "data/test_data/cc_epoch_dummy/group1/group1_subject2_correlations_per_epoch_data.csv",
+        "data/test_data/cc_epoch_dummy/group1/group1_subject3_correlations_per_epoch_data.csv",
+        "data/test_data/cc_epoch_dummy/group1/group1_subject4_correlations_per_epoch_data.csv",
+        "data/test_data/cc_epoch_dummy/group1/group1_subject5_correlations_per_epoch_data.csv"
     ],
-    "group1_events": [
-        "data/Eventrate1.csv",
-        "data/Eventrate2.csv"
+    "group1_modulation_csv_files": [
+        "data/test_data/cc_epoch_dummy/group1/group1_subject1_modulation_vs_baseline_data.csv",
+        "data/test_data/cc_epoch_dummy/group1/group1_subject2_modulation_vs_baseline_data.csv",
+        "data/test_data/cc_epoch_dummy/group1/group1_subject3_modulation_vs_baseline_data.csv",
+        "data/test_data/cc_epoch_dummy/group1/group1_subject4_modulation_vs_baseline_data.csv",
+        "data/test_data/cc_epoch_dummy/group1/group1_subject5_modulation_vs_baseline_data.csv"
     ],
-    "group2_events": [
-        "data/Eventrate3.csv",
-        "data/Eventrate4.csv"
+    "group2_activity_csv_files": [
+        "data/test_data/cc_epoch_dummy/group2/group2_subject1_activity_per_epoch_data.csv",
+        "data/test_data/cc_epoch_dummy/group2/group2_subject2_activity_per_epoch_data.csv",
+        "data/test_data/cc_epoch_dummy/group2/group2_subject3_activity_per_epoch_data.csv",
+        "data/test_data/cc_epoch_dummy/group2/group2_subject4_activity_per_epoch_data.csv",
+        "data/test_data/cc_epoch_dummy/group2/group2_subject5_activity_per_epoch_data.csv"
     ],
-    "group1_corr": [
-        "data/corr1.npy",
-        "data/corr2.npy"
+    "group2_correlation_csv_files": [
+        "data/test_data/cc_epoch_dummy/group2/group2_subject1_correlations_per_epoch_data.csv",
+        "data/test_data/cc_epoch_dummy/group2/group2_subject2_correlations_per_epoch_data.csv",
+        "data/test_data/cc_epoch_dummy/group2/group2_subject3_correlations_per_epoch_data.csv",
+        "data/test_data/cc_epoch_dummy/group2/group2_subject4_correlations_per_epoch_data.csv",
+        "data/test_data/cc_epoch_dummy/group2/group2_subject5_correlations_per_epoch_data.csv"
     ],
-    "group2_corr": [
-        "data/corr3.npy",
-        "data/corr4.npy"
+    "group2_modulation_csv_files": [
+        "data/test_data/cc_epoch_dummy/group2/group2_subject1_modulation_vs_baseline_data.csv",
+        "data/test_data/cc_epoch_dummy/group2/group2_subject2_modulation_vs_baseline_data.csv",
+        "data/test_data/cc_epoch_dummy/group2/group2_subject3_modulation_vs_baseline_data.csv",
+        "data/test_data/cc_epoch_dummy/group2/group2_subject4_modulation_vs_baseline_data.csv",
+        "data/test_data/cc_epoch_dummy/group2/group2_subject5_modulation_vs_baseline_data.csv"
     ],
     "epoch_names": "early drug, BASELINE, late-Drug",
     "group1_name": "Vehicle",
@@ -30,5 +48,16 @@
     "group1_color": "tab:red",
     "group2_color": "tab:orange",
     "multiple_correction": "bonf",
-    "effect_size": "cohen"
+    "effect_size": "cohen",
+    "measure_source": "trace",
+    "modulation_colors": "red, blue, gray",
+    "data_pairing": "unpaired",
+    "subject_matching": "order",
+    "correlation_statistic": "max",
+    "multiple_correction_scope": "global",
+    "group_comparison_type": "two_tailed",
+    "parametric": "auto",
+    "enable_lmm_analysis": true,
+    "save_lmm_outputs": false,
+    "output_dir": ""
 }
