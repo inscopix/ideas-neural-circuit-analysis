@@ -118,6 +118,32 @@ def _suppress_pingouin_warnings(func: Callable) -> Callable:
                 message="invalid value encountered in subtract",
                 category=RuntimeWarning,
             )
+            warnings.filterwarnings(
+                "ignore",
+                message="invalid value encountered in scalar divide",
+                category=RuntimeWarning,
+            )
+            warnings.filterwarnings(
+                "ignore",
+                message="invalid value encountered in scalar multiply",
+                category=RuntimeWarning,
+            )
+            warnings.filterwarnings(
+                "ignore",
+                message="Degrees of freedom <= 0 for slice",
+                category=RuntimeWarning,
+            )
+            warnings.filterwarnings(
+                "ignore",
+                message="divide by zero encountered in divide",
+                category=RuntimeWarning,
+            )
+            # Suppress scipy shapiro warning for constant/near-constant data
+            warnings.filterwarnings(
+                "ignore",
+                message=".*Input data has range zero.*",
+                category=UserWarning,
+            )
             return func(*args, **kwargs)
 
     return wrapper

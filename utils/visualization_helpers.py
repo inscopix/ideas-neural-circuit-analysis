@@ -6,6 +6,7 @@ in the IDEAS toolbox, including modulation plots, state comparisons, and statist
 
 import logging
 import os
+import warnings
 from typing import Dict, List, Optional
 
 import matplotlib.pyplot as plt
@@ -25,6 +26,12 @@ from utils.statistical_validation import (
 )
 
 logger = logging.getLogger(__name__)
+
+warnings.filterwarnings(
+    "ignore",
+    message="vert: bool will be deprecated in a future version.*",
+    category=PendingDeprecationWarning,
+)
 
 
 def plot_modulation_distribution(
@@ -141,6 +148,7 @@ def plot_modulation_distribution(
             bbox_inches="tight",
             transparent=True,
         )
+        plt.close(fig)
         logger.warning(
             f"No modulation data available for any of the requested states: {states}"
         )
@@ -281,6 +289,7 @@ def plot_modulation_distribution(
         bbox_inches="tight",
         transparent=True,
     )
+    plt.close(fig)
 
 
 def plot_combined_modulation_data(
@@ -445,6 +454,7 @@ def plot_combined_modulation_data(
             bbox_inches="tight",
             transparent=True,
         )
+        plt.close(fig)
 
     except Exception as e:
         logger.error(
@@ -475,6 +485,7 @@ class PlottingHelpers:
             bbox_inches="tight",
             transparent=True,
         )
+        plt.close(fig)
 
     @staticmethod
     def determine_final_states(
@@ -668,6 +679,7 @@ def plot_state_lmm_comparison(
                     + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION,
                 )
                 plt.savefig(placeholder_filename, bbox_inches="tight")
+                plt.close(fig)
             return None
 
         fig, ax = plt.subplots(figsize=(7, 7))
@@ -809,6 +821,7 @@ def plot_state_lmm_comparison(
 
             # Save the plot using the determined save path
             plt.savefig(save_path, bbox_inches="tight")
+            plt.close(fig)
 
         return None
 
@@ -878,6 +891,7 @@ def plot_group_anova_comparison(
                     + config.OUTPUT_PREVIEW_SVG_FILE_EXTENSION,
                 )
                 plt.savefig(placeholder_filename, bbox_inches="tight")
+                plt.close(fig)
             return None
 
         fig, ax = plt.subplots(figsize=(7, 7))
@@ -1051,6 +1065,7 @@ def plot_group_anova_comparison(
 
             # Save the plot using the determined save path
             plt.savefig(save_path, bbox_inches="tight")
+            plt.close(fig)
 
         return None
 
@@ -1684,7 +1699,7 @@ def create_boxplot_preview(
                 bbox_inches="tight",
                 transparent=True,
             )
-            # plt.close(fig)
+            plt.close(fig)
 
             return True
 
@@ -1748,16 +1763,47 @@ def create_cdf_preview(
         try:
             fig, ax = plt.subplots(figsize=(5, 4))
 
-            # Create palette mapping state names to colors
-            palette = [state_color_map.get(s, "gray") for s in filter_state_names]
+            states_present = list(data_df["state"].dropna().unique())
+            plotted_states = []
+            if states_present:
+                if filter_state_names:
+                    filtered_states = [
+                        state for state in filter_state_names if state in states_present
+                    ]
+                    if set(states_present).issubset(set(filter_state_names)):
+                        plotted_states = filtered_states
+                    else:
+                        if filtered_states:
+                            logger.info(
+                                "Skipping filter_state_names to avoid dropping data "
+                                f"for {group_name} {title_prefix}."
+                            )
+                        plotted_states = states_present
+                else:
+                    plotted_states = states_present
 
-            sns.ecdfplot(
-                data=data_df,
-                x=col_name,
-                hue="state",
-                palette=palette,
-                ax=ax,
-            )
+                palette = {
+                    state: state_color_map.get(state, "gray")
+                    for state in plotted_states
+                }
+                sns.ecdfplot(
+                    data=data_df,
+                    x=col_name,
+                    hue="state",
+                    hue_order=plotted_states,
+                    palette=palette,
+                    ax=ax,
+                )
+            else:
+                logger.warning(
+                    f"No valid state values found for {group_name} {title_prefix}. "
+                    "Plotting without hue."
+                )
+                sns.ecdfplot(
+                    data=data_df,
+                    x=col_name,
+                    ax=ax,
+                )
 
             # Clean up the plot
             ax.spines["top"].set_visible(False)
@@ -1770,7 +1816,7 @@ def create_cdf_preview(
             )
 
             # Rotate x-axis labels if needed
-            if len(filter_state_names) > 3:
+            if len(plotted_states) > 3:
                 ax.tick_params(axis="x", rotation=45)
 
             fig.tight_layout()

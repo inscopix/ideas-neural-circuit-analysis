@@ -2,10 +2,78 @@ import logging
 import warnings
 from typing import List
 
+import numpy as np
 import pingouin as pg
 from scipy import stats
 
+from utils.statistical_validation import _suppress_pingouin_warnings
+
 logger = logging.getLogger()
+
+
+def safe_nanmean(data, axis=0):
+    """Compute nanmean without warnings for empty/NaN slices.
+
+    This function safely computes the mean of an array while ignoring NaN values,
+    handling edge cases like empty arrays or all-NaN slices without raising warnings.
+
+    :param data: Input array-like data
+    :param axis: Axis along which to compute the mean (default: 0)
+    :return: Array of means with float32 dtype, NaN where no valid data exists
+    """
+    data = np.asarray(data)
+    if data.size == 0:
+        out_shape = tuple(dim for i, dim in enumerate(data.shape) if i != axis)
+        return np.full(out_shape, np.nan, dtype="float32")
+
+    finite_count = np.sum(np.isfinite(data), axis=axis)
+    out_shape = tuple(dim for i, dim in enumerate(data.shape) if i != axis)
+    total = np.nansum(data, axis=axis, dtype="float32")
+    mean = np.divide(
+        total,
+        finite_count,
+        out=np.full(out_shape, np.nan, dtype="float32"),
+        where=finite_count > 0,
+    )
+    return mean.astype("float32")
+
+
+def safe_sem(data, axis=0):
+    """Compute standard error of the mean without small-sample warnings.
+
+    This function safely computes SEM while handling edge cases like empty arrays,
+    all-NaN slices, or samples with fewer than 2 finite values without raising warnings.
+
+    :param data: Input array-like data
+    :param axis: Axis along which to compute SEM (default: 0)
+    :return: Array of SEM values with float32 dtype, NaN where insufficient data exists
+    """
+    data = np.asarray(data)
+    if data.size == 0:
+        out_shape = tuple(dim for i, dim in enumerate(data.shape) if i != axis)
+        return np.full(out_shape, np.nan, dtype="float32")
+
+    finite_count = np.sum(np.isfinite(data), axis=axis)
+    out_shape = tuple(dim for i, dim in enumerate(data.shape) if i != axis)
+    mean = safe_nanmean(data, axis=axis)
+    diff = data - np.expand_dims(mean, axis=axis)
+    diff = np.where(np.isfinite(diff), diff, 0.0)
+    sum_sq = np.sum(diff**2, axis=axis, dtype="float32")
+    var = np.divide(
+        sum_sq,
+        finite_count - 1,
+        out=np.full(out_shape, np.nan, dtype="float32"),
+        where=finite_count > 1,
+    )
+    sem = np.sqrt(
+        np.divide(
+            var,
+            finite_count,
+            out=np.full(out_shape, np.nan, dtype="float32"),
+            where=finite_count > 0,
+        )
+    )
+    return sem.astype("float32")
 
 
 def ttest(
@@ -91,6 +159,7 @@ def is_normal(
     return parametric
 
 
+@_suppress_pingouin_warnings
 def statistically_compare_two_groups(
     x, y, comparison_type, data_pairing, parametric, epoch_name
 ):
@@ -153,6 +222,7 @@ def statistically_compare_two_groups(
     return df
 
 
+@_suppress_pingouin_warnings
 def perform_paired_pairwise_comparisons(
     df,
     comparison_type,

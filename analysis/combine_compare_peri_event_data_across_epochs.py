@@ -13,7 +13,6 @@ from ideas.analysis.utils import (
 from ideas.exceptions import IdeasError
 from ideas.tools import log, outputs
 from ideas.tools.types import IdeasFile
-from scipy import stats
 
 import utils.config as config
 from analysis.combine_compare_peri_event_data import (
@@ -39,6 +38,8 @@ from utils.plots import (
 from utils.stats_utils import (
     is_normal,
     perform_paired_pairwise_comparisons,
+    safe_nanmean,
+    safe_sem,
     statistically_compare_two_groups,
 )
 from utils.utils import compute_sampling_rate, remove_unsupported_characters
@@ -244,66 +245,112 @@ def extract_modulation_group_data(
             # average method is recordings
             if up_modulated_traces is not None:
                 # iteratively stacks the means of up modulated cells per recording
+                if len(up_modulated_cell_names) > 0:
+                    up_modulated_mean = safe_nanmean(
+                        traces_df[epoch_name][up_modulated_cell_names],
+                        axis=1,
+                    )
+                else:
+                    up_modulated_mean = np.full(traces_df[epoch_name].shape[0], np.nan)
                 up_modulated_traces = np.column_stack(
                     [
                         up_modulated_traces,
-                        np.nanmean(
-                            traces_df[epoch_name][up_modulated_cell_names],
-                            axis=1,
-                        ),
+                        up_modulated_mean,
                     ]
                 )
             else:
                 # initializes up modulated cells by obtaining the mean in the first recording
-                up_modulated_traces = np.nanmean(
-                    traces_df[epoch_name][up_modulated_cell_names], axis=1
-                )
+                if len(up_modulated_cell_names) > 0:
+                    up_modulated_traces = safe_nanmean(
+                        traces_df[epoch_name][up_modulated_cell_names], axis=1
+                    )
+                else:
+                    up_modulated_traces = np.full(
+                        traces_df[epoch_name].shape[0], np.nan
+                    )
 
             if down_modulated_traces is not None:
                 # iteratively stacks the means of down modulated cells per recording
+                if len(down_modulated_cell_names) > 0:
+                    down_modulated_mean = safe_nanmean(
+                        traces_df[epoch_name][down_modulated_cell_names],
+                        axis=1,
+                    )
+                else:
+                    down_modulated_mean = np.full(
+                        traces_df[epoch_name].shape[0], np.nan
+                    )
                 down_modulated_traces = np.column_stack(
                     [
                         down_modulated_traces,
-                        np.nanmean(
-                            traces_df[epoch_name][down_modulated_cell_names],
-                            axis=1,
-                        ),
+                        down_modulated_mean,
                     ]
                 )
             else:
                 # initializes down modulated cells by obtaining the mean in the first recording
-                down_modulated_traces = np.nanmean(
-                    traces_df[epoch_name][down_modulated_cell_names], axis=1
-                )
+                if len(down_modulated_cell_names) > 0:
+                    down_modulated_traces = safe_nanmean(
+                        traces_df[epoch_name][down_modulated_cell_names], axis=1
+                    )
+                else:
+                    down_modulated_traces = np.full(
+                        traces_df[epoch_name].shape[0], np.nan
+                    )
 
             if non_modulated_traces is not None:
                 # iteratively stacks the means of non modulated cells per recording
+                if len(non_modulated_cell_names) > 0:
+                    non_modulated_mean = safe_nanmean(
+                        traces_df[epoch_name][non_modulated_cell_names],
+                        axis=1,
+                    )
+                else:
+                    non_modulated_mean = np.full(traces_df[epoch_name].shape[0], np.nan)
                 non_modulated_traces = np.column_stack(
                     [
                         non_modulated_traces,
-                        np.nanmean(
-                            traces_df[epoch_name][non_modulated_cell_names],
-                            axis=1,
-                        ),
+                        non_modulated_mean,
                     ]
                 )
             else:
                 # initializes non modulated cells by obtaining the mean in the first recording
-                non_modulated_traces = np.nanmean(
-                    traces_df[epoch_name][non_modulated_cell_names], axis=1
-                )
+                if len(non_modulated_cell_names) > 0:
+                    non_modulated_traces = safe_nanmean(
+                        traces_df[epoch_name][non_modulated_cell_names], axis=1
+                    )
+                else:
+                    non_modulated_traces = np.full(
+                        traces_df[epoch_name].shape[0], np.nan
+                    )
 
     with warnings.catch_warnings():
-        # ignore warnings that may occur when computing the mean or sem of an empty array
-        warnings.simplefilter("ignore", category=RuntimeWarning)
+        # Suppress specific warnings for edge cases in mean/sem computation:
+        # - "Mean of empty slice": occurs when all values are NaN (expected for empty groups)
+        # - "Degrees of freedom <= 0": occurs when < 2 finite values for SEM
+        # - "divide by zero": occurs in SEM calculation with insufficient data
+        warnings.filterwarnings(
+            "ignore",
+            message="Mean of empty slice",
+            category=RuntimeWarning,
+        )
+        warnings.filterwarnings(
+            "ignore",
+            message="Degrees of freedom <= 0 for slice",
+            category=RuntimeWarning,
+        )
+        warnings.filterwarnings(
+            "ignore",
+            message="divide by zero encountered in divide",
+            category=RuntimeWarning,
+        )
 
-        up_modulated_mean = np.nanmean(up_modulated_traces, axis=1)
-        down_modulated_mean = np.nanmean(down_modulated_traces, axis=1)
-        non_modulated_mean = np.nanmean(non_modulated_traces, axis=1)
+        up_modulated_mean = safe_nanmean(up_modulated_traces, axis=1)
+        down_modulated_mean = safe_nanmean(down_modulated_traces, axis=1)
+        non_modulated_mean = safe_nanmean(non_modulated_traces, axis=1)
 
-        up_modulated_sem = stats.sem(up_modulated_traces, axis=1, nan_policy="omit")
-        down_modulated_sem = stats.sem(down_modulated_traces, axis=1, nan_policy="omit")
-        non_modulated_sem = stats.sem(non_modulated_traces, axis=1, nan_policy="omit")
+        up_modulated_sem = safe_sem(up_modulated_traces, axis=1)
+        down_modulated_sem = safe_sem(down_modulated_traces, axis=1)
+        non_modulated_sem = safe_sem(non_modulated_traces, axis=1)
 
     modulated_cells_dict = {
         "up_modulated": {
@@ -866,8 +913,8 @@ def combine_peri_event_data(
 
         # generate population activity data
         if average_method == "neurons":
-            population_mean = np.nanmean(df_traces_epoch, axis=1)
-            population_sem = stats.sem(df_traces_epoch, axis=1, nan_policy="omit")
+            population_mean = safe_nanmean(df_traces_epoch, axis=1)
+            population_sem = safe_sem(df_traces_epoch, axis=1)
         else:
             # drop cell sem columns from all recordings
             simplified_traces_dataframes = [
@@ -885,15 +932,13 @@ def combine_peri_event_data(
             # compute means of cell population data over each recording
             combined_population_means = np.column_stack(
                 [
-                    np.nanmean(traces_df, axis=1)
+                    safe_nanmean(traces_df, axis=1)
                     for traces_df in simplified_traces_dataframes
                 ]
             )
 
-            population_mean = np.nanmean(combined_population_means, axis=1)
-            population_sem = stats.sem(
-                combined_population_means, axis=1, nan_policy="omit"
-            )
+            population_mean = safe_nanmean(combined_population_means, axis=1)
+            population_sem = safe_sem(combined_population_means, axis=1)
 
         with warnings.catch_warnings():
             # ignore performance warnings that may occur when setting multi-level index

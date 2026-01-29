@@ -2,6 +2,7 @@ import json
 import os
 import shutil
 import tempfile
+import warnings
 import zipfile
 from pathlib import Path
 from typing import Literal, Optional, Union
@@ -38,6 +39,12 @@ from utils.utils import (
     _check_states_valid,
     _get_cellset_data,
     save_optimized_svg,
+)
+
+warnings.filterwarnings(
+    "ignore",
+    message="vert: bool will be deprecated in a future version.*",
+    category=PendingDeprecationWarning,
 )
 
 logger = get_logger()
@@ -862,10 +869,17 @@ def _compute_correlation_matrices(
 
     if annotations is None or column_name is None:
         # Compute across all times
-        correlation_matrix["all times"] = measures.correlation_matrix(
-            traces,
-            fill_diagonal=0.0,
-        )
+        # Suppress warnings for constant data (zero stddev produces NaN correlations)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message="invalid value encountered in divide",
+                category=RuntimeWarning,
+            )
+            correlation_matrix["all times"] = measures.correlation_matrix(
+                traces,
+                fill_diagonal=0.0,
+            )
         return correlation_matrix
 
     # at this point we are using annotations,
@@ -901,10 +915,17 @@ but the length of the annotations data is {len(annotations)}"""
                 "Correlation calculation may be unreliable."
             )
 
-        correlation_matrix[state] = measures.correlation_matrix(
-            traces_in_state,
-            fill_diagonal=0.0,
-        )
+        # Suppress warnings for constant data (zero stddev produces NaN correlations)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message="invalid value encountered in divide",
+                category=RuntimeWarning,
+            )
+            correlation_matrix[state] = measures.correlation_matrix(
+                traces_in_state,
+                fill_diagonal=0.0,
+            )
 
     return correlation_matrix
 

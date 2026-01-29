@@ -7,6 +7,7 @@ output files from state-epoch baseline analysis results.
 import json
 import logging
 import os
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -60,6 +61,12 @@ from utils.state_epoch_results import (
     prepare_event_modulation_data,
 )
 from utils.utils import Comp
+
+warnings.filterwarnings(
+    "ignore",
+    message="vert: bool will be deprecated in a future version.*",
+    category=PendingDeprecationWarning,
+)
 
 
 @dataclass
