@@ -2326,40 +2326,30 @@ class StateEpochOutputGenerator:
 
             # Remap keys using canonical identifiers
             modulation_data: Dict[Tuple[str, str], Dict[str, Any]] = {}
+            baseline_key = (self.baseline_state, self.baseline_epoch)
+            baseline_label = self._format_state_epoch_label(
+                self.baseline_state, self.baseline_epoch, "_"
+            )
+            baseline_identifier = self._format_state_epoch_identifier(
+                self.baseline_state, self.baseline_epoch, "_"
+            )
             for key_tuple in modulation_source.keys():
                 if isinstance(key_tuple, tuple):
+                    if key_tuple == baseline_key:
+                        continue
                     state, epoch = key_tuple
                     old_key = f"{state}_{epoch}"
                     if old_key in raw_modulation_data:
                         modulation_data[(state, epoch)] = raw_modulation_data[old_key]
                 else:
                     label = str(key_tuple)
+                    if label in {baseline_label, baseline_identifier}:
+                        continue
                     if label in raw_modulation_data:
                         modulation_data[(label, label)] = raw_modulation_data[label]
 
-            # Add baseline entry with real baseline activity data
-            baseline_key = (self.baseline_state, self.baseline_epoch)
-            if baseline_key not in modulation_data and len(x) > 0:
-                try:
-                    if (
-                        "baseline_mean_activity" in modulation_results
-                        and modulation_results["baseline_mean_activity"] is not None
-                    ):
-                        baseline_activity = modulation_results["baseline_mean_activity"]
-                        # Ensure baseline_activity is an array and get its length safely
-                        baseline_activity = np.atleast_1d(baseline_activity)
-                        activity_size = len(baseline_activity)
-
-                        modulation_data[(self.baseline_state, self.baseline_epoch)] = {
-                            "mean_activity": baseline_activity,
-                            "modulation_scores": np.zeros(activity_size),
-                            "p_val": np.ones(activity_size),
-                            "up_modulated_neurons": np.array([]),
-                            "down_modulated_neurons": np.array([]),
-                        }
-                except Exception as e:
-                    logger.debug(f"Could not create baseline data: {e}")
-                    pass  # Skip if baseline data cannot be retrieved
+            # NOTE: Baseline data is intentionally excluded from modulation plots
+            # to avoid confusion about "modulation in baseline".
 
             if len(modulation_data) >= 1 and len(x) > 0:
                 # Set default filename based on plot type if not provided
@@ -2384,9 +2374,7 @@ class StateEpochOutputGenerator:
                 )
                 baseline_label = key_map.get(
                     baseline_key,
-                    self._format_state_epoch_identifier(
-                        self.baseline_state, self.baseline_epoch, "_"
-                    ),
+                    baseline_label,
                 )
 
                 plot_modulated_neuron_footprints(

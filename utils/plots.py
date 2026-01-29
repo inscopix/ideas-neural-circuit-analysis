@@ -18,6 +18,7 @@ from matplotlib.ticker import FixedFormatter, FixedLocator
 from scipy import stats
 
 from utils import config
+from utils.comparison_filters import _filter_self_comparisons
 from utils.utils import (
     Comp,
     Rescale,
@@ -980,6 +981,24 @@ def _create_one_way_legend(aov, pairwise, ax):
     :Returns
         None
     """
+    if pairwise is None or pairwise.empty:
+        sources = ["ANOVA"]
+        pvals = [aov["p-unc"].values[0]] if "p-unc" in aov else []
+        _format_labels(sources, pvals, ax)
+        return
+    if not all(col in pairwise.columns for col in ["A", "B"]):
+        sources = ["ANOVA"]
+        pvals = [aov["p-unc"].values[0]] if "p-unc" in aov else []
+        _format_labels(sources, pvals, ax)
+        return
+
+    pairwise = _filter_self_comparisons(pairwise, context="one-way legend")
+    if pairwise.empty:
+        sources = ["ANOVA"]
+        pvals = [aov["p-unc"].values[0]] if "p-unc" in aov else []
+        _format_labels(sources, pvals, ax)
+        return
+
     sources = ["ANOVA"]
     A = pairwise["A"].values
     B = pairwise["B"].values
@@ -1032,11 +1051,17 @@ def _format_labels(keys, p_values, ax, limit=0.001):
 
 def _create_pairwise_legend(pairwise, ax):
     """Create a legend for pairwise comparisons on a given axis."""
+    if pairwise is None or pairwise.empty:
+        return
     # Skip if pairwise doesn't contain required columns
     if not all(col in pairwise.columns for col in ["Contrast", "A", "B"]):
         logger.warning(
             "Pairwise comparison data is missing required columns. Skipping legend creation."
         )
+        return
+
+    pairwise = _filter_self_comparisons(pairwise, context="pairwise legend")
+    if pairwise.empty:
         return
 
     contrast = pairwise["Contrast"].values
@@ -2307,7 +2332,10 @@ def plot_modulated_neuron_footprints(
     if method == Comp.PAIRWISE.value:
         num_comparisons = int(len(data) * (len(data) - 1) / 2)
     elif method == Comp.BASELINE.value:
-        num_comparisons = len(data) - 1
+        if baseline_state is None:
+            num_comparisons = len(data)
+        else:
+            num_comparisons = sum(1 for case in data.keys() if case != baseline_state)
     else:
         num_comparisons = len(data)
     fig, axs = plt.subplots(

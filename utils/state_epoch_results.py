@@ -1349,6 +1349,9 @@ def _prepare_modulation_data(
 
     # Process each state-epoch combination
     for state, epoch in results.get_all_combinations():
+        if state == baseline_state and epoch == baseline_epoch:
+            continue
+
         combination_results = results.get_combination_results(state, epoch)
         if combination_results is None:
             continue

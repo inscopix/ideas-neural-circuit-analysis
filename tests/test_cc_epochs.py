@@ -133,6 +133,11 @@ def test_run_cc_epochs_integration(epoch_data_files, tmp_path):
     # Verify pairwise has comparisons
     pairwise_df = pd.read_csv(trace_pairwise_path)
     assert not pairwise_df.empty
+    same_mask = (
+        pairwise_df["A"].astype(str).str.strip()
+        == pairwise_df["B"].astype(str).str.strip()
+    )
+    assert not same_mask.any()
 
 
 def test_run_cc_epochs_missing_modulation_ok(epoch_data_files, tmp_path):

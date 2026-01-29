@@ -13,6 +13,7 @@ from analysis.combine_compare_state_epoch_data import (
     _add_modulation_count_columns,
     _add_modulation_counts_to_statistical_output,
 )
+from utils.comparison_filters import _filter_self_comparisons
 from utils.state_epoch_comparison_utils import _detect_measure_column
 
 
@@ -824,3 +825,96 @@ class TestAddModulationCountsToStatisticalOutput:
             ].iloc[0]
             == 2
         )
+
+
+class TestFilterSelfComparisons:
+    """Tests for the _filter_self_comparisons function."""
+
+    def test_removes_self_comparisons(self):
+        """Test that rows where A == B are filtered out."""
+        df = pd.DataFrame(
+            {
+                "A": ["baseline", "baseline", "active"],
+                "B": ["baseline", "active", "active"],
+                "p-corr": [0.5, 0.01, 0.5],
+            }
+        )
+        result = _filter_self_comparisons(df)
+        assert len(result) == 1
+        assert result.iloc[0]["A"] == "baseline"
+        assert result.iloc[0]["B"] == "active"
+
+    def test_handles_whitespace_differences(self):
+        """Test that whitespace is stripped before comparison."""
+        df = pd.DataFrame(
+            {
+                "A": ["baseline ", " baseline", "active"],
+                "B": [" baseline", "baseline ", "rest"],
+                "p-corr": [0.5, 0.5, 0.01],
+            }
+        )
+        result = _filter_self_comparisons(df)
+        assert len(result) == 1
+        assert result.iloc[0]["A"] == "active"
+
+    def test_returns_empty_df_unchanged(self):
+        """Test that empty DataFrame is returned unchanged."""
+        df = pd.DataFrame(columns=["A", "B", "p-corr"])
+        result = _filter_self_comparisons(df)
+        assert result.empty
+
+    def test_returns_none_unchanged(self):
+        """Test that None is returned unchanged."""
+        result = _filter_self_comparisons(None)
+        assert result is None
+
+    def test_returns_df_without_ab_columns_unchanged(self):
+        """Test that DataFrame without A/B columns is returned unchanged."""
+        df = pd.DataFrame({"X": [1, 2], "Y": [3, 4]})
+        result = _filter_self_comparisons(df)
+        assert len(result) == 2
+
+    def test_handles_na_values(self):
+        """Test that NA values in A or B don't cause false positives."""
+        df = pd.DataFrame(
+            {
+                "A": [None, "baseline", "active"],
+                "B": [None, "active", None],
+                "p-corr": [0.5, 0.01, 0.5],
+            }
+        )
+        result = _filter_self_comparisons(df)
+        # NA values should not be considered as self-comparisons
+        assert len(result) == 3
+
+    def test_context_logging(self, caplog):
+        """Test that context appears in debug logging when self-comparisons found."""
+        import logging
+
+        df = pd.DataFrame(
+            {
+                "A": ["baseline", "active"],
+                "B": ["baseline", "rest"],
+            }
+        )
+        with caplog.at_level(logging.DEBUG):
+            _filter_self_comparisons(df, context="test context")
+        assert any("test context" in record.message for record in caplog.records)
+
+    def test_preserves_other_columns(self):
+        """Test that other columns are preserved after filtering."""
+        df = pd.DataFrame(
+            {
+                "A": ["baseline", "active"],
+                "B": ["baseline", "rest"],
+                "p-corr": [0.5, 0.01],
+                "Contrast": ["epoch", "state"],
+                "extra_col": ["foo", "bar"],
+            }
+        )
+        result = _filter_self_comparisons(df)
+        assert len(result) == 1
+        assert "p-corr" in result.columns
+        assert "Contrast" in result.columns
+        assert "extra_col" in result.columns
+        assert result.iloc[0]["extra_col"] == "bar"

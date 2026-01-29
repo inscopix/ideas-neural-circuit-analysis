@@ -16,6 +16,8 @@ from typing import Dict, List, Optional
 import numpy as np
 import pandas as pd
 
+from utils.comparison_filters import _filter_self_comparisons
+
 logger = logging.getLogger(__name__)
 
 
@@ -206,6 +208,12 @@ def _get_mixed_pairwise_sig(
 
         if filtered_pairwise.empty:
             return "No significant differences"
+
+        filtered_pairwise = _filter_self_comparisons(
+            filtered_pairwise, context="mixed pairwise significance"
+        )
+        if filtered_pairwise.empty:
+            return "No significant differences between states"
 
         # Find p-value column
         p_col = (
