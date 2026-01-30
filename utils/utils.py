@@ -5,6 +5,7 @@ import os
 import warnings
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
 import isx
 import matplotlib.pyplot as plt
@@ -26,6 +27,19 @@ logger = logging.getLogger()
 
 # Define a constant for small values used in division or variance checks
 DIVISION_THRESHOLD = 1e-10
+
+
+def normalize_label(value: Any) -> str:
+    """Normalize a label value for comparison.
+
+    Handles NaN/None values and strips whitespace from strings.
+
+    :param value: The value to normalize (can be any type)
+    :returns: Empty string for NaN/None values, otherwise stripped string representation
+    """
+    if pd.isna(value):
+        return ""
+    return str(value).strip()
 
 
 def get_num_cells_by_status(cellset_filename: str):

@@ -93,6 +93,7 @@ from utils.statistical_formatting import (
     _cleanup_final_csv_columns,
     _finalize_statistical_output,
 )
+from utils.utils import normalize_label
 from utils.visualization_helpers import (
     create_boxplot_preview as _base_create_boxplot_preview,
 )
@@ -3460,6 +3461,21 @@ def _perform_statistical_comparison_csv(
         }
 
 
+def _strip_epoch_only_state_columns(
+    df: Optional[pd.DataFrame],
+    epoch_only_mode: bool,
+) -> Optional[pd.DataFrame]:
+    """Drop state-related columns from epoch-only outputs."""
+    if df is None or df.empty or not epoch_only_mode:
+        return df
+
+    columns_to_drop = [col for col in ("state", "baseline_state") if col in df.columns]
+    if not columns_to_drop:
+        return df
+
+    return df.drop(columns=columns_to_drop)
+
+
 def _generate_combined_outputs_csv(
     group1_data: Dict[str, Any],
     group2_data: Optional[Dict[str, Any]],
@@ -3493,6 +3509,10 @@ def _generate_combined_outputs_csv(
 
     # Ensure output directory exists
     os.makedirs(output_dir, exist_ok=True)
+
+    epoch_only_mode = comparison_dimension == "epochs" and states == [
+        EPOCH_ONLY_DUMMY_STATE
+    ]
 
     group_file_prefixes = _resolve_group_file_prefixes(
         group_names
@@ -3528,6 +3548,9 @@ def _generate_combined_outputs_csv(
 
     # Save Group 1 activity data using result key name (rename rules will handle final naming)
     group1_activity_clean = _cleanup_final_csv_columns(group1_data["activity"], "mixed")
+    group1_activity_clean = _strip_epoch_only_state_columns(
+        group1_activity_clean, epoch_only_mode
+    )
     group1_activity_filename = _group_output_filename(
         group_file_prefixes,
         0,
@@ -3541,6 +3564,9 @@ def _generate_combined_outputs_csv(
     if group1_data["correlation"] is not None:
         group1_correlation_clean = _cleanup_final_csv_columns(
             group1_data["correlation"], "mixed"
+        )
+        group1_correlation_clean = _strip_epoch_only_state_columns(
+            group1_correlation_clean, epoch_only_mode
         )
         group1_correlation_filename = _group_output_filename(
             group_file_prefixes,
@@ -3567,6 +3593,9 @@ def _generate_combined_outputs_csv(
     if group1_data["modulation"] is not None:
         group1_modulation_clean = _cleanup_final_csv_columns(
             group1_data["modulation"], "mixed"
+        )
+        group1_modulation_clean = _strip_epoch_only_state_columns(
+            group1_modulation_clean, epoch_only_mode
         )
         group1_modulation_filename = _group_output_filename(
             group_file_prefixes,
@@ -3595,6 +3624,9 @@ def _generate_combined_outputs_csv(
         group2_activity_clean = _cleanup_final_csv_columns(
             group2_data["activity"], "mixed"
         )
+        group2_activity_clean = _strip_epoch_only_state_columns(
+            group2_activity_clean, epoch_only_mode
+        )
         group2_activity_filename = _group_output_filename(
             group_file_prefixes,
             1,
@@ -3613,6 +3645,9 @@ def _generate_combined_outputs_csv(
         if group2_data["correlation"] is not None:
             group2_correlation_clean = _cleanup_final_csv_columns(
                 group2_data["correlation"], "mixed"
+            )
+            group2_correlation_clean = _strip_epoch_only_state_columns(
+                group2_correlation_clean, epoch_only_mode
             )
             group2_correlation_filename = _group_output_filename(
                 group_file_prefixes,
@@ -3639,6 +3674,9 @@ def _generate_combined_outputs_csv(
         if group2_data["modulation"] is not None:
             group2_modulation_clean = _cleanup_final_csv_columns(
                 group2_data["modulation"], "mixed"
+            )
+            group2_modulation_clean = _strip_epoch_only_state_columns(
+                group2_modulation_clean, epoch_only_mode
             )
             group2_modulation_filename = _group_output_filename(
                 group_file_prefixes,
@@ -3743,6 +3781,8 @@ def _generate_combined_outputs_csv(
         output_dir=output_dir,
         correlation_statistic=correlation_statistic,
         comparison_dimension=comparison_dimension,
+        baseline_state=baseline_state,
+        baseline_epoch=baseline_epoch,
         state_colors=state_colors,
         epoch_colors=epoch_colors,
         modulation_colors=modulation_colors,
@@ -4264,6 +4304,22 @@ def _materialize_modulation_columns(
                 result[pval_column] = pd.to_numeric(
                     result[pval_column], errors="coerce"
                 )
+
+    wide_prefixes = [
+        "trace_modulation_scores in ",
+        "trace_p_values in ",
+        "trace_modulation in ",
+        "event_modulation_scores in ",
+        "event_p_values in ",
+        "event_modulation in ",
+    ]
+    wide_columns = [
+        column
+        for column in result.columns
+        if any(column.startswith(prefix) for prefix in wide_prefixes)
+    ]
+    if wide_columns:
+        result = result.drop(columns=wide_columns)
 
     return result
 
@@ -4952,6 +5008,10 @@ def _generate_modulation_histograms_for_group(
         or group_data["modulation"] is None
         or group_data["modulation"].empty
     ):
+        logger.warning(
+            "No modulation data available for %s",
+            group_label,
+        )
         return
 
     # Use real group names for preview filenames if provided
@@ -4963,6 +5023,9 @@ def _generate_modulation_histograms_for_group(
 
     modulation_df = group_data["modulation"]
     palette = modulation_colors if modulation_colors else ["green", "blue", "black"]
+
+    # Note: Baseline modulation rows are never generated by state_epoch_baseline_analysis
+    # (modulation is always computed relative to baseline, so baseline-vs-baseline is skipped).
 
     for score_column, suffix, data_type in (
         ("trace_modulation_scores", "trace_modulation_distribution.svg", "activity"),
@@ -5016,6 +5079,8 @@ def _generate_per_group_previews(
     output_dir: str,
     correlation_statistic: str,
     comparison_dimension: str,
+    baseline_state: Optional[str] = None,
+    baseline_epoch: Optional[str] = None,
     state_colors: Optional[List[str]] = None,
     epoch_colors: Optional[List[str]] = None,
     modulation_colors: Optional[List[str]] = None,
@@ -5327,11 +5392,6 @@ def _prepare_modulation_distribution_data(
 
     working_df = filtered_df.copy()
 
-    def _normalize_label(value: Any) -> str:
-        if pd.isna(value):
-            return ""
-        return str(value).strip()
-
     use_state_epoch = grouping_mode == "state_epoch"
     if use_state_epoch:
         missing_columns = {"state", "epoch"} - set(working_df.columns)
@@ -5345,8 +5405,8 @@ def _prepare_modulation_distribution_data(
             use_state_epoch = False
 
     if use_state_epoch:
-        state_labels = working_df["state"].apply(_normalize_label)
-        epoch_labels = working_df["epoch"].apply(_normalize_label)
+        state_labels = working_df["state"].apply(normalize_label)
+        epoch_labels = working_df["epoch"].apply(normalize_label)
 
         def _compose_label(state_label: str, epoch_label: str) -> str:
             if state_label and epoch_label:
@@ -5362,7 +5422,7 @@ def _prepare_modulation_distribution_data(
             for state_label, epoch_label in zip(state_labels, epoch_labels)
         ]
     else:
-        working_df["_group_label"] = working_df[grouping_column].apply(_normalize_label)
+        working_df["_group_label"] = working_df[grouping_column].apply(normalize_label)
 
     working_df = working_df[working_df["_group_label"] != ""]
     if working_df.empty:

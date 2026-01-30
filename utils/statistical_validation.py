@@ -407,7 +407,10 @@ def _safe_pairwise_ttests(data: pd.DataFrame, **kwargs) -> Optional[pd.DataFrame
             data, dv, within, between
         )
         if not is_valid:
-            logger.debug(f"_safe_pairwise_ttests: {error_msg}")
+            logger.info(
+                f"Pairwise t-tests validation failed for '{dv}': {error_msg}. "
+                f"Data shape: {data.shape if data is not None else 'None'}"
+            )
             return None
 
         pairwise_kwargs = kwargs.copy()
@@ -454,7 +457,18 @@ def _safe_pairwise_ttests(data: pd.DataFrame, **kwargs) -> Optional[pd.DataFrame
         return result
 
     except Exception as e:
-        logger.debug(f"_safe_pairwise_ttests: Error in pairwise t-tests: {str(e)}")
+        # Log at info level for better visibility of pairwise test failures
+        dv_name = kwargs.get("dv", "unknown")
+        within_name = kwargs.get("within", "unknown")
+        between_name = kwargs.get("between", "none")
+        subject_name = kwargs.get("subject", "unknown")
+        n_rows = len(data) if data is not None else 0
+        logger.info(
+            f"Pairwise t-tests for '{dv_name}' could not be computed. "
+            f"within='{within_name}', between='{between_name}', subject='{subject_name}', "
+            f"n_rows={n_rows}. Error: {str(e)}"
+        )
+        logger.debug(f"_safe_pairwise_ttests: Full error details: {str(e)}")
         return None
 
 
