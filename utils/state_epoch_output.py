@@ -789,7 +789,10 @@ class StateEpochOutputGenerator:
         )
 
         for state, epoch in all_state_epoch_keys:
-            combo_label = self._format_state_epoch_label(state, epoch, "-")
+            if self.epoch_only_mode:
+                combo_label = self._format_state_epoch_identifier(state, epoch, "-")
+            else:
+                combo_label = self._format_state_epoch_label(state, epoch, "-")
             # Get trace modulation data
             trace_mod_data = activity_modulation.get((state, epoch), {})
             trace_modulation_index = trace_mod_data.get("modulation_index", [])
@@ -895,7 +898,7 @@ class StateEpochOutputGenerator:
                     f"event_modulation in {combo_label}": event_modulation_categorical,
                 }
 
-                if not self.hide_state_prefix:
+                if not self.hide_state_prefix or self.epoch_only_mode:
                     row["state"] = state
                     row["baseline_state"] = self.baseline_state
                 data_rows.append(row)
@@ -2313,8 +2316,27 @@ class StateEpochOutputGenerator:
         try:
             logger.info(f"Creating {title}")
 
+            # Set default filename based on plot type if not provided
+            if filename is None:
+                if plot_type == "footprint":
+                    filename = TRACE_MODULATION_FOOTPRINT_PREVIEW
+                elif plot_type == "histogram":
+                    filename = TRACE_MODULATION_HISTOGRAM_PREVIEW
+                else:
+                    filename = f"modulation_{plot_type}_preview.svg"
+
             # Load and filter cell contours using helper
-            x, y = load_and_filter_cell_contours(cell_info)
+            try:
+                x, y = load_and_filter_cell_contours(cell_info)
+            except Exception as e:
+                logger.warning(f"Could not get cell contours for {title}: {e}")
+                self._create_placeholder_preview(
+                    filename,
+                    title,
+                    "Modulation footprint preview unavailable because cell contours "
+                    "were not provided.",
+                )
+                return
 
             # Get modulation source data
             if "activity_modulation" in modulation_results:
@@ -2331,42 +2353,37 @@ class StateEpochOutputGenerator:
                 modulation_source, len(x), alpha=self.alpha
             )
 
-            # Remap keys using canonical identifiers
+            # Remap keys using canonical identifiers, excluding baseline
+            # NOTE: Baseline data is intentionally excluded from modulation plots
+            # to avoid confusion about "modulation in baseline".
             modulation_data: Dict[Tuple[str, str], Dict[str, Any]] = {}
-            baseline_key = (self.baseline_state, self.baseline_epoch)
-            baseline_label = self._format_state_epoch_label(
-                self.baseline_state, self.baseline_epoch, "_"
-            )
-            baseline_identifier = self._format_state_epoch_identifier(
-                self.baseline_state, self.baseline_epoch, "_"
-            )
+
+            def is_baseline(state: str, epoch: str) -> bool:
+                """Check if state/epoch combination represents the baseline."""
+                return state == self.baseline_state and epoch == self.baseline_epoch
+
             for key_tuple in modulation_source.keys():
                 if isinstance(key_tuple, tuple):
-                    if key_tuple == baseline_key:
-                        continue
                     state, epoch = key_tuple
+                    if is_baseline(state, epoch):
+                        continue
                     old_key = f"{state}_{epoch}"
                     if old_key in raw_modulation_data:
                         modulation_data[(state, epoch)] = raw_modulation_data[old_key]
                 else:
                     label = str(key_tuple)
+                    baseline_label = self._format_state_epoch_label(
+                        self.baseline_state, self.baseline_epoch, "_"
+                    )
+                    baseline_identifier = self._format_state_epoch_identifier(
+                        self.baseline_state, self.baseline_epoch, "_"
+                    )
                     if label in {baseline_label, baseline_identifier}:
                         continue
                     if label in raw_modulation_data:
                         modulation_data[(label, label)] = raw_modulation_data[label]
 
-            # NOTE: Baseline data is intentionally excluded from modulation plots
-            # to avoid confusion about "modulation in baseline".
-
             if len(modulation_data) >= 1 and len(x) > 0:
-                # Set default filename based on plot type if not provided
-                if filename is None:
-                    if plot_type == "footprint":
-                        filename = TRACE_MODULATION_FOOTPRINT_PREVIEW
-                    elif plot_type == "histogram":
-                        filename = TRACE_MODULATION_HISTOGRAM_PREVIEW
-                    else:
-                        filename = f"modulation_{plot_type}_preview.svg"
                 output_path = self._get_output_path(filename)
 
                 # Set modulation colors using color scheme
@@ -2379,9 +2396,12 @@ class StateEpochOutputGenerator:
                 plot_ready_data, key_map = self._remap_combination_dict_for_display(
                     modulation_data
                 )
+                baseline_key = (self.baseline_state, self.baseline_epoch)
                 baseline_label = key_map.get(
                     baseline_key,
-                    baseline_label,
+                    self._format_state_epoch_label(
+                        self.baseline_state, self.baseline_epoch, "_"
+                    ),
                 )
 
                 plot_modulated_neuron_footprints(
@@ -2399,6 +2419,12 @@ class StateEpochOutputGenerator:
                 logger.info(f"Created {title}: {output_path}")
             else:
                 logger.warning(f"No modulation data available for {title}")
+                self._create_placeholder_preview(
+                    filename,
+                    title,
+                    "Modulation footprint preview unavailable because modulation "
+                    "data was not generated for the selected combinations.",
+                )
 
         except Exception as e:
             logger.warning(f"Could not create {title}: {e}")
@@ -2670,10 +2696,13 @@ class StateEpochOutputGenerator:
                 alpha=self.alpha,
             )
 
-            # Remap keys
+            # Remap keys, explicitly excluding baseline
             event_data: Dict[Tuple[str, str], Dict[str, Any]] = {}
             if raw_event_data:
                 for state, epoch in results.get_all_combinations():
+                    # Skip baseline combination
+                    if state == self.baseline_state and epoch == self.baseline_epoch:
+                        continue
                     old_key = f"{state}_{epoch}"
                     if old_key in raw_event_data:
                         event_data[(state, epoch)] = raw_event_data[old_key]
@@ -2683,7 +2712,7 @@ class StateEpochOutputGenerator:
             ):
                 return
 
-            # event_data already prepared by helper; proceed to plotting
+            # event_data prepared with baseline excluded; proceed to plotting
 
             # Load and filter cell contours using helper
             try:
@@ -2691,6 +2720,12 @@ class StateEpochOutputGenerator:
 
             except Exception as e:
                 logger.warning(f"Could not get cell contours: {e}")
+                self._create_placeholder_preview(
+                    filename,
+                    f"Event {plot_type} modulation preview",
+                    "Event modulation footprint preview unavailable because cell "
+                    "contours were not provided.",
+                )
                 return
 
             # Use population activity tool's function
@@ -2705,7 +2740,7 @@ class StateEpochOutputGenerator:
             )
             baseline_label = key_map.get(
                 (self.baseline_state, self.baseline_epoch),
-                self._format_state_epoch_identifier(
+                self._format_state_epoch_label(
                     self.baseline_state, self.baseline_epoch, "_"
                 ),
             )

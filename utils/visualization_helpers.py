@@ -1689,6 +1689,10 @@ def create_boxplot_preview(
             if len(filter_state_names) > 3:
                 ax.tick_params(axis="x", rotation=45)
 
+            # Update legend title to match dimension label
+            if ax.get_legend():
+                ax.get_legend().set_title(axis_label)
+
             fig.tight_layout()
 
             # Save to the provided filename
@@ -1818,6 +1822,10 @@ def create_cdf_preview(
             # Rotate x-axis labels if needed
             if len(plotted_states) > 3:
                 ax.tick_params(axis="x", rotation=45)
+
+            # Update legend title to match dimension label
+            if ax.get_legend():
+                ax.get_legend().set_title(axis_label)
 
             fig.tight_layout()
 
