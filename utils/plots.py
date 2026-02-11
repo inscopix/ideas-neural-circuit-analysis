@@ -28,14 +28,9 @@ from utils.utils import (
 
 logger = logging.getLogger(__name__)
 
-# Suppress matplotlib's pending deprecation warning triggered by seaborn boxplots.
-warnings.filterwarnings(
-    "ignore",
-    message="vert: bool will be deprecated in a future version.*",
-    category=PendingDeprecationWarning,
-)
 
 # Consistent font settings
+
 TITLE_FONT = {"fontsize": 13}
 SUPTITLE_FONT = {"fontsize": 14}
 LABEL_FONT = {"fontsize": 12}

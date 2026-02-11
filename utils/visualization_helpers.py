@@ -6,7 +6,6 @@ in the IDEAS toolbox, including modulation plots, state comparisons, and statist
 
 import logging
 import os
-import warnings
 from typing import Dict, List, Optional
 
 import matplotlib.pyplot as plt
@@ -26,12 +25,6 @@ from utils.statistical_validation import (
 )
 
 logger = logging.getLogger(__name__)
-
-warnings.filterwarnings(
-    "ignore",
-    message="vert: bool will be deprecated in a future version.*",
-    category=PendingDeprecationWarning,
-)
 
 
 def plot_modulation_distribution(

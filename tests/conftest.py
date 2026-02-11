@@ -7,26 +7,11 @@ including file cleanup, directory management, and plot cleanup.
 import os
 import shutil
 import tempfile
-import warnings
 from typing import List, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
 import pytest
-
-warnings.filterwarnings(
-    "ignore",
-    message="vert: bool will be deprecated in a future version.*",
-    category=PendingDeprecationWarning,
-)
-
-
-def pytest_configure(config):
-    warnings.filterwarnings(
-        "ignore",
-        message="vert: bool will be deprecated in a future version.*",
-        category=PendingDeprecationWarning,
-    )
 
 
 @pytest.fixture
