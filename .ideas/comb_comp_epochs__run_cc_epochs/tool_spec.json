@@ -8,7 +8,7 @@
     },
     "command": {
         "file_path": "analysis/comb_comp_epochs.py",
-        "entry_point": "run_cc_epochs_ideas_wrapper",
+        "entry_point": "run_cc_epochs",
         "program_type": "PYTHON"
     },
     "params": [
