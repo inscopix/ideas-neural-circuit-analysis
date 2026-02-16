@@ -1,5 +1,5 @@
 # Create base image to run analysis
-FROM public.ecr.aws/docker/library/python:3.13.11 AS base
+FROM public.ecr.aws/docker/library/python:3.13.12 AS base
 
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
@@ -22,6 +22,7 @@ WORKDIR /ideas
 
 # ========================== Apt Dependency Installation ===========================
 RUN apt-get -y update \
+    && apt-get -y upgrade \
     && apt-get install -y libgl1 --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
