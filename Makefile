@@ -49,6 +49,13 @@ build:
 	docker tag ${LATEST_IMAGE_TAG} ${IMAGE_TAG}
 	@$(foreach f, $(TOOL_SPECS), jq --indent 4 '.container_image.label = "${LABEL}"' $(f) > tmp.json && mv tmp.json ${f};)\
 
+# Builds docker image checking security vulnerabilities
+security:
+	docker build . -t $(LATEST_IMAGE_TAG) \
+		--platform ${PLATFORM}
+	docker tag ${LATEST_IMAGE_TAG} ${IMAGE_TAG}
+	@$(foreach f, $(TOOL_SPECS), jq --indent 4 '.container_image.label = "${LABEL}"' $(f) > tmp.json && mv tmp.json ${f};)\
+
 # Runs unit tests in docker image
 # Used in automated pr checks on github
 test: TARGET=test

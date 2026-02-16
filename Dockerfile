@@ -74,3 +74,17 @@ RUN --mount=from=ghcr.io/astral-sh/uv:0.9.16,source=/uv,target=/bin/uv \
     uv sync --group analysis --group test
 
 USER ideas
+
+# Vulnerability scanning stage using Trivy
+# Copies the runtime filesystem to a subdirectory to avoid overwrite conflicts with the trivy base image
+FROM aquasec/trivy:latest AS scanner
+
+COPY --from=base / /scanned-fs/
+
+RUN trivy rootfs --no-progress --ignore-unfixed --severity CRITICAL,HIGH --exit-code 1 /scanned-fs/ \
+    && touch /scan-ok
+
+# Final stage - identical to runtime but depends on successful scan
+FROM base AS final
+
+COPY --from=scanner /scan-ok /scan-ok
