@@ -9,6 +9,7 @@ PLATFORM=linux/amd64
 ifndef TARGET
 	TARGET=base
 endif
+RUN_TOOL := $(strip $(if $(TOOL),$(TOOL),$(tool)))
 
 # Define envs for virtualenv
 ROOT_DIR := $(shell dirname $(shell readlink -f $(firstword $(MAKEFILE_LIST))))
@@ -79,7 +80,31 @@ ruff-check: venv
 # Run a tool in the repo
 # Specify the tool key to run
 run: build
-	ideas tools run $(tool) -s -c -n
+	@if [ -z "$(RUN_TOOL)" ]; then \
+		echo "Tool key required."; \
+		echo "Usage: make run tool=<tool-key> (or TOOL=<tool-key>)"; \
+		exit 2; \
+	fi
+	@if [ ! -d ".ideas/$(RUN_TOOL)" ]; then \
+		echo "Unknown tool key: $(RUN_TOOL)"; \
+		echo "Available tools:"; \
+		ls -1 .ideas | sed 's/^/  - /'; \
+		exit 2; \
+	fi
+	@IDEAS_PYENV_VERSION="$$(if command -v pyenv >/dev/null 2>&1; then pyenv whence ideas 2>/dev/null | awk 'NR==1{print; exit}'; fi)"; \
+	if [ -n "$$IDEAS_PYENV_VERSION" ]; then \
+		PYENV_VERSION="$$IDEAS_PYENV_VERSION" ideas tools run "$(RUN_TOOL)"; \
+	else \
+		ideas tools run "$(RUN_TOOL)"; \
+	fi
 
 run-all: build
-	@$(foreach f, $(shell ls -d .ideas/*/), ideas tools run -s -c -n $(shell basename $(f));)
+	@IDEAS_PYENV_VERSION="$$(if command -v pyenv >/dev/null 2>&1; then pyenv whence ideas 2>/dev/null | awk 'NR==1{print; exit}'; fi)"; \
+	for f in .ideas/*/; do \
+		tool="$$(basename "$$f")"; \
+		if [ -n "$$IDEAS_PYENV_VERSION" ]; then \
+			PYENV_VERSION="$$IDEAS_PYENV_VERSION" ideas tools run "$$tool"; \
+		else \
+			ideas tools run "$$tool"; \
+		fi; \
+	done
