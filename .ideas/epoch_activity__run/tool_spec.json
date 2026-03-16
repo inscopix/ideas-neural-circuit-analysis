@@ -14,9 +14,9 @@
     "params": [
         {
             "key": "cell_set_files",
-            "name": "Cell Set Files",
+            "name": "Cell Set Files (Region 1)",
             "required": true,
-            "description": "Cell set files",
+            "description": "Cell set files for the first brain region (or the only region in single-brain-region mode).",
             "type": {
                 "param_type": "ToolPathParam",
                 "multiple": true,
@@ -28,15 +28,84 @@
         },
         {
             "key": "event_set_files",
-            "name": "Event Set Files",
+            "name": "Event Set Files (Region 1)",
             "required": false,
-            "description": "Event set files",
+            "description": "Event set files for the first brain region (or the only region in single-brain-region mode).",
             "type": {
                 "param_type": "ToolPathParam",
                 "multiple": true,
                 "file_formats": [
                     "isxd"
                 ]
+            },
+            "group": "Inputs"
+        },
+        {
+            "key": "region_selection",
+            "name": "Brain Region Selection",
+            "required": false,
+            "description": "Choose single brain region (current workflow) or multiple regions (region 1 and region 2 analyzed separately using the same epoch workflow).",
+            "type": {
+                "param_type": "ToolChoiceParam",
+                "choices": [
+                    "single_brain_region",
+                    "multiple_regions"
+                ],
+                "display_options": [
+                    "single brain region",
+                    "multiple regions"
+                ],
+                "default": "single_brain_region"
+            },
+            "group": "Inputs"
+        },
+        {
+            "key": "second_cell_set_files",
+            "name": "Cell Set Files (Region 2)",
+            "required": false,
+            "description": "Cell set files for the second brain region. Required when Brain Region Selection is set to multiple regions.",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "isxd"
+                ]
+            },
+            "group": "Inputs"
+        },
+        {
+            "key": "second_event_set_files",
+            "name": "Event Set Files (Region 2)",
+            "required": false,
+            "description": "Optional event set files for the second brain region. If omitted, region 1 event files are reused.",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "isxd"
+                ]
+            },
+            "group": "Inputs"
+        },
+        {
+            "key": "first_brain_region_name",
+            "name": "Brain Region 1 Name",
+            "required": false,
+            "description": "Display name to label Region 1 rows in output CSVs when Brain Region Selection is set to multiple regions.",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "Brain Region 1"
+            },
+            "group": "Inputs"
+        },
+        {
+            "key": "second_brain_region_name",
+            "name": "Brain Region 2 Name",
+            "required": false,
+            "description": "Display name to label Region 2 rows in output CSVs when Brain Region Selection is set to multiple regions.",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "Brain Region 2"
             },
             "group": "Inputs"
         },

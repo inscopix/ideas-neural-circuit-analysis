@@ -144,6 +144,62 @@ def test_epoch_activity_invalid_modulation_colormap_raises(tmp_path):
         run(**params, output_dir=tmp_path)
 
 
+def test_epoch_activity_multiple_regions_requires_second_cell_set_files(tmp_path):
+    params = valid_inputs[0].copy()
+    params["region_selection"] = "multiple_regions"
+    with pytest.raises(IdeasError):
+        run(**params, output_dir=tmp_path)
+
+
+def test_epoch_activity_multiple_regions_runs_in_region_subdirs(tmp_path):
+    params = valid_inputs[0].copy()
+    params["region_selection"] = "multiple_regions"
+    params["second_cell_set_files"] = cell_sets
+    params["second_event_set_files"] = event_sets
+    run(**params, output_dir=tmp_path)
+
+    first_region_dir = Path(tmp_path) / "single_brain_region"
+    second_region_dir = Path(tmp_path) / "second_brain_region"
+    for region_dir in [first_region_dir, second_region_dir]:
+        assert (region_dir / "output_data.json").exists()
+        output_data = _load_output_data(region_dir)
+        assert _find_output_path(output_data, "activity_per_epoch_data.csv", region_dir).exists()
+        assert _find_output_path(
+            output_data, "correlations_per_epoch_data.csv", region_dir
+        ).exists()
+        assert _find_output_path(
+            output_data, "modulation_vs_baseline_data.csv", region_dir
+        ).exists()
+
+
+def test_epoch_activity_multiple_regions_adds_brain_region_column(tmp_path):
+    params = valid_inputs[0].copy()
+    params["region_selection"] = "multiple_regions"
+    params["second_cell_set_files"] = cell_sets
+    params["second_event_set_files"] = event_sets
+    params["first_brain_region_name"] = "Region A"
+    params["second_brain_region_name"] = "Region B"
+    run(**params, output_dir=tmp_path)
+
+    region_expectations = {
+        Path(tmp_path) / "single_brain_region": "Region A",
+        Path(tmp_path) / "second_brain_region": "Region B",
+    }
+    csvs_to_check = [
+        "activity_per_epoch_data.csv",
+        "correlations_per_epoch_data.csv",
+        "modulation_vs_baseline_data.csv",
+        "average_correlations.csv",
+    ]
+    for region_dir, expected_name in region_expectations.items():
+        output_data = _load_output_data(region_dir)
+        for csv_name in csvs_to_check:
+            csv_path = _find_output_path(output_data, csv_name, region_dir)
+            df = pd.read_csv(csv_path)
+            assert "brain_region" in df.columns
+            assert set(df["brain_region"].dropna().unique()) == {expected_name}
+
+
 def test_plot_traces(cleanup_plots):
     """Test the _plot_traces function with various state transition scenarios."""
     from utils.plots import _plot_traces

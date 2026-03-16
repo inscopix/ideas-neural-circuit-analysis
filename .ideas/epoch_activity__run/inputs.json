@@ -1,15 +1,30 @@
 {
     "cell_set_files": [
-        "data/input_cellset.isxd"
+        "data/quartet/region1/20251019_012720-PP-BP-MC-CNMFE_filtered-cellset_registered.0.isxd",
+        "data/quartet/region1/20251019_013105-PP-BP-MC-CNMFE_filtered-cellset_registered.1.isxd",
+        "data/quartet/region1/20251019_013929-PP-BP-MC-CNMFE_filtered-cellset_registered.3.isxd",
+        "data/quartet/region1/20251021_020335-PP-BP-MC-CNMFE_filtered-cellset_registered.4.isxd",
+        "data/quartet/region1/20251021_021014-PP-BP-MC-CNMFE_filtered-cellset_registered.5.isxd",
+        "data/quartet/region1/20251021_021538-PP-BP-MC-CNMFE_filtered-cellset_registered.6.isxd"
     ],
-    "event_set_files": [
-        "data/input_cellset-ED.isxd"
+    "event_set_files": [],
+    "region_selection": "multiple_regions",
+    "second_cell_set_files": [
+        "data/quartet/region2/20251019_012720-PP-BP-MC-CNMFE_filtered-cellset_registered.3.isxd",
+        "data/quartet/region2/20251019_013105-PP-BP-MC-CNMFE_filtered-cellset_registered.4.isxd",
+        "data/quartet/region2/20251019_013929-PP-BP-MC-CNMFE_filtered-cellset_registered.6.isxd",
+        "data/quartet/region2/20251021_020335-PP-BP-MC-CNMFE_filtered-cellset_registered.7.isxd",
+        "data/quartet/region2/20251021_021014-PP-BP-MC-CNMFE_filtered-cellset_registered.8.isxd",
+        "data/quartet/region2/20251021_021538-PP-BP-MC-CNMFE_filtered-cellset_registered.9.isxd"
     ],
+    "second_event_set_files": [],
+    "first_brain_region_name": "Region 1",
+    "second_brain_region_name": "Region 2",
     "define_epochs_by": "global file time",
-    "epoch_names": "early baseline, late baseline",
-    "baseline_epoch": "early baseline",
-    "epochs": "(0, 300), (300, 600)",
-    "epoch_colors": "tab:grey, tab:blue",
+    "epoch_names": "Day 5, Day 7",
+    "baseline_epoch": "Day 5",
+    "epochs": "(0,673.7), (673.7,1364.7)",
+    "epoch_colors": "tab:blue, tab:cyan",
     "bin_size": 0,
     "trace_scale_method": "none",
     "event_scale_method": "none",

@@ -78,6 +78,9 @@ _EPOCH_FILENAME_OVERRIDES = {
 }
 
 _EPOCH_ONLY_STATE_NAME = "epoch_activity"
+_BRAIN_REGION_COLUMN = "brain_region"
+_DEFAULT_FIRST_BRAIN_REGION_NAME = "Brain Region 1"
+_DEFAULT_SECOND_BRAIN_REGION_NAME = "Brain Region 2"
 
 _USEFUL_OUTPUT_METADATA_KEYS = {
     "num_cells",
@@ -113,11 +116,60 @@ def _parse_csv_list(value: str) -> List[str]:
     return [v.strip() for v in str(value).split(",")]
 
 
+def _normalize_region_selection(region_selection: str) -> str:
+    """Normalize region selection aliases to canonical values."""
+    normalized = str(region_selection or "").strip().lower()
+    if normalized in {"", "single_brain_region", "single", "single_region"}:
+        return "single_brain_region"
+    if normalized in {
+        "multiple_regions",
+        "multiple_region",
+        "multi_region",
+        "multi_regions",
+    }:
+        return "multiple_regions"
+    raise IdeasError(
+        "region_selection must be 'single_brain_region' or 'multiple_regions'. "
+        f"Got region_selection='{region_selection}'."
+    )
+
+
+def _append_brain_region_column_to_csv(csv_path: Path, brain_region_name: str) -> None:
+    """Append (or overwrite) a brain_region column in a CSV file."""
+    if not csv_path.exists():
+        return
+    df = pd.read_csv(csv_path)
+    if _BRAIN_REGION_COLUMN in df.columns:
+        df[_BRAIN_REGION_COLUMN] = brain_region_name
+    else:
+        df.insert(0, _BRAIN_REGION_COLUMN, brain_region_name)
+    df.to_csv(csv_path, index=False)
+
+
+def _append_brain_region_column_to_epoch_csv_outputs(
+    output_dir: Path, brain_region_name: str
+) -> None:
+    """Add brain_region to core CSV outputs without altering output file layout."""
+    for csv_name in [
+        ACTIVITY_PER_EPOCH_DATA_CSV,
+        CORRELATIONS_PER_EPOCH_DATA_CSV,
+        MODULATION_VS_BASELINE_DATA_CSV,
+        AVERAGE_CORRELATIONS_CSV,
+    ]:
+        _append_brain_region_column_to_csv(output_dir / csv_name, brain_region_name)
+
+
 @beartype
 def run(
     *,
     cell_set_files: List[Union[str, Path]],
     event_set_files: Optional[List[Union[str, Path]]] = None,
+    region_selection: str = "single_brain_region",
+    second_cell_set_files: Optional[List[Union[str, Path]]] = None,
+    second_event_set_files: Optional[List[Union[str, Path]]] = None,
+    first_brain_region_name: Optional[str] = _DEFAULT_FIRST_BRAIN_REGION_NAME,
+    second_brain_region_name: Optional[str] = _DEFAULT_SECOND_BRAIN_REGION_NAME,
+    brain_region_name: Optional[str] = None,
     define_epochs_by: str,
     epoch_names: str,
     baseline_epoch: Optional[str] = None,
@@ -154,6 +206,63 @@ def run(
         output_dir: Directory where output files will be written. If None (default),
             writes to the current working directory.
     """
+    region_mode = _normalize_region_selection(region_selection)
+    if region_mode == "multiple_regions":
+        if not second_cell_set_files:
+            raise IdeasError(
+                "second_cell_set_files is required when region_selection is "
+                "'multiple_regions'."
+            )
+
+        base_output_dir = Path(output_dir) if output_dir is not None else Path(".")
+        first_region_output_dir = base_output_dir / "single_brain_region"
+        second_region_output_dir = base_output_dir / "second_brain_region"
+        second_region_events = (
+            second_event_set_files
+            if second_event_set_files is not None
+            else event_set_files
+        )
+        first_region_name = str(first_brain_region_name or "").strip()
+        if not first_region_name:
+            first_region_name = _DEFAULT_FIRST_BRAIN_REGION_NAME
+        second_region_name = str(second_brain_region_name or "").strip()
+        if not second_region_name:
+            second_region_name = _DEFAULT_SECOND_BRAIN_REGION_NAME
+
+        shared_kwargs = dict(
+            define_epochs_by=define_epochs_by,
+            epoch_names=epoch_names,
+            baseline_epoch=baseline_epoch,
+            epoch_comparison_method=epoch_comparison_method,
+            epochs=epochs,
+            epoch_colors=epoch_colors,
+            bin_size=bin_size,
+            trace_scale_method=trace_scale_method,
+            event_scale_method=event_scale_method,
+            sort_by_time=sort_by_time,
+            tolerance=tolerance,
+            modulation_colormap=modulation_colormap,
+            alpha=alpha,
+            n_shuffle=n_shuffle,
+            include_event_correlation_preview=include_event_correlation_preview,
+            region_selection="single_brain_region",
+        )
+        run(
+            cell_set_files=cell_set_files,
+            event_set_files=event_set_files,
+            output_dir=first_region_output_dir,
+            brain_region_name=first_region_name,
+            **shared_kwargs,
+        )
+        run(
+            cell_set_files=second_cell_set_files,
+            event_set_files=second_region_events,
+            output_dir=second_region_output_dir,
+            brain_region_name=second_region_name,
+            **shared_kwargs,
+        )
+        return
+
     parsed_epoch_names = _validate_epoch_name_strings(epoch_names)
     parsed_epoch_colors = _parse_csv_list(epoch_colors)
 
@@ -367,6 +476,10 @@ def run(
         column_name=column_name,
         modulation_colors=parsed_modulation_colormap,
     )
+    if brain_region_name is not None and str(brain_region_name).strip():
+        _append_brain_region_column_to_epoch_csv_outputs(
+            resolved_output_dir, str(brain_region_name).strip()
+        )
 
     has_event_correlation_data = False
     if events is not None:
@@ -572,6 +685,12 @@ def epoch_activity_ideas_wrapper(
     *,
     cell_set_files: List[IdeasFile],
     event_set_files: Optional[List[IdeasFile]] = None,
+    region_selection: str = "single_brain_region",
+    second_cell_set_files: Optional[List[IdeasFile]] = None,
+    second_event_set_files: Optional[List[IdeasFile]] = None,
+    first_brain_region_name: Optional[str] = _DEFAULT_FIRST_BRAIN_REGION_NAME,
+    second_brain_region_name: Optional[str] = _DEFAULT_SECOND_BRAIN_REGION_NAME,
+    brain_region_name: Optional[str] = None,
     define_epochs_by: str,
     epoch_names: str,
     baseline_epoch: Optional[str] = None,
@@ -591,6 +710,12 @@ def epoch_activity_ideas_wrapper(
     run(
         cell_set_files=cell_set_files,
         event_set_files=event_set_files,
+        region_selection=region_selection,
+        second_cell_set_files=second_cell_set_files,
+        second_event_set_files=second_event_set_files,
+        first_brain_region_name=first_brain_region_name,
+        second_brain_region_name=second_brain_region_name,
+        brain_region_name=brain_region_name,
         define_epochs_by=define_epochs_by,
         epoch_names=epoch_names,
         baseline_epoch=baseline_epoch,
