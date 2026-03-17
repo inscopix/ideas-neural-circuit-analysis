@@ -45,7 +45,7 @@ ENV UV_NO_MANAGED_PYTHON=1 UV_PYTHON_DOWNLOADS=never
 ENV UV_FROZEN=1 UV_REQUIRE_HASHES=1 UV_VERIFY_HASHES=1
 ENV UV_CACHE_DIR=/tmp/.cache/uv
 
-RUN --mount=from=ghcr.io/astral-sh/uv:0.9.16,source=/uv,target=/bin/uv \
+RUN --mount=from=ghcr.io/astral-sh/uv:0.10.11,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/tmp/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
@@ -68,7 +68,7 @@ USER root
 
 COPY --chown=ideas ./ /ideas
 
-RUN --mount=from=ghcr.io/astral-sh/uv:0.9.16,source=/uv,target=/bin/uv \
+RUN --mount=from=ghcr.io/astral-sh/uv:0.10.11,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/tmp/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
@@ -78,9 +78,10 @@ USER ideas
 
 # Vulnerability scanning stage using Trivy
 # Copies the runtime filesystem to a subdirectory to avoid overwrite conflicts with the trivy base image
-FROM aquasec/trivy:latest AS scanner
+FROM base AS scanner
 
 COPY --from=base / /scanned-fs/
+COPY --from=aquasec/trivy:latest /usr/local/bin/trivy /usr/local/bin/trivy
 
 RUN trivy rootfs --no-progress --ignore-unfixed --severity CRITICAL,HIGH --exit-code 1 /scanned-fs/ \
     && touch /scan-ok
