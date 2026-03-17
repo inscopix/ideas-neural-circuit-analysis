@@ -10,6 +10,7 @@ ifndef TARGET
 	TARGET=base
 endif
 RUN_TOOL := $(strip $(if $(TOOL),$(TOOL),$(tool)))
+IDEAS_RUN_FLAGS ?= -s -c -n
 
 # Define envs for virtualenv
 ROOT_DIR := $(shell dirname $(shell readlink -f $(firstword $(MAKEFILE_LIST))))
@@ -79,6 +80,7 @@ ruff-check: venv
 
 # Run a tool in the repo
 # Specify the tool key to run
+# Optional: override flags, e.g. IDEAS_RUN_FLAGS="-c -n"
 run: build
 	@if [ -z "$(RUN_TOOL)" ]; then \
 		echo "Tool key required."; \
@@ -92,19 +94,31 @@ run: build
 		exit 2; \
 	fi
 	@IDEAS_PYENV_VERSION="$$(if command -v pyenv >/dev/null 2>&1; then pyenv whence ideas 2>/dev/null | awk 'NR==1{print; exit}'; fi)"; \
-	if [ -n "$$IDEAS_PYENV_VERSION" ]; then \
-		PYENV_VERSION="$$IDEAS_PYENV_VERSION" ideas tools run "$(RUN_TOOL)"; \
+	if command -v uv >/dev/null 2>&1; then \
+		if [ -n "$$IDEAS_PYENV_VERSION" ]; then \
+			PYENV_VERSION="$$IDEAS_PYENV_VERSION" uv run ideas tools run "$(RUN_TOOL)" $(IDEAS_RUN_FLAGS); \
+		else \
+			uv run ideas tools run "$(RUN_TOOL)" $(IDEAS_RUN_FLAGS); \
+		fi; \
+	elif [ -n "$$IDEAS_PYENV_VERSION" ]; then \
+		PYENV_VERSION="$$IDEAS_PYENV_VERSION" ideas tools run "$(RUN_TOOL)" $(IDEAS_RUN_FLAGS); \
 	else \
-		ideas tools run "$(RUN_TOOL)"; \
+		ideas tools run "$(RUN_TOOL)" $(IDEAS_RUN_FLAGS); \
 	fi
 
 run-all: build
 	@IDEAS_PYENV_VERSION="$$(if command -v pyenv >/dev/null 2>&1; then pyenv whence ideas 2>/dev/null | awk 'NR==1{print; exit}'; fi)"; \
 	for f in .ideas/*/; do \
 		tool="$$(basename "$$f")"; \
-		if [ -n "$$IDEAS_PYENV_VERSION" ]; then \
-			PYENV_VERSION="$$IDEAS_PYENV_VERSION" ideas tools run "$$tool"; \
+		if command -v uv >/dev/null 2>&1; then \
+			if [ -n "$$IDEAS_PYENV_VERSION" ]; then \
+				PYENV_VERSION="$$IDEAS_PYENV_VERSION" uv run ideas tools run "$$tool" $(IDEAS_RUN_FLAGS); \
+			else \
+				uv run ideas tools run "$$tool" $(IDEAS_RUN_FLAGS); \
+			fi; \
+		elif [ -n "$$IDEAS_PYENV_VERSION" ]; then \
+			PYENV_VERSION="$$IDEAS_PYENV_VERSION" ideas tools run "$$tool" $(IDEAS_RUN_FLAGS); \
 		else \
-			ideas tools run "$$tool"; \
+			ideas tools run "$$tool" $(IDEAS_RUN_FLAGS); \
 		fi; \
 	done

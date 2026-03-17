@@ -11,8 +11,13 @@ metadata) while keeping the existing public entrypoints (`run` and
 """
 
 import json
+import re
+import shutil
+import tempfile
+import zipfile
 from pathlib import Path
 
+import h5py
 import numpy as np
 import pandas as pd
 from beartype import beartype
@@ -81,6 +86,12 @@ _EPOCH_ONLY_STATE_NAME = "epoch_activity"
 _BRAIN_REGION_COLUMN = "brain_region"
 _DEFAULT_FIRST_BRAIN_REGION_NAME = "Brain Region 1"
 _DEFAULT_SECOND_BRAIN_REGION_NAME = "Brain Region 2"
+_MERGED_REGION_CSV_OUTPUTS = [
+    ACTIVITY_PER_EPOCH_DATA_CSV,
+    CORRELATIONS_PER_EPOCH_DATA_CSV,
+    MODULATION_VS_BASELINE_DATA_CSV,
+    AVERAGE_CORRELATIONS_CSV,
+]
 
 _USEFUL_OUTPUT_METADATA_KEYS = {
     "num_cells",
@@ -150,13 +161,418 @@ def _append_brain_region_column_to_epoch_csv_outputs(
     output_dir: Path, brain_region_name: str
 ) -> None:
     """Add brain_region to core CSV outputs without altering output file layout."""
-    for csv_name in [
-        ACTIVITY_PER_EPOCH_DATA_CSV,
-        CORRELATIONS_PER_EPOCH_DATA_CSV,
-        MODULATION_VS_BASELINE_DATA_CSV,
-        AVERAGE_CORRELATIONS_CSV,
-    ]:
+    for csv_name in _MERGED_REGION_CSV_OUTPUTS:
         _append_brain_region_column_to_csv(output_dir / csv_name, brain_region_name)
+
+
+def _registered_output_path(
+    output_data: dict, output_dir: Path, file_name: str
+) -> Optional[Path]:
+    """Resolve an output file path from output_data registration by suffix match."""
+    for entry in output_data.get("output_files", []):
+        file_path = Path(str(entry.get("file", "")))
+        if file_path.name.endswith(file_name):
+            return output_dir / file_path
+    return None
+
+
+def _merge_multi_region_csv_outputs(
+    primary_output_dir: Path, secondary_output_dir: Path
+) -> None:
+    """Merge row-based CSV outputs from both regions into primary output paths."""
+    primary_output_data_path = primary_output_dir / "output_data.json"
+    secondary_output_data_path = secondary_output_dir / "output_data.json"
+    if not primary_output_data_path.exists() or not secondary_output_data_path.exists():
+        return
+
+    primary_output_data = json.loads(primary_output_data_path.read_text())
+    secondary_output_data = json.loads(secondary_output_data_path.read_text())
+
+    for csv_name in _MERGED_REGION_CSV_OUTPUTS:
+        primary_csv = _registered_output_path(primary_output_data, primary_output_dir, csv_name)
+        secondary_csv = _registered_output_path(
+            secondary_output_data, secondary_output_dir, csv_name
+        )
+        if (
+            primary_csv is None
+            or secondary_csv is None
+            or not primary_csv.exists()
+            or not secondary_csv.exists()
+        ):
+            continue
+        primary_df = pd.read_csv(primary_csv)
+        secondary_df = pd.read_csv(secondary_csv)
+        pd.concat([primary_df, secondary_df], ignore_index=True).to_csv(
+            primary_csv, index=False
+        )
+
+
+def _merge_multi_region_binary_outputs(
+    primary_output_dir: Path,
+    secondary_output_dir: Path,
+    primary_region_file_tag: str,
+    secondary_region_file_tag: str,
+) -> None:
+    """Merge H5/ZIP raw correlation outputs so both regions are retained."""
+    primary_output_data_path = primary_output_dir / "output_data.json"
+    secondary_output_data_path = secondary_output_dir / "output_data.json"
+    if not primary_output_data_path.exists() or not secondary_output_data_path.exists():
+        return
+
+    primary_output_data = json.loads(primary_output_data_path.read_text())
+    secondary_output_data = json.loads(secondary_output_data_path.read_text())
+
+    primary_h5 = _registered_output_path(
+        primary_output_data, primary_output_dir, RAW_CORRELATIONS_H5_NAME
+    )
+    secondary_h5 = _registered_output_path(
+        secondary_output_data, secondary_output_dir, RAW_CORRELATIONS_H5_NAME
+    )
+    if (
+        primary_h5 is not None
+        and secondary_h5 is not None
+        and primary_h5.exists()
+        and secondary_h5.exists()
+    ):
+        with h5py.File(primary_h5, "a") as primary_h5_file, h5py.File(
+            secondary_h5, "r"
+        ) as secondary_h5_file:
+            existing_keys = list(primary_h5_file.keys())
+            for key in existing_keys:
+                if key.startswith(f"{primary_region_file_tag}_"):
+                    continue
+                destination_key = f"{primary_region_file_tag}_{key}"
+                duplicate_idx = 2
+                while destination_key in primary_h5_file:
+                    destination_key = f"{primary_region_file_tag}_{key}_{duplicate_idx}"
+                    duplicate_idx += 1
+                primary_h5_file.copy(key, primary_h5_file, name=destination_key)
+                del primary_h5_file[key]
+
+            for key in secondary_h5_file.keys():
+                destination_key = f"{secondary_region_file_tag}_{key}"
+                duplicate_idx = 2
+                while destination_key in primary_h5_file:
+                    destination_key = (
+                        f"{secondary_region_file_tag}_{key}_{duplicate_idx}"
+                    )
+                    duplicate_idx += 1
+                secondary_h5_file.copy(key, primary_h5_file, name=destination_key)
+
+    primary_zip = _registered_output_path(
+        primary_output_data, primary_output_dir, RAW_CORRELATIONS_ZIP_NAME
+    )
+    secondary_zip = _registered_output_path(
+        secondary_output_data, secondary_output_dir, RAW_CORRELATIONS_ZIP_NAME
+    )
+    if (
+        primary_zip is not None
+        and secondary_zip is not None
+        and primary_zip.exists()
+        and secondary_zip.exists()
+    ):
+        with zipfile.ZipFile(primary_zip, "r") as original_zip:
+            original_members = [m for m in original_zip.infolist() if not m.is_dir()]
+            should_prefix_primary = any(
+                not m.filename.startswith(f"{primary_region_file_tag}_")
+                for m in original_members
+            )
+            if should_prefix_primary:
+                rewritten_entries = [
+                    (m.filename, original_zip.read(m.filename)) for m in original_members
+                ]
+                rewritten_path = primary_zip.with_suffix(".tmp.zip")
+                with zipfile.ZipFile(
+                    rewritten_path, "w", zipfile.ZIP_DEFLATED
+                ) as rewritten_zip:
+                    used_names = set()
+                    for name, data in rewritten_entries:
+                        new_name = f"{primary_region_file_tag}_{name}"
+                        duplicate_idx = 2
+                        while new_name in used_names:
+                            new_name = (
+                                f"{primary_region_file_tag}_{duplicate_idx}_{name}"
+                            )
+                            duplicate_idx += 1
+                        rewritten_zip.writestr(new_name, data)
+                        used_names.add(new_name)
+                rewritten_path.replace(primary_zip)
+
+        with zipfile.ZipFile(primary_zip, "a", zipfile.ZIP_DEFLATED) as primary_zip_file:
+            existing_members = set(primary_zip_file.namelist())
+            with zipfile.ZipFile(secondary_zip, "r") as secondary_zip_file:
+                for member in secondary_zip_file.infolist():
+                    if member.is_dir():
+                        continue
+                    destination_name = f"{secondary_region_file_tag}_{member.filename}"
+                    duplicate_idx = 2
+                    while destination_name in existing_members:
+                        destination_name = (
+                            f"{secondary_region_file_tag}_{duplicate_idx}_{member.filename}"
+                        )
+                        duplicate_idx += 1
+                    with secondary_zip_file.open(member, "r") as src:
+                        primary_zip_file.writestr(destination_name, src.read())
+                    existing_members.add(destination_name)
+
+
+def _region_labeled_caption(caption: str, region_label: str) -> str:
+    caption_text = str(caption or "").strip()
+    if caption_text:
+        return f"{region_label}: {caption_text}"
+    return region_label
+
+
+def _region_file_tag(region_label: str, fallback_idx: int) -> str:
+    """Create a stable filename-safe tag from a region label."""
+    normalized = re.sub(r"[^a-zA-Z0-9]+", "_", str(region_label or "").strip().lower())
+    normalized = normalized.strip("_")
+    if not normalized:
+        normalized = f"region{fallback_idx}"
+    return normalized
+
+
+def _normalize_brain_region_name(region_label: Optional[str]) -> Optional[str]:
+    """Return a trimmed region label or None when not meaningfully provided."""
+    if region_label is None:
+        return None
+    normalized = str(region_label).strip()
+    return normalized or None
+
+
+def _merge_multi_region_preview_registration(
+    primary_output_dir: Path,
+    secondary_output_dir: Path,
+    primary_region_label: Optional[str],
+    primary_region_file_tag: str,
+    secondary_region_label: str,
+    secondary_region_file_tag: str,
+) -> None:
+    """Register secondary-region previews under the same output entries."""
+    primary_output_data_path = primary_output_dir / "output_data.json"
+    secondary_output_data_path = secondary_output_dir / "output_data.json"
+    if not primary_output_data_path.exists() or not secondary_output_data_path.exists():
+        return
+
+    primary_output_data = json.loads(primary_output_data_path.read_text())
+    secondary_output_data = json.loads(secondary_output_data_path.read_text())
+
+    primary_entries_by_name = {}
+    for entry in primary_output_data.get("output_files", []):
+        output_name = Path(str(entry.get("file", ""))).name
+        if output_name:
+            primary_entries_by_name[output_name] = entry
+        if primary_region_label:
+            for preview in entry.get("previews", []):
+                preview_rel_path = Path(str(preview.get("file", "")))
+                preview_src = primary_output_dir / preview_rel_path
+                destination_name = (
+                    f"{primary_region_file_tag}_{preview_rel_path.name}"
+                    if not preview_rel_path.name.startswith(
+                        f"{primary_region_file_tag}_"
+                    )
+                    else preview_rel_path.name
+                )
+                destination_rel_path = preview_rel_path.parent / destination_name
+                destination_path = primary_output_dir / destination_rel_path
+                if preview_src.exists() and preview_src != destination_path:
+                    if not destination_path.exists():
+                        preview_src.replace(destination_path)
+                    preview["file"] = str(destination_rel_path)
+                preview["caption"] = _region_labeled_caption(
+                    preview.get("caption", ""), primary_region_label
+                )
+
+    for secondary_entry in secondary_output_data.get("output_files", []):
+        output_name = Path(str(secondary_entry.get("file", ""))).name
+        primary_entry = primary_entries_by_name.get(output_name)
+        if primary_entry is None:
+            continue
+
+        for preview in secondary_entry.get("previews", []):
+            preview_rel_path = Path(str(preview.get("file", "")))
+            preview_source_path = secondary_output_dir / preview_rel_path
+            if not preview_source_path.exists():
+                continue
+
+            destination_dir = primary_output_dir / preview_rel_path.parent
+            destination_dir.mkdir(parents=True, exist_ok=True)
+            destination_name = f"{secondary_region_file_tag}_{preview_rel_path.name}"
+            destination_rel_path = preview_rel_path.parent / destination_name
+            destination_path = primary_output_dir / destination_rel_path
+
+            duplicate_idx = 2
+            while destination_path.exists():
+                destination_name = (
+                    f"{secondary_region_file_tag}_{duplicate_idx}_{preview_rel_path.name}"
+                )
+                destination_rel_path = preview_rel_path.parent / destination_name
+                destination_path = primary_output_dir / destination_rel_path
+                duplicate_idx += 1
+
+            shutil.copy2(preview_source_path, destination_path)
+            primary_entry.setdefault("previews", []).append(
+                {
+                    **preview,
+                    "file": str(destination_rel_path),
+                    "caption": _region_labeled_caption(
+                        preview.get("caption", ""), secondary_region_label
+                    ),
+                }
+            )
+
+    primary_output_data_path.write_text(json.dumps(primary_output_data, indent=4))
+
+
+def _get_metadata_item(metadata: List[dict], key: str) -> Optional[dict]:
+    for item in metadata:
+        if item.get("key") == key:
+            return item
+    return None
+
+
+def _upsert_metadata_item(metadata: List[dict], name: str, key: str, value) -> None:
+    existing_item = _get_metadata_item(metadata, key)
+    if existing_item is not None:
+        existing_item["name"] = name
+        existing_item["value"] = value
+        return
+    metadata.append({"name": name, "key": key, "value": value})
+
+
+def _to_int(value) -> Optional[int]:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_region_count_value(value: Optional[str]) -> dict:
+    counts = {}
+    if value is None:
+        return counts
+    for part in str(value).split(","):
+        token = part.strip()
+        if ":" not in token:
+            continue
+        name, count = token.split(":", 1)
+        parsed_count = _to_int(count.strip())
+        if parsed_count is not None:
+            counts[name.strip()] = parsed_count
+    return counts
+
+
+def _merge_multi_region_metadata_values(
+    primary_output_dir: Path,
+    secondary_output_dir: Path,
+    primary_region_label: str,
+    secondary_region_label: str,
+) -> None:
+    """Merge metadata values so merged outputs reflect all regions, not just primary."""
+    primary_output_data_path = primary_output_dir / "output_data.json"
+    secondary_output_data_path = secondary_output_dir / "output_data.json"
+    if not primary_output_data_path.exists() or not secondary_output_data_path.exists():
+        return
+
+    primary_output_data = json.loads(primary_output_data_path.read_text())
+    secondary_output_data = json.loads(secondary_output_data_path.read_text())
+
+    primary_by_name = {}
+    for entry in primary_output_data.get("output_files", []):
+        output_name = Path(str(entry.get("file", ""))).name
+        if output_name:
+            primary_by_name[output_name] = entry
+
+    for secondary_entry in secondary_output_data.get("output_files", []):
+        output_name = Path(str(secondary_entry.get("file", ""))).name
+        primary_entry = primary_by_name.get(output_name)
+        if primary_entry is None:
+            continue
+
+        primary_metadata = primary_entry.setdefault("metadata", [])
+        secondary_metadata = secondary_entry.get("metadata", [])
+
+        primary_num_cells_item = _get_metadata_item(primary_metadata, "num_cells")
+        secondary_num_cells_item = _get_metadata_item(secondary_metadata, "num_cells")
+        primary_num_cells = (
+            _to_int(primary_num_cells_item.get("value"))
+            if primary_num_cells_item is not None
+            else None
+        )
+        secondary_num_cells = (
+            _to_int(secondary_num_cells_item.get("value"))
+            if secondary_num_cells_item is not None
+            else None
+        )
+
+        if primary_num_cells is not None and secondary_num_cells is not None:
+            _upsert_metadata_item(
+                primary_metadata,
+                "Num Cells",
+                "num_cells",
+                primary_num_cells + secondary_num_cells,
+            )
+
+        region_counts_item = _get_metadata_item(
+            primary_metadata, "num_cells_by_brain_region"
+        )
+        region_counts = _parse_region_count_value(
+            region_counts_item.get("value") if region_counts_item else None
+        )
+        if primary_num_cells is not None and primary_region_label not in region_counts:
+            region_counts[primary_region_label] = primary_num_cells
+        if secondary_num_cells is not None:
+            region_counts[secondary_region_label] = secondary_num_cells
+        if region_counts:
+            formatted_counts = ", ".join(
+                f"{region}: {count}" for region, count in region_counts.items()
+            )
+            _upsert_metadata_item(
+                primary_metadata,
+                "Num Cells by Brain Region",
+                "num_cells_by_brain_region",
+                formatted_counts,
+            )
+
+    primary_output_data_path.write_text(json.dumps(primary_output_data, indent=4))
+
+
+def _register_multi_region_metadata(
+    output_dir: Path, region_labels: List[str]
+) -> None:
+    """Add merged-region metadata entries to all registered outputs."""
+    output_data_path = output_dir / "output_data.json"
+    if not output_data_path.exists():
+        return
+
+    cleaned_labels = [str(label).strip() for label in region_labels if str(label).strip()]
+    if not cleaned_labels:
+        return
+
+    output_data = json.loads(output_data_path.read_text())
+    metadata_entries = [
+        {
+            "name": "Number of Brain Regions",
+            "key": "num_brain_regions",
+            "value": len(cleaned_labels),
+        },
+        {
+            "name": "Brain Regions",
+            "key": "brain_regions",
+            "value": ", ".join(cleaned_labels),
+        },
+    ]
+
+    for output_file in output_data.get("output_files", []):
+        existing = output_file.get("metadata", [])
+        existing = [
+            item
+            for item in existing
+            if item.get("key") not in {"num_brain_regions", "brain_regions"}
+        ]
+        output_file["metadata"] = [*existing, *metadata_entries]
+
+    output_data_path.write_text(json.dumps(output_data, indent=4))
 
 
 @beartype
@@ -215,19 +631,18 @@ def run(
             )
 
         base_output_dir = Path(output_dir) if output_dir is not None else Path(".")
-        first_region_output_dir = base_output_dir / "single_brain_region"
-        second_region_output_dir = base_output_dir / "second_brain_region"
+        base_output_dir.mkdir(parents=True, exist_ok=True)
+        first_region_name = _normalize_brain_region_name(first_brain_region_name)
+        if not first_region_name:
+            first_region_name = _DEFAULT_FIRST_BRAIN_REGION_NAME
+        second_region_name = _normalize_brain_region_name(second_brain_region_name)
+        if not second_region_name:
+            second_region_name = _DEFAULT_SECOND_BRAIN_REGION_NAME
         second_region_events = (
             second_event_set_files
             if second_event_set_files is not None
             else event_set_files
         )
-        first_region_name = str(first_brain_region_name or "").strip()
-        if not first_region_name:
-            first_region_name = _DEFAULT_FIRST_BRAIN_REGION_NAME
-        second_region_name = str(second_brain_region_name or "").strip()
-        if not second_region_name:
-            second_region_name = _DEFAULT_SECOND_BRAIN_REGION_NAME
 
         shared_kwargs = dict(
             define_epochs_by=define_epochs_by,
@@ -247,19 +662,70 @@ def run(
             include_event_correlation_preview=include_event_correlation_preview,
             region_selection="single_brain_region",
         )
+        region_runs = [
+            {
+                "cell_set_files": cell_set_files,
+                "event_set_files": event_set_files,
+                "brain_region_name": first_region_name,
+            },
+            {
+                "cell_set_files": second_cell_set_files,
+                "event_set_files": second_region_events,
+                "brain_region_name": second_region_name,
+            },
+        ]
+
+        primary_region = region_runs[0]
         run(
-            cell_set_files=cell_set_files,
-            event_set_files=event_set_files,
-            output_dir=first_region_output_dir,
-            brain_region_name=first_region_name,
+            cell_set_files=primary_region["cell_set_files"],
+            event_set_files=primary_region["event_set_files"],
+            output_dir=base_output_dir,
+            brain_region_name=primary_region["brain_region_name"],
             **shared_kwargs,
         )
-        run(
-            cell_set_files=second_cell_set_files,
-            event_set_files=second_region_events,
-            output_dir=second_region_output_dir,
-            brain_region_name=second_region_name,
-            **shared_kwargs,
+
+        for region_idx, region in enumerate(region_runs[1:], start=2):
+            with tempfile.TemporaryDirectory() as secondary_region_tmp:
+                secondary_output_dir = Path(secondary_region_tmp)
+                run(
+                    cell_set_files=region["cell_set_files"],
+                    event_set_files=region["event_set_files"],
+                    output_dir=secondary_output_dir,
+                    brain_region_name=region["brain_region_name"],
+                    **shared_kwargs,
+                )
+                region_file_tag = _region_file_tag(
+                    region["brain_region_name"], fallback_idx=region_idx
+                )
+                _merge_multi_region_csv_outputs(base_output_dir, secondary_output_dir)
+                _merge_multi_region_binary_outputs(
+                    base_output_dir,
+                    secondary_output_dir,
+                    primary_region_file_tag=_region_file_tag(
+                        primary_region["brain_region_name"], fallback_idx=1
+                    ),
+                    secondary_region_file_tag=region_file_tag,
+                )
+                _merge_multi_region_metadata_values(
+                    base_output_dir,
+                    secondary_output_dir,
+                    primary_region_label=primary_region["brain_region_name"],
+                    secondary_region_label=region["brain_region_name"],
+                )
+                _merge_multi_region_preview_registration(
+                    primary_output_dir=base_output_dir,
+                    secondary_output_dir=secondary_output_dir,
+                    primary_region_label=(
+                        primary_region["brain_region_name"] if region_idx == 2 else None
+                    ),
+                    primary_region_file_tag=_region_file_tag(
+                        primary_region["brain_region_name"], fallback_idx=1
+                    ),
+                    secondary_region_label=region["brain_region_name"],
+                    secondary_region_file_tag=region_file_tag,
+                )
+        _register_multi_region_metadata(
+            base_output_dir, [region["brain_region_name"] for region in region_runs]
         )
         return
 
@@ -446,6 +912,8 @@ def run(
     )
 
     # Generate outputs using the same organization as the state-epoch baseline tool.
+    normalized_brain_region_name = _normalize_brain_region_name(brain_region_name)
+
     output_generator = StateEpochOutputGenerator(
         output_dir=str(output_dir) if output_dir is not None else "",
         states=states,
@@ -465,6 +933,7 @@ def run(
         filename_overrides=_EPOCH_FILENAME_OVERRIDES,
         hide_state_prefix=True,
         epoch_only_mode=True,
+        brain_region_name=normalized_brain_region_name,
     )
     output_generator.generate_all_outputs(
         results=results,
@@ -476,9 +945,9 @@ def run(
         column_name=column_name,
         modulation_colors=parsed_modulation_colormap,
     )
-    if brain_region_name is not None and str(brain_region_name).strip():
+    if normalized_brain_region_name:
         _append_brain_region_column_to_epoch_csv_outputs(
-            resolved_output_dir, str(brain_region_name).strip()
+            resolved_output_dir, normalized_brain_region_name
         )
 
     has_event_correlation_data = False

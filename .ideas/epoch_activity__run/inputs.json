@@ -18,8 +18,8 @@
         "data/quartet/region2/20251021_021538-PP-BP-MC-CNMFE_filtered-cellset_registered.9.isxd"
     ],
     "second_event_set_files": [],
-    "first_brain_region_name": "Region 1",
-    "second_brain_region_name": "Region 2",
+    "first_brain_region_name": "ACC",
+    "second_brain_region_name": "CA1",
     "define_epochs_by": "global file time",
     "epoch_names": "Day 5, Day 7",
     "baseline_epoch": "Day 5",

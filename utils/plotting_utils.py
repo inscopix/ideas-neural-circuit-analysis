@@ -114,6 +114,7 @@ def create_dual_panel_plot_with_epoch_overlays(
     output_path: str,
     bottom_panel_callback: Callable,
     top_panel_ylabel: str = "Mean Activity",
+    brain_region_name: Optional[str] = None,
     **callback_kwargs,
 ) -> None:
     """Create unified dual-panel plot with epoch overlays.
@@ -195,6 +196,9 @@ def create_dual_panel_plot_with_epoch_overlays(
             bbox_to_anchor=(1.01, 0.5),
             frameon=False,
         )
+
+    if brain_region_name:
+        fig.suptitle(f"Brain Region: {brain_region_name}", fontsize=12, y=0.995)
 
     # Save figure using optimized SVG
     save_optimized_svg(

@@ -190,6 +190,7 @@ class StateEpochOutputGenerator:
         filename_overrides: Optional[Dict[str, str]] = None,
         hide_state_prefix: bool = False,
         epoch_only_mode: bool = False,
+        brain_region_name: Optional[str] = None,
     ):
         """Initialize output generator.
 
@@ -238,6 +239,7 @@ class StateEpochOutputGenerator:
         self.filename_overrides = filename_overrides or {}
         self.hide_state_prefix = hide_state_prefix
         self.epoch_only_mode = epoch_only_mode
+        self.brain_region_name = brain_region_name
 
         # Create centralized color scheme
         self.color_scheme = ColorScheme(
@@ -1574,6 +1576,7 @@ class StateEpochOutputGenerator:
             xlabel="Epoch"
             if self.hide_state_prefix or self.epoch_only_mode
             else "State-Epoch",
+            brain_region_name=self.brain_region_name,
         )
 
     def _remap_combination_dict_for_display(
@@ -1669,6 +1672,7 @@ class StateEpochOutputGenerator:
                     epoch_periods=self.epoch_periods,
                     epoch_colors=self.color_scheme.epoch_colors,
                     epoch_only_mode=self.epoch_only_mode,
+                    brain_region_name=self.brain_region_name,
                 )
             else:
                 plot_func(
@@ -1823,6 +1827,7 @@ class StateEpochOutputGenerator:
                     correlation_matrix=correlation_matrices,
                     correlation_colors=correlation_colors,
                     out_file_name=preview_filename,
+                    brain_region_name=self.brain_region_name,
                 )
             finally:
                 os.chdir(current_dir)
@@ -1901,6 +1906,7 @@ class StateEpochOutputGenerator:
                 plot_spatial_correlations(
                     triu_data=shortened_triu_data,
                     out_file_name=str(output_path),
+                    brain_region_name=self.brain_region_name,
                 )
                 logger.info(f"Created spatial correlation preview: {output_path}")
             else:
@@ -1970,6 +1976,7 @@ class StateEpochOutputGenerator:
                 correlation_colors=["red", "blue"],
                 max_lines=500,
                 out_file_name=str(output_path),
+                brain_region_name=self.brain_region_name,
             )
             logger.info(f"Created spatial correlation map preview: {output_path}")
 
@@ -2211,6 +2218,8 @@ class StateEpochOutputGenerator:
             )
 
         fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+        if self.brain_region_name:
+            fig.suptitle(f"Brain Region: {self.brain_region_name}", fontsize=12, y=0.995)
 
         # CDF plot
         statistic_label = self.correlation_statistic.capitalize()
@@ -2415,6 +2424,7 @@ class StateEpochOutputGenerator:
                     non_modulation_color=non_color,
                     method=Comp.BASELINE.value,
                     baseline_state=baseline_label,
+                    brain_region_name=self.brain_region_name,
                 )
                 logger.info(f"Created {title}: {output_path}")
             else:
@@ -2474,6 +2484,8 @@ class StateEpochOutputGenerator:
 
         # Create figure with more space for labels and rotated text
         fig, ax = plt.subplots(figsize=(12, 10), nrows=2)
+        if self.brain_region_name:
+            fig.suptitle(f"Brain Region: {self.brain_region_name}", fontsize=12, y=0.995)
 
         # Use local LABEL_FONT for consistent styling
 
@@ -2756,6 +2768,7 @@ class StateEpochOutputGenerator:
                 non_modulation_color=non_color,
                 method=Comp.BASELINE.value,
                 baseline_state=baseline_label,
+                brain_region_name=self.brain_region_name,
             )
 
         except Exception as e:
@@ -2799,6 +2812,7 @@ class StateEpochOutputGenerator:
             epoch_names=resolved_names,
             output_path=output_path,
             bottom_panel_callback=plot_traces_bottom_panel,
+            brain_region_name=self.brain_region_name,
         )
         logger.info(f"Created epoch trace overlay preview: {output_path}")
 
@@ -2856,6 +2870,7 @@ class StateEpochOutputGenerator:
             output_path=output_path,
             bottom_panel_callback=plot_events_bottom_panel,
             top_panel_ylabel="Mean Event Rate (Hz)",
+            brain_region_name=self.brain_region_name,
             events=events,
             smoothed_activity=smoothed_activity,
         )
@@ -2890,6 +2905,7 @@ class StateEpochOutputGenerator:
                 epoch_periods=epochs,
                 epoch_names=epoch_names,
                 epoch_colors=epoch_colors,
+                brain_region_name=self.brain_region_name,
             )
         else:
             _plot_traces(
@@ -2946,6 +2962,7 @@ class StateEpochOutputGenerator:
                 epoch_periods=epochs,
                 epoch_names=epoch_names,
                 epoch_colors=epoch_colors,
+                brain_region_name=self.brain_region_name,
             )
         else:
             _plot_raster(

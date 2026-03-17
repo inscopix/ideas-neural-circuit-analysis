@@ -1423,6 +1423,7 @@ def _plot_state_epoch_time(
     epoch_periods: Optional[List[tuple]] = None,
     epoch_colors: Optional[List[str]] = None,
     epoch_only_mode: bool = False,
+    brain_region_name: Optional[str] = None,
 ):
     """Plot state-epoch time distributions with stacked bars and heatmap."""
     plt.rcParams.update({"font.size": 12})
@@ -1637,6 +1638,8 @@ def _plot_state_epoch_time(
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
         fig.tight_layout(rect=layout_rect)
+    if brain_region_name:
+        fig.suptitle(f"Brain Region: {brain_region_name}", fontsize=12, y=0.995)
     fig.savefig(filename, dpi=300, transparent=True)
     plt.close(fig)
 
@@ -1656,6 +1659,7 @@ def _plot_traces_with_epochs(
     epoch_periods: Optional[List[Tuple[float, float]]] = None,
     epoch_colors: Optional[List[str]] = None,
     epoch_names: Optional[List[str]] = None,
+    brain_region_name: Optional[str] = None,
 ) -> None:
     """Plot traces with state overlays plus optional epoch color bar.
     :param traces: neural activity of individual cells
@@ -1801,6 +1805,8 @@ def _plot_traces_with_epochs(
     else:
         ax_trace.set_xlabel("Time (s)", fontdict=LABEL_FONT)
 
+    if brain_region_name:
+        trace_fig.suptitle(f"Brain Region: {brain_region_name}", fontsize=12, y=0.995)
     save_optimized_svg(trace_fig, filename, max_size_mb=10, pad_inches=0.3)
     plt.close(trace_fig)
 
@@ -1860,6 +1866,7 @@ def _plot_raster_with_epochs(
     epoch_periods: Optional[List[Tuple[float, float]]] = None,
     epoch_colors: Optional[List[str]] = None,
     epoch_names: Optional[List[str]] = None,
+    brain_region_name: Optional[str] = None,
 ) -> None:
     """Plot event raster with state overlays plus optional epoch color bar.
     :param traces: neural activity of individual cells
@@ -1998,6 +2005,8 @@ def _plot_raster_with_epochs(
     else:
         ax_raster.set_xlabel("Time (s)", fontdict=LABEL_FONT)
 
+    if brain_region_name:
+        trace_fig.suptitle(f"Brain Region: {brain_region_name}", fontsize=12, y=0.995)
     save_optimized_svg(trace_fig, filename, max_size_mb=10, pad_inches=0.3)
     plt.close(trace_fig)
 
@@ -2218,6 +2227,7 @@ def _plot_population_average(
     state_colors: List[str],
     ylabel="Mean Activity",
     xlabel="State",
+    brain_region_name: Optional[str] = None,
 ) -> None:
     """Plot the population average activity as a box plot"""
     # Set consistent font size
@@ -2297,6 +2307,8 @@ def _plot_population_average(
     ax_box.set_xticklabels(labels, rotation=45, ha="right")
     ax_box.tick_params(axis="x", pad=10)
 
+    if brain_region_name:
+        fig.suptitle(f"Brain Region: {brain_region_name}", fontsize=12, y=0.995)
     fig.savefig(filename, dpi=300, transparent=True, bbox_inches="tight")
     plt.close(fig)
 
@@ -2315,6 +2327,7 @@ def plot_modulated_neuron_footprints(
     down_modulation_color="blue",
     non_modulation_color="gray",
     plot_type: str = "map",
+    brain_region_name: Optional[str] = None,
 ) -> None:
     """Make a plot of footprints of all cells, and color
     them by whether they are up or down modulated in different
@@ -2415,6 +2428,8 @@ def plot_modulated_neuron_footprints(
                     loc="center left", bbox_to_anchor=(1, 0.5), frameon=False
                 )
 
+    if brain_region_name:
+        fig.suptitle(f"Brain Region: {brain_region_name}", fontsize=12, y=0.995)
     fig.tight_layout()
 
     # save figure to disk

@@ -1,7 +1,9 @@
 import json
 import os
+import zipfile
 from pathlib import Path
 
+import h5py
 import isx
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,7 +11,12 @@ import pandas as pd
 import pytest
 from ideas.exceptions import IdeasError
 
-from analysis.epoch_activity import run
+from analysis.epoch_activity import (
+    _DEFAULT_FIRST_BRAIN_REGION_NAME,
+    _DEFAULT_SECOND_BRAIN_REGION_NAME,
+    _region_file_tag,
+    run,
+)
 from utils.utils import (
     _get_cellset_boundaries,
     _redefine_epochs,
@@ -19,7 +26,7 @@ DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 cell_sets = [str(DATA_DIR / "input_cellset.isxd")]
 event_sets = [str(DATA_DIR / "input_cellset-ED.isxd")]
 
-HAS_ISX_EVENTSET = True
+HAS_ISX_EVENTSET = hasattr(isx, "EventSet")
 
 valid_inputs = [
     # valid inputs
@@ -151,25 +158,24 @@ def test_epoch_activity_multiple_regions_requires_second_cell_set_files(tmp_path
         run(**params, output_dir=tmp_path)
 
 
-def test_epoch_activity_multiple_regions_runs_in_region_subdirs(tmp_path):
+def test_epoch_activity_multiple_regions_merges_into_single_output_dir(tmp_path):
     params = valid_inputs[0].copy()
     params["region_selection"] = "multiple_regions"
     params["second_cell_set_files"] = cell_sets
     params["second_event_set_files"] = event_sets
     run(**params, output_dir=tmp_path)
 
-    first_region_dir = Path(tmp_path) / "single_brain_region"
-    second_region_dir = Path(tmp_path) / "second_brain_region"
-    for region_dir in [first_region_dir, second_region_dir]:
-        assert (region_dir / "output_data.json").exists()
-        output_data = _load_output_data(region_dir)
-        assert _find_output_path(output_data, "activity_per_epoch_data.csv", region_dir).exists()
-        assert _find_output_path(
-            output_data, "correlations_per_epoch_data.csv", region_dir
-        ).exists()
-        assert _find_output_path(
-            output_data, "modulation_vs_baseline_data.csv", region_dir
-        ).exists()
+    assert (Path(tmp_path) / "output_data.json").exists()
+    output_data = _load_output_data(tmp_path)
+    assert _find_output_path(output_data, "activity_per_epoch_data.csv", tmp_path).exists()
+    assert _find_output_path(
+        output_data, "correlations_per_epoch_data.csv", tmp_path
+    ).exists()
+    assert _find_output_path(
+        output_data, "modulation_vs_baseline_data.csv", tmp_path
+    ).exists()
+    assert not (Path(tmp_path) / "single_brain_region").exists()
+    assert not (Path(tmp_path) / "second_brain_region").exists()
 
 
 def test_epoch_activity_multiple_regions_adds_brain_region_column(tmp_path):
@@ -181,23 +187,228 @@ def test_epoch_activity_multiple_regions_adds_brain_region_column(tmp_path):
     params["second_brain_region_name"] = "Region B"
     run(**params, output_dir=tmp_path)
 
-    region_expectations = {
-        Path(tmp_path) / "single_brain_region": "Region A",
-        Path(tmp_path) / "second_brain_region": "Region B",
-    }
+    output_data = _load_output_data(tmp_path)
     csvs_to_check = [
         "activity_per_epoch_data.csv",
         "correlations_per_epoch_data.csv",
         "modulation_vs_baseline_data.csv",
         "average_correlations.csv",
     ]
-    for region_dir, expected_name in region_expectations.items():
-        output_data = _load_output_data(region_dir)
-        for csv_name in csvs_to_check:
-            csv_path = _find_output_path(output_data, csv_name, region_dir)
-            df = pd.read_csv(csv_path)
-            assert "brain_region" in df.columns
-            assert set(df["brain_region"].dropna().unique()) == {expected_name}
+    for csv_name in csvs_to_check:
+        csv_path = _find_output_path(output_data, csv_name, tmp_path)
+        df = pd.read_csv(csv_path)
+        assert "brain_region" in df.columns
+        assert set(df["brain_region"].dropna().unique()) == {"Region A", "Region B"}
+
+
+def test_epoch_activity_multiple_regions_registers_region_labeled_previews(tmp_path):
+    params = valid_inputs[0].copy()
+    params["region_selection"] = "multiple_regions"
+    params["second_cell_set_files"] = cell_sets
+    params["second_event_set_files"] = event_sets
+    params["first_brain_region_name"] = "Region A"
+    params["second_brain_region_name"] = "Region B"
+    run(**params, output_dir=tmp_path)
+
+    output_data = _load_output_data(tmp_path)
+    activity_entry = next(
+        entry
+        for entry in output_data.get("output_files", [])
+        if str(entry.get("file", "")).endswith("activity_per_epoch_data.csv")
+    )
+    preview_captions = [preview.get("caption", "") for preview in activity_entry["previews"]]
+    assert any(caption.startswith("Region A:") for caption in preview_captions)
+    assert any(caption.startswith("Region B:") for caption in preview_captions)
+    preview_files = [str(preview.get("file", "")) for preview in activity_entry["previews"]]
+    assert any("region_a_" in file_name for file_name in preview_files)
+    assert any("region_b_" in file_name for file_name in preview_files)
+    region_a_preview = next(
+        preview
+        for preview in activity_entry["previews"]
+        if preview.get("caption", "").startswith("Region A:")
+        and str(preview.get("file", "")).endswith(".svg")
+    )
+    region_b_preview = next(
+        preview
+        for preview in activity_entry["previews"]
+        if preview.get("caption", "").startswith("Region B:")
+        and str(preview.get("file", "")).endswith(".svg")
+    )
+    assert "Region A" in (tmp_path / region_a_preview["file"]).read_text()
+    assert "Region B" in (tmp_path / region_b_preview["file"]).read_text()
+    assert Path(region_a_preview["file"]).name.startswith("region_a_")
+    assert Path(region_b_preview["file"]).name.startswith("region_b_")
+
+    h5_path = _find_output_path(output_data, "pairwise_correlation_heatmaps.h5", tmp_path)
+    with h5py.File(h5_path, "r") as h5_file:
+        assert any(key.startswith("region_a_") for key in h5_file.keys())
+        assert any(key.startswith("region_b_") for key in h5_file.keys())
+
+    zip_path = _find_output_path(
+        output_data, "spatial_analysis_pairwise_correlations.zip", tmp_path
+    )
+    with zipfile.ZipFile(zip_path, "r") as zip_file:
+        assert any(name.startswith("region_a_") for name in zip_file.namelist())
+        assert any(name.startswith("region_b_") for name in zip_file.namelist())
+
+    activity_metadata = _metadata_for_output(output_data, "activity_per_epoch_data.csv")
+    assert activity_metadata["num_brain_regions"] == 2
+    assert activity_metadata["brain_regions"] == "Region A, Region B"
+    assert activity_metadata["num_cells"] == 152
+    assert activity_metadata["num_cells_by_brain_region"] == "Region A: 76, Region B: 76"
+    raw_activity_entry = next(
+        entry
+        for entry in output_data.get("output_files", [])
+        if str(entry.get("file", "")).endswith("activity_per_epoch_data.csv")
+    )
+    metadata_by_key = {m["key"]: m for m in raw_activity_entry.get("metadata", [])}
+    assert metadata_by_key["num_brain_regions"]["name"] == "Number of Brain Regions"
+    assert metadata_by_key["brain_regions"]["name"] == "Brain Regions"
+    assert metadata_by_key["num_cells_by_brain_region"]["name"] == "Num Cells by Brain Region"
+
+
+def test_epoch_activity_single_region_embeds_region_label_in_preview(tmp_path):
+    params = valid_inputs[0].copy()
+    params["brain_region_name"] = "Region Solo"
+    run(**params, output_dir=tmp_path)
+
+    output_data = _load_output_data(tmp_path)
+    activity_entry = next(
+        entry
+        for entry in output_data.get("output_files", [])
+        if str(entry.get("file", "")).endswith("activity_per_epoch_data.csv")
+    )
+    labeled_preview = next(
+        preview
+        for preview in activity_entry.get("previews", [])
+        if str(preview.get("file", "")).endswith("trace_epoch_overlay.svg")
+    )
+    assert "Region Solo" in (tmp_path / labeled_preview["file"]).read_text()
+
+
+def test_epoch_activity_multi_region_all_svg_previews_embed_region_label(tmp_path):
+    params = valid_inputs[0].copy()
+    params["region_selection"] = "multiple_regions"
+    params["second_cell_set_files"] = cell_sets
+    params["second_event_set_files"] = event_sets
+    params["first_brain_region_name"] = "Region A"
+    params["second_brain_region_name"] = "Region B"
+    run(**params, output_dir=tmp_path)
+
+    output_data = _load_output_data(tmp_path)
+    checked = 0
+    for entry in output_data.get("output_files", []):
+        for preview in entry.get("previews", []):
+            preview_file = str(preview.get("file", ""))
+            caption = str(preview.get("caption", ""))
+            if not preview_file.endswith(".svg"):
+                continue
+            if caption.startswith("Region A:"):
+                svg_text = (tmp_path / preview_file).read_text()
+                assert "Region A" in svg_text
+                checked += 1
+            elif caption.startswith("Region B:"):
+                svg_text = (tmp_path / preview_file).read_text()
+                assert "Region B" in svg_text
+                checked += 1
+
+    # Sanity check: ensure we validated many previews rather than a single file.
+    assert checked >= 10
+
+
+@pytest.mark.parametrize(
+    "brain_region_name, expected_label",
+    [
+        (None, None),
+        ("", None),
+        ("   ", None),
+        (" CA1 ", "CA1"),
+        ("Region-2/Layer+4", "Region-2/Layer+4"),
+    ],
+)
+def test_single_region_brain_region_name_inputs_keep_filenames_consistent(
+    tmp_path, brain_region_name, expected_label
+):
+    params = valid_inputs[0].copy()
+    params["brain_region_name"] = brain_region_name
+    run(**params, output_dir=tmp_path)
+
+    output_data = _load_output_data(tmp_path)
+    activity_entry = next(
+        entry
+        for entry in output_data.get("output_files", [])
+        if str(entry.get("file", "")).endswith("activity_per_epoch_data.csv")
+    )
+    svg_previews = [
+        preview
+        for preview in activity_entry.get("previews", [])
+        if str(preview.get("file", "")).endswith(".svg")
+    ]
+    assert svg_previews
+    assert all(
+        not Path(preview["file"]).name.startswith("region_") for preview in svg_previews
+    )
+
+    combined_svg_text = "\n".join(
+        (tmp_path / preview["file"]).read_text() for preview in svg_previews
+    )
+    if expected_label:
+        assert f"Brain Region: {expected_label}" in combined_svg_text
+    else:
+        assert "Brain Region:" not in combined_svg_text
+
+
+@pytest.mark.parametrize(
+    "first_name, second_name, expected_first_label, expected_second_label",
+    [
+        ("Region A", "Region B", "Region A", "Region B"),
+        ("  Region A  ", " Region B ", "Region A", "Region B"),
+        ("", "", _DEFAULT_FIRST_BRAIN_REGION_NAME, _DEFAULT_SECOND_BRAIN_REGION_NAME),
+        ("R1/Alpha", "R2+Beta", "R1/Alpha", "R2+Beta"),
+    ],
+)
+def test_multi_region_brain_region_name_inputs_filename_and_label_consistency(
+    tmp_path, first_name, second_name, expected_first_label, expected_second_label
+):
+    params = valid_inputs[0].copy()
+    params["region_selection"] = "multiple_regions"
+    params["second_cell_set_files"] = cell_sets
+    params["second_event_set_files"] = event_sets
+    params["first_brain_region_name"] = first_name
+    params["second_brain_region_name"] = second_name
+    run(**params, output_dir=tmp_path)
+
+    first_tag = _region_file_tag(expected_first_label, fallback_idx=1)
+    second_tag = _region_file_tag(expected_second_label, fallback_idx=2)
+    output_data = _load_output_data(tmp_path)
+
+    activity_entry = next(
+        entry
+        for entry in output_data.get("output_files", [])
+        if str(entry.get("file", "")).endswith("activity_per_epoch_data.csv")
+    )
+
+    region_a_previews = [
+        p
+        for p in activity_entry.get("previews", [])
+        if str(p.get("caption", "")).startswith(f"{expected_first_label}:")
+        and str(p.get("file", "")).endswith(".svg")
+    ]
+    region_b_previews = [
+        p
+        for p in activity_entry.get("previews", [])
+        if str(p.get("caption", "")).startswith(f"{expected_second_label}:")
+        and str(p.get("file", "")).endswith(".svg")
+    ]
+    assert region_a_previews and region_b_previews
+
+    for preview in region_a_previews:
+        assert Path(preview["file"]).name.startswith(f"{first_tag}_")
+        assert expected_first_label in (tmp_path / preview["file"]).read_text()
+
+    for preview in region_b_previews:
+        assert Path(preview["file"]).name.startswith(f"{second_tag}_")
+        assert expected_second_label in (tmp_path / preview["file"]).read_text()
 
 
 def test_plot_traces(cleanup_plots):
