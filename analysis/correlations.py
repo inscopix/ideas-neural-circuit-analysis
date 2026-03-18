@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from beartype import beartype
-from beartype.typing import Any, Dict, List, Optional, Tuple
+from beartype.typing import Any, Dict, List, Tuple
 from ideas.analysis import measures, plots
 from ideas.analysis.io import cell_set_to_positions
 from ideas.exceptions import IdeasError

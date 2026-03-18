@@ -2219,7 +2219,9 @@ class StateEpochOutputGenerator:
 
         fig, axes = plt.subplots(1, 2, figsize=(14, 6))
         if self.brain_region_name:
-            fig.suptitle(f"Brain Region: {self.brain_region_name}", fontsize=12, y=0.995)
+            fig.suptitle(
+                f"Brain Region: {self.brain_region_name}", fontsize=12, y=0.995
+            )
 
         # CDF plot
         statistic_label = self.correlation_statistic.capitalize()
@@ -2485,7 +2487,9 @@ class StateEpochOutputGenerator:
         # Create figure with more space for labels and rotated text
         fig, ax = plt.subplots(figsize=(12, 10), nrows=2)
         if self.brain_region_name:
-            fig.suptitle(f"Brain Region: {self.brain_region_name}", fontsize=12, y=0.995)
+            fig.suptitle(
+                f"Brain Region: {self.brain_region_name}", fontsize=12, y=0.995
+            )
 
         # Use local LABEL_FONT for consistent styling
 

@@ -214,7 +214,9 @@ def _merge_multi_region_csv_outputs(
     secondary_output_data = json.loads(secondary_output_data_path.read_text())
 
     for csv_name in _MERGED_REGION_CSV_OUTPUTS:
-        primary_csv = _registered_output_path(primary_output_data, primary_output_dir, csv_name)
+        primary_csv = _registered_output_path(
+            primary_output_data, primary_output_dir, csv_name
+        )
         secondary_csv = _registered_output_path(
             secondary_output_data, secondary_output_dir, csv_name
         )
@@ -259,9 +261,10 @@ def _merge_multi_region_binary_outputs(
         and primary_h5.exists()
         and secondary_h5.exists()
     ):
-        with h5py.File(primary_h5, "a") as primary_h5_file, h5py.File(
-            secondary_h5, "r"
-        ) as secondary_h5_file:
+        with (
+            h5py.File(primary_h5, "a") as primary_h5_file,
+            h5py.File(secondary_h5, "r") as secondary_h5_file,
+        ):
             existing_keys = list(primary_h5_file.keys())
             for key in existing_keys:
                 if key.startswith(f"{primary_region_file_tag}_"):
@@ -304,7 +307,8 @@ def _merge_multi_region_binary_outputs(
             )
             if should_prefix_primary:
                 rewritten_entries = [
-                    (m.filename, original_zip.read(m.filename)) for m in original_members
+                    (m.filename, original_zip.read(m.filename))
+                    for m in original_members
                 ]
                 rewritten_path = primary_zip.with_suffix(".tmp.zip")
                 with zipfile.ZipFile(
@@ -323,7 +327,9 @@ def _merge_multi_region_binary_outputs(
                         used_names.add(new_name)
                 rewritten_path.replace(primary_zip)
 
-        with zipfile.ZipFile(primary_zip, "a", zipfile.ZIP_DEFLATED) as primary_zip_file:
+        with zipfile.ZipFile(
+            primary_zip, "a", zipfile.ZIP_DEFLATED
+        ) as primary_zip_file:
             existing_members = set(primary_zip_file.namelist())
             with zipfile.ZipFile(secondary_zip, "r") as secondary_zip_file:
                 for member in secondary_zip_file.infolist():
@@ -332,9 +338,7 @@ def _merge_multi_region_binary_outputs(
                     destination_name = f"{secondary_region_file_tag}_{member.filename}"
                     duplicate_idx = 2
                     while destination_name in existing_members:
-                        destination_name = (
-                            f"{secondary_region_file_tag}_{duplicate_idx}_{member.filename}"
-                        )
+                        destination_name = f"{secondary_region_file_tag}_{duplicate_idx}_{member.filename}"
                         duplicate_idx += 1
                     with secondary_zip_file.open(member, "r") as src:
                         primary_zip_file.writestr(destination_name, src.read())
@@ -436,9 +440,7 @@ def _merge_multi_region_preview_registration(
 
             duplicate_idx = 2
             while destination_path.exists():
-                destination_name = (
-                    f"{secondary_region_file_tag}_{duplicate_idx}_{preview_rel_path.name}"
-                )
+                destination_name = f"{secondary_region_file_tag}_{duplicate_idx}_{preview_rel_path.name}"
                 destination_rel_path = preview_rel_path.parent / destination_name
                 destination_path = primary_output_dir / destination_rel_path
                 duplicate_idx += 1
@@ -570,15 +572,15 @@ def _merge_multi_region_metadata_values(
     primary_output_data_path.write_text(json.dumps(primary_output_data, indent=4))
 
 
-def _register_multi_region_metadata(
-    output_dir: Path, region_labels: List[str]
-) -> None:
+def _register_multi_region_metadata(output_dir: Path, region_labels: List[str]) -> None:
     """Add merged-region metadata entries to all registered outputs."""
     output_data_path = output_dir / "output_data.json"
     if not output_data_path.exists():
         return
 
-    cleaned_labels = [str(label).strip() for label in region_labels if str(label).strip()]
+    cleaned_labels = [
+        str(label).strip() for label in region_labels if str(label).strip()
+    ]
     if not cleaned_labels:
         return
 
@@ -699,7 +701,8 @@ def _compute_multi_region_raw_trace_correlation_df(
     valid_regions = [
         region
         for region in region_labels
-        if region in raw_region_data and raw_region_data[region].get("traces") is not None
+        if region in raw_region_data
+        and raw_region_data[region].get("traces") is not None
     ]
     region_arrays = {}
     region_names = {}
@@ -708,7 +711,9 @@ def _compute_multi_region_raw_trace_correlation_df(
         traces = raw_region_data[region]["traces"]
         if traces is None or traces.size == 0:
             continue
-        cell_names = [str(name) for name in raw_region_data[region].get("cell_names", [])]
+        cell_names = [
+            str(name) for name in raw_region_data[region].get("cell_names", [])
+        ]
         if not cell_names:
             cell_names = [f"cell_{idx}" for idx in range(traces.shape[1])]
         n_cells = min(traces.shape[1], len(cell_names))
@@ -826,7 +831,9 @@ def _build_raw_trace_event_activity_df(
                     var_name="name",
                     value_name="event_value",
                 )
-                trace_long["event_value"] = event_long["event_value"].to_numpy(dtype=float)
+                trace_long["event_value"] = event_long["event_value"].to_numpy(
+                    dtype=float
+                )
             else:
                 trace_long["event_value"] = np.nan
 
@@ -835,15 +842,13 @@ def _build_raw_trace_event_activity_df(
                 trace_long[_SUBJECT_ID_COLUMN] = subject_id
             trace_long["epoch"] = epoch_label
             trace_long["time_s"] = (
-                (start_idx + trace_long["epoch_frame_index"].astype(float))
-                * float(region_data["period"])
-            )
+                start_idx + trace_long["epoch_frame_index"].astype(float)
+            ) * float(region_data["period"])
             trace_long["epoch_time_s"] = np.nan
             if has_event_input:
-                trace_long["epoch_time_s"] = (
-                    trace_long["epoch_frame_index"].astype(float)
-                    * float(region_data["period"])
-                )
+                trace_long["epoch_time_s"] = trace_long["epoch_frame_index"].astype(
+                    float
+                ) * float(region_data["period"])
             rows.append(trace_long)
 
     if not rows:
@@ -879,24 +884,35 @@ def _create_raw_trace_event_previews(
             ].dropna(subset=["corr_value"])
             if not matrix_rows.empty:
                 matrix_rows = matrix_rows.assign(
-                    key_a=matrix_rows["region_a"].astype(str) + "::" + matrix_rows["cell_a"].astype(str),
-                    key_b=matrix_rows["region_b"].astype(str) + "::" + matrix_rows["cell_b"].astype(str),
+                    key_a=matrix_rows["region_a"].astype(str)
+                    + "::"
+                    + matrix_rows["cell_a"].astype(str),
+                    key_b=matrix_rows["region_b"].astype(str)
+                    + "::"
+                    + matrix_rows["cell_b"].astype(str),
                 )
                 pair_summary = (
-                    matrix_rows.groupby(["key_a", "key_b"], as_index=False)["corr_value"]
+                    matrix_rows.groupby(["key_a", "key_b"], as_index=False)[
+                        "corr_value"
+                    ]
                     .median()
                     .rename(columns={"corr_value": "corr_median"})
                 )
 
                 region_order = pd.concat(
-                    [matrix_rows["region_a"], matrix_rows["region_b"]], ignore_index=True
+                    [matrix_rows["region_a"], matrix_rows["region_b"]],
+                    ignore_index=True,
                 ).drop_duplicates()
                 cells_by_region = {}
                 for region in region_order:
                     region_cells = pd.concat(
                         [
-                            matrix_rows.loc[matrix_rows["region_a"] == region, "cell_a"].astype(str),
-                            matrix_rows.loc[matrix_rows["region_b"] == region, "cell_b"].astype(str),
+                            matrix_rows.loc[
+                                matrix_rows["region_a"] == region, "cell_a"
+                            ].astype(str),
+                            matrix_rows.loc[
+                                matrix_rows["region_b"] == region, "cell_b"
+                            ].astype(str),
                         ],
                         ignore_index=True,
                     ).drop_duplicates()
@@ -909,7 +925,9 @@ def _create_raw_trace_event_previews(
                 ]
                 if ordered_keys:
                     key_to_index = {key: idx for idx, key in enumerate(ordered_keys)}
-                    corr_matrix = np.full((len(ordered_keys), len(ordered_keys)), np.nan, dtype=float)
+                    corr_matrix = np.full(
+                        (len(ordered_keys), len(ordered_keys)), np.nan, dtype=float
+                    )
                     np.fill_diagonal(corr_matrix, 1.0)
 
                     for row in pair_summary.itertuples(index=False):
@@ -922,8 +940,16 @@ def _create_raw_trace_event_previews(
 
                     fig_size = min(18, max(8, 0.16 * len(ordered_keys)))
                     fig, ax = plt.subplots(figsize=(fig_size, fig_size))
-                    image = ax.imshow(corr_matrix, cmap="coolwarm", vmin=-1, vmax=1, interpolation="nearest")
-                    ax.set_title("Pairwise cell trace correlation matrix (within + across regions)")
+                    image = ax.imshow(
+                        corr_matrix,
+                        cmap="coolwarm",
+                        vmin=-1,
+                        vmax=1,
+                        interpolation="nearest",
+                    )
+                    ax.set_title(
+                        "Pairwise cell trace correlation matrix (within + across regions)"
+                    )
 
                     if len(ordered_keys) <= 60:
                         labels = [key.split("::", 1)[1] for key in ordered_keys]
@@ -941,8 +967,24 @@ def _create_raw_trace_event_previews(
                         if block_size == 0:
                             continue
                         center = offset + (block_size - 1) / 2
-                        ax.text(center, -1.4, region, ha="center", va="bottom", fontsize=8, clip_on=False)
-                        ax.text(-1.4, center, region, ha="right", va="center", fontsize=8, clip_on=False)
+                        ax.text(
+                            center,
+                            -1.4,
+                            region,
+                            ha="center",
+                            va="bottom",
+                            fontsize=8,
+                            clip_on=False,
+                        )
+                        ax.text(
+                            -1.4,
+                            center,
+                            region,
+                            ha="right",
+                            va="center",
+                            fontsize=8,
+                            clip_on=False,
+                        )
                         offset += block_size
                         if offset < len(ordered_keys):
                             ax.axhline(offset - 0.5, color="black", linewidth=0.8)
@@ -1003,7 +1045,9 @@ def _generate_raw_trace_event_output_and_register(
     ]
     output_files.append(
         {
-            "file": str(Path(_TRACE_EVENT_OUTPUTS_SUBDIR) / _RAW_TRACE_EVENT_ACTIVITY_CSV),
+            "file": str(
+                Path(_TRACE_EVENT_OUTPUTS_SUBDIR) / _RAW_TRACE_EVENT_ACTIVITY_CSV
+            ),
             "previews": [
                 {
                     "file": str(Path(_TRACE_EVENT_OUTPUTS_SUBDIR) / Path(preview).name),
