@@ -13,12 +13,12 @@ jobs:
     - name: Set up Python 3.13
       uses: actions/setup-python@v4
       with:
-        python-version: '3.13.11'
+        python-version: '3.13.12'
     # Setup uv and handle caching
     - name: Setup uv
       uses: astral-sh/setup-uv@v7
       with:
-        version: '0.9.25'
+        version: '0.10.11'
         # Caches the uv executable and its internal cache directories
         cache-dependency-path: pyproject.toml
     # Create a virtual environment and install dependencies
