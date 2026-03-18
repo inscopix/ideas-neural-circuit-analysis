@@ -1,4 +1,5 @@
 import json
+import inspect
 import os
 import zipfile
 from pathlib import Path
@@ -12,8 +13,11 @@ import pytest
 from ideas.exceptions import IdeasError
 
 from analysis.epoch_activity import (
+    _RAW_TRACE_EVENT_ACTIVITY_CSV,
     _DEFAULT_FIRST_BRAIN_REGION_NAME,
     _DEFAULT_SECOND_BRAIN_REGION_NAME,
+    _compute_multi_region_raw_trace_correlation_df,
+    epoch_activity_ideas_wrapper,
     _region_file_tag,
     run,
 )
@@ -185,6 +189,7 @@ def test_epoch_activity_multiple_regions_adds_brain_region_column(tmp_path):
     params["second_event_set_files"] = event_sets
     params["first_brain_region_name"] = "Region A"
     params["second_brain_region_name"] = "Region B"
+    params["subject_id"] = "subject_42"
     run(**params, output_dir=tmp_path)
 
     output_data = _load_output_data(tmp_path)
@@ -198,7 +203,9 @@ def test_epoch_activity_multiple_regions_adds_brain_region_column(tmp_path):
         csv_path = _find_output_path(output_data, csv_name, tmp_path)
         df = pd.read_csv(csv_path)
         assert "brain_region" in df.columns
+        assert "subject_id" in df.columns
         assert set(df["brain_region"].dropna().unique()) == {"Region A", "Region B"}
+        assert set(df["subject_id"].dropna().unique()) == {"subject_42"}
 
 
 def test_epoch_activity_multiple_regions_registers_region_labeled_previews(tmp_path):
@@ -208,6 +215,7 @@ def test_epoch_activity_multiple_regions_registers_region_labeled_previews(tmp_p
     params["second_event_set_files"] = event_sets
     params["first_brain_region_name"] = "Region A"
     params["second_brain_region_name"] = "Region B"
+    params["subject_id"] = "subject_42"
     run(**params, output_dir=tmp_path)
 
     output_data = _load_output_data(tmp_path)
@@ -254,6 +262,7 @@ def test_epoch_activity_multiple_regions_registers_region_labeled_previews(tmp_p
     activity_metadata = _metadata_for_output(output_data, "activity_per_epoch_data.csv")
     assert activity_metadata["num_brain_regions"] == 2
     assert activity_metadata["brain_regions"] == "Region A, Region B"
+    assert activity_metadata["subject_id"] == "subject_42"
     assert activity_metadata["num_cells"] == 152
     assert activity_metadata["num_cells_by_brain_region"] == "Region A: 76, Region B: 76"
     raw_activity_entry = next(
@@ -264,6 +273,7 @@ def test_epoch_activity_multiple_regions_registers_region_labeled_previews(tmp_p
     metadata_by_key = {m["key"]: m for m in raw_activity_entry.get("metadata", [])}
     assert metadata_by_key["num_brain_regions"]["name"] == "Number of Brain Regions"
     assert metadata_by_key["brain_regions"]["name"] == "Brain Regions"
+    assert metadata_by_key["subject_id"]["name"] == "Subject ID"
     assert metadata_by_key["num_cells_by_brain_region"]["name"] == "Num Cells by Brain Region"
 
 
@@ -410,6 +420,141 @@ def test_multi_region_brain_region_name_inputs_filename_and_label_consistency(
         assert Path(preview["file"]).name.startswith(f"{second_tag}_")
         assert expected_second_label in (tmp_path / preview["file"]).read_text()
 
+
+def test_epoch_activity_multi_region_registers_raw_trace_event_csv_with_heatmap_preview(tmp_path):
+    params = valid_inputs[0].copy()
+    params["region_selection"] = "multiple_regions"
+    params["second_cell_set_files"] = cell_sets
+    params["second_event_set_files"] = event_sets
+    params["first_brain_region_name"] = "Region A"
+    params["second_brain_region_name"] = "Region B"
+    params["subject_id"] = "subject_42"
+    run(**params, output_dir=tmp_path)
+
+    output_data = _load_output_data(tmp_path)
+    assert not any(
+        str(entry.get("file", "")).endswith("cross_region_analysis_outputs.zip")
+        for entry in output_data.get("output_files", [])
+    )
+    raw_trace_event_entry = next(
+        (
+            entry
+            for entry in output_data.get("output_files", [])
+            if str(entry.get("file", "")).endswith(_RAW_TRACE_EVENT_ACTIVITY_CSV)
+        ),
+        None,
+    )
+    assert raw_trace_event_entry is not None
+    raw_csv_path = tmp_path / raw_trace_event_entry["file"]
+    assert raw_csv_path.exists()
+    raw_df = pd.read_csv(raw_csv_path)
+    assert {"subject_id", "brain_region", "name", "epoch", "time_s", "epoch_time_s", "trace_value", "event_value"}.issubset(
+        set(raw_df.columns)
+    )
+    assert "time_index" not in raw_df.columns
+    assert set(raw_df["brain_region"]) == {"Region A", "Region B"}
+    assert set(raw_df["subject_id"].dropna().unique()) == {"subject_42"}
+
+    preview_files = [str(p.get("file", "")) for p in raw_trace_event_entry.get("previews", [])]
+    assert preview_files == [
+        "trace_event_analysis_outputs/cell_correlation_heatmap_preview.svg"
+    ]
+    assert not list(
+        (tmp_path / "trace_event_analysis_outputs").glob(
+            "*_cell_correlation_heatmap_preview.svg"
+        )
+    )
+    assert all("cross_region_" not in path for path in preview_files)
+    for preview_file in preview_files:
+        assert (tmp_path / preview_file).exists()
+    heatmap_preview = next(
+        (
+            file
+            for file in preview_files
+            if file.endswith("cell_correlation_heatmap_preview.svg")
+        ),
+        None,
+    )
+    assert heatmap_preview is not None
+    assert "Pairwise cell trace correlation matrix" in (tmp_path / heatmap_preview).read_text()
+
+
+def test_epoch_activity_raw_trace_event_csv_uses_empty_epoch_time_without_events(tmp_path):
+    params = valid_inputs[0].copy()
+    params["event_set_files"] = None
+    params["region_selection"] = "multiple_regions"
+    params["second_cell_set_files"] = cell_sets
+    params["second_event_set_files"] = None
+    params["first_brain_region_name"] = "Region A"
+    params["second_brain_region_name"] = "Region B"
+    params["subject_id"] = "subject_42"
+    run(**params, output_dir=tmp_path)
+
+    output_data = _load_output_data(tmp_path)
+    raw_trace_event_entry = next(
+        entry
+        for entry in output_data.get("output_files", [])
+        if str(entry.get("file", "")).endswith(_RAW_TRACE_EVENT_ACTIVITY_CSV)
+    )
+    raw_df = pd.read_csv(tmp_path / raw_trace_event_entry["file"])
+
+    assert "time_index" not in raw_df.columns
+    assert set(raw_df["subject_id"].dropna().unique()) == {"subject_42"}
+    assert raw_df["event_value"].isna().all()
+    assert raw_df["epoch_time_s"].isna().all()
+
+
+def test_epoch_activity_single_region_registers_raw_trace_event_csv(tmp_path):
+    params = valid_inputs[0].copy()
+    run(**params, output_dir=tmp_path)
+
+    output_data = _load_output_data(tmp_path)
+    raw_trace_event_entry = next(
+        (
+            entry
+            for entry in output_data.get("output_files", [])
+            if str(entry.get("file", "")).endswith(_RAW_TRACE_EVENT_ACTIVITY_CSV)
+        ),
+        None,
+    )
+    assert raw_trace_event_entry is not None
+    raw_df = pd.read_csv(tmp_path / raw_trace_event_entry["file"])
+    assert {"brain_region", "name", "epoch", "time_s", "epoch_time_s", "trace_value", "event_value"}.issubset(
+        set(raw_df.columns)
+    )
+    assert set(raw_df["brain_region"].dropna().unique()) == {_DEFAULT_FIRST_BRAIN_REGION_NAME}
+    preview_files = [str(p.get("file", "")) for p in raw_trace_event_entry.get("previews", [])]
+    assert preview_files == ["trace_event_analysis_outputs/cell_correlation_heatmap_preview.svg"]
+    assert (tmp_path / preview_files[0]).exists()
+
+
+def test_epoch_activity_wrapper_accepts_subject_id_input():
+    signature = inspect.signature(epoch_activity_ideas_wrapper)
+    assert "subject_id" in signature.parameters
+
+
+def test_compute_multi_region_raw_trace_correlation_df_handles_three_regions():
+    raw_region_data = {
+        "A": {"traces": np.array([[1.0, 2.0], [2.0, 3.0], [3.0, 4.0]]), "cell_names": ["a1", "a2"]},
+        "B": {"traces": np.array([[1.0, 3.0], [2.0, 2.0], [3.0, 1.0]]), "cell_names": ["b1", "b2"]},
+        "C": {"traces": np.array([[0.0, 1.0], [1.0, 1.0], [2.0, 3.0]]), "cell_names": ["c1", "c2"]},
+    }
+    result = _compute_multi_region_raw_trace_correlation_df(
+        raw_region_data=raw_region_data,
+        region_labels=["A", "B", "C"],
+    )
+    assert not result.empty
+    assert "__all_raw__" in set(result["epoch"])
+    assert set(result["comparison_type"]) == {"within_region", "across_region"}
+
+    across_pairs = set(
+        result[result["comparison_type"] == "across_region"][["region_a", "region_b"]]
+        .drop_duplicates()
+        .itertuples(index=False, name=None)
+    )
+    assert ("A", "B") in across_pairs
+    assert ("A", "C") in across_pairs
+    assert ("B", "C") in across_pairs
 
 def test_plot_traces(cleanup_plots):
     """Test the _plot_traces function with various state transition scenarios."""

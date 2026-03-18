@@ -18,6 +18,7 @@ import zipfile
 from pathlib import Path
 
 import h5py
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from beartype import beartype
@@ -84,6 +85,7 @@ _EPOCH_FILENAME_OVERRIDES = {
 
 _EPOCH_ONLY_STATE_NAME = "epoch_activity"
 _BRAIN_REGION_COLUMN = "brain_region"
+_SUBJECT_ID_COLUMN = "subject_id"
 _DEFAULT_FIRST_BRAIN_REGION_NAME = "Brain Region 1"
 _DEFAULT_SECOND_BRAIN_REGION_NAME = "Brain Region 2"
 _MERGED_REGION_CSV_OUTPUTS = [
@@ -92,6 +94,9 @@ _MERGED_REGION_CSV_OUTPUTS = [
     MODULATION_VS_BASELINE_DATA_CSV,
     AVERAGE_CORRELATIONS_CSV,
 ]
+_TRACE_EVENT_OUTPUTS_SUBDIR = "trace_event_analysis_outputs"
+_RAW_TRACE_EVENT_ACTIVITY_CSV = "raw_trace_event_data.csv"
+_CELL_CORR_HEATMAP_PREVIEW = "cell_correlation_heatmap_preview.svg"
 
 _USEFUL_OUTPUT_METADATA_KEYS = {
     "num_cells",
@@ -157,12 +162,32 @@ def _append_brain_region_column_to_csv(csv_path: Path, brain_region_name: str) -
     df.to_csv(csv_path, index=False)
 
 
+def _append_subject_id_column_to_csv(csv_path: Path, subject_id: str) -> None:
+    """Append (or overwrite) a subject_id column in a CSV file."""
+    if not csv_path.exists():
+        return
+    df = pd.read_csv(csv_path)
+    if _SUBJECT_ID_COLUMN in df.columns:
+        df[_SUBJECT_ID_COLUMN] = subject_id
+    else:
+        df.insert(0, _SUBJECT_ID_COLUMN, subject_id)
+    df.to_csv(csv_path, index=False)
+
+
 def _append_brain_region_column_to_epoch_csv_outputs(
     output_dir: Path, brain_region_name: str
 ) -> None:
     """Add brain_region to core CSV outputs without altering output file layout."""
     for csv_name in _MERGED_REGION_CSV_OUTPUTS:
         _append_brain_region_column_to_csv(output_dir / csv_name, brain_region_name)
+
+
+def _append_subject_id_column_to_epoch_csv_outputs(
+    output_dir: Path, subject_id: str
+) -> None:
+    """Add subject_id to core CSV outputs without altering output file layout."""
+    for csv_name in _MERGED_REGION_CSV_OUTPUTS:
+        _append_subject_id_column_to_csv(output_dir / csv_name, subject_id)
 
 
 def _registered_output_path(
@@ -337,6 +362,14 @@ def _normalize_brain_region_name(region_label: Optional[str]) -> Optional[str]:
     if region_label is None:
         return None
     normalized = str(region_label).strip()
+    return normalized or None
+
+
+def _normalize_subject_id(subject_id: Optional[str]) -> Optional[str]:
+    """Return a trimmed subject ID or None when not meaningfully provided."""
+    if subject_id is None:
+        return None
+    normalized = str(subject_id).strip()
     return normalized or None
 
 
@@ -575,6 +608,432 @@ def _register_multi_region_metadata(
     output_data_path.write_text(json.dumps(output_data, indent=4))
 
 
+def _register_subject_metadata(output_dir: Path, subject_id: Optional[str]) -> None:
+    """Add subject_id metadata entries to all registered outputs."""
+    normalized_subject_id = _normalize_subject_id(subject_id)
+    if normalized_subject_id is None:
+        return
+    output_data_path = output_dir / "output_data.json"
+    if not output_data_path.exists():
+        return
+
+    output_data = json.loads(output_data_path.read_text())
+    metadata_item = {
+        "name": "Subject ID",
+        "key": _SUBJECT_ID_COLUMN,
+        "value": normalized_subject_id,
+    }
+    for output_file in output_data.get("output_files", []):
+        existing = output_file.get("metadata", [])
+        existing = [item for item in existing if item.get("key") != _SUBJECT_ID_COLUMN]
+        output_file["metadata"] = [*existing, metadata_item]
+
+    output_data_path.write_text(json.dumps(output_data, indent=4))
+
+
+def _load_multi_region_raw_data(
+    region_runs: List[dict],
+    define_epochs_by: str,
+    epoch_names: str,
+    epochs: Optional[str],
+) -> dict:
+    """Load raw traces/events for each region for cross-region metrics."""
+    raw_data = {}
+    parsed_epoch_names = _validate_epoch_name_strings(epoch_names)
+    parsed_epoch_colors = [f"C{i}" for i in range(len(parsed_epoch_names))]
+    baseline_epoch = parsed_epoch_names[0] if parsed_epoch_names else "epoch_1"
+    for region in region_runs:
+        manager = StateEpochDataManager(
+            cell_set_files=region["cell_set_files"],
+            event_set_files=region["event_set_files"],
+            annotations_file=None,
+            concatenate=True,
+            define_epochs_by=define_epochs_by,
+            epochs=epochs,
+            epoch_names=parsed_epoch_names,
+            epoch_colors=parsed_epoch_colors,
+            state_names=[_EPOCH_ONLY_STATE_NAME],
+            state_colors=["gray"],
+            baseline_state=_EPOCH_ONLY_STATE_NAME,
+            baseline_epoch=baseline_epoch,
+            allow_epoch_only_mode=True,
+        )
+        traces, events, _annotations_df, cell_info = manager.load_data()
+        raw_data[region["brain_region_name"]] = {
+            "traces": traces,
+            "events": events,
+            "cell_names": list(cell_info.get("cell_names", [])),
+            "epoch_periods": manager.get_epoch_periods(),
+            "period": float(cell_info.get("period", 1.0)),
+            "epoch_names": parsed_epoch_names,
+        }
+    return raw_data
+
+
+def _safe_corrcoef(values_a: np.ndarray, values_b: np.ndarray) -> float:
+    """Compute Pearson correlation safely for 1D arrays."""
+    if values_a.size < 2 or values_b.size < 2:
+        return float("nan")
+    if np.allclose(np.std(values_a), 0.0) or np.allclose(np.std(values_b), 0.0):
+        return float("nan")
+    return float(np.corrcoef(values_a, values_b)[0, 1])
+
+
+def _epoch_slices_from_periods(
+    epoch_periods: List[tuple], period: float, n_timepoints: int
+) -> List[tuple]:
+    slices = []
+    for start_s, end_s in epoch_periods:
+        start_idx = max(0, int(float(start_s) / float(period)))
+        end_idx = min(n_timepoints, int(float(end_s) / float(period)))
+        if end_idx > start_idx:
+            slices.append((start_idx, end_idx))
+    return slices
+
+
+def _compute_multi_region_raw_trace_correlation_df(
+    raw_region_data: dict, region_labels: List[str]
+) -> pd.DataFrame:
+    """Compute full-length raw-trace pairwise correlations across all available regions."""
+    rows: List[dict] = []
+    valid_regions = [
+        region
+        for region in region_labels
+        if region in raw_region_data and raw_region_data[region].get("traces") is not None
+    ]
+    region_arrays = {}
+    region_names = {}
+
+    for region in valid_regions:
+        traces = raw_region_data[region]["traces"]
+        if traces is None or traces.size == 0:
+            continue
+        cell_names = [str(name) for name in raw_region_data[region].get("cell_names", [])]
+        if not cell_names:
+            cell_names = [f"cell_{idx}" for idx in range(traces.shape[1])]
+        n_cells = min(traces.shape[1], len(cell_names))
+        if n_cells < 2:
+            continue
+        region_arrays[region] = traces[:, :n_cells]
+        region_names[region] = cell_names[:n_cells]
+
+    valid_regions = [region for region in valid_regions if region in region_arrays]
+    for region in valid_regions:
+        traces = region_arrays[region]
+        names = region_names[region]
+        for i in range(traces.shape[1]):
+            x = traces[:, i]
+            for j in range(i + 1, traces.shape[1]):
+                y = traces[:, j]
+                rows.append(
+                    {
+                        "comparison_type": "within_region",
+                        "modality": "trace",
+                        "epoch": "__all_raw__",
+                        "region_a": region,
+                        "region_b": region,
+                        "cell_a": names[i],
+                        "cell_b": names[j],
+                        "n_overlap_timepoints": int(len(x)),
+                        "corr_value": _safe_corrcoef(x, y),
+                    }
+                )
+
+    for idx_a, region_a in enumerate(valid_regions):
+        traces_a = region_arrays[region_a]
+        names_a = region_names[region_a]
+        for region_b in valid_regions[idx_a + 1 :]:
+            traces_b = region_arrays[region_b]
+            names_b = region_names[region_b]
+            n_overlap = min(traces_a.shape[0], traces_b.shape[0])
+            if n_overlap < 2:
+                continue
+            sub_a = traces_a[:n_overlap, :]
+            sub_b = traces_b[:n_overlap, :]
+            for i in range(sub_a.shape[1]):
+                x = sub_a[:, i]
+                for j in range(sub_b.shape[1]):
+                    y = sub_b[:, j]
+                    rows.append(
+                        {
+                            "comparison_type": "across_region",
+                            "modality": "trace",
+                            "epoch": "__all_raw__",
+                            "region_a": region_a,
+                            "region_b": region_b,
+                            "cell_a": names_a[i],
+                            "cell_b": names_b[j],
+                            "n_overlap_timepoints": int(n_overlap),
+                            "corr_value": _safe_corrcoef(x, y),
+                        }
+                    )
+
+    return pd.DataFrame(rows)
+
+
+def _build_raw_trace_event_activity_df(
+    raw_region_data: dict, region_labels: List[str], subject_id: Optional[str] = None
+) -> pd.DataFrame:
+    """Build a single long-form raw table across brain regions and epochs."""
+    if not raw_region_data:
+        return pd.DataFrame()
+
+    rows = []
+    for region_label in region_labels:
+        region_data = raw_region_data.get(region_label)
+        if region_data is None:
+            continue
+
+        traces = region_data["traces"]
+        if traces is None or traces.size == 0:
+            continue
+        events = region_data.get("events")
+        cell_names = [str(name) for name in region_data.get("cell_names", [])]
+        if not cell_names:
+            cell_names = [f"cell_{idx}" for idx in range(traces.shape[1])]
+        epoch_names = region_data.get("epoch_names", [])
+        epoch_slices = _epoch_slices_from_periods(
+            epoch_periods=region_data["epoch_periods"],
+            period=region_data["period"],
+            n_timepoints=traces.shape[0],
+        )
+
+        for epoch_idx, (start_idx, end_idx) in enumerate(epoch_slices):
+            epoch_label = (
+                str(epoch_names[epoch_idx])
+                if epoch_idx < len(epoch_names)
+                else f"epoch_{epoch_idx + 1}"
+            )
+            n_timepoints = end_idx - start_idx
+            if n_timepoints <= 0:
+                continue
+
+            trace_segment = traces[start_idx:end_idx, :]
+            trace_frame = pd.DataFrame(trace_segment, columns=cell_names)
+            trace_frame.insert(0, "epoch_frame_index", np.arange(n_timepoints))
+            trace_long = trace_frame.melt(
+                id_vars="epoch_frame_index",
+                var_name="name",
+                value_name="trace_value",
+            )
+            has_event_input = events is not None and events.size > 0
+            if has_event_input:
+                event_segment = events[start_idx:end_idx, :]
+                event_frame = pd.DataFrame(event_segment, columns=cell_names)
+                event_frame.insert(0, "epoch_frame_index", np.arange(n_timepoints))
+                event_long = event_frame.melt(
+                    id_vars="epoch_frame_index",
+                    var_name="name",
+                    value_name="event_value",
+                )
+                trace_long["event_value"] = event_long["event_value"].to_numpy(dtype=float)
+            else:
+                trace_long["event_value"] = np.nan
+
+            trace_long[_BRAIN_REGION_COLUMN] = region_label
+            if subject_id is not None:
+                trace_long[_SUBJECT_ID_COLUMN] = subject_id
+            trace_long["epoch"] = epoch_label
+            trace_long["time_s"] = (
+                (start_idx + trace_long["epoch_frame_index"].astype(float))
+                * float(region_data["period"])
+            )
+            trace_long["epoch_time_s"] = np.nan
+            if has_event_input:
+                trace_long["epoch_time_s"] = (
+                    trace_long["epoch_frame_index"].astype(float)
+                    * float(region_data["period"])
+                )
+            rows.append(trace_long)
+
+    if not rows:
+        return pd.DataFrame()
+    output_columns = [
+        _BRAIN_REGION_COLUMN,
+        "name",
+        "epoch",
+        "time_s",
+        "epoch_time_s",
+        "trace_value",
+        "event_value",
+    ]
+    if subject_id is not None:
+        output_columns = [_SUBJECT_ID_COLUMN, *output_columns]
+    return pd.concat(rows, ignore_index=True)[output_columns]
+
+
+def _create_raw_trace_event_previews(
+    output_dir: Path,
+    cell_corr_df: pd.DataFrame,
+) -> List[str]:
+    """Create SVG previews for raw trace/event output."""
+    preview_paths: List[str] = []
+    if not cell_corr_df.empty:
+        trace_rows = cell_corr_df[cell_corr_df["modality"] == "trace"].copy()
+        if not trace_rows.empty:
+            matrix_source = trace_rows[trace_rows["epoch"] == "__all_raw__"]
+            if matrix_source.empty:
+                matrix_source = trace_rows
+            matrix_rows = matrix_source[
+                ["region_a", "region_b", "cell_a", "cell_b", "corr_value"]
+            ].dropna(subset=["corr_value"])
+            if not matrix_rows.empty:
+                matrix_rows = matrix_rows.assign(
+                    key_a=matrix_rows["region_a"].astype(str) + "::" + matrix_rows["cell_a"].astype(str),
+                    key_b=matrix_rows["region_b"].astype(str) + "::" + matrix_rows["cell_b"].astype(str),
+                )
+                pair_summary = (
+                    matrix_rows.groupby(["key_a", "key_b"], as_index=False)["corr_value"]
+                    .median()
+                    .rename(columns={"corr_value": "corr_median"})
+                )
+
+                region_order = pd.concat(
+                    [matrix_rows["region_a"], matrix_rows["region_b"]], ignore_index=True
+                ).drop_duplicates()
+                cells_by_region = {}
+                for region in region_order:
+                    region_cells = pd.concat(
+                        [
+                            matrix_rows.loc[matrix_rows["region_a"] == region, "cell_a"].astype(str),
+                            matrix_rows.loc[matrix_rows["region_b"] == region, "cell_b"].astype(str),
+                        ],
+                        ignore_index=True,
+                    ).drop_duplicates()
+                    cells_by_region[str(region)] = sorted(region_cells.tolist())
+
+                ordered_keys = [
+                    f"{region}::{cell}"
+                    for region in cells_by_region
+                    for cell in cells_by_region[region]
+                ]
+                if ordered_keys:
+                    key_to_index = {key: idx for idx, key in enumerate(ordered_keys)}
+                    corr_matrix = np.full((len(ordered_keys), len(ordered_keys)), np.nan, dtype=float)
+                    np.fill_diagonal(corr_matrix, 1.0)
+
+                    for row in pair_summary.itertuples(index=False):
+                        i = key_to_index.get(row.key_a)
+                        j = key_to_index.get(row.key_b)
+                        if i is None or j is None:
+                            continue
+                        corr_matrix[i, j] = float(row.corr_median)
+                        corr_matrix[j, i] = float(row.corr_median)
+
+                    fig_size = min(18, max(8, 0.16 * len(ordered_keys)))
+                    fig, ax = plt.subplots(figsize=(fig_size, fig_size))
+                    image = ax.imshow(corr_matrix, cmap="coolwarm", vmin=-1, vmax=1, interpolation="nearest")
+                    ax.set_title("Pairwise cell trace correlation matrix (within + across regions)")
+
+                    if len(ordered_keys) <= 60:
+                        labels = [key.split("::", 1)[1] for key in ordered_keys]
+                        ax.set_xticks(range(len(ordered_keys)))
+                        ax.set_xticklabels(labels, rotation=90, fontsize=6)
+                        ax.set_yticks(range(len(ordered_keys)))
+                        ax.set_yticklabels(labels, fontsize=6)
+                    else:
+                        ax.set_xticks([])
+                        ax.set_yticks([])
+
+                    offset = 0
+                    for region, cells in cells_by_region.items():
+                        block_size = len(cells)
+                        if block_size == 0:
+                            continue
+                        center = offset + (block_size - 1) / 2
+                        ax.text(center, -1.4, region, ha="center", va="bottom", fontsize=8, clip_on=False)
+                        ax.text(-1.4, center, region, ha="right", va="center", fontsize=8, clip_on=False)
+                        offset += block_size
+                        if offset < len(ordered_keys):
+                            ax.axhline(offset - 0.5, color="black", linewidth=0.8)
+                            ax.axvline(offset - 0.5, color="black", linewidth=0.8)
+
+                    cbar = fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04)
+                    cbar.set_label("Median correlation across epochs")
+                    path = output_dir / _CELL_CORR_HEATMAP_PREVIEW
+                    fig.tight_layout()
+                    fig.savefig(path, dpi=150, transparent=True)
+                    plt.close(fig)
+                    preview_paths.append(str(path))
+    return preview_paths
+
+
+def _generate_raw_trace_event_output_and_register(
+    output_dir: Path,
+    region_labels: List[str],
+    raw_region_data: Optional[dict] = None,
+    subject_id: Optional[str] = None,
+) -> None:
+    """Generate a unified raw trace/event CSV and register matrix heatmap preview."""
+    output_data_path = output_dir / "output_data.json"
+    if not output_data_path.exists():
+        return
+    output_data = json.loads(output_data_path.read_text())
+    if not raw_region_data:
+        return
+    raw_df = _build_raw_trace_event_activity_df(
+        raw_region_data, region_labels, subject_id=subject_id
+    )
+    if raw_df.empty:
+        return
+
+    trace_event_dir = output_dir / _TRACE_EVENT_OUTPUTS_SUBDIR
+    trace_event_dir.mkdir(parents=True, exist_ok=True)
+
+    raw_csv_path = trace_event_dir / _RAW_TRACE_EVENT_ACTIVITY_CSV
+    raw_df.to_csv(raw_csv_path, index=False)
+
+    cell_corr_df = _compute_multi_region_raw_trace_correlation_df(
+        raw_region_data=raw_region_data,
+        region_labels=region_labels,
+    )
+
+    preview_paths = _create_raw_trace_event_previews(
+        output_dir=trace_event_dir,
+        cell_corr_df=cell_corr_df,
+    )
+
+    output_files = output_data.get("output_files", [])
+    output_files = [
+        f
+        for f in output_files
+        if not str(f.get("file", "")).endswith("cross_region_analysis_outputs.zip")
+        and not str(f.get("file", "")).endswith(_RAW_TRACE_EVENT_ACTIVITY_CSV)
+        and not str(f.get("file", "")).endswith("cross_region_raw_trace_event_data.csv")
+    ]
+    output_files.append(
+        {
+            "file": str(Path(_TRACE_EVENT_OUTPUTS_SUBDIR) / _RAW_TRACE_EVENT_ACTIVITY_CSV),
+            "previews": [
+                {
+                    "file": str(Path(_TRACE_EVENT_OUTPUTS_SUBDIR) / Path(preview).name),
+                    "caption": "Raw trace/event preview.",
+                }
+                for preview in preview_paths
+            ],
+            "metadata": [
+                {
+                    "name": "Number of Brain Regions",
+                    "key": "num_brain_regions",
+                    "value": len(region_labels),
+                },
+                {
+                    "name": "Brain Regions",
+                    "key": "brain_regions",
+                    "value": ", ".join(region_labels),
+                },
+                {
+                    "name": "Raw Trace/Event Rows",
+                    "key": "raw_trace_event_row_count",
+                    "value": int(len(raw_df)),
+                },
+            ],
+        }
+    )
+    output_data["output_files"] = output_files
+    output_data_path.write_text(json.dumps(output_data, indent=4))
+
+
 @beartype
 def run(
     *,
@@ -586,6 +1045,7 @@ def run(
     first_brain_region_name: Optional[str] = _DEFAULT_FIRST_BRAIN_REGION_NAME,
     second_brain_region_name: Optional[str] = _DEFAULT_SECOND_BRAIN_REGION_NAME,
     brain_region_name: Optional[str] = None,
+    subject_id: Optional[str] = None,
     define_epochs_by: str,
     epoch_names: str,
     baseline_epoch: Optional[str] = None,
@@ -601,6 +1061,7 @@ def run(
     alpha: float = 0.05,
     n_shuffle: int = 1000,
     include_event_correlation_preview: bool = False,
+    _generate_trace_event_output: bool = True,
     output_dir: Optional[Union[str, Path]] = None,
 ):
     """Analyze neural activity across user-defined time epochs (epoch-only mode).
@@ -622,6 +1083,7 @@ def run(
         output_dir: Directory where output files will be written. If None (default),
             writes to the current working directory.
     """
+    normalized_subject_id = _normalize_subject_id(subject_id)
     region_mode = _normalize_region_selection(region_selection)
     if region_mode == "multiple_regions":
         if not second_cell_set_files:
@@ -660,7 +1122,9 @@ def run(
             alpha=alpha,
             n_shuffle=n_shuffle,
             include_event_correlation_preview=include_event_correlation_preview,
+            _generate_trace_event_output=False,
             region_selection="single_brain_region",
+            subject_id=normalized_subject_id,
         )
         region_runs = [
             {
@@ -674,7 +1138,6 @@ def run(
                 "brain_region_name": second_region_name,
             },
         ]
-
         primary_region = region_runs[0]
         run(
             cell_set_files=primary_region["cell_set_files"],
@@ -727,6 +1190,19 @@ def run(
         _register_multi_region_metadata(
             base_output_dir, [region["brain_region_name"] for region in region_runs]
         )
+        raw_region_data = _load_multi_region_raw_data(
+            region_runs=region_runs,
+            define_epochs_by=define_epochs_by,
+            epoch_names=epoch_names,
+            epochs=epochs,
+        )
+        _generate_raw_trace_event_output_and_register(
+            output_dir=base_output_dir,
+            region_labels=[region["brain_region_name"] for region in region_runs],
+            raw_region_data=raw_region_data,
+            subject_id=normalized_subject_id,
+        )
+        _register_subject_metadata(base_output_dir, normalized_subject_id)
         return
 
     parsed_epoch_names = _validate_epoch_name_strings(epoch_names)
@@ -949,6 +1425,10 @@ def run(
         _append_brain_region_column_to_epoch_csv_outputs(
             resolved_output_dir, normalized_brain_region_name
         )
+    if normalized_subject_id:
+        _append_subject_id_column_to_epoch_csv_outputs(
+            resolved_output_dir, normalized_subject_id
+        )
 
     has_event_correlation_data = False
     if events is not None:
@@ -1148,6 +1628,31 @@ def run(
         logger.info("Registered output data")
     except Exception:
         logger.exception("Failed to generate output data!")
+    if _generate_trace_event_output:
+        single_region_label = (
+            normalized_brain_region_name
+            if normalized_brain_region_name is not None
+            else _DEFAULT_FIRST_BRAIN_REGION_NAME
+        )
+        single_region_raw_data = _load_multi_region_raw_data(
+            region_runs=[
+                {
+                    "cell_set_files": cell_set_files,
+                    "event_set_files": event_set_files,
+                    "brain_region_name": single_region_label,
+                }
+            ],
+            define_epochs_by=define_epochs_by,
+            epoch_names=epoch_names,
+            epochs=epochs,
+        )
+        _generate_raw_trace_event_output_and_register(
+            output_dir=resolved_output_dir,
+            region_labels=[single_region_label],
+            raw_region_data=single_region_raw_data,
+            subject_id=normalized_subject_id,
+        )
+    _register_subject_metadata(resolved_output_dir, normalized_subject_id)
 
 
 def epoch_activity_ideas_wrapper(
@@ -1160,6 +1665,7 @@ def epoch_activity_ideas_wrapper(
     first_brain_region_name: Optional[str] = _DEFAULT_FIRST_BRAIN_REGION_NAME,
     second_brain_region_name: Optional[str] = _DEFAULT_SECOND_BRAIN_REGION_NAME,
     brain_region_name: Optional[str] = None,
+    subject_id: Optional[str] = None,
     define_epochs_by: str,
     epoch_names: str,
     baseline_epoch: Optional[str] = None,
@@ -1185,6 +1691,7 @@ def epoch_activity_ideas_wrapper(
         first_brain_region_name=first_brain_region_name,
         second_brain_region_name=second_brain_region_name,
         brain_region_name=brain_region_name,
+        subject_id=subject_id,
         define_epochs_by=define_epochs_by,
         epoch_names=epoch_names,
         baseline_epoch=baseline_epoch,

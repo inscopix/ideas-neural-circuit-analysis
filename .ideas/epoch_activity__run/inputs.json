@@ -20,6 +20,7 @@
     "second_event_set_files": [],
     "first_brain_region_name": "ACC",
     "second_brain_region_name": "CA1",
+    "subject_id": "subject_1",
     "define_epochs_by": "global file time",
     "epoch_names": "Day 5, Day 7",
     "baseline_epoch": "Day 5",

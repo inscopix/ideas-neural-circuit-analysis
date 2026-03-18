@@ -110,6 +110,16 @@
             "group": "Inputs"
         },
         {
+            "key": "subject_id",
+            "name": "Subject ID",
+            "required": false,
+            "description": "Optional subject identifier used to label output CSV rows and metadata, making it easier to track multiple brain regions from the same subject.",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": "Inputs"
+        },
+        {
             "key": "sort_by_time",
             "name": "Sort Files by Time",
             "required": false,
@@ -359,6 +369,14 @@
             "file_patterns": [
                 "spatial_analysis_pairwise_correlations/**/*"
             ]
+        },
+        {
+            "key": "raw_trace_event_data",
+            "name": "Raw Trace/Event Data",
+            "description": "Long-form raw trace/event output with time coordinates and optional subject/region labels.",
+            "file_patterns": [
+                "trace_event_analysis_outputs/**/*"
+            ]
         }
     ],
     "resources": {
@@ -368,7 +386,7 @@
     },
     "description": "Calculate change in activity during user defined continuous epochs",
     "visibility": "public",
-    "version": "6.0.0",
+    "version": "6.2.0",
     "docs": "https://inscopix.github.io/ideas-docs/tools/epochs/epoch_activity__run/epoch_activity__run.html",
     "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis",
     "tags": [
