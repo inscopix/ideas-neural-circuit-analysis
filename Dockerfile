@@ -82,10 +82,9 @@ FROM base AS scanner
 
 USER root
 
-COPY --from=base / /scanned-fs/
 COPY --from=aquasec/trivy:latest /usr/local/bin/trivy /usr/local/bin/trivy
 
-RUN trivy rootfs --no-progress --ignore-unfixed --severity CRITICAL,HIGH --exit-code 1 /scanned-fs/ \
+RUN trivy rootfs --no-progress --ignore-unfixed --skip-files /usr/local/bin/trivy --severity CRITICAL,HIGH --exit-code 1 / \
     && touch /scan-ok
 
 # Final stage - identical to runtime but depends on successful scan
