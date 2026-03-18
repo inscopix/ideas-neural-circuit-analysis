@@ -20,7 +20,9 @@ jobs:
       with:
         version: '0.10.11'
         # Caches the uv executable and its internal cache directories
-        cache-dependency-path: pyproject.toml
+        enable-cache: true
+        cache-dependency-blob: |
+          pyproject.toml
     # Create a virtual environment and install dependencies
     - name: Setup venv
       run: make venv
