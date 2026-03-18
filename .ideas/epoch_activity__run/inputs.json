@@ -1,20 +1,22 @@
 {
     "cell_set_files": [
-        "data/input_cellset.isxd",
         "data/input_cellset.isxd"
     ],
     "event_set_files": [
-        "data/input_cellset-ED.isxd",
         "data/input_cellset-ED.isxd"
     ],
-    "define_epochs_by": "files",
+    "define_epochs_by": "global file time",
     "epoch_names": "early baseline, late baseline",
-    "epochs": "(0, 10), (11, 20), (21, 30)",
+    "baseline_epoch": "early baseline",
+    "epochs": "(0, 300), (300, 600)",
     "epoch_colors": "tab:grey, tab:blue",
     "bin_size": 0,
     "trace_scale_method": "none",
     "event_scale_method": "none",
     "sort_by_time": true,
-    "tolerance": 1e-4,
-    "heatmap": "Auto"
+    "tolerance": 0.0001,
+    "modulation_colormap": "red, blue, gray",
+    "epoch_comparison_method": "epoch_vs_baseline",
+    "alpha": 0.05,
+    "n_shuffle": 1000
 }

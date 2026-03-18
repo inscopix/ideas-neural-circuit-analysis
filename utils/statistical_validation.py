@@ -118,6 +118,32 @@ def _suppress_pingouin_warnings(func: Callable) -> Callable:
                 message="invalid value encountered in subtract",
                 category=RuntimeWarning,
             )
+            warnings.filterwarnings(
+                "ignore",
+                message="invalid value encountered in scalar divide",
+                category=RuntimeWarning,
+            )
+            warnings.filterwarnings(
+                "ignore",
+                message="invalid value encountered in scalar multiply",
+                category=RuntimeWarning,
+            )
+            warnings.filterwarnings(
+                "ignore",
+                message="Degrees of freedom <= 0 for slice",
+                category=RuntimeWarning,
+            )
+            warnings.filterwarnings(
+                "ignore",
+                message="divide by zero encountered in divide",
+                category=RuntimeWarning,
+            )
+            # Suppress scipy shapiro warning for constant/near-constant data
+            warnings.filterwarnings(
+                "ignore",
+                message=".*Input data has range zero.*",
+                category=UserWarning,
+            )
             return func(*args, **kwargs)
 
     return wrapper
@@ -248,7 +274,7 @@ def _safe_ttest(
             return None
         clean_data1 = clean_data1.iloc[:min_length]
         clean_data2 = clean_data2.iloc[:min_length]
-        logger.info(f"_safe_ttest: Truncated paired data to {min_length} samples")
+        logger.info("_safe_ttest: Truncated paired data to %d samples", min_length)
 
     try:
         result = pg.ttest(clean_data1, clean_data2, paired=paired, **kwargs)
@@ -381,7 +407,10 @@ def _safe_pairwise_ttests(data: pd.DataFrame, **kwargs) -> Optional[pd.DataFrame
             data, dv, within, between
         )
         if not is_valid:
-            logger.debug(f"_safe_pairwise_ttests: {error_msg}")
+            logger.info(
+                f"Pairwise t-tests validation failed for '{dv}': {error_msg}. "
+                f"Data shape: {data.shape if data is not None else 'None'}"
+            )
             return None
 
         pairwise_kwargs = kwargs.copy()
@@ -428,7 +457,18 @@ def _safe_pairwise_ttests(data: pd.DataFrame, **kwargs) -> Optional[pd.DataFrame
         return result
 
     except Exception as e:
-        logger.debug(f"_safe_pairwise_ttests: Error in pairwise t-tests: {str(e)}")
+        # Log at info level for better visibility of pairwise test failures
+        dv_name = kwargs.get("dv", "unknown")
+        within_name = kwargs.get("within", "unknown")
+        between_name = kwargs.get("between", "none")
+        subject_name = kwargs.get("subject", "unknown")
+        n_rows = len(data) if data is not None else 0
+        logger.info(
+            f"Pairwise t-tests for '{dv_name}' could not be computed. "
+            f"within='{within_name}', between='{between_name}', subject='{subject_name}', "
+            f"n_rows={n_rows}. Error: {str(e)}"
+        )
+        logger.debug(f"_safe_pairwise_ttests: Full error details: {str(e)}")
         return None
 
 
@@ -491,11 +531,16 @@ def _auto_select_pairwise_parametric(
     n_samples = len(cleaned_series)
 
     if n_samples < min_sample_size:
-        logger.info(
-            "Auto-select parametric (pairwise): fewer than %d observations "
-            "found (n=%d). Non-parametric tests will be used.",
-            min_sample_size,
+        logger.debug(
+            "Auto-select parametric (pairwise): n=%d < %d; using non-parametric tests.",
             n_samples,
+            min_sample_size,
+        )
+        return False
+
+    if cleaned_series.nunique() <= 1:
+        logger.debug(
+            "Auto-select parametric (pairwise): zero variance detected; using non-parametric tests."
         )
         return False
 
@@ -530,14 +575,12 @@ def _auto_select_pairwise_parametric(
         parametric = normality_result["normal"].all()
 
         if parametric:
-            logger.info(
-                "Auto-select parametric (pairwise): data appears normally "
-                "distributed. Parametric tests will be used."
+            logger.debug(
+                "Auto-select parametric (pairwise): normal; using parametric tests."
             )
         else:
-            logger.info(
-                "Auto-select parametric (pairwise): data is not normally "
-                "distributed. Non-parametric tests will be used."
+            logger.debug(
+                "Auto-select parametric (pairwise): non-normal; using non-parametric tests."
             )
 
         return bool(parametric)

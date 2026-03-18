@@ -2,6 +2,7 @@ import json
 import os
 import shutil
 import tempfile
+import warnings
 import zipfile
 from pathlib import Path
 from typing import Literal, Optional, Union
@@ -10,6 +11,7 @@ import h5py
 
 # Add isx import
 import isx
+import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -23,7 +25,7 @@ from ideas.tools import outputs
 from ideas.tools.log import get_logger
 from ideas.tools.types import IdeasFile
 from matplotlib.collections import LineCollection
-from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.colors import LinearSegmentedColormap, Normalize
 from matplotlib.gridspec import GridSpec
 
 from utils.plots import (
@@ -37,6 +39,12 @@ from utils.utils import (
     _check_states_valid,
     _get_cellset_data,
     save_optimized_svg,
+)
+
+warnings.filterwarnings(
+    "ignore",
+    message="vert: bool will be deprecated in a future version.*",
+    category=PendingDeprecationWarning,
 )
 
 logger = get_logger()
@@ -861,10 +869,17 @@ def _compute_correlation_matrices(
 
     if annotations is None or column_name is None:
         # Compute across all times
-        correlation_matrix["all times"] = measures.correlation_matrix(
-            traces,
-            fill_diagonal=0.0,
-        )
+        # Suppress warnings for constant data (zero stddev produces NaN correlations)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message="invalid value encountered in divide",
+                category=RuntimeWarning,
+            )
+            correlation_matrix["all times"] = measures.correlation_matrix(
+                traces,
+                fill_diagonal=0.0,
+            )
         return correlation_matrix
 
     # at this point we are using annotations,
@@ -900,10 +915,17 @@ but the length of the annotations data is {len(annotations)}"""
                 "Correlation calculation may be unreliable."
             )
 
-        correlation_matrix[state] = measures.correlation_matrix(
-            traces_in_state,
-            fill_diagonal=0.0,
-        )
+        # Suppress warnings for constant data (zero stddev produces NaN correlations)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message="invalid value encountered in divide",
+                category=RuntimeWarning,
+            )
+            correlation_matrix[state] = measures.correlation_matrix(
+                traces_in_state,
+                fill_diagonal=0.0,
+            )
 
     return correlation_matrix
 
@@ -1430,7 +1452,11 @@ def plot_correlation_spatial_map(
     )
 
     # Add title using suptitle with dynamic positioning based on number of states
-    title_y = 1.0 - (0.01 + 0.005 * n_states)
+    # Use a fixed offset in inches converted to figure fraction
+    safe_state_count = max(n_states, 1)
+    total_height = 4.5 * safe_state_count
+    # Place title centered near the top
+    title_y = 1.0 - (0.2 / total_height)
     plt.suptitle(
         "Spatial Map of Neural Correlations\n"
         f"Showing correlations with |r| ≥ {correlation_threshold}",
@@ -1515,9 +1541,6 @@ def plot_correlation_spatial_map(
             line_collections.append(lc)
         else:
             # Create a dummy collection for consistent colorbar
-            import matplotlib.cm as cm
-            from matplotlib.colors import Normalize
-
             norm = Normalize(vmin=-1, vmax=1)
             sm = cm.ScalarMappable(norm=norm, cmap=cmap)
             sm.set_array([])
@@ -1563,7 +1586,8 @@ def plot_correlation_spatial_map(
         cax.set_xlabel("Correlation", fontdict=LABEL_FONT)
 
     # Adjust layout for better spacing with dynamic top margin based on number of states
-    top_margin = 0.95 - (0.01 + 0.005 * n_states)
+    # Reserve fixed physical space (approx 1.0 inches) for the title area to prevent overlap
+    top_margin = 1.0 - (1.0 / total_height)
     fig.subplots_adjust(bottom=0.15, top=top_margin, left=0.20, right=0.80)
 
     # Save figure using optimized SVG function

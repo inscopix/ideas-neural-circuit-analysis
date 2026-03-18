@@ -11,10 +11,13 @@ Tests cover:
 
 from unittest.mock import MagicMock, patch
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
 
+from utils.plots import _plot_state_epoch_time
+from utils.plotting_utils import plot_events_bottom_panel
 from utils.state_epoch_output import StateEpochOutputGenerator
 from utils.state_epoch_results import StateEpochResults
 
@@ -70,6 +73,247 @@ class TestColorMappingFunctionality:
 
     # NOTE: Color mapping consistency is now tested through integration tests
     # since the logic was inlined into _create_event_average_preview
+
+    def test_state_epoch_palette_prefers_epoch_colors(self, tmp_path):
+        generator = StateEpochOutputGenerator(
+            output_dir=str(tmp_path),
+            states=["rest", "active"],
+            epochs=["baseline", "test"],
+            state_colors=["gray", "blue"],
+            epoch_colors=["lightgray", "lightblue"],
+            baseline_state="rest",
+            baseline_epoch="baseline",
+        )
+        combination_order = [("rest", "baseline"), ("active", "test")]
+        labels = ["rest-baseline", "active-test"]
+
+        ecdf_palette, box_palette = generator._build_state_epoch_palette(
+            combination_order, labels
+        )
+
+        assert ecdf_palette["rest-baseline"] == "lightgray"
+        assert ecdf_palette["active-test"] == "lightblue"
+        assert box_palette == ecdf_palette
+
+    def test_state_epoch_palette_epoch_only_mode(self, tmp_path):
+        generator = StateEpochOutputGenerator(
+            output_dir=str(tmp_path),
+            states=["epoch_activity"],
+            epochs=["epoch1", "epoch2"],
+            state_colors=["gray"],
+            epoch_colors=["orange", "green"],
+            baseline_state="epoch_activity",
+            baseline_epoch="epoch1",
+            hide_state_prefix=True,
+            epoch_only_mode=True,
+        )
+
+        combination_order = [("epoch_activity", "epoch1"), ("epoch_activity", "epoch2")]
+        labels = ["epoch1", "epoch2"]
+
+        ecdf_palette, box_palette = generator._build_state_epoch_palette(
+            combination_order, labels
+        )
+        assert ecdf_palette == box_palette
+        assert ecdf_palette["epoch1"] == "orange"
+        assert ecdf_palette["epoch2"] == "green"
+
+    @patch("seaborn.stripplot")
+    @patch("seaborn.boxplot")
+    def test_average_correlation_preview_uses_epoch_colors(
+        self, mock_boxplot, mock_stripplot, tmp_path, monkeypatch
+    ):
+        generator = StateEpochOutputGenerator(
+            output_dir=str(tmp_path),
+            states=["rest", "active"],
+            epochs=["baseline", "test"],
+            state_colors=["gray", "blue"],
+            epoch_colors=["lightgray", "lightblue"],
+            baseline_state="rest",
+            baseline_epoch="baseline",
+        )
+
+        labeled_matrices = [
+            ("rest-baseline", np.ones((2, 2))),
+            ("active-test", np.ones((2, 2))),
+        ]
+        color_map = {"rest-baseline": "lightgray", "active-test": "lightblue"}
+
+        def fake_save(fig, output_path, title):
+            plt.close(fig)
+
+        monkeypatch.setattr(
+            "utils.state_epoch_output.save_figure_with_cleanup", fake_save
+        )
+
+        generator._plot_average_correlations_with_state_epoch_labels(
+            labeled_matrices, color_map, "test.svg"
+        )
+
+        palette_arg = mock_boxplot.call_args.kwargs["palette"]
+        assert palette_arg == color_map
+
+    def test_create_average_correlation_preview_state_mode(self, tmp_path, monkeypatch):
+        generator = StateEpochOutputGenerator(
+            output_dir=str(tmp_path),
+            states=["rest", "active"],
+            epochs=["baseline", "test"],
+            state_colors=["gray", "blue"],
+            epoch_colors=["lightgray", "lightblue"],
+            baseline_state="rest",
+            baseline_epoch="baseline",
+        )
+
+        def fake_collect(_results, _matrix_key):
+            return {
+                "rest_baseline": np.ones((2, 2)),
+                "active_test": np.ones((2, 2)),
+            }
+
+        def fake_order(_results, _valid=None):
+            return [("rest", "baseline"), ("active", "test")]
+
+        captured = {}
+
+        def fake_plot(labeled, color_map, output_filename):
+            captured["labels"] = [label for label, _ in labeled]
+            captured["color_map"] = color_map
+
+        monkeypatch.setattr(
+            generator,
+            "_collect_correlation_matrices",
+            fake_collect,
+        )
+        monkeypatch.setattr(generator, "_determine_combination_order", fake_order)
+        monkeypatch.setattr(
+            generator,
+            "_plot_average_correlations_with_state_epoch_labels",
+            fake_plot,
+        )
+
+        generator._create_average_correlations_preview(results=MagicMock())
+
+        assert captured["labels"] == ["rest-baseline", "active-test"]
+        assert captured["color_map"]["rest-baseline"] == "lightgray"
+        assert captured["color_map"]["active-test"] == "lightblue"
+
+    def test_create_average_correlation_preview_epoch_only(self, tmp_path, monkeypatch):
+        generator = StateEpochOutputGenerator(
+            output_dir=str(tmp_path),
+            states=["epoch_activity"],
+            epochs=["epoch1", "epoch2"],
+            state_colors=["gray"],
+            epoch_colors=["orange", "green"],
+            baseline_state="epoch_activity",
+            baseline_epoch="epoch1",
+            hide_state_prefix=True,
+            epoch_only_mode=True,
+        )
+
+        def fake_collect(_results, _matrix_key):
+            return {
+                "epoch1": np.ones((2, 2)),
+                "epoch2": np.ones((2, 2)),
+            }
+
+        def fake_order(_results, _valid=None):
+            return [
+                ("epoch_activity", "epoch1"),
+                ("epoch_activity", "epoch2"),
+            ]
+
+        captured = {}
+
+        def fake_plot(labeled, color_map, output_filename):
+            captured["labels"] = [label for label, _ in labeled]
+            captured["color_map"] = color_map
+
+        monkeypatch.setattr(
+            generator,
+            "_collect_correlation_matrices",
+            fake_collect,
+        )
+        monkeypatch.setattr(generator, "_determine_combination_order", fake_order)
+        monkeypatch.setattr(
+            generator,
+            "_plot_average_correlations_with_state_epoch_labels",
+            fake_plot,
+        )
+
+        generator._create_average_correlations_preview(results=MagicMock())
+
+        assert captured["labels"] == ["epoch1", "epoch2"]
+        assert captured["color_map"]["epoch1"] == "orange"
+        assert captured["color_map"]["epoch2"] == "green"
+
+    @patch("utils.plots.sns.heatmap")
+    def test_state_epoch_time_preview_new_layout(self, mock_heatmap, tmp_path):
+        period = 1.0
+        behavior = pd.DataFrame(
+            {
+                "state": ["rest"] * 10 + ["active"] * 5,
+            }
+        )
+        output_file = tmp_path / "state_epoch_time.svg"
+        _plot_state_epoch_time(
+            behavior=behavior,
+            column_name="state",
+            state_names=["rest", "active"],
+            state_colors=["gray", "blue"],
+            period=period,
+            filename=str(output_file),
+            epoch_names=["baseline", "test"],
+            epoch_periods=[(0, 10), (10, 15)],
+            epoch_colors=["lightgray", "lightblue"],
+        )
+        assert mock_heatmap.called
+        assert output_file.exists()
+
+    @patch("utils.plots.sns.heatmap")
+    def test_plot_epoch_only_time_saves_file(self, mock_heatmap, tmp_path):
+        filename = tmp_path / "epoch_only.svg"
+        _plot_state_epoch_time(
+            behavior=pd.DataFrame({"state": []}),
+            column_name="state",
+            state_names=["epoch_activity"],
+            state_colors=["gray"],
+            period=1.0,
+            filename=str(filename),
+            epoch_names=["baseline", "stim"],
+            epoch_periods=[(0, 5), (5, 9)],
+            epoch_colors=["lightgray", "lightblue"],
+            epoch_only_mode=True,
+        )
+        assert filename.exists()
+        assert not mock_heatmap.called
+
+    @patch("utils.state_epoch_output._plot_state_epoch_time")
+    def test_epoch_only_mode_state_time_preview_uses_epoch_view(
+        self, mock_epoch_time, tmp_path
+    ):
+        generator = StateEpochOutputGenerator(
+            output_dir=str(tmp_path),
+            states=["epoch_activity"],
+            epochs=["epoch1", "epoch2"],
+            state_colors=["gray"],
+            epoch_colors=["orange", "green"],
+            baseline_state="epoch_activity",
+            baseline_epoch="epoch1",
+            epoch_periods=[(0, 5), (5, 10)],
+            epoch_only_mode=True,
+            hide_state_prefix=True,
+        )
+
+        annotations = pd.DataFrame(
+            {"state": ["epoch_activity"] * 10, "time": np.arange(10)}
+        )
+        generator._create_state_time_preview(
+            annotations_df=annotations,
+            column_name="state",
+            cell_info={"period": 1.0},
+        )
+        mock_epoch_time.assert_called_once()
+        assert mock_epoch_time.call_args.kwargs.get("epoch_only_mode") is True
 
 
 class TestBehavioralTimelineReconstruction:
@@ -363,6 +607,82 @@ class TestStateEpochOverlayFunctionality:
 
         assert hasattr(generator, "_plot_trace_preview_with_epoch_overlays")
         assert hasattr(generator, "_plot_event_preview_with_epoch_overlays")
+
+    @patch("utils.state_epoch_output.create_dual_panel_plot_with_epoch_overlays")
+    def test_epoch_only_overlays_share_dual_panel_helper(
+        self, mock_dual_panel, tmp_path
+    ):
+        """Ensure epoch-only trace/event overlays share the same helper pipeline."""
+        generator = StateEpochOutputGenerator(
+            output_dir=str(tmp_path),
+            states=["epoch_activity"],
+            epochs=["baseline", "stim"],
+            state_colors=["gray"],
+            epoch_colors=["lightgray", "lightblue"],
+            baseline_state="epoch_activity",
+            baseline_epoch="baseline",
+            epoch_only_mode=True,
+        )
+
+        epochs = [(0.0, 5.0), (5.0, 10.0)]
+        traces = np.random.default_rng(0).random((10, 3))
+        generator._plot_trace_preview_with_epoch_overlays(
+            traces=traces,
+            epochs=epochs,
+            boundaries=[0.0, 5.0, 10.0],
+            period=1.0,
+            epoch_names=["baseline", "stim"],
+            epoch_colors=["lightgray", "lightblue"],
+        )
+
+        events_series = np.random.default_rng(1).random((10, 3))
+        events_offsets = [
+            np.array([1.0, 3.0]),
+            np.array([2.0]),
+            np.array([]),
+        ]
+        generator._plot_event_preview_with_epoch_overlays(
+            events=events_offsets,
+            event_timeseries=events_series,
+            epochs=epochs,
+            boundaries=[0.0, 5.0, 10.0],
+            period=1.0,
+            epoch_names=["baseline", "stim"],
+            epoch_colors=["lightgray", "lightblue"],
+        )
+
+        assert mock_dual_panel.call_count == 2
+        trace_call, event_call = mock_dual_panel.call_args_list
+        assert (
+            trace_call.kwargs["bottom_panel_callback"].__name__
+            == "plot_traces_bottom_panel"
+        )
+        assert (
+            event_call.kwargs["bottom_panel_callback"].__name__
+            == "plot_events_bottom_panel"
+        )
+
+    def test_event_bottom_panel_aligns_with_population_axis(self):
+        """Ensure raster x-axis span matches duration used by population plot."""
+        fig, ax = plt.subplots()
+        try:
+            period = 0.5
+            event_timeseries = np.zeros((21, 3))
+            events = [
+                np.array([0.5, 1.0, 2.5]),
+                np.array([3.0]),
+                np.array([]),
+            ]
+            plot_events_bottom_panel(
+                ax=ax,
+                event_timeseries=event_timeseries,
+                period=period,
+                events=events,
+            )
+            expected_last_time = (event_timeseries.shape[0] - 1) * period
+            assert ax.get_xlim()[1] == pytest.approx(expected_last_time)
+        finally:
+            plt.close(fig)
 
 
 if __name__ == "__main__":

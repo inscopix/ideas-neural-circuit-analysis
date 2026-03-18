@@ -7,7 +7,11 @@ for creating consistent visualizations across different tools.
 import logging
 
 import matplotlib.pyplot as plt
+import numpy as np
+import scipy.stats
 from beartype.typing import Any, Callable, List, Optional, Tuple
+
+from utils.utils import save_optimized_svg
 
 logger = logging.getLogger(__name__)
 
@@ -130,8 +134,6 @@ def create_dual_panel_plot_with_epoch_overlays(
         **callback_kwargs: Additional arguments for bottom panel callback
 
     """
-    import numpy as np
-
     # Extend epoch parameters to match epoch count for plotting
     while len(epoch_colors) < len(epochs):
         epoch_colors.append("lightblue")
@@ -195,14 +197,13 @@ def create_dual_panel_plot_with_epoch_overlays(
         )
 
     # Save figure using optimized SVG
-    from utils.utils import save_optimized_svg
-
     save_optimized_svg(
         fig,
         output_path,
         max_size_mb=10,
         pad_inches=0.3,
     )
+    plt.close(fig)
 
 
 def plot_traces_bottom_panel(ax, traces, period: float, **kwargs) -> None:
@@ -220,9 +221,6 @@ def plot_traces_bottom_panel(ax, traces, period: float, **kwargs) -> None:
         Additional keyword arguments
 
     """
-    import numpy as np
-    import scipy.stats
-
     # Create time axis
     time = np.arange(0, traces.shape[0] * period, period)
     num_cells = min(traces.shape[1], 50)
@@ -274,8 +272,15 @@ def plot_events_bottom_panel(
     """
     # Bottom panel: Event raster plot
     ax.eventplot(events, color="black", linelengths=0.5, linewidths=0.8, alpha=0.5)
+    num_cells = len(events) if events is not None else 0
+    if event_timeseries is not None and event_timeseries.shape[0] > 0:
+        last_time = (event_timeseries.shape[0] - 1) * period
+    else:
+        last_time = 0
     ax.set_ylabel("Cell index", fontdict={"fontsize": 12})
     ax.set_xlabel("Time (s)", fontdict={"fontsize": 12})
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.set_title("Raster plot of events", fontdict={"fontsize": 13})
+    ax.set_xlim([0, last_time])
+    ax.set_ylim([0, max(num_cells, 1)])

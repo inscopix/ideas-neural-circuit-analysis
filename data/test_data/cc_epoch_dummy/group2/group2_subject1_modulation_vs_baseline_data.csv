@@ -1,0 +1,25 @@
+name,cell_index,state,epoch,baseline_state,baseline_epoch,trace_modulation_scores in epoch_activity-early drug,trace_p_values in epoch_activity-early drug,trace_modulation in epoch_activity-early drug,event_modulation_scores in epoch_activity-early drug,event_p_values in epoch_activity-early drug,event_modulation in epoch_activity-early drug,trace_modulation_scores in epoch_activity-late-Drug,trace_p_values in epoch_activity-late-Drug,trace_modulation in epoch_activity-late-Drug,event_modulation_scores in epoch_activity-late-Drug,event_p_values in epoch_activity-late-Drug,event_modulation in epoch_activity-late-Drug
+C0,0,epoch_activity,early drug,epoch_activity,BASELINE,0.7923811255244071,0.05927156686140578,1,0.7331770163063289,0.08788605957904543,1,,,,,,
+C1,1,epoch_activity,early drug,epoch_activity,BASELINE,-0.6314547911926036,0.006937848027632543,-1,-0.5910790820665355,0.0,-1,,,,,,
+C2,2,epoch_activity,early drug,epoch_activity,BASELINE,-0.5605595446180787,0.0418700991380607,-1,-0.4074053914710424,0.0637730502739477,-1,,,,,,
+C3,3,epoch_activity,early drug,epoch_activity,BASELINE,-1.01070149149235,0.0512922803845023,-1,-1.0603016243452177,0.05586858437100011,-1,,,,,,
+C4,4,epoch_activity,early drug,epoch_activity,BASELINE,-0.07272989358574009,0.7381315050868071,0,-0.1189074117753472,0.7305152386190493,0,,,,,,
+C5,5,epoch_activity,early drug,epoch_activity,BASELINE,-0.7373885264932443,0.02833698051183127,-1,-0.6056089559624814,0.05262739160920267,-1,,,,,,
+C6,6,epoch_activity,early drug,epoch_activity,BASELINE,-1.2983310197179887,0.08357266516475997,-1,-1.3720317447009749,0.09199310230999089,-1,,,,,,
+C7,7,epoch_activity,early drug,epoch_activity,BASELINE,0.1850298828639152,0.9291306637016687,0,0.3974272714191365,0.8971500523297269,0,,,,,,
+C8,8,epoch_activity,early drug,epoch_activity,BASELINE,0.6731853693296024,0.007696309367440391,1,0.7837851662441926,0.004981908434663401,1,,,,,,
+C9,9,epoch_activity,early drug,epoch_activity,BASELINE,0.5394992247427866,0.020761897960745415,1,0.4954799204394609,0.03104609472962349,1,,,,,,
+C10,10,epoch_activity,early drug,epoch_activity,BASELINE,-1.1939633407006673,0.04248675659708994,-1,-1.1527298756935616,0.05476526834889711,-1,,,,,,
+C11,11,epoch_activity,early drug,epoch_activity,BASELINE,-0.8137006998073764,0.048266760788263585,-1,-0.8101187721347469,0.07758941860951399,-1,,,,,,
+C0,0,epoch_activity,late-Drug,epoch_activity,BASELINE,,,,,,,1.0367752043643286,0.002920939503665321,1,0.8619383475149585,0.005109881994551868,1
+C1,1,epoch_activity,late-Drug,epoch_activity,BASELINE,,,,,,,-0.08450303513827633,0.5048169828893292,0,-0.053321115103828254,0.5217782463696352,0
+C2,2,epoch_activity,late-Drug,epoch_activity,BASELINE,,,,,,,1.0400854923114458,0.0750917498972025,1,1.1244968753922302,0.09776589738367117,1
+C3,3,epoch_activity,late-Drug,epoch_activity,BASELINE,,,,,,,0.6184255760925523,0.06524069995667293,1,0.6152374570637584,0.09536468089903125,1
+C4,4,epoch_activity,late-Drug,epoch_activity,BASELINE,,,,,,,0.7795465459425542,0.08633871378177022,1,0.7122007712237849,0.06849622759363627,1
+C5,5,epoch_activity,late-Drug,epoch_activity,BASELINE,,,,,,,-1.1827812338831305,0.015728050933982562,-1,-1.251333757263267,0.019087674421308553,-1
+C6,6,epoch_activity,late-Drug,epoch_activity,BASELINE,,,,,,,0.5365259493408321,0.04567274192360718,1,0.43455289297721267,0.016642531513689298,1
+C7,7,epoch_activity,late-Drug,epoch_activity,BASELINE,,,,,,,0.03221226141901395,0.8795779519134714,0,-0.0429394309262956,0.876063202674399,0
+C8,8,epoch_activity,late-Drug,epoch_activity,BASELINE,,,,,,,0.23643887640555025,0.5645325697120582,0,0.415574820648675,0.5464327823710282,0
+C9,9,epoch_activity,late-Drug,epoch_activity,BASELINE,,,,,,,0.5323781201575085,0.03241183789811022,1,0.4904829342339843,0.05760418471735323,1
+C10,10,epoch_activity,late-Drug,epoch_activity,BASELINE,,,,,,,-0.7698168195521937,0.065044659338965,-1,-0.7793918105781024,0.06847266684278226,-1
+C11,11,epoch_activity,late-Drug,epoch_activity,BASELINE,,,,,,,0.5247146055621214,0.04824002127779107,1,0.4686700999577215,0.0566856317895669,1

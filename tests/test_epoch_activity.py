@@ -1,9 +1,13 @@
+import json
 import os
+from pathlib import Path
 
+import isx
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
+from ideas.exceptions import IdeasError
 
 from analysis.epoch_activity import run
 from utils.utils import (
@@ -11,8 +15,11 @@ from utils.utils import (
     _redefine_epochs,
 )
 
-cell_sets = ["/ideas/data/input_cellset.isxd"]
-event_sets = ["/ideas/data/input_cellset-ED.isxd"]
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
+cell_sets = [str(DATA_DIR / "input_cellset.isxd")]
+event_sets = [str(DATA_DIR / "input_cellset-ED.isxd")]
+
+HAS_ISX_EVENTSET = True
 
 valid_inputs = [
     # valid inputs
@@ -26,48 +33,115 @@ valid_inputs = [
         bin_size=1,
         trace_scale_method="fractional_change",
         event_scale_method="standardize_epoch",
-        heatmap="0, 3",
+        modulation_colormap="red, blue, gray",
     ),
 ]
 expected_output_files = [
-    "Eventrate_activity_data.csv",
-    "Eventrate_timecourse_data.npy",
-    "Eventrate_Population_Timecourse.svg",
-    "Eventrate_Single_Cell_Timecourse.svg",
-    "Population_Eventrate_differences.svg",
-    "Population_Eventrate.svg",
-    "Population_Traces_Correlation.npy",
-    "Population_Traces_differences.svg",
-    "Population_Traces.svg",
-    "Trace_Preview.svg",
-    "Traces_activity_data.csv",
-    "Traces_timecourse_data.npy",
-    "Traces_Population_Timecourse.svg",
-    "Traces_Single_Cell_Timecourse.svg",
+    # Core long-form outputs (state-epoch-compatible)
+    "activity_per_epoch_data.csv",
+    "correlations_per_epoch_data.csv",
+    "modulation_vs_baseline_data.csv",
+    "average_correlations.csv",
+    "pairwise_correlation_heatmaps.h5",
+    "spatial_analysis_pairwise_correlations.zip",
 ]
+expected_preview_files = [
+    "time_in_epoch_preview.svg",
+    "trace_population_average_preview.svg",
+    "trace_epoch_overlay.svg",
+]
+
+if HAS_ISX_EVENTSET:
+    expected_preview_files.extend(
+        ["event_population_average_preview.svg", "event_epoch_overlay.svg"]
+    )
+
+
+def _load_output_data(output_dir: Path) -> dict:
+    output_data_path = Path(output_dir) / "output_data.json"
+    return json.loads(output_data_path.read_text())
+
+
+def _collect_output_paths(output_data: dict) -> list[Path]:
+    return [Path(entry["file"]) for entry in output_data.get("output_files", [])]
+
+
+def _collect_preview_paths(output_data: dict) -> list[Path]:
+    previews = []
+    for entry in output_data.get("output_files", []):
+        for preview in entry.get("previews", []):
+            previews.append(Path(preview["file"]))
+    return previews
+
+
+def _find_output_path(output_data: dict, filename: str, output_dir: Path) -> Path:
+    for path in _collect_output_paths(output_data):
+        if str(path).endswith(filename):
+            return output_dir / path
+    raise AssertionError(f"Output file ending with {filename} not registered")
+
+
+def _metadata_for_output(output_data: dict, filename: str) -> dict:
+    for entry in output_data.get("output_files", []):
+        file_path = Path(entry.get("file", ""))
+        if str(file_path).endswith(filename):
+            return {m["key"]: m["value"] for m in entry.get("metadata", [])}
+    raise AssertionError(f"No metadata found for output {filename}")
 
 
 @pytest.mark.parametrize("params", valid_inputs)
 def test_epoch_activity(params, tmp_path):
     """Check that code runs without error with valid inputs."""
-    cwd = os.getcwd()
-    os.chdir(tmp_path)
-    run(**params)
-    try:  # When running locally
-        actual_output_files = os.listdir(tmp_path)
-    except FileNotFoundError:  # when running on IDEAS
-        actual_output_files = os.listdir()
+    run(**params, output_dir=tmp_path)
+    output_data = _load_output_data(tmp_path)
+    actual_output_files = _collect_output_paths(output_data)
+    actual_preview_files = _collect_preview_paths(output_data)
 
     # check that the output files are created
     for output_file in expected_output_files:
-        assert output_file in actual_output_files
+        matches = [p for p in actual_output_files if str(p).endswith(output_file)]
+        assert matches, f"Missing registered output ending with {output_file}"
+        for match in matches:
+            assert (Path(tmp_path) / match).exists()
+
+    for preview_file in expected_preview_files:
+        matches = [p for p in actual_preview_files if str(p).endswith(preview_file)]
+        assert matches, f"Missing preview ending with {preview_file}"
+        for match in matches:
+            assert (Path(tmp_path) / match).exists()
 
     # validate number of cells in output files
-    for f in ["Eventrate_activity_data.csv", "Traces_activity_data.csv"]:
-        df = pd.read_csv(f)
+    # validate number of cells in long-form output files
+    for f in ["activity_per_epoch_data.csv", "correlations_per_epoch_data.csv"]:
+        df = pd.read_csv(_find_output_path(output_data, f, Path(tmp_path)))
         assert len(df) == 76 * 3  # 76 accepted cells, 3 epochs
 
-    os.chdir(cwd)
+
+def test_epoch_activity_baseline_epoch_can_be_non_first(tmp_path):
+    """baseline_epoch should be configurable (not always the first epoch)."""
+    params = valid_inputs[0].copy()
+    params["baseline_epoch"] = "epoch2"
+    params["epoch_comparison_method"] = "epoch_vs_baseline"
+    run(**params, output_dir=tmp_path)
+    output_data = _load_output_data(tmp_path)
+    activity_meta = _metadata_for_output(output_data, "activity_per_epoch_data.csv")
+    assert activity_meta["baseline_epoch"] == "epoch2"
+    assert activity_meta["epoch_comparison_method"] == "epoch_vs_baseline"
+
+
+def test_epoch_activity_invalid_epoch_comparison_method_raises(tmp_path):
+    params = valid_inputs[0].copy()
+    params["epoch_comparison_method"] = "pairwise"
+    with pytest.raises(IdeasError):
+        run(**params, output_dir=tmp_path)
+
+
+def test_epoch_activity_invalid_modulation_colormap_raises(tmp_path):
+    """modulation_colormap must be exactly three comma-separated colors."""
+    params = valid_inputs[0].copy()
+    params["modulation_colormap"] = "red, blue"  # missing third
+    with pytest.raises(IdeasError):
+        run(**params, output_dir=tmp_path)
 
 
 def test_plot_traces(cleanup_plots):
@@ -387,16 +461,34 @@ def test_plot_raster(cleanup_plots):
             "(0, 745), (745, 1490)",
         ],
         [
+            "files",
+            None,
+            cell_sets * 2,
+            "(0, 745), (745, 1490)",
+        ],
+        [
             "global file time",
             "(0, 300), (745, 1045)",
             cell_sets * 2,
             "(0, 300), (745, 1045)",
         ],
         [
+            "global file time",
+            None,
+            cell_sets * 2,
+            "(0, 745), (745, 1490)",
+        ],
+        [
             "local file time",
             "[(0, 300)], [(0, 300), (400, 700)]",
             cell_sets * 2,
             "(0, 300), (745, 1045), (1145, 1445)",
+        ],
+        [
+            "local file time",
+            None,
+            cell_sets * 2,
+            "(0, 745), (745, 1490)",
         ],
     ],
 )
@@ -409,7 +501,6 @@ def test_redefine_epochs(
     """
     Test the redefine epochs function.
     """
-    import isx
 
     cellset = isx.CellSet.read(cell_set_files[0])
     period = cellset.timing.period.secs_float

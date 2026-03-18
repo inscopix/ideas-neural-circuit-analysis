@@ -1,6 +1,10 @@
 # metadata keys
 IDEAS_METADATA_KEY = "ideas"
 
+# Dummy state name used when running epoch-only analysis (no behavioral states)
+# This allows epoch_activity outputs to be processed by the shared state-epoch workflow
+EPOCH_ONLY_DUMMY_STATE = "epoch_activity"
+
 # GPIO keys
 GPIO_SIGNALS_H5_KEY = "gpio_signals"
 GPIO_OFFSETS_H5_KEY = "offsets"

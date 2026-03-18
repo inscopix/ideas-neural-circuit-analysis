@@ -57,6 +57,10 @@ package = false
 pythonpath = [
   "."
 ]
+# Suppress matplotlib's pending deprecation warning triggered by seaborn boxplots.
+filterwarnings = [
+  "ignore::PendingDeprecationWarning:seaborn.categorical",
+]
 
 [tool.ruff]
 # flake8-builtins (A)

@@ -4,7 +4,7 @@
     "schema_version": "3.0.0",
     "container_image": {
         "repository": "platform/neural-analysis",
-        "label": "1.0.2"
+        "label": "1.0.3"
     },
     "command": {
         "file_path": "analysis/state_epoch_baseline_analysis.py",
@@ -158,6 +158,17 @@
             "type": {
                 "param_type": "ToolStringParam",
                 "default": "baseline"
+            },
+            "group": "Baseline Parameters"
+        },
+        {
+            "key": "modulation_colormap",
+            "name": "Modulation colormap",
+            "required": false,
+            "description": "Comma-separated colors used for modulation visualizations in the order (up, down, non). Example: `red, blue, gray`.",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "red, blue, gray"
             },
             "group": "Baseline Parameters"
         },
@@ -377,7 +388,7 @@
     },
     "description": "Combined analysis of neural activity and correlations across behavioral states and time epochs with baseline comparison",
     "visibility": "public",
-    "version": "1.0.6",
+    "version": "2.0.0",
     "docs": "https://inscopix.github.io/ideas-docs/tools/epochs/state_epoch_baseline/state_epoch_baseline.html",
     "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis",
     "tags": [

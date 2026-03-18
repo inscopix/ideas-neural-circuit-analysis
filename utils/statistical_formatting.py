@@ -16,6 +16,8 @@ from typing import Dict, List, Optional
 import numpy as np
 import pandas as pd
 
+from utils.comparison_filters import _filter_self_comparisons
+
 logger = logging.getLogger(__name__)
 
 
@@ -207,6 +209,12 @@ def _get_mixed_pairwise_sig(
         if filtered_pairwise.empty:
             return "No significant differences"
 
+        filtered_pairwise = _filter_self_comparisons(
+            filtered_pairwise, context="mixed pairwise significance"
+        )
+        if filtered_pairwise.empty:
+            return "No significant differences between states"
+
         # Find p-value column
         p_col = (
             "p-corr"
@@ -287,7 +295,7 @@ def _compute_missing_effect_sizes(df: pd.DataFrame) -> pd.DataFrame:
     numeric_cols = df.select_dtypes(include=[np.number]).columns
     for col in df.columns:
         if col not in numeric_cols:
-            df[col] = df[col].fillna("NA")
+            df[col] = df[col].astype("string").fillna("NA")
 
     return df
 

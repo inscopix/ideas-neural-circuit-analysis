@@ -5,6 +5,7 @@ analysis results from state-epoch baseline analysis.
 """
 
 import logging
+import warnings
 
 import numpy as np
 from beartype import beartype
@@ -118,7 +119,14 @@ def _calculate_correlation_metrics(
 
     try:
         # Use existing correlation computation logic
-        correlation_matrix = measures.correlation_matrix(traces, fill_diagonal=0.0)
+        # Suppress numpy warnings for constant data (zero stddev produces NaN correlations)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message="invalid value encountered in divide",
+                category=RuntimeWarning,
+            )
+            correlation_matrix = measures.correlation_matrix(traces, fill_diagonal=0.0)
 
         # Compute statistics using shared function
         stats = _compute_correlation_statistics(correlation_matrix, strong_threshold)
@@ -220,9 +228,16 @@ def _calculate_event_metrics(
 
                 # Use existing correlation computation logic
                 # Note: Cells with no events will produce NaN correlations
-                event_correlation_matrix = measures.correlation_matrix(
-                    events_float, fill_diagonal=0.0
-                )
+                # Suppress numpy warnings for constant data (zero stddev produces NaN)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        message="invalid value encountered in divide",
+                        category=RuntimeWarning,
+                    )
+                    event_correlation_matrix = measures.correlation_matrix(
+                        events_float, fill_diagonal=0.0
+                    )
 
                 # Compute statistics using shared function
                 event_corr_stats = _compute_correlation_statistics(
@@ -838,7 +853,10 @@ def calculate_baseline_modulation(
                 n_shuffle=n_shuffle,
             )
 
-            modulation_index = modulation_results_detailed["modulation_scores"]
+            modulation_index = np.asarray(
+                modulation_results_detailed["modulation_scores"], dtype=float
+            )
+            modulation_index = np.clip(modulation_index, -1.0, 1.0)
             p_values = modulation_results_detailed["p_val"]
             # Note: find_two_state_modulated_neurons already applies multiple comparisons correction
             p_values_corrected = p_values
@@ -958,7 +976,10 @@ def calculate_baseline_modulation(
                     n_shuffle=n_shuffle,
                 )
 
-                event_modulation_index = event_modulation_results["modulation_scores"]
+                event_modulation_index = np.asarray(
+                    event_modulation_results["modulation_scores"], dtype=float
+                )
+                event_modulation_index = np.clip(event_modulation_index, -1.0, 1.0)
                 event_p_values = event_modulation_results["p_val"]
                 event_up = event_modulation_results["up_modulated_neurons"]
                 event_down = event_modulation_results["down_modulated_neurons"]
@@ -1343,6 +1364,9 @@ def _prepare_modulation_data(
 
     # Process each state-epoch combination
     for state, epoch in results.get_all_combinations():
+        if state == baseline_state and epoch == baseline_epoch:
+            continue
+
         combination_results = results.get_combination_results(state, epoch)
         if combination_results is None:
             continue

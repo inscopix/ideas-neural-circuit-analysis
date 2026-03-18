@@ -28,6 +28,12 @@ from utils.utils import compute_sampling_rate
 
 logger = log.get_logger()
 
+warnings.filterwarnings(
+    "ignore",
+    message="vert: bool will be deprecated in a future version.*",
+    category=PendingDeprecationWarning,
+)
+
 PROCESSING_PARAMS = {}
 PLOT_PARAMS = {}
 
@@ -697,6 +703,7 @@ def generate_modulation_pie_chart(
     # save figure to disk
     fig.tight_layout()
     fig.savefig(output_filename, dpi=300, bbox_inches="tight", transparent=True)
+    plt.close(fig)
 
 
 def generate_activity_heatmap(
@@ -880,6 +887,7 @@ def plot_comparison_of_population_activity(
         bbox_inches="tight",
         transparent=True,
     )
+    plt.close(fig)
 
 
 def plot_comparison_of_subpopulation_activity(
@@ -981,6 +989,7 @@ def plot_comparison_of_subpopulation_activity(
         bbox_inches="tight",
         transparent=True,
     )
+    plt.close(fig)
 
 
 def plot_fractions_of_modulated_neurons(

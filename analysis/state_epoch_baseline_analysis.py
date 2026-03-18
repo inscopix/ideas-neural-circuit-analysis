@@ -103,8 +103,6 @@ class StateEpochAnalysisFeatureFlags:
     include_population_activity: bool = True
     include_event_analysis: bool = True
     # Registration support (for CaImAn MSR outputs)
-    use_registered_cellsets: bool = False
-    registration_method: str = "auto_detect"  # "auto_detect", "caiman_msr"
     # Controls whether annotations_file can be omitted (epoch-only mode)
     allow_epoch_only_mode: bool = False
 
@@ -162,6 +160,7 @@ def state_epoch_baseline_analysis(
     # Baseline specification (user-defined)
     baseline_state: str = "rest",  # Which state to use as baseline
     baseline_epoch: str = "baseline",  # Which epoch to use as baseline
+    modulation_colormap: str = "red, blue, gray",
     # Data preprocessing
     concatenate: bool = True,
     trace_scale_method: str = "none",
@@ -302,8 +301,6 @@ def state_epoch_baseline_analysis(
         event_set_files=event_set_files,
         annotations_file=annotations_file_list if has_annotations else None,
         concatenate=concatenate,
-        use_registered_cellsets=feature_flags.use_registered_cellsets,
-        registration_method=feature_flags.registration_method,
         # Validation parameters (passed directly to data manager)
         epochs=epochs,
         epoch_names=parsed_epochs,
@@ -418,6 +415,14 @@ def state_epoch_baseline_analysis(
 
     # Generate outputs
     logger.info("Generating outputs...")
+    modulation_colors = [
+        c.strip() for c in str(modulation_colormap).split(",") if c.strip()
+    ]
+    if modulation_colors and len(modulation_colors) != 3:
+        raise IdeasError(
+            "modulation_colormap must be three comma-separated colors in the order "
+            "(up, down, non). Example: 'red, blue, gray'."
+        )
     output_generator = StateEpochOutputGenerator(
         output_dir=output_dir,
         states=states,
@@ -431,6 +436,8 @@ def state_epoch_baseline_analysis(
         epoch_periods=data_manager.get_epoch_periods(),
         correlation_statistic=correlation_statistic,
         include_event_correlation_preview=include_event_correlation_preview,
+        trace_scale_method=trace_scale_method,
+        event_scale_method=event_scale_method,
     )
 
     output_generator.generate_all_outputs(
@@ -441,6 +448,7 @@ def state_epoch_baseline_analysis(
         events=events,
         annotations_df=annotations_df,
         column_name=column_name,
+        modulation_colors=modulation_colors,
     )
 
     logger.info("State-epoch baseline analysis completed successfully")
@@ -470,6 +478,7 @@ def state_epoch_baseline_analysis_ideas_wrapper(
     # Baseline specification (user-defined)
     baseline_state: str = "rest",  # Which state to use as baseline
     baseline_epoch: str = "baseline",  # Which epoch to use as baseline
+    modulation_colormap: str = "red, blue, gray",
     # Data preprocessing
     concatenate: bool = True,
     trace_scale_method: str = "none",
@@ -551,6 +560,7 @@ def state_epoch_baseline_analysis_ideas_wrapper(
         epoch_colors=epoch_colors,
         baseline_state=baseline_state,
         baseline_epoch=baseline_epoch,
+        modulation_colormap=modulation_colormap,
         concatenate=concatenate,
         trace_scale_method=trace_scale_method,
         event_scale_method=event_scale_method,
