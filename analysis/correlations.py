@@ -1301,6 +1301,7 @@ def plot_spatial_correlations(
 
     # Save figure using optimized SVG function
     save_optimized_svg(fig, out_file_name)
+    plt.close(fig)
 
 
 @beartype

@@ -2434,6 +2434,7 @@ def plot_modulated_neuron_footprints(
 
     # save figure to disk
     fig.savefig(filename, dpi=300, transparent=True)
+    plt.close(fig)
 
 
 def plot_comparison_row(
