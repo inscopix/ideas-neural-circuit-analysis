@@ -80,6 +80,8 @@ USER ideas
 # Copies the runtime filesystem to a subdirectory to avoid overwrite conflicts with the trivy base image
 FROM base AS scanner
 
+USER root
+
 COPY --from=base / /scanned-fs/
 COPY --from=aquasec/trivy:latest /usr/local/bin/trivy /usr/local/bin/trivy
 
