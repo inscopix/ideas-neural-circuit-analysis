@@ -7,7 +7,7 @@ IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:${LABEL}
 LATEST_IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:latest
 PLATFORM=linux/amd64
 ifndef TARGET
-	TARGET=base
+	TARGET=final
 endif
 
 # Define envs for virtualenv
