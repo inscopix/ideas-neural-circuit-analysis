@@ -253,6 +253,7 @@ def run_cc_epochs_ideas_wrapper(
     :Returns
         None
     """
+    logger.info("Starting the Combine Compare Neural Activity Across Epochs tool")
     run_cc_epochs(
         group1_traces=group1_traces,
         epoch_names=epoch_names,
@@ -284,53 +285,51 @@ def run_cc_epochs_ideas_wrapper(
                     prefix=f"{group_name}_",
                     name="combined_trace_event_data.csv",
                 ).register_metadata_dict(**metadata[f"{group_id}_combined_data"])
+                if output_file:
+                    for metric in metrics:
+                        output_file.register_preview(
+                            f"{group_id}_{metric}_preview.svg",
+                            caption=f"Box plots comparing {metric.lower()} activity across epochs in group {group_name}, and histograms comparing pairwise differences in {metric.lower()} activity between each epoch combination",
+                        )
 
-                for metric in metrics:
+                output_file = output_data.register_file(
+                    f"{group_id}_correlation_data.csv",
+                    subdir=f"{group_id}_correlation_data",
+                    prefix=f"{group_name}_",
+                    name="combined_correlation_data.csv",
+                )
+                if output_file:
                     output_file.register_preview(
-                        f"{group_id}_{metric}_preview.svg",
-                        caption=f"Box plots comparing {metric.lower()} activity across epochs in group {group_name}, and histograms comparing pairwise differences in {metric.lower()} activity between each epoch combination",
-                    )
-
-                output_file = (
-                    output_data.register_file(
-                        f"{group_id}_correlation_data.csv",
-                        subdir=f"{group_id}_correlation_data",
-                        prefix=f"{group_name}_",
-                        name="combined_correlation_data.csv",
-                    )
-                    .register_preview(
                         f"{group_id}_correlation_preview.svg",
                         caption=f"Box plots comparing average positive (top) and negative (bottom) correlations between epochs in group {group_name}",
-                    )
-                    .register_metadata_dict(**metadata[f"{group_id}_correlation_data"])
-                )
+                    ).register_metadata_dict(**metadata[f"{group_id}_correlation_data"])
 
-            anova_file = (
-                output_data.register_file(
-                    "ANOVA_results.csv",
-                    prefix=f"{group1_name}_{group2_name}_",
-                    name="anova_results.csv",
-                )
-                .register_preview(
+            anova_file = output_data.register_file(
+                "ANOVA_results.csv",
+                prefix=f"{group1_name}_{group2_name}_",
+                name="anova_results.csv",
+            )
+
+            if anova_file:
+                anova_file.register_preview(
                     "mixed_correlation_ANOVA_comparison.svg",
                     caption="Box plots comparing average positive (top) and negative (bottom) correlations between each group and epoch",
-                )
-                .register_metadata_dict(**metadata["ANOVA_results"])
-            )
+                ).register_metadata_dict(**metadata["ANOVA_results"])
 
-            pairwise_file = (
-                output_data.register_file(
-                    "pairwise_results.csv",
-                    prefix=f"{group1_name}_{group2_name}_",
-                )
-                .register_preview(
+            pairwise_file = output_data.register_file(
+                "pairwise_results.csv",
+                prefix=f"{group1_name}_{group2_name}_",
+            )
+            if pairwise_file:
+                pairwise_file.register_preview(
                     "mixed_correlation_pairwise_comparison.svg",
                     caption="Box plots comparing average positive (top) and negative (bottom) correlations between each group and epoch",
-                )
-                .register_metadata_dict(**metadata["pairwise_results"])
-            )
+                ).register_metadata_dict(**metadata["pairwise_results"])
 
             for output_file in [anova_file, pairwise_file]:
+                if not output_file:
+                    continue
+
                 for group_id, group_name in group_names:
                     for metric in metrics:
                         output_file.register_preview(
@@ -344,18 +343,22 @@ def run_cc_epochs_ideas_wrapper(
                         caption=f"Box plots comparing average positive (top) and negative (bottom) correlations between epochs in group {group_name}",
                     )
 
-            for metric in metrics:
-                anova_file.register_preview(
-                    f"mixed_ANOVA_{metric}_comparison.svg",
-                    caption=f"Box plots comparing {metric} activity between each epoch and group",
-                )
+            if anova_file:
+                for metric in metrics:
+                    anova_file.register_preview(
+                        f"mixed_ANOVA_{metric}_comparison.svg",
+                        caption=f"Box plots comparing {metric} activity between each epoch and group",
+                    )
 
-            for metric in metrics:
-                pairwise_file.register_preview(
-                    f"mixed_pairwise_{metric}_comparison.svg",
-                    caption=f"Box plots comparing {metric} activity between each epoch and group",
-                )
+            if pairwise_file:
+                for metric in metrics:
+                    pairwise_file.register_preview(
+                        f"mixed_pairwise_{metric}_comparison.svg",
+                        caption=f"Box plots comparing {metric} activity between each epoch and group",
+                    )
 
         logger.info("Registered output data")
     except Exception:
         logger.exception("Failed to generate output data!")
+
+    logger.info("Finished the Combine Compare Neural Activity Across Epochs tool")
