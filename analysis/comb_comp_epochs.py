@@ -18,6 +18,7 @@ from utils.utils import _combine_data
 from utils.validation import _validate_files
 
 logger = log.get_logger()
+logger.manager.getLogger("matplotlib.category").setLevel("WARNING")
 
 
 def run_cc_epochs(
