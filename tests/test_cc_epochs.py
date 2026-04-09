@@ -1078,7 +1078,6 @@ def test_cc_epochs_different_epochs_count(
     activity_mentions = pairwise_df.apply(
         lambda row: any("Activity" in str(cell) for cell in row), axis=1
     ).sum()
-
     assert activity_mentions > 0, "No Activity measurements found in results"
     print(f"Found {activity_mentions} rows mentioning Activity")
 
@@ -1089,3 +1088,82 @@ def test_cc_epochs_different_epochs_count(
     # Verify epoch-related results exist in ANOVA file
     epoch_effect = any("Epoch" in str(source) for source in anova_df["Source"])
     assert epoch_effect, "No epoch effects found in ANOVA results"
+
+
+def test_cc_epochs_two_group_corr_index_reset(tmp_path, monkeypatch, cleanup_plots):
+    """Regression test for duplicate index error in mixed correlation plotting."""
+    np.random.seed(123)
+    epochs = ["Epoch1", "Epoch2", "Epoch3"]
+    num_cells = 20
+
+    def _make_trace_event_csv(path, mean):
+        rows = []
+        for epoch in epochs:
+            for cell in range(num_cells):
+                rows.append(
+                    {
+                        "Epoch": epoch,
+                        "Cell": cell,
+                        "Activity": np.random.normal(loc=mean, scale=0.5),
+                    }
+                )
+        pd.DataFrame(rows).to_csv(path, index=False)
+
+    def _make_corr_npy(path, shift):
+        corr_data = {}
+        for epoch in epochs:
+            mtx = np.random.uniform(-0.4 + shift, 0.6 + shift, (num_cells, num_cells))
+            mtx = (mtx + mtx.T) / 2
+            np.fill_diagonal(mtx, 1.0)
+            corr_data[epoch] = mtx
+        np.save(path, corr_data)
+
+    g1_t1 = tmp_path / "g1_t1.csv"
+    g1_t2 = tmp_path / "g1_t2.csv"
+    g2_t1 = tmp_path / "g2_t1.csv"
+    g2_t2 = tmp_path / "g2_t2.csv"
+    g1_e1 = tmp_path / "g1_e1.csv"
+    g1_e2 = tmp_path / "g1_e2.csv"
+    g2_e1 = tmp_path / "g2_e1.csv"
+    g2_e2 = tmp_path / "g2_e2.csv"
+    g1_c1 = tmp_path / "g1_c1.npy"
+    g1_c2 = tmp_path / "g1_c2.npy"
+    g2_c1 = tmp_path / "g2_c1.npy"
+    g2_c2 = tmp_path / "g2_c2.npy"
+
+    _make_trace_event_csv(g1_t1, 5.0)
+    _make_trace_event_csv(g1_t2, 5.2)
+    _make_trace_event_csv(g2_t1, 4.8)
+    _make_trace_event_csv(g2_t2, 4.9)
+    _make_trace_event_csv(g1_e1, 2.0)
+    _make_trace_event_csv(g1_e2, 2.1)
+    _make_trace_event_csv(g2_e1, 1.9)
+    _make_trace_event_csv(g2_e2, 1.8)
+    _make_corr_npy(g1_c1, 0.0)
+    _make_corr_npy(g1_c2, 0.05)
+    _make_corr_npy(g2_c1, -0.05)
+    _make_corr_npy(g2_c2, -0.1)
+
+    output_dir = tmp_path / "output_corr_idx_reset"
+    output_dir.mkdir()
+    monkeypatch.chdir(output_dir)
+
+    run_cc_epochs(
+        group1_traces=[str(g1_t1), str(g1_t2)],
+        group2_traces=[str(g2_t1), str(g2_t2)],
+        group1_events=[str(g1_e1), str(g1_e2)],
+        group2_events=[str(g2_e1), str(g2_e2)],
+        group1_corr=[str(g1_c1), str(g1_c2)],
+        group2_corr=[str(g2_c1), str(g2_c2)],
+        epoch_names=",".join(epochs),
+        epoch_colors="blue,red,green",
+        group1_name="G1",
+        group2_name="G2",
+        group1_color="tab:blue",
+        group2_color="tab:red",
+        multiple_correction="bonf",
+        effect_size="cohen",
+    )
+
+    assert os.path.exists("mixed_correlation_ANOVA_comparison.svg")
+    assert os.path.exists("mixed_correlation_pairwise_comparison.svg")
