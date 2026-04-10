@@ -574,7 +574,8 @@ def _compare_data(
     # Combine data for comparison
     g1_data["group"] = group1_name
     g2_data["group"] = group2_name
-    combined_data = pd.concat([g1_data, g2_data])
+    # Reset row labels so downstream plotting/stat code does not hit duplicate indices.
+    combined_data = pd.concat([g1_data, g2_data], ignore_index=True)
 
     # determine whether to use parametric or non-parametric tests
     if parametric == "auto":
@@ -1593,7 +1594,8 @@ def combine_compare_peri_event_data_across_epochs(
             )
 
             # generate mixed comparisons previews
-            combined_data = pd.concat([group1_data, group2_data])
+            # Keep a fresh RangeIndex to avoid duplicate-index issues in preview plotting.
+            combined_data = pd.concat([group1_data, group2_data], ignore_index=True)
 
             post_minus_pre_preview_filename = os.path.join(
                 output_dir, "population_post_minus_pre_comparison.svg"
