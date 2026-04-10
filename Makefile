@@ -7,7 +7,7 @@ IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:${LABEL}
 LATEST_IMAGE_TAG=${IMAGE_REPO}/${IMAGE_NAME}:latest
 PLATFORM=linux/amd64
 ifndef TARGET
-	TARGET=base
+	TARGET=final
 endif
 
 # Define envs for virtualenv
@@ -49,6 +49,11 @@ build:
 	docker tag ${LATEST_IMAGE_TAG} ${IMAGE_TAG}
 	@$(foreach f, $(TOOL_SPECS), jq --indent 4 '.container_image.label = "${LABEL}"' $(f) > tmp.json && mv tmp.json ${f};)\
 
+# Builds docker image checking security vulnerabilities
+security:
+	docker build . -t $(LATEST_IMAGE_TAG) \
+		--platform ${PLATFORM}
+
 # Runs unit tests in docker image
 # Used in automated pr checks on github
 test: TARGET=test
@@ -60,7 +65,7 @@ test: build
 		--platform ${PLATFORM} \
 		--rm \
 		${IMAGE_TAG} \
-		python -m pytest ${TEST_ARGS}
+		python3 -m pytest ${TEST_ARGS}
 
 # Applies linter on source code
 ruff: venv
