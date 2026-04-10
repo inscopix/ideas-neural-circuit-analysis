@@ -1,0 +1,5 @@
+# Default ignores when generating bundles for IDEAS
+.*
+data/
+resources/
+outputs/
