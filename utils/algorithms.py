@@ -675,6 +675,7 @@ def _compare_data(
     # Combine data for comparison
     g1_data["Group"] = g1_name
     g2_data["Group"] = g2_name
+    # Reset row labels so mixed plotting/stat paths never see duplicate indices.
     combined_data = pd.concat([g1_data, g2_data], ignore_index=True)
 
     # Perform 2way repeated measures ANOVA on trace data
@@ -752,6 +753,7 @@ def _compare_correlation(
     # Combine data for comparison
     g1_data["Group"] = g1_name
     g2_data["Group"] = g2_name
+    # Reset row labels so mixed plotting/stat paths never see duplicate indices.
     combined_data = pd.concat([g1_data, g2_data], ignore_index=True)
 
     # Perform 2way repeated measures ANOVA
