@@ -32,7 +32,7 @@ analysis = [
     "tifffile==2025.10.16",
     "imageio==2.37.2",
     "imageio-ffmpeg==0.6.0",
-    "Pillow==12.1.1",
+    "Pillow==12.2.0",
     "isx==2.1.0",
     "pynwb==3.1.2",
     "pynapple==0.10.1",

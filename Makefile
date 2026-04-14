@@ -42,7 +42,7 @@ setup: venv set-hooks
 
 # Builds docker image
 # Installs necessary software dependencies for source code
-build:
+build: venv
 	docker build . -t $(LATEST_IMAGE_TAG) \
 		--platform ${PLATFORM} \
 		--target ${TARGET}
