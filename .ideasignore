@@ -1,0 +1,15 @@
+# Default ignores when generating bundles for IDEAS
+.*
+data/
+resources/
+outputs/
+tests/
+
+Dockerfile
+Makefile
+README.md
+container.md
+
+# Python packaging
+pyproject.toml
+uv.lock
