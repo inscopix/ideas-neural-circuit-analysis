@@ -94,6 +94,16 @@ To run the [compare neural activity across epochs tool](https://inscopix.github.
 ```
 make run tool=epoch_activity__run
 ```
+For the multi-region sample input set, run:
+```
+make run tool=epoch_activity__run IDEAS_RUN_FLAGS="--inputs .ideas/epoch_activity__run/multi_region_inputs.json"
+```
+For local-only datasets under your own data folder (without committing paths), run:
+```
+make run tool=epoch_activity__run \
+  IDEAS_RUN_FLAGS="--inputs .ideas/epoch_activity__run/multi_region_inputs.json -s -c -n" \
+  LOCAL_DATA_DIR=/Users/<user>/ideas-neural-circuit-analysis/data \
+```
 
 #### Combine and Compare Analysis Tool
 

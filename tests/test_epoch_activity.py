@@ -18,7 +18,6 @@ from analysis.epoch_activity import (
     _RAW_TRACE_EVENT_ACTIVITY_CSV,
     _compute_multi_region_raw_trace_correlation_df,
     _region_file_tag,
-    epoch_activity_ideas_wrapper,
     run,
 )
 from utils.utils import (
@@ -569,8 +568,8 @@ def test_epoch_activity_single_region_registers_raw_trace_event_csv(tmp_path):
     assert (tmp_path / preview_files[0]).exists()
 
 
-def test_epoch_activity_wrapper_accepts_subject_id_input():
-    signature = inspect.signature(epoch_activity_ideas_wrapper)
+def test_epoch_activity_run_accepts_subject_id_input():
+    signature = inspect.signature(run)
     assert "subject_id" in signature.parameters
 
 
