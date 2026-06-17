@@ -8,13 +8,13 @@
     },
     "command": {
         "file_path": "analysis/epoch_activity.py",
-        "entry_point": "epoch_activity_ideas_wrapper",
+        "entry_point": "run",
         "program_type": "PYTHON"
     },
     "params": [
         {
             "key": "cell_set_files",
-            "name": "Cell Set Files (Region 1)",
+            "name": "Cell Set Files",
             "required": true,
             "description": "Cell set files for the first brain region (or the only region in single-brain-region mode).",
             "type": {
@@ -28,7 +28,7 @@
         },
         {
             "key": "event_set_files",
-            "name": "Event Set Files (Region 1)",
+            "name": "Event Set Files",
             "required": false,
             "description": "Event set files for the first brain region (or the only region in single-brain-region mode).",
             "type": {
@@ -44,7 +44,7 @@
             "key": "region_selection",
             "name": "Brain Region Selection",
             "required": false,
-            "description": "Choose single brain region (current workflow) or multiple regions (region 1 and region 2 analyzed separately using the same epoch workflow).",
+            "description": "Choose single brain region (default behavior) or multiple regions (region 1 and region 2 analyzed separately using the same epoch workflow).",
             "type": {
                 "param_type": "ToolChoiceParam",
                 "choices": [
@@ -52,8 +52,8 @@
                     "multiple_regions"
                 ],
                 "display_options": [
-                    "single brain region",
-                    "multiple regions"
+                    "Single brain region",
+                    "Multiple regions"
                 ],
                 "default": "single_brain_region"
             },
@@ -71,7 +71,7 @@
                     "isxd"
                 ]
             },
-            "group": "Inputs"
+            "group": "Region 2 Inputs"
         },
         {
             "key": "second_event_set_files",
@@ -85,7 +85,7 @@
                     "isxd"
                 ]
             },
-            "group": "Inputs"
+            "group": "Region 2 Inputs"
         },
         {
             "key": "first_brain_region_name",
@@ -107,7 +107,7 @@
                 "param_type": "ToolStringParam",
                 "default": "Brain Region 2"
             },
-            "group": "Inputs"
+            "group": "Region 2 Inputs"
         },
         {
             "key": "subject_id",
@@ -229,7 +229,6 @@
             "description": "The trace activity data will be rescaled using the specified method. If 'none' is selected, the original raw calcium trace values will be used without any transformation, preserving the original scale of the measurements.",
             "type": {
                 "param_type": "ToolChoiceParam",
-                "default": "none",
                 "choices": [
                     "none",
                     "standardize",
@@ -243,7 +242,8 @@
                     "Normalize",
                     "Standardize to first epoch",
                     "Fractional change from first epoch"
-                ]
+                ],
+                "default": "none"
             },
             "group": "Analysis"
         },
@@ -254,7 +254,6 @@
             "description": "If specified, the event rate data will be rescaled using the specified method",
             "type": {
                 "param_type": "ToolChoiceParam",
-                "default": "none",
                 "choices": [
                     "none",
                     "standardize",
@@ -268,7 +267,8 @@
                     "Normalize",
                     "Standardize to first epoch",
                     "Fractional change from first epoch"
-                ]
+                ],
+                "default": "none"
             },
             "group": "Analysis"
         },
@@ -386,7 +386,7 @@
     },
     "description": "Calculate change in activity during user defined continuous epochs",
     "visibility": "public",
-    "version": "6.2.0",
+    "version": "7.0.0",
     "docs": "https://inscopix.github.io/ideas-docs/tools/epochs/epoch_activity__run/epoch_activity__run.html",
     "repo": "https://github.com/inscopix/ideas-neural-circuit-analysis",
     "tags": [
