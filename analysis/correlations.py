@@ -525,6 +525,7 @@ def plot_correlation_matrices(
     correlation_matrix: Dict[str, np.ndarray],
     correlation_colors: Union[List[str], str],
     out_file_name: str = "correlation_matrices.svg",
+    brain_region_name: Optional[str] = None,
 ) -> Dict[str, np.ndarray]:
     """Create a plot of correlation matrices side by side.
 
@@ -561,11 +562,10 @@ def plot_correlation_matrices(
 
     ax = [fig.add_subplot(gs[i, 0]) for i in range(len(states))]
 
-    plt.suptitle(
-        "Pairwise Pearson correlation between neurons",
-        y=1.0,
-        **SUPTITLE_FONT,
-    )
+    title_text = "Pairwise Pearson correlation between neurons"
+    if brain_region_name:
+        title_text = f"{title_text}\nBrain Region: {brain_region_name}"
+    plt.suptitle(title_text, y=1.0, **SUPTITLE_FONT)
 
     for i, key in enumerate(states):
         corr_matrix = correlation_matrix[key]
@@ -1161,6 +1161,7 @@ We cannot accurately estimate correlations here. """,
 def plot_spatial_correlations(
     triu_data: Dict[str, pd.DataFrame],
     out_file_name: str = SPATIAL_CORRELATION_SVG_NAME,
+    brain_region_name: Optional[str] = None,
 ) -> None:
     """Create a visualization showing the relationship
     between spatial distance and correlation values.
@@ -1174,13 +1175,10 @@ def plot_spatial_correlations(
     gs = GridSpec(n_states + 1, 2, height_ratios=[2] * n_states + [0.05])
 
     # Main title
-    plt.suptitle(
-        "Relationship between spatial distance and neural correlation",
-        y=0.99,
-        x=0.5,
-        ha="center",
-        **SUPTITLE_FONT,
-    )
+    title_text = "Relationship between spatial distance and neural correlation"
+    if brain_region_name:
+        title_text = f"{title_text}\nBrain Region: {brain_region_name}"
+    plt.suptitle(title_text, y=0.99, x=0.5, ha="center", **SUPTITLE_FONT)
 
     # Prepare for plotting
     scatter_axes = []
@@ -1303,6 +1301,7 @@ def plot_spatial_correlations(
 
     # Save figure using optimized SVG function
     save_optimized_svg(fig, out_file_name)
+    plt.close(fig)
 
 
 @beartype
@@ -1395,6 +1394,7 @@ def plot_correlation_spatial_map(
     correlation_colors: Union[List[str], str] = "red, blue",
     max_lines: int = 1000,
     out_file_name: str = SPATIAL_MAP_SVG_NAME,
+    brain_region_name: Optional[str] = None,
 ) -> None:
     """Create a spatial map of cells with lines showing correlation strength."""
     # Create colormap based on input type (same logic as plot_correlation_matrices)
@@ -1457,12 +1457,13 @@ def plot_correlation_spatial_map(
     total_height = 4.5 * safe_state_count
     # Place title centered near the top
     title_y = 1.0 - (0.2 / total_height)
-    plt.suptitle(
+    title_text = (
         "Spatial Map of Neural Correlations\n"
-        f"Showing correlations with |r| ≥ {correlation_threshold}",
-        y=title_y,
-        **SUPTITLE_FONT,
+        f"Showing correlations with |r| ≥ {correlation_threshold}"
     )
+    if brain_region_name:
+        title_text = f"{title_text}\nBrain Region: {brain_region_name}"
+    plt.suptitle(title_text, y=title_y, **SUPTITLE_FONT)
 
     # Store line collections for shared colorbar
     line_collections = []
@@ -1471,7 +1472,7 @@ def plot_correlation_spatial_map(
     for i, state in enumerate(states):
         # Create axis for this state
         ax = fig.add_subplot(gs[i, 0])
-        ax.set_title(f"{state}", fontdict=TITLE_FONT)
+        ax.set_title(f"{state}", fontdict=TITLE_FONT, pad=10)
 
         # Extract cell coordinates
         xy_coords = np.array([positions[name] for name in cells_with_positions])
@@ -1583,11 +1584,11 @@ def plot_correlation_spatial_map(
             label="Correlation",
             ticks=[-1, 0, 1],
         )
-        cax.set_xlabel("Correlation", fontdict=LABEL_FONT)
 
-    # Adjust layout for better spacing with dynamic top margin based on number of states
-    # Reserve fixed physical space (approx 1.0 inches) for the title area to prevent overlap
-    top_margin = 1.0 - (1.0 / total_height)
+    # Reserve title area based on the number of suptitle lines to prevent overlap.
+    title_line_count = 2 + (1 if brain_region_name else 0)
+    title_space = min(0.20, 0.04 * title_line_count + 0.03)
+    top_margin = max(0.78, 1.0 - title_space)
     fig.subplots_adjust(bottom=0.15, top=top_margin, left=0.20, right=0.80)
 
     # Save figure using optimized SVG function

@@ -14,7 +14,7 @@ exclude = ["data", "inputs", "resources"]
 
 [dependency-groups]
 analysis = [
-    "ideas-python[analysis]==1.1.1",
+    "ideas-python[analysis]==1.3.1",
     "numpy==2.2.6",
     "pandas==2.3.3",
     "scipy==1.16.3",
