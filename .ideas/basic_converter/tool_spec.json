@@ -135,5 +135,5 @@
     },
     "description": "Map frames from experiment annotations in IDEAS format to frames in ISXD data (either movies or cell sets)",
     "visibility": "public",
-    "version": "4.0.1"
+    "version": "3.9.0"
 }
