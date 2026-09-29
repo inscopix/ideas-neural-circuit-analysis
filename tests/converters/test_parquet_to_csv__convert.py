@@ -41,19 +41,10 @@ def test_parquet_to_csv(
     with open(output_metadata, "r") as f:
         metadata = json.load(f)
 
-    assert (
-        metadata["experiment_annotations"]
-        == {
-            "metrics": {
-                "num_rows": 7456,
-                "num_columns": 2
-            },
-            "column_names": [
-                "time",
-                "state"
-            ],
-            "dataset": {
-                "states": "not_defined, quad 4, center, quad 1, familiar object, novel object, quad 2, quad 3"
-            }
-        }
-    )
+    assert metadata["experiment_annotations"] == {
+        "metrics": {"num_rows": 7456, "num_columns": 2},
+        "column_names": ["time", "state"],
+        "dataset": {
+            "states": "not_defined, quad 4, center, quad 1, familiar object, novel object, quad 2, quad 3"
+        },
+    }

@@ -1,16 +1,15 @@
 import os
 
 import pandas as pd
-from pandas.testing import assert_series_equal
-
 import pytest
+from ideas.analysis.validation import _check_columns_in_df
 from ideas.exceptions import IdeasError
+from pandas.testing import assert_series_equal
 
 from converters.sync_annotations import (
     PARQUET_FILENAME,
     sync_boris_to_annotations,
 )
-from ideas.analysis.validation import _check_columns_in_df
 
 cell_set_file = ["/ideas/data/input_cellset.isxd"]
 cell_set_series_file = [
@@ -202,15 +201,15 @@ def test_converter(
 
         if len(ignore_behaviors) == 0:
             # nothing ignored
-            assert (
-                "immobile" in df["state"].unique()
-            ), "Expected to see immobile in the parquet table, because no states are ignored"
+            assert "immobile" in df["state"].unique(), (
+                "Expected to see immobile in the parquet table, because no states are ignored"
+            )
         else:
             # make sure we don't see ignored behaviors here
             for thing in ignore_behaviors:
-                assert (
-                    thing not in df["state"]
-                ), f"Expected not to see {thing} in the list of states"
+                assert thing not in df["state"], (
+                    f"Expected not to see {thing} in the list of states"
+                )
 
     else:
         with pytest.raises(error):

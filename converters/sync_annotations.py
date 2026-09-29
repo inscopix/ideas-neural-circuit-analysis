@@ -1,15 +1,20 @@
-import logging
 import os
 
+import isx
 import numpy as np
 import pandas as pd
 from beartype import beartype
 from beartype.typing import List, Optional
 from ideas.analysis import io
-from ideas.exceptions import IdeasError
-from ideas.analysis.utils import _extract_footer, get_file_size
-from ideas.analysis.validation import cell_set_series, movie_series, _check_columns_in_df
 from ideas.analysis.metadata import read_isxd_metadata
+from ideas.analysis.utils import _extract_footer, get_file_size
+from ideas.analysis.validation import (
+    _check_columns_in_df,
+    cell_set_series,
+    movie_series,
+)
+from ideas.exceptions import IdeasError
+from ideas.tools import log, outputs
 from ideas.tools.types import IdeasFile
 from pandas.api.types import (
     is_float_dtype,
@@ -17,13 +22,10 @@ from pandas.api.types import (
     is_numeric_dtype,
     is_string_dtype,
 )
-import isx
 
 from utils.utils import (
     _save_experiment_annotations_preview_and_metadata,
 )
-from ideas.tools import log
-from ideas.tools import outputs
 
 logger = log.get_logger()
 
@@ -335,10 +337,7 @@ def sync_csv_to_annotations(
 
     # ensure that the number of isxd files and annotations files match,
     # or that a single annotations file is provided
-    if (
-        len(isxd_files) != len(annotations_files)
-        and len(annotations_files) != 1
-    ):
+    if len(isxd_files) != len(annotations_files) and len(annotations_files) != 1:
         raise IdeasError(
             "Expected to get the same number of isxd files and annotations,"
             "or a single annotations file."
@@ -350,8 +349,7 @@ def sync_csv_to_annotations(
     # re-aligned according to this
     logger.info("Reading epoch start times from isxd files.")
     isxd_epoch_start_times = [
-        _get_start_time_from_isxd_metadata(isxd_file)
-        for isxd_file in isxd_files
+        _get_start_time_from_isxd_metadata(isxd_file) for isxd_file in isxd_files
     ]
     logger.info(
         f"Read the following epoch start times from the isxd files: {isxd_epoch_start_times}"
@@ -487,17 +485,13 @@ def sync_csv_to_annotations(
                     logger.info("Exporting .gpio file to .isxd format")
                     output_dir = os.getcwd()
                     isx.export_gpio_to_isxd(gpio_ref_file, output_dir)
-                    fname = os.path.splitext(os.path.basename(gpio_ref_file))[
-                        0
-                    ]
+                    fname = os.path.splitext(os.path.basename(gpio_ref_file))[0]
                     gpio_ref_file = f"{fname}_gpio.isxd"
 
                 # read gpio file
                 gpio = isx.GpioSet.read(gpio_ref_file)
                 gpio_channels = gpio.channel_dict.keys()
-                logger.info(
-                    f"Gpio file has the following channels: {gpio_channels}"
-                )
+                logger.info(f"Gpio file has the following channels: {gpio_channels}")
 
                 # try to get values for channel
                 if gpio_ref_channel not in gpio_channels:
@@ -552,9 +546,7 @@ def sync_csv_to_annotations(
                         "Failed to find first tsc in input gpio file metadata"
                     )
 
-                isxd_start_tsc = _get_start_tsc_from_isxd_metadata(
-                    isxd_files[0]
-                )
+                isxd_start_tsc = _get_start_tsc_from_isxd_metadata(isxd_files[0])
                 logger.info(
                     "Extracted first tsc from gpio file footer:"
                     f" {gpio_first_tsc}, and first tsc from"
@@ -579,9 +571,7 @@ def sync_csv_to_annotations(
             if len(isxd_files) == len(annotations_files):
                 # equal number of isxd and annotation files, assume longitudinal recording
                 # get corresponding isxd file and use as reference
-                annotations_epoch_start_time = (
-                    isxd_epoch_start_times[i] + time_offset
-                )
+                annotations_epoch_start_time = isxd_epoch_start_times[i] + time_offset
                 logger.info(
                     "Equal number of isxd and annotation files,"
                     " assuming a longitduinal recording. Set annotations"
@@ -595,12 +585,7 @@ def sync_csv_to_annotations(
                     "Aligning annotations epoch start time to first isxd file."
                 )
                 current_duration = (
-                    np.sum(
-                        [
-                            df[time_column].diff().iloc[1:].sum()
-                            for df in all_df
-                        ]
-                    )
+                    np.sum([df[time_column].diff().iloc[1:].sum() for df in all_df])
                     if all_df
                     else 0.0
                 )
@@ -620,8 +605,7 @@ def sync_csv_to_annotations(
 
     # construct vector of isxd and annotation times for every input file
     isxd_recordings_times = [
-        pd.Series(_get_isxd_times(cell_set_file))
-        for cell_set_file in isxd_files
+        pd.Series(_get_isxd_times(cell_set_file)) for cell_set_file in isxd_files
     ]
     annotations_recordings_times = [df[time_column] for df in all_df]
 
@@ -853,32 +837,30 @@ def sync_csv_to_annotations_ideas_wrapper(
     metadata = metadata["annotations"]
     with outputs.register(raise_missing_file=False) as output_data:
         output_file = output_data.register_file(
-            "annotations.parquet",
-            prefix=output_prefix,
-            subdir="annotations"
+            "annotations.parquet", prefix=output_prefix, subdir="annotations"
         )
 
         if output_file:
             output_file.register_preview(
                 "annotations_preview.svg",
                 prefix=output_prefix,
-                caption="PARQUET file containing annotations, synchronized to ISXD cell set file"
+                caption="PARQUET file containing annotations, synchronized to ISXD cell set file",
             ).register_metadata(
                 key="ideas.metrics.num_rows",
                 name="Number of rows",
-                value=metadata["metrics"]["num_rows"]
+                value=metadata["metrics"]["num_rows"],
             ).register_metadata(
                 key="ideas.metrics.num_columns",
                 name="Number of columns",
-                value=metadata["metrics"]["num_columns"]
+                value=metadata["metrics"]["num_columns"],
             ).register_metadata(
                 key="ideas.column_names",
                 name="Column Names",
-                value=metadata["column_names"]
+                value=metadata["column_names"],
             ).register_metadata(
                 key="ideas.dataset.states",
                 name="States",
-                value=metadata["dataset"]["states"]
+                value=metadata["dataset"]["states"],
             )
 
 
@@ -910,30 +892,28 @@ def sync_boris_to_annotations_ideas_wrapper(
     metadata = metadata["annotations"]
     with outputs.register(raise_missing_file=False) as output_data:
         output_file = output_data.register_file(
-            "annotations.parquet",
-            prefix=output_prefix,
-            subdir="annotations"
+            "annotations.parquet", prefix=output_prefix, subdir="annotations"
         )
 
         if output_file:
             output_file.register_preview(
                 "annotations_preview.svg",
                 prefix=output_prefix,
-                caption="Parquet file containing annotations, synchronised to ISXD cell set file"
+                caption="Parquet file containing annotations, synchronised to ISXD cell set file",
             ).register_metadata(
                 key="ideas.metrics.num_rows",
                 name="Number of rows",
-                value=metadata["metrics"]["num_rows"]
+                value=metadata["metrics"]["num_rows"],
             ).register_metadata(
                 key="ideas.metrics.num_columns",
                 name="Number of columns",
-                value=metadata["metrics"]["num_columns"]
+                value=metadata["metrics"]["num_columns"],
             ).register_metadata(
                 key="ideas.column_names",
                 name="Column Names",
-                value=metadata["column_names"]
+                value=metadata["column_names"],
             ).register_metadata(
                 key="ideas.dataset.states",
                 name="States",
-                value=metadata["dataset"]["states"]
+                value=metadata["dataset"]["states"],
             )

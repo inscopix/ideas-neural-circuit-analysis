@@ -6,14 +6,15 @@ import pandas as pd
 import pytest
 from beartype.roar import BeartypeCallHintParamViolation
 from ideas.analysis import io
+from ideas.analysis.validation import _check_columns_in_df
 from ideas.exceptions import IdeasError
+
 from converters.sync_annotations import (
     ALIGNMENT_METHOD_COLUMN,
     _get_start_tsc_from_isxd_metadata,
     _map_frames,
     sync_csv_to_annotations,
 )
-from ideas.analysis.validation import _check_columns_in_df
 
 annotations_files = [
     "data/cellset_series_1-annotations.csv",
@@ -87,11 +88,7 @@ invalid_inputs = [
     [
         (
             # annotations start after isxd
-            [
-                pd.Series(
-                    [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-                )
-            ],
+            [pd.Series([0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])],
             [pd.Series([0.0, 0.25, 0.5, 0.75, 1.0])],
             [10],
             [10.5],
@@ -101,11 +98,7 @@ invalid_inputs = [
         ),
         (
             # annotations start before isxd
-            [
-                pd.Series(
-                    [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-                )
-            ],
+            [pd.Series([0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])],
             [pd.Series([0.0, 0.25, 0.5, 0.75, 1.0])],
             [10],
             [9.5],
@@ -185,9 +178,9 @@ def test_converter_valid_inputs(params):
     # the annotations and cellset file
     time = io.cell_set_to_time(params["isxd_files"])
 
-    assert (
-        np.max(df["time"] - time) == 0
-    ), "Time in annotations and cellset is not the same"
+    assert np.max(df["time"] - time) == 0, (
+        "Time in annotations and cellset is not the same"
+    )
 
 
 @pytest.mark.parametrize("params", invalid_inputs)
@@ -245,9 +238,7 @@ def test_converter_with_hardware_counter_valid_inputs(
         # read the start tsc of the cell set
         start_tsc = _get_start_tsc_from_isxd_metadata(cell_set_file)
 
-        annotations_file_path, annotations_file_name = os.path.split(
-            annotations_file
-        )
+        annotations_file_path, annotations_file_name = os.path.split(annotations_file)
         tmp_annotations_file = os.path.join(
             annotations_file_path, f"tmp_{annotations_file_name}"
         )
@@ -294,9 +285,9 @@ def test_converter_with_hardware_counter_valid_inputs(
     # check that the time is the same in
     # the annotations and cellset file
     time = io.cell_set_to_time(cell_set_files)
-    assert (
-        np.max(output_df[time_column] - time) == 0
-    ), "Time in annotations and cellset is not the same"
+    assert np.max(output_df[time_column] - time) == 0, (
+        "Time in annotations and cellset is not the same"
+    )
 
     # verify frames are mapped correctly
     for i in range(output_df.shape[0]):
@@ -479,9 +470,9 @@ def test_converter_with_gpio_ref(
     # check that the time is the same in
     # the annotations and cellset file
     time = io.cell_set_to_time(cell_set_files)
-    assert (
-        np.max(output_df["time"] - time) == 0
-    ), "Time in annotations and cellset is not the same"
+    assert np.max(output_df["time"] - time) == 0, (
+        "Time in annotations and cellset is not the same"
+    )
 
     # validate rows of output
     for expected_result in expected_results:
@@ -490,9 +481,7 @@ def test_converter_with_gpio_ref(
             == expected_result["frame"]
         )
         np.testing.assert_allclose(
-            output_df.iloc[expected_result["row"]][
-                "mapped time since start (s)"
-            ],
+            output_df.iloc[expected_result["row"]]["mapped time since start (s)"],
             expected_result["time"],
         )
 
@@ -573,7 +562,7 @@ def test_converter_with_gpio_ref_invalid(
     expected_error_message,
 ):
     """test converter with invalid inputs for gpio time-reference"""
-    with pytest.raises(IdeasError, match=expected_error_message) as cm:
+    with pytest.raises(IdeasError, match=expected_error_message):
         sync_csv_to_annotations(
             annotations_files=annotations_files,
             isxd_files=cell_set_files,
@@ -695,9 +684,9 @@ def test_converter_with_manual_time_offset(
     # check that the time is the same in
     # the annotations and cellset file
     time = io.cell_set_to_time(cell_set_files)
-    assert (
-        np.max(output_df["time"] - time) == 0
-    ), "Time in annotations and cellset is not the same"
+    assert np.max(output_df["time"] - time) == 0, (
+        "Time in annotations and cellset is not the same"
+    )
 
     # validate rows of output
     for expected_result in expected_results:
@@ -706,9 +695,7 @@ def test_converter_with_manual_time_offset(
             == expected_result["frame"]
         )
         np.testing.assert_allclose(
-            output_df.iloc[expected_result["row"]][
-                "mapped time since start (s)"
-            ],
+            output_df.iloc[expected_result["row"]]["mapped time since start (s)"],
             expected_result["time"],
         )
 

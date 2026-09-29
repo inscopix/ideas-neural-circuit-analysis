@@ -1,5 +1,5 @@
-import pytest
 import pandas as pd
+import pytest
 from ideas.exceptions import IdeasError
 
 from converters import sync_annotations
@@ -13,10 +13,7 @@ def test_get_start_tsc_from_isxd_metadata_valid(monkeypatch):
         lambda _: {"extraProperties": {"startTsc": 123456}},
     )
 
-    assert (
-        sync_annotations._get_start_tsc_from_isxd_metadata("input.isxd")
-        == 123456
-    )
+    assert sync_annotations._get_start_tsc_from_isxd_metadata("input.isxd") == 123456
 
 
 @pytest.mark.parametrize(
@@ -28,13 +25,9 @@ def test_get_start_tsc_from_isxd_metadata_valid(monkeypatch):
         {"extraProperties": {"startTsc": None}},
     ],
 )
-def test_get_start_tsc_from_isxd_metadata_missing_raises(
-    monkeypatch, metadata
-):
+def test_get_start_tsc_from_isxd_metadata_missing_raises(monkeypatch, metadata):
     """Raise IdeasError when extraProperties.startTsc is missing."""
-    monkeypatch.setattr(
-        sync_annotations, "_extract_footer", lambda _: metadata
-    )
+    monkeypatch.setattr(sync_annotations, "_extract_footer", lambda _: metadata)
 
     with pytest.raises(IdeasError, match="Could not find startTsc metadata"):
         sync_annotations._get_start_tsc_from_isxd_metadata("input.isxd")
