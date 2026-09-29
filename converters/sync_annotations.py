@@ -738,8 +738,8 @@ def sync_csv_to_annotations(
 @beartype
 def sync_boris_to_annotations(
     *,
-    cell_set_file: List[str],
-    annotations_file: List[str],
+    cell_set_file: List[IdeasFile],
+    annotations_file: List[IdeasFile],
     state_column_name: str = "Behavior",
     start_column_name: str = "Start (s)",
     stop_column_name: str = "Stop (s)",
