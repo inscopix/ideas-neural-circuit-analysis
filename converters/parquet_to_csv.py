@@ -1,12 +1,13 @@
 import json
-import logging
 from pathlib import Path
 from typing import List
 
 import pandas as pd
 from ideas.tools.types import IdeasFile
+from ideas.tools import log
+from ideas.tools import outputs
 
-logger = logging.getLogger()
+logger = log.get_logger()
 
 output_filename = "experiment_annotations.csv"
 
@@ -47,3 +48,44 @@ def convert(parquet_files: List[IdeasFile]):
         json.dump(metadata, f)
 
     logger.info("Successfully exported timestamps to CSV")
+
+def convert_ideas_wrapper(parquet_files: List[IdeasFile]):
+    """IDEAS wrapper for tool to convert parquet file to csv format."""
+    
+    convert(
+        parquet_files=parquet_files
+    )
+
+    output_prefix = outputs.input_paths_to_output_prefix(
+        parquet_files
+    )
+    metadata = outputs._load_and_remove_output_metadata()
+    metadata = metadata["experiment_annotations"]
+    with outputs.register(raise_missing_file=False) as output_data:
+        output_file = output_data.register_file(
+            "experiment_annotations.csv",
+            prefix=output_prefix,
+            subdir="experiment_annotations"
+        )
+        
+        if output_file:
+            output_file.register_metadata_dict(
+                key="ideas.metrics.num_rows",
+                name="Number of rows",
+                value=metadata["metrics"]["num_rows"]
+            ).register_metadata(
+                key="ideas.metrics.num_columns",
+                name="Number of columns",
+                value=metadata["metrics"]["num_columns"]
+            ).register_metadata(
+                key="ideas.column_names",
+                name="Column Names",
+                value=metadata["column_names"]
+            )
+
+            if "dataset" in metadata:
+                output_file.register_metadata(
+                    key="ideas.dataset.states",
+                    name="States",
+                    value=metadata["dataset"]["states"]
+                )

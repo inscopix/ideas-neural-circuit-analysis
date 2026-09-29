@@ -8,7 +8,7 @@
     },
     "command": {
         "file_path": "converters/parquet_to_csv.py",
-        "entry_point": "convert",
+        "entry_point": "convert_ideas_wrapper",
         "program_type": "PYTHON"
     },
     "params": [
