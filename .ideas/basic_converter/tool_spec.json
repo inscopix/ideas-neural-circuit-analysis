@@ -19,6 +19,7 @@
             "description": "ISXD files. Can be a single file, or a series.",
             "type": {
                 "param_type": "ToolPathParam",
+                "multiple": true,
                 "file_formats": [
                     "isxd"
                 ]
@@ -32,6 +33,7 @@
             "description": "Annotations in IDEAS format. File(s) with time column and a column specifying annotations at each time point.",
             "type": {
                 "param_type": "ToolPathParam",
+                "multiple": true,
                 "file_formats": [
                     "csv",
                     "parquet"
@@ -133,5 +135,5 @@
     },
     "description": "Map frames from experiment annotations in IDEAS format to frames in ISXD data (either movies or cell sets)",
     "visibility": "public",
-    "version": "4.0.0"
+    "version": "4.0.1"
 }

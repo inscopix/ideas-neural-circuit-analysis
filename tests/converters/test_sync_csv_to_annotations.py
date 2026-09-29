@@ -337,9 +337,7 @@ def test_converter_with_hardware_counter_valid_inputs(
             ],
             "Frame Timestamp (s)",
             "Zone Event",
-            [
-                "/ideas/data/Group-20240708-135659_2024-07-11-11-56-35_video_green.gpio"
-            ],
+            "/ideas/data/Group-20240708-135659_2024-07-11-11-56-35_video_green.gpio",
             "BNC Sync Output",
             1,
             [
@@ -376,9 +374,7 @@ def test_converter_with_hardware_counter_valid_inputs(
             ],
             "Frame Timestamp (s)",
             "Zone Event",
-            [
-                "/ideas/data/Group-20240708-135659_2024-07-11-11-56-35_video_green.gpio"
-            ],
+            "/ideas/data/Group-20240708-135659_2024-07-11-11-56-35_video_green.gpio",
             "BNC Sync Output",
             None,
             [
@@ -415,9 +411,7 @@ def test_converter_with_hardware_counter_valid_inputs(
             ],
             "Frame Timestamp (s)",
             "Zone Event",
-            [
-                "/ideas/data/Group-20240708-135659_2024-07-11-11-56-35_video_green.gpio"
-            ],
+            "/ideas/data/Group-20240708-135659_2024-07-11-11-56-35_video_green.gpio",
             "BNC Sync Output",
             0,
             [
@@ -532,9 +526,7 @@ def test_converter_with_gpio_ref(
             ],
             "Frame Timestamp (s)",
             "Zone Event",
-            [
-                "/ideas/data/Group-20240708-135659_2024-07-11-11-56-35_video_green.gpio"
-            ],
+            "/ideas/data/Group-20240708-135659_2024-07-11-11-56-35_video_green.gpio",
             None,
             None,
             "Must provide channel name with gpio time reference file",
@@ -548,26 +540,7 @@ def test_converter_with_gpio_ref(
             ],
             "Frame Timestamp (s)",
             "Zone Event",
-            [
-                "/ideas/data/Group-20240708-135659_2024-07-11-11-56-35_video_green1.gpio",
-                "/ideas/data/Group-20240708-135659_2024-07-11-11-56-35_video_green2.gpio",
-            ],
-            "BND Sync Output",
-            None,
-            "Single gpio time reference file must be provided",
-        ),
-        pytest.param(
-            [
-                "/ideas/data/Group-20240708-135659_2024-07-11-11-56-35_video_green-test-1.csv"
-            ],
-            [
-                "/ideas/data/Group-20240708-135659_2024-07-11-11-56-35_video_green-PP-ROI.isxd"
-            ],
-            "Frame Timestamp (s)",
-            "Zone Event",
-            [
-                "/ideas/data/Group-20240708-135659_2024-07-11-11-56-35_video_green.gpio"
-            ],
+            "/ideas/data/Group-20240708-135659_2024-07-11-11-56-35_video_green.gpio",
             "BND Sync Output",
             None,
             "Could not find channel BND Sync Output in input gpio file",
@@ -581,9 +554,7 @@ def test_converter_with_gpio_ref(
             ],
             "Frame Timestamp (s)",
             "Zone Event",
-            [
-                "/ideas/data/Group-20240708-135659_2024-07-11-11-56-35_video_green.gpio"
-            ],
+            "/ideas/data/Group-20240708-135659_2024-07-11-11-56-35_video_green.gpio",
             "BNC Sync Output",
             500,
             "Unable to find timestamp in input gpio channel "

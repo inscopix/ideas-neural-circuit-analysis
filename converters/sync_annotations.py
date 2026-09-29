@@ -279,7 +279,7 @@ def sync_csv_to_annotations(
     annotations_files: List[IdeasFile],
     time_column: str = "time",
     state_column: str = "state",
-    gpio_ref_file: Optional[List[IdeasFile]] = None,
+    gpio_ref_file: Optional[IdeasFile] = None,
     gpio_ref_channel: Optional[str] = None,
     gpio_ref_threshold: Optional[int] = None,
     manual_time_offset: Optional[float] = None,
@@ -289,15 +289,15 @@ def sync_csv_to_annotations(
     in ISXD data. This maps the closest points in the
     annotations to time points in the isxd data and.
 
-    :param isxd_files List[str]: The isxd files to map frames to.
+    :param isxd_files List[IdeasFile]: The isxd files to map frames to.
         Can be either a series of movies or cell sets.
-    :param annotations_files List[str]: The annotations files to map
+    :param annotations_files List[IdeasFile]: The annotations files to map
         frames from. Can be either a series of parquet or csv files.
     :param time_column str: The name of the time column in the
         annotations files to use for mapping.
     :param state_column str: The name of the state column in the
         annotations files to map to the isxd data.
-    :param gpio_ref_file Optional[List[str]]: Gpio file to use
+    :param gpio_ref_file Optional[IdeasFile]: Gpio file to use
     as time-reference for the input annotations.
         A time offset is automatically computed
         between the gpio file and the input isxd files from the <gpio_ref_channel>.
@@ -481,12 +481,6 @@ def sync_csv_to_annotations(
                     raise IdeasError(
                         "Must provide channel name with gpio time reference file"
                     )
-
-                if len(gpio_ref_file) != 1:
-                    raise IdeasError(
-                        "Single gpio time reference file must be provided"
-                    )
-                gpio_ref_file = gpio_ref_file[0]
 
                 # export gpio file to isxd format
                 if gpio_ref_file.lower().endswith(".gpio"):
@@ -835,7 +829,7 @@ def sync_csv_to_annotations_ideas_wrapper(
     annotations_files: List[IdeasFile],
     time_column: str = "time",
     state_column: str = "state",
-    gpio_ref_file: Optional[List[IdeasFile]] = None,
+    gpio_ref_file: Optional[IdeasFile] = None,
     gpio_ref_channel: Optional[str] = None,
     gpio_ref_threshold: Optional[int] = None,
     manual_time_offset: Optional[float] = None,
