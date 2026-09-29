@@ -32,7 +32,7 @@
             "name": "Experiment Annotations",
             "description": "Experiment Annotations file converted to .CSV",
             "file_patterns": [
-                "experiment_annotations**"
+                "experiment_annotations/**"
             ]
         }
     ],

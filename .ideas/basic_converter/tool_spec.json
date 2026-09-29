@@ -122,7 +122,7 @@
             "name": "Experiment Annotations File",
             "description": "PARQUET file containing annotations, synchronized to ISXD cell set file",
             "file_patterns": [
-                "annotations**"
+                "annotations/**"
             ]
         }
     ],
