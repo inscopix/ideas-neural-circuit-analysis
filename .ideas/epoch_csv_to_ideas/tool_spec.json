@@ -19,6 +19,7 @@
             "description": "ISXD cell set files. Can be a single file or series.",
             "type": {
                 "param_type": "ToolPathParam",
+                "multiple": true,
                 "file_formats": [
                     "isxd"
                 ]
@@ -100,5 +101,5 @@
     },
     "description": "Synchronize annotations in an state-based TSV or CSV file, where each row is an state, to ISXD cell set file(s)",
     "visibility": "public",
-    "version": "3.0.0"
+    "version": "3.0.1"
 }

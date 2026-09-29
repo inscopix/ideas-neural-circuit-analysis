@@ -735,7 +735,7 @@ def sync_csv_to_annotations(
 def sync_boris_to_annotations(
     *,
     cell_set_file: List[IdeasFile],
-    annotations_file: List[IdeasFile],
+    annotations_file: IdeasFile,
     state_column_name: str = "Behavior",
     start_column_name: str = "Start (s)",
     stop_column_name: str = "Stop (s)",
@@ -748,9 +748,6 @@ def sync_boris_to_annotations(
 
 
     """
-    # unpack list
-    annotations_file = annotations_file[0]
-
     logger.info("Converting state-based annotations data to IDEAS format")
 
     # read time info from the input cell set file
@@ -889,7 +886,7 @@ def sync_csv_to_annotations_ideas_wrapper(
 def sync_boris_to_annotations_ideas_wrapper(
     *,
     cell_set_file: List[IdeasFile],
-    annotations_file: List[IdeasFile],
+    annotations_file: IdeasFile,
     state_column_name: str = "Behavior",
     start_column_name: str = "Start (s)",
     stop_column_name: str = "Stop (s)",

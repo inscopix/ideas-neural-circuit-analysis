@@ -17,8 +17,8 @@ cell_set_series_file = [
     "/ideas/data/cellset_series_1.isxd",
     "/ideas/data/cellset_series_2.isxd",
 ]
-tsv_annotations_file = ["/ideas/data/boris_annotations.tsv"]
-csv_annotations_file = ["/ideas/data/boris_annotations.csv"]
+tsv_annotations_file = "/ideas/data/boris_annotations.tsv"
+csv_annotations_file = "/ideas/data/boris_annotations.csv"
 state_column_name = "Behavior"
 start_column_name = "Start (s)"
 stop_column_name = "Stop (s)"
