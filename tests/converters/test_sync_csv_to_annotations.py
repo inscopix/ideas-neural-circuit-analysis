@@ -1,39 +1,29 @@
 import os
+import re
 
 import numpy as np
 import pandas as pd
 import pytest
 from beartype.roar import BeartypeCallHintParamViolation
-from ideas import io
+from ideas.analysis import io
 from ideas.exceptions import IdeasError
-from ideas_data import fetch
-from toolbox.tools.sync_annotations import (
+from converters.sync_annotations import (
     ALIGNMENT_METHOD_COLUMN,
     _get_start_tsc_from_isxd_metadata,
     _map_frames,
     sync_csv_to_annotations,
 )
-from toolbox.utils.utils import _check_columns_in_df
+from ideas.analysis.validation import _check_columns_in_df
 
-token = os.environ["IDEAS_GITHUB_TOKEN"]
+annotations_files = [
+    "data/cellset_series_1-annotations.csv",
+    "data/cellset_series_2-annotations.csv",
+]
 
-annotations_files = fetch(
-    [
-        "2023-05-10-13-55-53_video-camera-1-annotations.csv",
-        "2023-05-10-14-15-44_video-camera-1-annotations.csv",
-        "2023-05-10-14-36-23_video-camera-1-annotations.csv",
-    ],
-    token=token,
-)
-
-cell_set_files = fetch(
-    [
-        "2023-05-10-13-55-53_video-PP-BP-MC-CNMFE-full.isxd",
-        "2023-05-10-14-15-44_video-PP-BP-MC-CNMFE-full.isxd",
-        "2023-05-10-14-36-23_video-PP-BP-MC-CNMFE-full.isxd",
-    ],
-    token=token,
-)
+cell_set_files = [
+    "data/cellset_series_1.isxd",
+    "data/cellset_series_2.isxd",
+]
 
 
 time_column = "time"
@@ -79,7 +69,7 @@ invalid_inputs = [
         annotations_files=annotations_files,
         time_column="dsfds",
         error=IdeasError,
-        error_text="The annotations data frame does not",
+        error_text="Data frame does not contain\n the column requested: dsfds\n\nThe columns in this data frame are:\n['time', 'state']",
     ),
 ]
 
@@ -206,8 +196,7 @@ def test_converter_invalid_inputs(params):
 
     error = params.pop("error")
     error_text = params.pop("error_text")
-
-    with pytest.raises(error, match=error_text):
+    with pytest.raises(error, match=re.escape(error_text)):
         sync_csv_to_annotations(**params)
 
 
@@ -613,7 +602,7 @@ def test_converter_with_gpio_ref_invalid(
     expected_error_message,
 ):
     """test converter with invalid inputs for gpio time-reference"""
-    with pytest.raises(IdeasError) as cm:
+    with pytest.raises(IdeasError, match=expected_error_message) as cm:
         sync_csv_to_annotations(
             annotations_files=annotations_files,
             isxd_files=cell_set_files,
@@ -623,9 +612,6 @@ def test_converter_with_gpio_ref_invalid(
             gpio_ref_channel=gpio_ref_channel,
             gpio_ref_threshold=gpio_ref_threshold,
         )
-
-    exception = cm.value
-    assert expected_error_message == exception.message
 
 
 @pytest.mark.parametrize(

@@ -2,7 +2,7 @@ import pytest
 import pandas as pd
 from ideas.exceptions import IdeasError
 
-from toolbox.tools import sync_annotations
+from converters import sync_annotations
 
 
 def test_get_start_tsc_from_isxd_metadata_valid(monkeypatch):

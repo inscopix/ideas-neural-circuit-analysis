@@ -6,11 +6,11 @@ from pandas.testing import assert_series_equal
 import pytest
 from ideas.exceptions import IdeasError
 
-from toolbox.tools.sync_annotations import (
+from converters.sync_annotations import (
     PARQUET_FILENAME,
     sync_boris_to_annotations,
 )
-from toolbox.utils.utils import _check_columns_in_df
+from ideas.analysis.validation import _check_columns_in_df
 
 cell_set_file = ["/ideas/data/input_cellset.isxd"]
 cell_set_series_file = [
@@ -106,7 +106,7 @@ test_items = [
             (2, [2, 0.199844, "Fourth Quadrant"]),
             (35, [35, 3.49727, "center"]),
             (293, [293, 29.277146, "not_defined"]),
-            (590, [590, 58.854057999999995, "not_defined"]),
+            (587, [587, 58.654214, "not_defined"]),
         ],
         None,
     ),

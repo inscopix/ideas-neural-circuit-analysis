@@ -3,7 +3,7 @@ import os
 
 import pandas as pd
 
-from toolbox.tools.parquet_to_csv import convert
+from converters.parquet_to_csv import convert
 
 output_filename = "experiment_annotations.csv"
 output_metadata = "output_metadata.json"
@@ -41,9 +41,19 @@ def test_parquet_to_csv(
     with open(output_metadata, "r") as f:
         metadata = json.load(f)
 
-    with open(output_metadata_source, "r") as f:
-        metadata_source = json.load(f)
     assert (
         metadata["experiment_annotations"]
-        == metadata_source["file_metadata"][0]["add"]["ideas"]
+        == {
+            "metrics": {
+                "num_rows": 7456,
+                "num_columns": 2
+            },
+            "column_names": [
+                "time",
+                "state"
+            ],
+            "dataset": {
+                "states": "not_defined, quad 4, center, quad 1, familiar object, novel object, quad 2, quad 3"
+            }
+        }
     )
