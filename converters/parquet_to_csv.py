@@ -11,17 +11,17 @@ logger = log.get_logger()
 output_filename = "experiment_annotations.csv"
 
 
-def convert(parquet_files: List[IdeasFile]):
+def convert(parquet_file: IdeasFile):
     """Convert parquet file to csv format.
 
     :Args
-        parquet_files (list): List of parquet files
+        parquet_file (IdeasFile): Input parquet file
 
     :Returns
         None
     """
     # Load parquet file
-    df = pd.read_parquet(parquet_files[0])  # Load only the first parquet file
+    df = pd.read_parquet(parquet_file)  # Load only the first parquet file
 
     # Export to CSV
     df.to_csv(output_filename, index=False)
@@ -49,12 +49,12 @@ def convert(parquet_files: List[IdeasFile]):
     logger.info("Successfully exported timestamps to CSV")
 
 
-def convert_ideas_wrapper(parquet_files: List[IdeasFile]):
+def convert_ideas_wrapper(parquet_file: List[IdeasFile]):
     """IDEAS wrapper for tool to convert parquet file to csv format."""
 
-    convert(parquet_files=parquet_files)
+    convert(parquet_file=parquet_file)
 
-    output_prefix = outputs.input_paths_to_output_prefix(parquet_files)
+    output_prefix = outputs.input_paths_to_output_prefix(parquet_file)
     metadata = outputs._load_and_remove_output_metadata()
     metadata = metadata["experiment_annotations"]
     with outputs.register(raise_missing_file=False) as output_data:

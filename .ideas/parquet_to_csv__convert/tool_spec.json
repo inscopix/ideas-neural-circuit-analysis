@@ -13,13 +13,12 @@
     },
     "params": [
         {
-            "key": "parquet_files",
-            "name": "Annotations File(s)",
+            "key": "parquet_file",
+            "name": "Annotations File",
             "required": true,
-            "description": "Annotations in IDEAS format. File(s) with time column and a column specifying annotations at each time point.",
+            "description": "Annotations file in IDEAS format. File with time column and a column specifying annotations at each time point.",
             "type": {
                 "param_type": "ToolPathParam",
-                "multiple": true,
                 "file_formats": [
                     "parquet"
                 ]
