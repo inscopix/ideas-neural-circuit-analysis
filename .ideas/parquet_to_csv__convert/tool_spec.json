@@ -19,6 +19,7 @@
             "description": "Annotations in IDEAS format. File(s) with time column and a column specifying annotations at each time point.",
             "type": {
                 "param_type": "ToolPathParam",
+                "multiple": true,
                 "file_formats": [
                     "parquet"
                 ]
@@ -43,5 +44,5 @@
     },
     "description": "Convert an experiment annotations file from Parquet to CSV format",
     "visibility": "public",
-    "version": "2.0.0"
+    "version": "2.0.1"
 }

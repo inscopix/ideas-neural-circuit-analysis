@@ -2,9 +2,7 @@
     "cell_set_file": [
         "data/cellset_series_1.isxd", "data/cellset_series_2.isxd"
     ],
-    "annotations_file": [
-        "data/boris_annotations.tsv"
-    ],
+    "annotations_file": "data/boris_annotations.tsv",
     "state_column_name": "Behavior",
     "start_column_name": "Start (s)",
     "stop_column_name": "Stop (s)",
