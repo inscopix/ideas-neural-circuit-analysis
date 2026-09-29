@@ -1,15 +1,17 @@
 import json
 import logging
 from pathlib import Path
+from typing import List
 
 import pandas as pd
+from ideas.tools.types import IdeasFile
 
 logger = logging.getLogger()
 
 output_filename = "experiment_annotations.csv"
 
 
-def convert(parquet_files):
+def convert(parquet_files: List[IdeasFile]):
     """Convert parquet file to csv format.
 
     :Args

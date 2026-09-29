@@ -1,0 +1,3 @@
+{
+    "parquet_files": ["data/ideas_experiment_annotations.parquet"]
+}

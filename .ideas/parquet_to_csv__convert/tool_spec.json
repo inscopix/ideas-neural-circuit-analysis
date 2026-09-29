@@ -1,0 +1,47 @@
+{
+    "key": "parquet_to_csv__convert",
+    "name": "Convert Parquet to CSV",
+    "schema_version": "3.0.0",
+    "container_image": {
+        "repository": "platform/neural-analysis",
+        "label": "1.0.3"
+    },
+    "command": {
+        "file_path": "converters/parquet_to_csv.py",
+        "entry_point": "convert",
+        "program_type": "PYTHON"
+    },
+    "params": [
+        {
+            "key": "parquet_files",
+            "name": "Annotations File(s)",
+            "required": true,
+            "description": "Annotations in IDEAS format. File(s) with time column and a column specifying annotations at each time point.",
+            "type": {
+                "param_type": "ToolPathParam",
+                "file_formats": [
+                    "parquet"
+                ]
+            },
+            "group": "Input Files"
+        }
+    ],
+    "results": [
+        {
+            "key": "experiment_annotations",
+            "name": "Experiment Annotations",
+            "description": "Experiment Annotations file converted to .CSV",
+            "file_patterns": [
+                "experiment_annotations**"
+            ]
+        }
+    ],
+    "resources": {
+        "cpu": 1,
+        "gpu": 0,
+        "memory": 10000
+    },
+    "description": "Convert an experiment annotations file from Parquet to CSV format",
+    "visibility": "public",
+    "version": "2.0.0"
+}
