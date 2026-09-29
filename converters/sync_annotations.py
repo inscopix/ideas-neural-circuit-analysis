@@ -841,8 +841,7 @@ def sync_csv_to_annotations_ideas_wrapper(
     manual_time_offset: Optional[float] = None,
     use_hardware_tsc_alignment: bool = True,
 ) -> None:
-    """IDEAS wrapper for tool to map frames in experiment annotations to frames in ISXD data.
-    """
+    """IDEAS wrapper for tool to map frames in experiment annotations to frames in ISXD data."""
 
     sync_csv_to_annotations(
         isxd_files=isxd_files,
@@ -873,6 +872,63 @@ def sync_csv_to_annotations_ideas_wrapper(
                 "annotations_preview.svg",
                 prefix=output_prefix,
                 caption="PARQUET file containing annotations, synchronized to ISXD cell set file"
+            ).register_metadata(
+                key="ideas.metrics.num_rows",
+                name="Number of rows",
+                value=metadata["metrics"]["num_rows"]
+            ).register_metadata(
+                key="ideas.metrics.num_columns",
+                name="Number of columns",
+                value=metadata["metrics"]["num_columns"]
+            ).register_metadata(
+                key="ideas.column_names",
+                name="Column Names",
+                value=metadata["column_names"]
+            ).register_metadata(
+                key="ideas.dataset.states",
+                name="States",
+                value=metadata["dataset"]["states"]
+            )
+
+
+@beartype
+def sync_boris_to_annotations_ideas_wrapper(
+    *,
+    cell_set_file: List[IdeasFile],
+    annotations_file: List[IdeasFile],
+    state_column_name: str = "Behavior",
+    start_column_name: str = "Start (s)",
+    stop_column_name: str = "Stop (s)",
+    ignore_behaviors=("immobile", "rearing"),
+) -> None:
+    """IDEAS wrapper for tool to map boris annotations to frames in ISXD data."""
+
+    sync_boris_to_annotations(
+        cell_set_file=cell_set_file,
+        annotations_file=annotations_file,
+        state_column_name=state_column_name,
+        start_column_name=start_column_name,
+        stop_column_name=stop_column_name,
+        ignore_behaviors=ignore_behaviors,
+    )
+
+    output_prefix = outputs.input_paths_to_output_prefix(
+        cell_set_file, annotations_file
+    )
+    metadata = outputs._load_and_remove_output_metadata()
+    metadata = metadata["annotations"]
+    with outputs.register(raise_missing_file=False) as output_data:
+        output_file = output_data.register_file(
+            "annotations.parquet",
+            prefix=output_prefix,
+            subdir="annotations"
+        )
+
+        if output_file:
+            output_file.register_preview(
+                "annotations_preview.svg",
+                prefix=output_prefix,
+                caption="Parquet file containing annotations, synchronised to ISXD cell set file"
             ).register_metadata(
                 key="ideas.metrics.num_rows",
                 name="Number of rows",
