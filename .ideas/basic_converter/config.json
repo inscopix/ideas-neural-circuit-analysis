@@ -2,6 +2,6 @@
     "container": "platform/neural-analysis:latest",
     "executor_type": "PYTHON",
     "file": "converters/sync_annotations.py",
-    "function": "sync_csv_to_annotations",
+    "function": "sync_csv_to_annotations_ideas_wrapper",
     "schema_version": "1.0.0"
 }

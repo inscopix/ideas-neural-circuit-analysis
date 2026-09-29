@@ -22,8 +22,10 @@ import isx
 from utils.utils import (
     _save_experiment_annotations_preview_and_metadata,
 )
+from ideas.tools import log
+from ideas.tools import outputs
 
-logger = logging.getLogger()
+logger = log.get_logger()
 
 # constants
 HARDWARE_COUNTER_TIME_COLUMN = "Hardware counter (us)"
@@ -824,3 +826,67 @@ def sync_boris_to_annotations(
     )
 
     logger.info("Data conversion completed")
+
+
+@beartype
+def sync_csv_to_annotations_ideas_wrapper(
+    *,
+    isxd_files: List[IdeasFile],
+    annotations_files: List[IdeasFile],
+    time_column: str = "time",
+    state_column: str = "state",
+    gpio_ref_file: Optional[List[IdeasFile]] = None,
+    gpio_ref_channel: Optional[str] = None,
+    gpio_ref_threshold: Optional[int] = None,
+    manual_time_offset: Optional[float] = None,
+    use_hardware_tsc_alignment: bool = True,
+) -> None:
+    """IDEAS wrapper for tool to map frames in experiment annotations to frames in ISXD data.
+    """
+
+    sync_csv_to_annotations(
+        isxd_files=isxd_files,
+        annotations_files=annotations_files,
+        time_column=time_column,
+        state_column=state_column,
+        gpio_ref_file=gpio_ref_file,
+        gpio_ref_channel=gpio_ref_channel,
+        gpio_ref_threshold=gpio_ref_threshold,
+        manual_time_offset=manual_time_offset,
+        use_hardware_tsc_alignment=use_hardware_tsc_alignment,
+    )
+
+    output_prefix = outputs.input_paths_to_output_prefix(
+        isxd_files, annotations_files, gpio_ref_file
+    )
+    metadata = outputs._load_and_remove_output_metadata()
+    metadata = metadata["annotations"]
+    with outputs.register(raise_missing_file=False) as output_data:
+        output_file = output_data.register_file(
+            "annotations.parquet",
+            prefix=output_prefix,
+            subdir="annotations"
+        )
+
+        if output_file:
+            output_file.register_preview(
+                "annotations_preview.svg",
+                prefix=output_prefix,
+                caption="PARQUET file containing annotations, synchronized to ISXD cell set file"
+            ).register_metadata(
+                key="ideas.metrics.num_rows",
+                name="Number of rows",
+                value=metadata["metrics"]["num_rows"]
+            ).register_metadata(
+                key="ideas.metrics.num_columns",
+                name="Number of columns",
+                value=metadata["metrics"]["num_columns"]
+            ).register_metadata(
+                key="ideas.column_names",
+                name="Column Names",
+                value=metadata["column_names"]
+            ).register_metadata(
+                key="ideas.dataset.states",
+                name="States",
+                value=metadata["dataset"]["states"]
+            )

@@ -8,7 +8,7 @@
     },
     "command": {
         "file_path": "converters/sync_annotations.py",
-        "entry_point": "sync_csv_to_annotations",
+        "entry_point": "sync_csv_to_annotations_ideas_wrapper",
         "program_type": "PYTHON"
     },
     "params": [

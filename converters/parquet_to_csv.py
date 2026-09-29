@@ -69,7 +69,7 @@ def convert_ideas_wrapper(parquet_files: List[IdeasFile]):
         )
         
         if output_file:
-            output_file.register_metadata_dict(
+            output_file.register_metadata(
                 key="ideas.metrics.num_rows",
                 name="Number of rows",
                 value=metadata["metrics"]["num_rows"]
