@@ -1,0 +1,137 @@
+{
+    "key": "basic_converter",
+    "name": "Map Annotations To ISXD Data",
+    "schema_version": "3.0.0",
+    "container_image": {
+        "repository": "platform/neural-analysis",
+        "label": "1.0.3"
+    },
+    "command": {
+        "file_path": "converters/sync_annotations.py",
+        "entry_point": "sync_csv_to_annotations",
+        "program_type": "PYTHON"
+    },
+    "params": [
+        {
+            "key": "isxd_files",
+            "name": "ISXD File(s)",
+            "required": true,
+            "description": "ISXD files. Can be a single file, or a series.",
+            "type": {
+                "param_type": "ToolPathParam",
+                "file_formats": [
+                    "isxd"
+                ]
+            },
+            "group": "Input Files"
+        },
+        {
+            "key": "annotations_files",
+            "name": "Annotations File(s)",
+            "required": true,
+            "description": "Annotations in IDEAS format. File(s) with time column and a column specifying annotations at each time point.",
+            "type": {
+                "param_type": "ToolPathParam",
+                "file_formats": [
+                    "csv",
+                    "parquet"
+                ]
+            },
+            "group": "Input Files"
+        },
+        {
+            "key": "time_column",
+            "name": "Time Column",
+            "required": true,
+            "description": "Name of column in input annotations files specifying timestamps to use for mapping to ISXD data.",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "time"
+            },
+            "group": "Column Names"
+        },
+        {
+            "key": "state_column",
+            "name": "State Column",
+            "required": true,
+            "description": "Name of column in input annotations files specifying state annotations",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "state"
+            },
+            "group": "Column Names"
+        },
+        {
+            "key": "gpio_ref_file",
+            "name": "GPIO File",
+            "required": false,
+            "description": "Gpio file to use as time-reference for the input annotations. A time offset is automatically computed between the gpio file and the input isxd files. This time offset is used to align the input annotations to the input isxd files from the channel specified by 'Channel Name'. Only applicable for third-party annotations.",
+            "type": {
+                "param_type": "ToolPathParam",
+                "file_formats": [
+                    "gpio"
+                ]
+            },
+            "group": "GPIO Time Reference"
+        },
+        {
+            "key": "gpio_ref_channel",
+            "name": "Channel Name",
+            "required": false,
+            "description": "Specifies the channel to automatically compute the time offset if a gpio file is provided as time-reference. The channel name must be present in the gpio file.",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": "GPIO Time Reference"
+        },
+        {
+            "key": "gpio_ref_threshold",
+            "name": "Channel Threshold",
+            "required": false,
+            "description": "If a gpio file is provided as a time-reference, this parameter specifies an optional threshold to apply on the gpio reference channel. The time offset will be computed from the first sample in the channel which is greater than or equal to the threshold. If empty, use the timestamp of the first sample in the channel to compute the time offset.",
+            "type": {
+                "param_type": "ToolIntRangeParam",
+                "min": 0
+            },
+            "group": "GPIO Time Reference"
+        },
+        {
+            "key": "manual_time_offset",
+            "name": "Manual Time Offset",
+            "required": false,
+            "description": "Specifies a time offset, in seconds, to manually set between the input annotations and the input isxd files. Only applicable for third-party annotations",
+            "type": {
+                "param_type": "ToolFloatRangeParam"
+            }
+        },
+        {
+            "key": "use_hardware_tsc_alignment",
+            "name": "Use Hardware TSC Alignment",
+            "required": true,
+            "description": "Whether to align annotations using hardware counter timestamps (TSC). If enabled and hardware counter metadata is missing from the reference ISXD file, the tool fails. If disabled, the tool falls back to alignment using the start time of the reference ISXD file.",
+            "type": {
+                "param_type": "ToolBooleanParam",
+                "default": true
+            },
+            "group": "Time Alignment"
+        }
+    ],
+    "results": [
+        {
+            "key": "annotations",
+            "name": "Experiment Annotations File",
+            "description": "PARQUET file containing annotations, synchronized to ISXD cell set file",
+            "file_patterns": [
+                "annotations**"
+            ]
+        }
+    ],
+    "resources": {
+        "cpu": 1,
+        "gpu": 0,
+        "memory": 10000
+    },
+    "description": "Map frames from experiment annotations in IDEAS format to frames in ISXD data (either movies or cell sets)",
+    "visibility": "public",
+    "version": "4.0.0"
+}

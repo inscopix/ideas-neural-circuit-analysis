@@ -1,0 +1,7 @@
+{
+    "container": "platform/neural-analysis:latest",
+    "executor_type": "PYTHON",
+    "file": "converters/sync_annotations.py",
+    "function": "sync_csv_to_annotations",
+    "schema_version": "1.0.0"
+}

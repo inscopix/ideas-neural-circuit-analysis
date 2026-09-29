@@ -5,11 +5,12 @@ import numpy as np
 import pandas as pd
 from beartype import beartype
 from beartype.typing import List, Optional
-from ideas import io
+from ideas.analysis import io
 from ideas.exceptions import IdeasError
-from ideas.utils import _extract_footer, get_file_size
-from ideas.validation import cell_set_series, movie_series
-from ideas.metadata import read_isxd_metadata
+from ideas.analysis.utils import _extract_footer, get_file_size
+from ideas.analysis.validation import cell_set_series, movie_series, _check_columns_in_df
+from ideas.analysis.metadata import read_isxd_metadata
+from ideas.tools.types import IdeasFile
 from pandas.api.types import (
     is_float_dtype,
     is_integer_dtype,
@@ -18,8 +19,7 @@ from pandas.api.types import (
 )
 import isx
 
-from toolbox.utils.utils import (
-    _check_columns_in_df,
+from utils.utils import (
     _save_experiment_annotations_preview_and_metadata,
 )
 
@@ -273,11 +273,11 @@ def _map_frames(
 @beartype
 def sync_csv_to_annotations(
     *,
-    isxd_files: List[str],
-    annotations_files: List[str],
+    isxd_files: List[IdeasFile],
+    annotations_files: List[IdeasFile],
     time_column: str = "time",
     state_column: str = "state",
-    gpio_ref_file: Optional[List[str]] = None,
+    gpio_ref_file: Optional[List[IdeasFile]] = None,
     gpio_ref_channel: Optional[str] = None,
     gpio_ref_threshold: Optional[int] = None,
     manual_time_offset: Optional[float] = None,
