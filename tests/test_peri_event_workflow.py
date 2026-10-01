@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import unittest
@@ -8,9 +9,11 @@ import pandas as pd
 from ideas.exceptions import IdeasError
 
 from analysis.peri_event_workflow import (
+    _event_type_to_output_prefix,
     nanmean_iterative,
     peri_event_single_cell_analysis,
     run_peri_event_workflow,
+    run_peri_event_workflow_ideas_wrapper,
 )
 from utils.testing_utils import (
     compare_float_dataframes,
@@ -67,6 +70,19 @@ class TestPeriEventWorkflow(unittest.TestCase):
             "seed": 0,
         }
 
+    @staticmethod
+    def _expected_prefixed_output_filenames(event_type):
+        """Return expected root-level output filenames for a given event type."""
+        prefix = _event_type_to_output_prefix(event_type)
+        return [
+            f"{prefix}cell_map.preview.svg",
+            f"{prefix}event_aligned_activity.STATISTICS.csv",
+            f"{prefix}event_aligned_activity.TRACES.csv",
+            f"{prefix}event_aligned_activity_by_modulation.preview.svg",
+            f"{prefix}event_aligned_population_activity.preview.svg",
+            f"{prefix}event_aligned_single_cell_activity_heatmap.preview.svg",
+        ]
+
     # VALID CASES
     def test_peri_event_workflow_single_cell_set_single_event_type(self):
         # define input parameters
@@ -102,17 +118,17 @@ class TestPeriEventWorkflow(unittest.TestCase):
             output_dir=self.output_dir,
         )
 
-        # retrieve event type and define event-type-specific output dir
+        # retrieve event type and define event-type-specific output prefix
         self.assertTrue(len(input_parameters["event_types"]) == 1)
         event_type = input_parameters["event_types"][0]
-        output_dir = os.path.join(self.output_dir, "event_type_" + event_type)
+        output_prefix = _event_type_to_output_prefix(event_type)
 
         # ensure expected CSV files exist
         traces_csv_filename = os.path.join(
-            output_dir, "event_aligned_activity.TRACES.csv"
+            self.output_dir, f"{output_prefix}event_aligned_activity.TRACES.csv"
         )
         stats_csv_filename = os.path.join(
-            output_dir, "event_aligned_activity.STATISTICS.csv"
+            self.output_dir, f"{output_prefix}event_aligned_activity.STATISTICS.csv"
         )
         for f in [traces_csv_filename, stats_csv_filename]:
             self.assertTrue(os.path.exists(f))
@@ -146,15 +162,18 @@ class TestPeriEventWorkflow(unittest.TestCase):
 
         # define basename for output files
         population_activity_basename = os.path.join(
-            output_dir, "event_aligned_population_activity"
+            self.output_dir,
+            f"{output_prefix}event_aligned_population_activity",
         )
         modulation_basename = os.path.join(
-            output_dir, "event_aligned_activity_by_modulation"
+            self.output_dir,
+            f"{output_prefix}event_aligned_activity_by_modulation",
         )
         heatmap_basename = os.path.join(
-            output_dir, "event_aligned_single_cell_activity_heatmap"
+            self.output_dir,
+            f"{output_prefix}event_aligned_single_cell_activity_heatmap",
         )
-        cell_map_basename = os.path.join(output_dir, "cell_map")
+        cell_map_basename = os.path.join(self.output_dir, f"{output_prefix}cell_map")
 
         # ensure PREVIEW files exist
         population_activity_preview_filename = (
@@ -213,24 +232,96 @@ class TestPeriEventWorkflow(unittest.TestCase):
         )
 
         for event_type in input_parameters["event_types"]:
-            event_type_output_dir = os.path.join(
-                self.output_dir, f"event_type_{event_type}"
-            )
-            self.assertTrue(os.path.isdir(event_type_output_dir))
+            event_type_prefix = _event_type_to_output_prefix(event_type)
             self.assertTrue(
                 os.path.exists(
                     os.path.join(
-                        event_type_output_dir, "event_aligned_activity.TRACES.csv"
+                        self.output_dir,
+                        f"{event_type_prefix}event_aligned_activity.TRACES.csv",
                     )
                 )
             )
             self.assertTrue(
                 os.path.exists(
                     os.path.join(
-                        event_type_output_dir, "event_aligned_activity.STATISTICS.csv"
+                        self.output_dir,
+                        f"{event_type_prefix}event_aligned_activity.STATISTICS.csv",
                     )
                 )
             )
+
+    def test_peri_event_workflow_wrapper_registers_multiple_event_types(self):
+        """Verify wrapper registers files/previews/metadata for each selected event type."""
+        input_parameters = self._default_peri_event_params(
+            event_types=["event_type_1", "event_type_2"]
+        )
+
+        input_events_h5_file = os.path.join(self.output_dir, "events_multi_type.h5")
+        shutil.copyfile(self.input_events_h5_file, input_events_h5_file)
+        with h5py.File(input_events_h5_file, "a") as h5_events_file:
+            source_event_type_group = h5_events_file["events"]["event_type_1"]
+            target_event_type_group = h5_events_file["events"].create_group(
+                "event_type_2"
+            )
+            for key in source_event_type_group.keys():
+                target_event_type_group.create_dataset(
+                    key,
+                    data=source_event_type_group[key][()],
+                )
+
+        absolute_cellset_files = [
+            os.path.abspath(path) for path in self.input_cellset_isxd_files
+        ]
+
+        prev_cwd = os.getcwd()
+        os.chdir(self.output_dir)
+        try:
+            run_peri_event_workflow_ideas_wrapper(
+                input_cellset_files=absolute_cellset_files,
+                input_events_h5_file=input_events_h5_file,
+                event_type=input_parameters["event_types"],
+                visual_window_pre=input_parameters["visual_window"]["pre"],
+                visual_window_post=input_parameters["visual_window"]["post"],
+                statistical_window_pre_start=input_parameters["statistical_window"][
+                    "pre"
+                ][0],
+                statistical_window_pre_end=input_parameters["statistical_window"][
+                    "pre"
+                ][1],
+                statistical_window_post_start=input_parameters["statistical_window"][
+                    "post"
+                ][0],
+                statistical_window_post_end=input_parameters["statistical_window"][
+                    "post"
+                ][1],
+                num_shuffles=input_parameters["num_shuffles"],
+                significance_threshold=input_parameters["significance_threshold"],
+                seed=input_parameters["seed"],
+            )
+        finally:
+            os.chdir(prev_cwd)
+
+        output_data_json = os.path.join(self.output_dir, "output_data.json")
+        self.assertTrue(os.path.exists(output_data_json))
+        with open(output_data_json, "r") as f:
+            output_data = json.load(f)
+
+        output_files = output_data["output_files"]
+        self.assertTrue(len(output_files) >= 4)
+
+        registered_files = {entry["file"] for entry in output_files}
+        self.assertIn(
+            "event_type_1_event_aligned_activity.TRACES.csv", registered_files
+        )
+        self.assertIn(
+            "event_type_2_event_aligned_activity.TRACES.csv", registered_files
+        )
+
+        for entry in output_files:
+            self.assertTrue(len(entry.get("previews", [])) == 2)
+            self.assertTrue(len(entry.get("metadata", [])) > 0)
+            metadata_keys = {m["key"] for m in entry["metadata"]}
+            self.assertIn("ideas.metrics.num_valid_events", metadata_keys)
 
     def test_peri_event_workflow_reject_multiple_event_h5_files(self):
         """Reject list inputs for event files; workflow accepts a single H5 path only."""
@@ -281,6 +372,39 @@ class TestPeriEventWorkflow(unittest.TestCase):
             seed=input_parameters["seed"],
             output_dir=self.output_dir,
         )
+
+    def test_peri_event_workflow_rejects_unknown_event_type_before_file_creation(self):
+        """Reject unknown event names before creating event-specific output files."""
+        input_parameters = self._default_peri_event_params(
+            event_types=["../missing_event_type"]
+        )
+
+        self.assertRaisesRegex(
+            IdeasError,
+            "do not exist in the events file",
+            run_peri_event_workflow,
+            input_cellset_files=self.input_cellset_isxd_files,
+            input_events_h5_file=self.input_events_h5_file,
+            event_type=input_parameters["event_types"],
+            visual_window_pre=input_parameters["visual_window"]["pre"],
+            visual_window_post=input_parameters["visual_window"]["post"],
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
+                "post"
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
+            num_shuffles=input_parameters["num_shuffles"],
+            significance_threshold=input_parameters["significance_threshold"],
+            seed=input_parameters["seed"],
+            output_dir=self.output_dir,
+        )
+
+        self.assertEqual(os.listdir(self.output_dir), [])
 
     def test_peri_event_workflow_rejects_csv_events_input(self):
         """Reject CSV event inputs and enforce H5-only event file support."""
@@ -403,17 +527,17 @@ class TestPeriEventWorkflow(unittest.TestCase):
             output_dir=self.output_dir,
         )
 
-        # retrieve event type and define event-type-specific output dir
+        # retrieve event type and define event-type-specific output prefix
         self.assertTrue(len(input_parameters["event_types"]) == 1)
         event_type = input_parameters["event_types"][0]
-        output_dir = os.path.join(self.output_dir, "event_type_" + event_type)
+        output_prefix = _event_type_to_output_prefix(event_type)
 
         # ensure expected CSV files exist
         traces_csv_filename = os.path.join(
-            output_dir, "event_aligned_activity.TRACES.csv"
+            self.output_dir, f"{output_prefix}event_aligned_activity.TRACES.csv"
         )
         stats_csv_filename = os.path.join(
-            output_dir, "event_aligned_activity.STATISTICS.csv"
+            self.output_dir, f"{output_prefix}event_aligned_activity.STATISTICS.csv"
         )
         for f in [traces_csv_filename, stats_csv_filename]:
             self.assertTrue(os.path.exists(f))
@@ -453,15 +577,18 @@ class TestPeriEventWorkflow(unittest.TestCase):
 
         # define basename for output files
         population_activity_basename = os.path.join(
-            output_dir, "event_aligned_population_activity"
+            self.output_dir,
+            f"{output_prefix}event_aligned_population_activity",
         )
         modulation_basename = os.path.join(
-            output_dir, "event_aligned_activity_by_modulation"
+            self.output_dir,
+            f"{output_prefix}event_aligned_activity_by_modulation",
         )
         heatmap_basename = os.path.join(
-            output_dir, "event_aligned_single_cell_activity_heatmap"
+            self.output_dir,
+            f"{output_prefix}event_aligned_single_cell_activity_heatmap",
         )
-        cell_map_basename = os.path.join(output_dir, "cell_map")
+        cell_map_basename = os.path.join(self.output_dir, f"{output_prefix}cell_map")
 
         # ensure PREVIEW files exist
         population_activity_preview_filename = (
@@ -1081,17 +1208,17 @@ class TestPeriEventWorkflow(unittest.TestCase):
             output_dir=self.output_dir,
         )
 
-        # retrieve event type and define event-type-specific output dir
+        # retrieve event type and define event-type-specific output prefix
         self.assertTrue(len(input_parameters["event_types"]) == 1)
         event_type = input_parameters["event_types"][0]
-        output_dir = os.path.join(self.output_dir, "event_type_" + event_type)
+        output_prefix = _event_type_to_output_prefix(event_type)
 
         # ensure expected CSV files exist
         traces_csv_filename = os.path.join(
-            output_dir, "event_aligned_activity.TRACES.csv"
+            self.output_dir, f"{output_prefix}event_aligned_activity.TRACES.csv"
         )
         stats_csv_filename = os.path.join(
-            output_dir, "event_aligned_activity.STATISTICS.csv"
+            self.output_dir, f"{output_prefix}event_aligned_activity.STATISTICS.csv"
         )
         for f in [traces_csv_filename, stats_csv_filename]:
             self.assertTrue(os.path.exists(f))
@@ -1110,15 +1237,18 @@ class TestPeriEventWorkflow(unittest.TestCase):
 
         # define basename for output files
         population_activity_basename = os.path.join(
-            output_dir, "event_aligned_population_activity"
+            self.output_dir,
+            f"{output_prefix}event_aligned_population_activity",
         )
         modulation_basename = os.path.join(
-            output_dir, "event_aligned_activity_by_modulation"
+            self.output_dir,
+            f"{output_prefix}event_aligned_activity_by_modulation",
         )
         heatmap_basename = os.path.join(
-            output_dir, "event_aligned_single_cell_activity_heatmap"
+            self.output_dir,
+            f"{output_prefix}event_aligned_single_cell_activity_heatmap",
         )
-        cell_map_basename = os.path.join(output_dir, "cell_map")
+        cell_map_basename = os.path.join(self.output_dir, f"{output_prefix}cell_map")
 
         # ensure PREVIEW files exist
         population_activity_preview_filename = (
@@ -1195,19 +1325,24 @@ class TestPeriEventWorkflow(unittest.TestCase):
 
             # validate existence of output preview files
             event_type = input_parameters["event_types"][0]
-            output_dir = os.path.join(self.output_dir, "event_type_" + event_type)
+            output_prefix = _event_type_to_output_prefix(event_type)
 
             # define basename for output files
             population_activity_basename = os.path.join(
-                output_dir, "event_aligned_population_activity"
+                self.output_dir,
+                f"{output_prefix}event_aligned_population_activity",
             )
             modulation_basename = os.path.join(
-                output_dir, "event_aligned_activity_by_modulation"
+                self.output_dir,
+                f"{output_prefix}event_aligned_activity_by_modulation",
             )
             heatmap_basename = os.path.join(
-                output_dir, "event_aligned_single_cell_activity_heatmap"
+                self.output_dir,
+                f"{output_prefix}event_aligned_single_cell_activity_heatmap",
             )
-            cell_map_basename = os.path.join(output_dir, "cell_map")
+            cell_map_basename = os.path.join(
+                self.output_dir, f"{output_prefix}cell_map"
+            )
 
             # ensure PREVIEW files exist
             population_activity_preview_filename = (
@@ -1225,8 +1360,8 @@ class TestPeriEventWorkflow(unittest.TestCase):
                 self.assertTrue(os.path.exists(f))
 
             # clean up output dir
-            for f in os.listdir(output_dir):
-                os.remove(os.path.join(output_dir, f))
+            for f in os.listdir(self.output_dir):
+                os.remove(os.path.join(self.output_dir, f))
 
     def test_nanmean_iterative(self):
         event_windows = np.zeros((2, 3, 4))
@@ -1321,29 +1456,8 @@ class TestPeriEventWorkflow(unittest.TestCase):
         )
 
         # validate existence of output files
-        self.assertEqual(
-            sorted(os.listdir(self.output_dir)),
-            sorted(
-                [
-                    # "output_manifest.json",
-                    # "output_metadata.json",
-                    f"event_type_{event_type}",
-                ]
-            ),
-        )
-
-        event_type_output_dir = os.path.join(
-            self.output_dir, f"event_type_{event_type}"
-        )
-        actual_files = os.listdir(event_type_output_dir)
-        expected_files = [
-            "cell_map.preview.svg",
-            "event_aligned_activity.STATISTICS.csv",
-            "event_aligned_activity.TRACES.csv",
-            "event_aligned_activity_by_modulation.preview.svg",
-            "event_aligned_population_activity.preview.svg",
-            "event_aligned_single_cell_activity_heatmap.preview.svg",
-        ]
+        actual_files = os.listdir(self.output_dir)
+        expected_files = self._expected_prefixed_output_filenames(event_type)
         self.assertEqual(sorted(actual_files), sorted(expected_files))
 
     def test_peri_event_workflow_single_accepted_cell(self):
@@ -1386,29 +1500,8 @@ class TestPeriEventWorkflow(unittest.TestCase):
         )
 
         # validate existence of output files
-        self.assertEqual(
-            sorted(os.listdir(self.output_dir)),
-            sorted(
-                [
-                    # "output_manifest.json",
-                    # "output_metadata.json",
-                    f"event_type_{event_type}",
-                ]
-            ),
-        )
-
-        event_type_output_dir = os.path.join(
-            self.output_dir, f"event_type_{event_type}"
-        )
-        actual_files = os.listdir(event_type_output_dir)
-        expected_files = [
-            "cell_map.preview.svg",
-            "event_aligned_activity.STATISTICS.csv",
-            "event_aligned_activity.TRACES.csv",
-            "event_aligned_activity_by_modulation.preview.svg",
-            "event_aligned_population_activity.preview.svg",
-            "event_aligned_single_cell_activity_heatmap.preview.svg",
-        ]
+        actual_files = os.listdir(self.output_dir)
+        expected_files = self._expected_prefixed_output_filenames(event_type)
         self.assertEqual(sorted(actual_files), sorted(expected_files))
 
     def test_peri_event_workflow_mixture_of_cell_statuses(self):
@@ -1454,29 +1547,8 @@ class TestPeriEventWorkflow(unittest.TestCase):
         )
 
         # validate existence of output files
-        self.assertEqual(
-            sorted(os.listdir(self.output_dir)),
-            sorted(
-                [
-                    # "output_manifest.json",
-                    # "output_metadata.json",
-                    f"event_type_{event_type}",
-                ]
-            ),
-        )
-
-        event_type_output_dir = os.path.join(
-            self.output_dir, f"event_type_{event_type}"
-        )
-        actual_files = os.listdir(event_type_output_dir)
-        expected_files = [
-            "cell_map.preview.svg",
-            "event_aligned_activity.STATISTICS.csv",
-            "event_aligned_activity.TRACES.csv",
-            "event_aligned_activity_by_modulation.preview.svg",
-            "event_aligned_population_activity.preview.svg",
-            "event_aligned_single_cell_activity_heatmap.preview.svg",
-        ]
+        actual_files = os.listdir(self.output_dir)
+        expected_files = self._expected_prefixed_output_filenames(event_type)
         self.assertEqual(sorted(actual_files), sorted(expected_files))
 
     def test_peri_event_workflow_rejected_cells_only(self):
@@ -1560,27 +1632,6 @@ class TestPeriEventWorkflow(unittest.TestCase):
         )
 
         # validate existence of output files
-        self.assertEqual(
-            sorted(os.listdir(self.output_dir)),
-            sorted(
-                [
-                    # "output_manifest.json",
-                    # "output_metadata.json",
-                    f"event_type_{event_type}",
-                ]
-            ),
-        )
-
-        event_type_output_dir = os.path.join(
-            self.output_dir, f"event_type_{event_type}"
-        )
-        actual_files = os.listdir(event_type_output_dir)
-        expected_files = [
-            "cell_map.preview.svg",
-            "event_aligned_activity.STATISTICS.csv",
-            "event_aligned_activity.TRACES.csv",
-            "event_aligned_activity_by_modulation.preview.svg",
-            "event_aligned_population_activity.preview.svg",
-            "event_aligned_single_cell_activity_heatmap.preview.svg",
-        ]
+        actual_files = os.listdir(self.output_dir)
+        expected_files = self._expected_prefixed_output_filenames(event_type)
         self.assertEqual(sorted(actual_files), sorted(expected_files))
