@@ -21,11 +21,25 @@ RUN addgroup ideas \
 WORKDIR /ideas
 
 # ========================== Apt Dependency Installation ===========================
+
 RUN apt-get -y update \
     && apt-get -y upgrade \
     && apt-get install -y libgl1 --no-install-recommends \
+    # Includes installation of deps to resolve security vulnerabilities, eventually these will be the default for download
+    libheif1=1.23.4-1~deb13u1 \
+    libheif-plugin-dav1d=1.23.4-1~deb13u1 \
+    libheif-plugin-libde265=1.23.4-1~deb13u1 \
+    libpcre2-16-0=10.46-1~deb13u3 \
+    libpcre2-32-0=10.46-1~deb13u3 \
+    libpcre2-8-0=10.46-1~deb13u3 \
+    libpcre2-dev=10.46-1~deb13u3 \
+    libpcre2-posix3=10.46-1~deb13u3 \
+    openssl=3.5.7-1~deb13u3 \
+    libssl3t64=3.5.7-1~deb13u3 \
+    libssl-dev=3.5.7-1~deb13u3 \
+    openssl-provider-legacy=3.5.7-1~deb13u3 \
+    linux-libc-dev=6.12.111-1 \
     && rm -rf /var/lib/apt/lists/*
-
 # Create a venv with uv to install python dependencies
 # This can be done globally, but using venv is best practice
 
@@ -81,6 +95,7 @@ USER ideas
 FROM base AS scanner
 
 USER root
+
 
 COPY --from=aquasec/trivy:0.69.3 /usr/local/bin/trivy /usr/local/bin/trivy
 
