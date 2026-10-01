@@ -1,9 +1,7 @@
 {
-    "input_cellset_files": [
-        "data/manual_review/M5_2_video_trig_0-efocus_0600-PP-BP-MC-CNMFE.isxd"
-    ],
-    "input_events_h5_file": "data/manual_review/M5_2_video_trig_0.GPIO.h5",
-    "event_type": "GPIO-1,GPIO-2",
+    "input_cellset_files": ["data/cellset_series_part1-PCA-ICA.isxd"],
+    "input_events_h5_file": "data/events.h5",
+    "event_type": "event_type_1",
     "visual_window_pre": -2.0,
     "visual_window_post": 2.0,
     "statistical_window_pre_start": -1.0,
