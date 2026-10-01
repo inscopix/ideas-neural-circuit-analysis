@@ -1,0 +1,17 @@
+{
+     "isxd_files": [
+        "data/cellset_series_1.isxd",
+        "data/cellset_series_2.isxd"
+    ],
+    "annotations_files": [
+        "data/cellset_series_1-annotations.csv",
+        "data/cellset_series_2-annotations.csv"
+    ],
+    "time_column": "time",
+    "state_column": "state",
+    "gpio_ref_file": null,
+    "gpio_ref_channel": null,
+    "gpio_ref_threshold": null,
+    "manual_time_offset": null,
+    "use_hardware_tsc_alignment": true
+}

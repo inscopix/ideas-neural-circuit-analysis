@@ -1,0 +1,105 @@
+{
+    "key": "epoch_csv_to_ideas",
+    "name": "Map Boris Annotations To ISXD Data",
+    "schema_version": "3.0.0",
+    "container_image": {
+        "repository": "platform/neural-analysis",
+        "label": "1.0.3"
+    },
+    "command": {
+        "file_path": "converters/sync_annotations.py",
+        "entry_point": "sync_boris_to_annotations_ideas_wrapper",
+        "program_type": "PYTHON"
+    },
+    "params": [
+        {
+            "key": "cell_set_file",
+            "name": "Cell Set File(s)",
+            "required": true,
+            "description": "ISXD cell set files. Can be a single file or series.",
+            "type": {
+                "param_type": "ToolPathParam",
+                "multiple": true,
+                "file_formats": [
+                    "isxd"
+                ]
+            },
+            "group": "Input Files"
+        },
+        {
+            "key": "annotations_file",
+            "name": "Annotations File",
+            "required": true,
+            "description": "Annotations file in TSV or CSV format where each row specifies a state",
+            "type": {
+                "param_type": "ToolPathParam",
+                "file_formats": [
+                    "csv",
+                    "tsv"
+                ]
+            },
+            "group": "Input Files"
+        },
+        {
+            "key": "state_column_name",
+            "name": "State Column Name",
+            "required": true,
+            "description": "Column Name in TSV or CSV file that specifies state",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "Behavior"
+            },
+            "group": "Column Names"
+        },
+        {
+            "key": "start_column_name",
+            "name": "Start Column Name",
+            "required": true,
+            "description": "Column Name in TSV or CSV file that specifies where that state starts",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "Start (s)"
+            },
+            "group": "Column Names"
+        },
+        {
+            "key": "stop_column_name",
+            "name": "Stop Column Name",
+            "required": true,
+            "description": "Column name in TSV or CSV that specifies where that state ends",
+            "type": {
+                "param_type": "ToolStringParam",
+                "default": "Stop (s)"
+            },
+            "group": "Column Names"
+        },
+        {
+            "key": "ignore_behaviors",
+            "name": "Ignore Behaviors",
+            "required": false,
+            "description": "Comma separated list of annotations to ignore while syncing and converting data",
+            "type": {
+                "param_type": "ToolStringParam"
+            },
+            "group": ""
+        }
+    ],
+    "results": [
+        {
+            "key": "annotations",
+            "name": "Experiment Annotations",
+            "description": "Parquet file containing annotations, synchronised to ISXD cell set file",
+            "file_patterns": [
+                "annotations/**"
+            ]
+        }
+    ],
+    "resources": {
+        "cpu": 1,
+        "gpu": 0,
+        "memory": 10000
+    },
+    "description": "Synchronize annotations in an state-based TSV or CSV file, where each row is an state, to ISXD cell set file(s)",
+    "visibility": "public",
+    "version": "2.9.0"
+}

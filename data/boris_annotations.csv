@@ -1,0 +1,121 @@
+Observation id,Behavior,Start (s),Stop (s),Duration (s)
+SuperMouse,Fourth Quadrant,0.25,3.2,2.95
+SuperMouse,immobile,1.15,1.55,0.4
+SuperMouse,center,3.55,4.6,1.05
+SuperMouse,First Quadrant,5.1,65.45,60.35
+SuperMouse,immobile,21.2,22.35,1.15
+SuperMouse,immobile,28.2,33.15,4.95
+SuperMouse,immobile,40.2,47,6.8
+SuperMouse,immobile,49.55,50.95,1.4
+SuperMouse,immobile,56.6,62.55,5.95
+SuperMouse,Fourth Quadrant,65.75,69.65,3.9
+SuperMouse,familiar context,65.9,66.85,0.95
+SuperMouse,familiar context,67.7,69.3,1.6
+SuperMouse,rearing,68.65,69.2,0.55
+SuperMouse,center,70.1,70.75,0.65
+SuperMouse,First Quadrant,71.75,107.85,36.1
+SuperMouse,rearing,74.7,76.6,1.9
+SuperMouse,rearing,83.85,85,1.15
+SuperMouse,Fourth Quadrant,108.45,127.3,18.85
+SuperMouse,center,128.1,138.2,10.1
+SuperMouse,familiar context,134.55,134.9,0.35
+SuperMouse,familiar context,138.15,139.45,1.3
+SuperMouse,Fourth Quadrant,138.8,160.05,21.25
+SuperMouse,familiar context,140.2,146.6,6.4
+SuperMouse,familiar context,150.45,151.45,1
+SuperMouse,familiar context,153.6,155.4,1.8
+SuperMouse,immobile,158.65,175.5,16.85
+SuperMouse,First Quadrant,160.45,315.5,155.05
+SuperMouse,immobile,176.65,184.4,7.75
+SuperMouse,immobile,195.7,200.3,4.6
+SuperMouse,immobile,206.8,214.25,7.45
+SuperMouse,immobile,223.05,224.7,1.65
+SuperMouse,immobile,231.2,234.65,3.45
+SuperMouse,immobile,238.15,242,3.85
+SuperMouse,immobile,255.85,257.85,2
+SuperMouse,immobile,261.95,269.2,7.25
+SuperMouse,immobile,272.65,276.4,3.75
+SuperMouse,immobile,293.05,296.4,3.35
+SuperMouse,immobile,302.5,304.95,2.45
+SuperMouse,immobile,308.8,310.45,1.65
+SuperMouse,immobile,314.95,322.2,7.25
+SuperMouse,center,315.8,340.8,25
+SuperMouse,immobile,333.75,335.35,1.6
+SuperMouse,First Quadrant,342.25,382.65,40.4
+SuperMouse,rearing,370.55,371.6,1.05
+SuperMouse,novel context,381.4,382.5,1.1
+SuperMouse,Second Quadrant,383.15,383.9,0.75
+SuperMouse,First Quadrant,384.15,391.7,7.55
+SuperMouse,Fourth Quadrant,391.7,396.6,4.9
+SuperMouse,familiar context,393.75,394.7,0.95
+SuperMouse,First Quadrant,396.95,450.35,53.4
+SuperMouse,rearing,398.35,399.55,1.2
+SuperMouse,immobile,447.85,448.3,0.45
+SuperMouse,novel context,450.65,452.6,1.95
+SuperMouse,Second Quadrant,450.7,481.1,30.4
+SuperMouse,rearing,454.35,455.2,0.85
+SuperMouse,novel context,456.5,458.8,2.3
+SuperMouse,rearing,476.1,477.45,1.35
+SuperMouse,First Quadrant,481.35,528.05,46.7
+SuperMouse,immobile,500.95,507.8,6.85
+SuperMouse,rearing,509.85,510.75,0.9
+SuperMouse,immobile,516.75,521.6,4.85
+SuperMouse,immobile,524.3,525.1,0.8
+SuperMouse,Fourth Quadrant,528.4,560.4,32
+SuperMouse,immobile,530.45,531.3,0.85
+SuperMouse,immobile,534.75,537.8,3.05
+SuperMouse,familiar context,543.9,544.9,1
+SuperMouse,rearing,547.1,548.7,1.6
+SuperMouse,immobile,554.55,556.45,1.9
+SuperMouse,familiar context,557.1,557.85,0.75
+SuperMouse,familiar context,558.7,560.25,1.55
+SuperMouse,center,560.65,572.65,12
+SuperMouse,novel context,567.05,570.45,3.4
+SuperMouse,rearing,567.45,569.75,2.3
+SuperMouse,novel context,571.25,572.35,1.1
+SuperMouse,Third Quadrant,573.45,578.55,5.1
+SuperMouse,rearing,574.85,576.75,1.9
+SuperMouse,center,578.9,582.3,3.4
+SuperMouse,novel context,579.95,582.1,2.15
+SuperMouse,rearing,580.1,581.25,1.15
+SuperMouse,First Quadrant,582.65,589.1,6.45
+SuperMouse,center,582.9,590.25,7.35
+SuperMouse,novel context,588.25,591,2.75
+SuperMouse,Second Quadrant,591.35,602.55,11.2
+SuperMouse,novel context,592.45,597.85,5.4
+SuperMouse,novel context,600.3,601.95,1.65
+SuperMouse,First Quadrant,602.85,615.25,12.4
+SuperMouse,immobile,607.15,608.9,1.75
+SuperMouse,immobile,612,612.85,0.85
+SuperMouse,Fourth Quadrant,615.6,623.35,7.75
+SuperMouse,familiar context,619.1,623.25,4.15
+SuperMouse,rearing,619.85,621,1.15
+SuperMouse,center,623.55,629.95,6.4
+SuperMouse,familiar context,627.05,628.35,1.3
+SuperMouse,rearing,627.35,628.05,0.7
+SuperMouse,Third Quadrant,630.25,635.95,5.7
+SuperMouse,rearing,633.35,634.65,1.3
+SuperMouse,Second Quadrant,636.5,648.6,12.1
+SuperMouse,novel context,638.65,642.95,4.3
+SuperMouse,rearing,639.3,642.7,3.4
+SuperMouse,novel context,643.65,648.75,5.1
+SuperMouse,rearing,645.5,646.85,1.35
+SuperMouse,center,648.95,658.6,9.65
+SuperMouse,novel context,649.55,653.5,3.95
+SuperMouse,rearing,651.4,653,1.6
+SuperMouse,familiar context,654.95,658.45,3.5
+SuperMouse,First Quadrant,659.4,680.35,20.95
+SuperMouse,immobile,661.85,663.9,2.05
+SuperMouse,immobile,676.25,677.8,1.55
+SuperMouse,center,680.7,702.45,21.75
+SuperMouse,rearing,702.7,704,1.3
+SuperMouse,First Quadrant,702.75,725.45,22.7
+SuperMouse,rearing,705.75,707.1,1.35
+SuperMouse,rearing,721.8,722.95,1.15
+SuperMouse,novel context,725.7,727.8,2.1
+SuperMouse,Second Quadrant,725.8,728.95,3.15
+SuperMouse,rearing,727.05,727.95,0.9
+SuperMouse,First Quadrant,729.6,730.8,1.2
+SuperMouse,center,731.3,743.35,12.05
+SuperMouse,immobile,731.6,739,7.4
+SuperMouse,Fourth Quadrant,743.8,744.1,0.3
