@@ -55,6 +55,18 @@ class TestPeriEventWorkflow(unittest.TestCase):
         if os.path.exists("exit_status.txt"):
             os.remove("exit_status.txt")
 
+    @staticmethod
+    def _default_peri_event_params(event_types):
+        """Build common peri-event test parameters for one or more event types."""
+        return {
+            "event_types": event_types,
+            "visual_window": {"pre": -2, "post": 2},
+            "statistical_window": {"pre": [-1, 0], "post": [0, 1]},
+            "num_shuffles": 50,
+            "significance_threshold": 0.05,
+            "seed": 0,
+        }
+
     # VALID CASES
     def test_peri_event_workflow_single_cell_set_single_event_type(self):
         # define input parameters
@@ -158,6 +170,152 @@ class TestPeriEventWorkflow(unittest.TestCase):
             cell_map_preview_filename,
         ]:
             self.assertTrue(os.path.exists(f))
+
+    def test_peri_event_workflow_multiple_event_types_single_run(self):
+        """Run peri-event once for two event types and verify both output folders."""
+        input_parameters = self._default_peri_event_params(
+            event_types=["event_type_1", "event_type_2"]
+        )
+
+        input_events_h5_file = os.path.join(self.output_dir, "events_multi_type.h5")
+        shutil.copyfile(self.input_events_h5_file, input_events_h5_file)
+        with h5py.File(input_events_h5_file, "a") as h5_events_file:
+            source_event_type_group = h5_events_file["events"]["event_type_1"]
+            target_event_type_group = h5_events_file["events"].create_group(
+                "event_type_2"
+            )
+            for key in source_event_type_group.keys():
+                target_event_type_group.create_dataset(
+                    key,
+                    data=source_event_type_group[key][()],
+                )
+
+        run_peri_event_workflow(
+            input_cellset_files=self.input_cellset_isxd_files,
+            input_events_h5_file=input_events_h5_file,
+            event_type=input_parameters["event_types"],
+            visual_window_pre=input_parameters["visual_window"]["pre"],
+            visual_window_post=input_parameters["visual_window"]["post"],
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
+                "post"
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
+            num_shuffles=input_parameters["num_shuffles"],
+            significance_threshold=input_parameters["significance_threshold"],
+            seed=input_parameters["seed"],
+            output_dir=self.output_dir,
+        )
+
+        for event_type in input_parameters["event_types"]:
+            event_type_output_dir = os.path.join(
+                self.output_dir, f"event_type_{event_type}"
+            )
+            self.assertTrue(os.path.isdir(event_type_output_dir))
+            self.assertTrue(
+                os.path.exists(
+                    os.path.join(
+                        event_type_output_dir, "event_aligned_activity.TRACES.csv"
+                    )
+                )
+            )
+            self.assertTrue(
+                os.path.exists(
+                    os.path.join(
+                        event_type_output_dir, "event_aligned_activity.STATISTICS.csv"
+                    )
+                )
+            )
+
+    def test_peri_event_workflow_reject_multiple_event_h5_files(self):
+        """Reject list inputs for event files; workflow accepts a single H5 path only."""
+        input_parameters = self._default_peri_event_params(
+            event_types=["event_type_1", "event_type_2"]
+        )
+
+        input_events_h5_file_1 = os.path.join(self.output_dir, "events_type_1.h5")
+        input_events_h5_file_2 = os.path.join(self.output_dir, "events_type_2.h5")
+        shutil.copyfile(self.input_events_h5_file, input_events_h5_file_1)
+        shutil.copyfile(self.input_events_h5_file, input_events_h5_file_2)
+
+        with h5py.File(input_events_h5_file_1, "a") as h5_file_1:
+            if "event_type_2" in h5_file_1["events"]:
+                del h5_file_1["events"]["event_type_2"]
+
+        with h5py.File(input_events_h5_file_2, "a") as h5_file_2:
+            source_event_type_group = h5_file_2["events"]["event_type_1"]
+            target_event_type_group = h5_file_2["events"].create_group("event_type_2")
+            for key in source_event_type_group.keys():
+                target_event_type_group.create_dataset(
+                    key,
+                    data=source_event_type_group[key][()],
+                )
+            del h5_file_2["events"]["event_type_1"]
+
+        self.assertRaisesRegex(
+            IdeasError,
+            "Input events must be provided as a single path to an h5 file.",
+            run_peri_event_workflow,
+            input_cellset_files=self.input_cellset_isxd_files,
+            input_events_h5_file=[input_events_h5_file_1, input_events_h5_file_2],
+            event_type=input_parameters["event_types"],
+            visual_window_pre=input_parameters["visual_window"]["pre"],
+            visual_window_post=input_parameters["visual_window"]["post"],
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
+                "post"
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
+            num_shuffles=input_parameters["num_shuffles"],
+            significance_threshold=input_parameters["significance_threshold"],
+            seed=input_parameters["seed"],
+            output_dir=self.output_dir,
+        )
+
+    def test_peri_event_workflow_rejects_csv_events_input(self):
+        """Reject CSV event inputs and enforce H5-only event file support."""
+        input_parameters = self._default_peri_event_params(event_types=["event_type_1"])
+
+        input_events_csv_file = os.path.join(self.output_dir, "events.csv")
+        with h5py.File(self.input_events_h5_file, "r") as h5_events:
+            event_times = h5_events["events"]["event_type_1"]["Time"][:]
+        event_df = pd.DataFrame({"Time": event_times, "Event_Type": "event_type_1"})
+        event_df.to_csv(input_events_csv_file, header=False, index=False)
+
+        self.assertRaisesRegex(
+            IdeasError,
+            "Unsupported events file format '.csv'.*Expected h5.",
+            run_peri_event_workflow,
+            input_cellset_files=self.input_cellset_isxd_files,
+            input_events_h5_file=input_events_csv_file,
+            event_type=input_parameters["event_types"],
+            visual_window_pre=input_parameters["visual_window"]["pre"],
+            visual_window_post=input_parameters["visual_window"]["post"],
+            statistical_window_pre_start=input_parameters["statistical_window"]["pre"][
+                0
+            ],
+            statistical_window_pre_end=input_parameters["statistical_window"]["pre"][1],
+            statistical_window_post_start=input_parameters["statistical_window"][
+                "post"
+            ][0],
+            statistical_window_post_end=input_parameters["statistical_window"]["post"][
+                1
+            ],
+            num_shuffles=input_parameters["num_shuffles"],
+            significance_threshold=input_parameters["significance_threshold"],
+            seed=input_parameters["seed"],
+            output_dir=self.output_dir,
+        )
 
     def test_peri_event_single_cell_analysis_no_modulated_cells(self):
         # tests the case where there are zero modulated cells

@@ -1,10 +1,9 @@
-import json
 import math
 import os
 import pathlib
 import shutil
 from collections import OrderedDict
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import h5py
 import isx
@@ -12,10 +11,7 @@ import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from ideas.analysis.utils import (
-    _sort_isxd_files_by_start_time,
-    get_file_size,
-)
+from ideas.analysis.utils import _sort_isxd_files_by_start_time, get_file_size
 from ideas.exceptions import IdeasError
 from ideas.tools import log, outputs
 from ideas.tools.types import IdeasFile
@@ -1041,6 +1037,17 @@ def validate_peri_event_workflow_parameters(params):
                 ),
             )
 
+    # validate event types
+    if not isinstance(params["event_types"], list):
+        raise IdeasError(
+            "The event types must be specified as a list of strings.",
+        )
+
+    if not all(isinstance(event_type, str) for event_type in params["event_types"]):
+        raise IdeasError(
+            "All event types must be strings.",
+        )
+
     # validate visual window
     if "pre" not in params["visual_window"] or "post" not in params["visual_window"]:
         raise IdeasError(
@@ -1158,6 +1165,98 @@ def validate_peri_event_workflow_parameters(params):
                         f" 'auto' or 'min,max' (e.g. -1,1) where the minimum and "
                         f"maximum are not equal.",
                     )
+
+
+def normalize_event_types(
+    event_type: Optional[Union[str, List[str]]] = None,
+) -> List[str]:
+    """Normalize event type input into ordered unique event names.
+
+    Accepts one of:
+    - a single event type string,
+    - a comma-separated string of event types,
+    - a list of event type strings.
+
+    Returns event type names in user-provided order after trimming whitespace,
+    removing empty values, and removing duplicates.
+    """
+    raw_event_types = event_type
+
+    if raw_event_types is None:
+        return []
+
+    if isinstance(raw_event_types, str):
+        parsed_event_types = [x.strip() for x in raw_event_types.split(",")]
+        parsed_event_types = [x for x in parsed_event_types if len(x) > 0]
+    elif isinstance(raw_event_types, list):
+        if not all(isinstance(x, str) for x in raw_event_types):
+            raise IdeasError("All event types must be strings.")
+        parsed_event_types = [x.strip() for x in raw_event_types if len(x.strip()) > 0]
+    else:
+        raise IdeasError(
+            "Event type input must be specified as a string or a list of strings.",
+        )
+
+    # preserve user order and remove duplicates
+    return list(dict.fromkeys(parsed_event_types))
+
+
+def normalize_event_input(input_events_file: Optional[Union[pathlib.Path, str]]) -> str:
+    """Normalize single events file input to a file path."""
+    if input_events_file is None:
+        raise IdeasError("An events file path must be provided.")
+
+    if isinstance(input_events_file, (str, pathlib.Path)):
+        return str(input_events_file)
+
+    raise IdeasError(
+        "Input events must be provided as a single path to an h5 file.",
+    )
+
+
+def load_events_from_file(input_events_file: str) -> OrderedDict:
+    """Load events from a single h5 event file into event_type -> timestamps mapping."""
+    if not input_events_file:
+        raise IdeasError("An events file path must be provided.")
+
+    event_file = input_events_file
+    suffix = pathlib.Path(event_file).suffix.lower()
+
+    if suffix == ".h5":
+        events_by_type = OrderedDict()
+        with h5py.File(event_file, "r") as events_data:
+            if "events" not in events_data:
+                raise IdeasError(
+                    f"The events file '{os.path.basename(event_file)}' does not contain an 'events' group.",
+                )
+
+            for event_type_name in events_data["events"].keys():
+                event_group = events_data["events"][event_type_name]
+                if "Time" not in event_group:
+                    raise IdeasError(
+                        f"The events file '{os.path.basename(event_file)}' does not contain "
+                        f"timestamps for event type '{event_type_name}'.",
+                    )
+
+                event_times = np.asarray(event_group["Time"][:], dtype=float)
+                events_by_type[event_type_name] = np.sort(event_times)
+    else:
+        raise IdeasError(
+            f"Unsupported events file format '{suffix}' for file "
+            f"'{os.path.basename(event_file)}'. Expected h5."
+        )
+
+    return events_by_type
+
+
+def _event_type_subdir_to_output_prefix(event_type_subdir: str) -> str:
+    """Build a stable prefix for registered output files from an event-type subdir."""
+    if event_type_subdir.startswith("event_type_"):
+        prefix_root = event_type_subdir[len("event_type_") :]
+    else:
+        prefix_root = event_type_subdir
+    prefix_root = prefix_root.replace(" ", "_")
+    return f"{prefix_root}_"
 
 
 def peri_event_population_analysis(
@@ -1891,7 +1990,7 @@ def peri_event_analysis_for_single_event_type(
     traces_df,
     traces_timepoints,
     footprints,
-    events_data,
+    events_by_type,
     event_type,
     valid_cells,
     visual_window,
@@ -1914,7 +2013,7 @@ def peri_event_analysis_for_single_event_type(
     :param traces_df: dataframe containing individual cell traces (rows=timepoints, columns=cells)
     :param traces_timepoints: timestamps for the cellular activity traces
     :param footprints: footprints array (num_cells, width, height)
-    :param events_data: h5 file object containing the events data
+    :param events_by_type: mapping of event type to event timestamps
     :param event_type: string representing the event type to analyze
     :param valid_cells: list of cell names to process
     :param visual_window: window of time to use for visualization purposes (pre, post)
@@ -1957,23 +2056,14 @@ def peri_event_analysis_for_single_event_type(
         )
     )
     # read event times
-    try:
-        event_times_by_type = events_data["events"][event_type]
-    except KeyError:
+    if event_type not in events_by_type:
         raise IdeasError(
             "The event type '{0}' does not exist in the events file.".format(
                 event_type
             ),
         )
 
-    try:
-        event_times = event_times_by_type["Time"][:]
-    except KeyError:
-        raise IdeasError(
-            "The events file does not contain timestamps for event type '{0}'.".format(
-                event_type
-            ),
-        )
+    event_times = np.asarray(events_by_type[event_type], dtype=float)
 
     # convert event times to the corresponding trace time indices
     # (trace time indices correspond to frame indices in the movie they were derived from)
@@ -2259,18 +2349,7 @@ def peri_event_analysis_for_single_event_type(
         },
     ]
 
-    output_path = pathlib.Path(output_dir)
-    output_metadata = {
-        str(
-            (output_path / output_traces_csv_filename).relative_to(output_path.parent)
-        ): metadata_values,
-        str(
-            (output_path / output_stats_csv_filename).relative_to(output_path.parent)
-        ): metadata_values,
-    }
-
-    with open("output_metadata.json", "w") as f:
-        json.dump(output_metadata, f, indent=4)
+    return metadata_values
 
     # aligned_traces_metadata = {
     #     config.IDEAS_METADATA_KEY: {
@@ -2372,8 +2451,8 @@ def peri_event_analysis_for_single_event_type(
 
 def run_peri_event_workflow(
     input_cellset_files: List[pathlib.Path],
-    input_events_h5_file: pathlib.Path,
-    event_type: str,
+    input_events_h5_file: Union[pathlib.Path, str],
+    event_type: Optional[Union[str, List[str]]] = None,
     visual_window_pre: float = -2.0,
     visual_window_post: float = 2.0,
     statistical_window_pre_start: float = -1.0,
@@ -2395,8 +2474,9 @@ def run_peri_event_workflow(
     """Peri-event analysis workflow.
 
     :param input_cellset_files: list of paths to the cell set files
-    :param input_events_h5_file: path to the events file
-    :param event_type: string representing an event type (currently only supports 1 event type)
+    :param input_events_h5_file: path to events h5 file
+    :param event_type: event type(s) to analyze. Supports a single event type string,
+     a comma-separated string, or a list of event type strings.
     :param visual_window_pre: time in seconds before each event to use for visualization
     :param visual_window_post: time in seconds after each event to use for visualization
     :param statistical_window_pre_start: start of time range in seconds before each event
@@ -2421,6 +2501,7 @@ def run_peri_event_workflow(
     :param activity_by_modulation_plot_limits: y-axis range (z-score) applied to the event-aligned
      activity by modulation plot specified as 'min,max' (e.g. -1,1) or 'auto'
     :param output_dir: path to the output directory
+    :return: map of event-type output subdirectory to metadata entries
     """
     logger.info("Starting the peri-event analysis workflow")
 
@@ -2451,19 +2532,20 @@ def run_peri_event_workflow(
     if output_dir is None:
         output_dir = os.getcwd()
 
+    input_events_file = normalize_event_input(input_events_h5_file)
+
     # validate input files exist
-    for f in [
-        *input_cellset_files,
-        input_events_h5_file,
-    ]:
+    for f in [*input_cellset_files, input_events_file]:
         if not os.path.exists(f):
             raise IdeasError(
                 "Input file '{0}' does not exist.".format(os.path.basename(f)),
             )
 
     # construct parameter dictionary
+    normalized_event_types = normalize_event_types(event_type=event_type)
+
     parameters = {
-        "event_types": [event_type],
+        "event_types": normalized_event_types,
         "visual_window": {
             "pre": visual_window_pre,
             "post": visual_window_post,
@@ -2660,26 +2742,30 @@ def run_peri_event_workflow(
             "The statistical window must be contained within the visual window.",
         )
     # retrieve event types to consider from parameters
-    events_data = h5py.File(input_events_h5_file, "r")
-    try:
-        event_types = parameters["event_types"]
-    except KeyError:
-        # if event types is not specified, process all event types in the h5 file
-        event_types = list(events_data["events"].keys())
+    events_by_type = load_events_from_file(input_events_file)
+    if len(events_by_type) == 0:
+        raise IdeasError(
+            "No event types were found across the provided events file(s)."
+        )
 
-    # if empty list provided, process all event types in the h5 file
-    if len(event_types) == 0:
-        event_types = list(events_data["events"].keys())
+    try:
+        selected_event_types = parameters["event_types"]
+    except KeyError:
+        selected_event_types = list(events_by_type.keys())
+
+    # if empty list provided, process all event types in the h5 files
+    if len(selected_event_types) == 0:
+        selected_event_types = list(events_by_type.keys())
 
     # retain unique event types to avoid processing same event type more than once
-    event_types = np.unique(event_types).tolist()
+    selected_event_types = list(dict.fromkeys(selected_event_types))
 
+    output_metadata_by_event_subdir = {}
     # perform peri-event analysis for each event type independently
-    for event_type_name in event_types:
+    for event_type_name in selected_event_types:
         # create output directory to store outputs for this event type
-        event_type_output_dir = os.path.join(
-            output_dir, "event_type_{0}".format(event_type)
-        )
+        event_type_subdir = "event_type_{0}".format(event_type_name)
+        event_type_output_dir = os.path.join(output_dir, event_type_subdir)
 
         if not os.path.exists(event_type_output_dir):
             os.makedirs(event_type_output_dir)
@@ -2688,11 +2774,11 @@ def run_peri_event_workflow(
             os.mkdir(event_type_output_dir)
 
         # run peri-event analysis
-        peri_event_analysis_for_single_event_type(
+        metadata_values = peri_event_analysis_for_single_event_type(
             traces_df=standardized_traces_df,
             traces_timepoints=traces_timepoints,
             footprints=footprints,
-            events_data=events_data,
+            events_by_type=events_by_type,
             event_type=event_type_name,
             valid_cells=cell_names_to_process,
             visual_window=visual_window_frames,
@@ -2708,25 +2794,18 @@ def run_peri_event_workflow(
             cmap=cmap,
             output_dir=event_type_output_dir,
             input_cellset_files=input_cellset_files,
-            input_events_h5_file=input_events_h5_file,
+            input_events_h5_file=input_events_file,
         )
-
-        # # save output manifest to disk
-        # save_output_manifest(peri_event_analysis_group, output_dir)
-
-        # # save output metadata manifest to disk
-        # peri_event_analysis_group.add_group_metadata(
-        #     key="event_type", value=event_type_name
-        # )
-        # save_metadata_manifest(peri_event_analysis_group, output_dir)
+        output_metadata_by_event_subdir[event_type_subdir] = metadata_values
 
     logger.info("Peri-event analysis workflow completed")
+    return output_metadata_by_event_subdir
 
 
 def run_peri_event_workflow_ideas_wrapper(
     input_cellset_files: List[IdeasFile],
     input_events_h5_file: IdeasFile,
-    event_type: str,
+    event_type: Optional[Union[str, List[str]]] = None,
     visual_window_pre: float = -2.0,
     visual_window_post: float = 2.0,
     statistical_window_pre_start: float = -1.0,
@@ -2747,8 +2826,9 @@ def run_peri_event_workflow_ideas_wrapper(
     """IDEAS wrapper for Inscopix for peri-event analysis algorithm.
 
     :param input_cellset_files: list of paths to the cell set files
-    :param input_events_h5_file: path to the events file
-    :param event_type: string representing an event type (currently only supports 1 event type)
+    :param input_events_h5_file: path to events h5 file
+    :param event_type: event type(s) to analyze. Supports a single event type string,
+     a comma-separated string, or a list of event type strings.
     :param visual_window_pre: time in seconds before each event to use for visualization
     :param visual_window_post: time in seconds after each event to use for visualization
     :param statistical_window_pre_start: start of time range in seconds before each event
@@ -2774,7 +2854,7 @@ def run_peri_event_workflow_ideas_wrapper(
      activity by modulation plot specified as 'min,max' (e.g. -1,1) or 'auto'
     """
 
-    run_peri_event_workflow(
+    output_metadata_by_event_subdir = run_peri_event_workflow(
         input_cellset_files=input_cellset_files,
         input_events_h5_file=input_events_h5_file,
         event_type=event_type,
@@ -2800,51 +2880,62 @@ def run_peri_event_workflow_ideas_wrapper(
         logger.info("Registering output data")
         with outputs.register(raise_missing_file=False) as output_data:
             output_dir = pathlib.Path.cwd()
-            metadata = outputs._load_and_remove_output_metadata()
             subdirectories = [
                 str(x.relative_to(output_dir))
                 for x in output_dir.iterdir()
                 if x.is_dir()
             ]
-            event_types = [x for x in subdirectories if x.startswith("event_type")]
+            event_types = sorted(
+                [x for x in subdirectories if x.startswith("event_type")]
+            )
 
             for event_type in event_types:
+                event_type_prefix = _event_type_subdir_to_output_prefix(event_type)
                 output_file = (
                     output_data.register_file(
-                        "event_aligned_activity.TRACES.csv", subdir=event_type
+                        "event_aligned_activity.TRACES.csv",
+                        subdir=event_type,
+                        prefix=event_type_prefix,
                     )
                     .register_preview(
-                        "event_aligned_population_activity.preview.svg",
+                        f"{event_type}/event_aligned_population_activity.preview.svg",
+                        prefix=event_type_prefix,
                         caption="Event-aligned average population activity line plot",
                     )
                     .register_preview(
-                        "event_aligned_single_cell_activity_heatmap.preview.svg",
+                        f"{event_type}/event_aligned_single_cell_activity_heatmap.preview.svg",
+                        prefix=event_type_prefix,
                         caption="Event-aligned single-cell activity heatmap",
                     )
                 )
-                for md in metadata.get(
-                    f"{event_type}/event_aligned_activity.TRACES.csv", {}
-                ):
+                for md in output_metadata_by_event_subdir.get(event_type, []):
                     output_file.register_metadata(**md)
 
                 output_file = (
                     output_data.register_file(
-                        "event_aligned_activity.STATISTICS.csv", subdir=event_type
+                        "event_aligned_activity.STATISTICS.csv",
+                        subdir=event_type,
+                        prefix=event_type_prefix,
                     )
                     .register_preview(
-                        "event_aligned_activity_by_modulation.preview.svg",
+                        f"{event_type}/event_aligned_activity_by_modulation.preview.svg",
+                        prefix=event_type_prefix,
                         caption="Event-aligned average sub-population activity line plot",
                     )
                     .register_preview(
-                        "cell_map.preview.svg",
+                        f"{event_type}/cell_map.preview.svg",
+                        prefix=event_type_prefix,
                         caption="Cell map visualizing spatial organization of modulation",
                     )
                 )
-                for md in metadata.get(
-                    f"{event_type}/event_aligned_activity.STATISTICS.csv", {}
-                ):
+                for md in output_metadata_by_event_subdir.get(event_type, []):
                     output_file.register_metadata(**md)
 
         logger.info("Registered output data")
-    except Exception:
-        logger.exception("Failed to generate output data!")
+    except IdeasError:
+        raise
+    except Exception as exc:
+        logger.exception("Failed to generate output data")
+        raise IdeasError(
+            "Failed to register peri-event output files, previews, or metadata."
+        ) from exc
