@@ -191,7 +191,7 @@ class TestPeriEventWorkflow(unittest.TestCase):
             self.assertTrue(os.path.exists(f))
 
     def test_peri_event_workflow_multiple_event_types_single_run(self):
-        """Run peri-event once for two event types and verify both output folders."""
+        """Run peri-event once for two event types and verify prefixed outputs for both."""
         input_parameters = self._default_peri_event_params(
             event_types=["event_type_1", "event_type_2"]
         )
