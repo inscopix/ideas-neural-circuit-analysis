@@ -100,3 +100,5 @@ run-all: build validate-ideas-cli
 	for f in .ideas/*/; do \
 		${IDEAS_CLI} tools run -s -c -n "$$(basename "$$f")"; \
 	done
+
+run-all-fresh: clean-venv venv run-all
