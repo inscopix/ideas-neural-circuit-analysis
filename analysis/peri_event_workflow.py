@@ -2071,9 +2071,12 @@ def peri_event_analysis_for_single_event_type(
     )
     # read event times
     if event_type not in events_by_type:
+        available_event_types = sorted(events_by_type.keys())
         raise IdeasError(
-            "The event type '{0}' does not exist in the events file.".format(
-                event_type
+            "The event type '{0}' does not exist in the events file. "
+            "Available event types are: {1}. Ensure the input event types are "
+            "spelled correctly, and were used to generate the input h5 events file.".format(
+                event_type, available_event_types
             ),
         )
 
