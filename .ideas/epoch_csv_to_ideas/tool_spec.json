@@ -101,5 +101,5 @@
     },
     "description": "Synchronize annotations in an state-based TSV or CSV file, where each row is an state, to ISXD cell set file(s)",
     "visibility": "public",
-    "version": "2.9.0"
+    "version": "3.0.0"
 }
