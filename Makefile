@@ -14,6 +14,12 @@ endif
 ROOT_DIR := $(shell dirname $(shell readlink -f $(firstword $(MAKEFILE_LIST))))
 VENV = $(ROOT_DIR)/.venv
 
+# IDEAS CLI is used to execute tools locally
+# It's installed in the project venv, but can be overwritten to a customized local version instead.
+ifndef IDEAS_CLI
+	IDEAS_CLI=${VENV}/bin/ideas
+endif
+
 # Update the tool specs whenever a new version of a container image is created
 TOOL_SPECS=${shell ls -d .ideas/*/tool_spec.json}
 
@@ -26,6 +32,9 @@ clean:
 
 clean-venv:
 	rm -rf $(VENV)
+
+validate-ideas-cli:
+	@test -f ${IDEAS_CLI} || { echo "Error: IDEAS CLI not found. Ensure you have run 'make venv', or override and use your own install of the cli by specifying a value for IDEAS_CLI when executing make commands"; exit 1; }
 
 venv: .venv/touchfile
 
@@ -83,8 +92,13 @@ ruff-check: venv
 
 # Run a tool in the repo
 # Specify the tool key to run
-run: build
-	ideas tools run $(tool) -s -c -n
+run: build validate-ideas-cli
+	${IDEAS_CLI} tools run $(tool) -s -c -n
 
-run-all: build
-	@$(foreach f, $(shell ls -d .ideas/*/), ideas tools run -s -c -n $(shell basename $(f));)
+run-all: build validate-ideas-cli
+	@set -e; \
+	for f in .ideas/*/; do \
+		${IDEAS_CLI} tools run -s -c -n "$$(basename "$$f")"; \
+	done
+
+run-all-fresh: clean-venv venv run-all
